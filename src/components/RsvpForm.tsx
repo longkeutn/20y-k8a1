@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CheckCircle2, Send, Loader2, Sparkles, Shirt, Info, Award, UserCheck } from 'lucide-react';
 import { RsvpData } from '../types';
 import { triggerFullscreenFireworks } from '../utils/confetti';
+import QuickShare from './QuickShare';
 
 interface RsvpFormProps {
   appsScriptUrl: string;
@@ -183,7 +184,6 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
                 <option value="3XL">Size 3XL (Trên 90kg)</option>
               </select>
             </div>
-          </div>
 
           {/* Size Chart Popover */}
           {showSizeGuide && (
