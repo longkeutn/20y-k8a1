@@ -3,10 +3,7 @@ import {
   Camera, 
   Image as ImageIcon, 
   Video, 
-  HelpCircle, 
-  Upload, 
   Eye, 
-  Loader2, 
   ArrowRight,
   Maximize2,
   Minimize2,
@@ -22,24 +19,16 @@ import { MemoryImage, MemoryVideo } from '../types';
 import NostalgiaTimeline from './NostalgiaTimeline';
 
 interface MemoryCornerProps {
-  appsScriptUrl: string;
+  appsScriptUrl?: string;
   images: MemoryImage[];
   videos: MemoryVideo[];
-  onAddImage: (newImage: MemoryImage) => void;
+  onAddImage?: (newImage: MemoryImage) => void;
 }
 
 export default function MemoryCorner({ appsScriptUrl, images, videos, onAddImage }: MemoryCornerProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
-  const [showDriveGuide, setShowDriveGuide] = useState(false);
-  const [uploaderName, setUploaderName] = useState('');
-  const [caption, setCaption] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lightboxRef = useRef<HTMLDivElement | null>(null);
 
   const currentImage = selectedImageIndex !== null ? images[selectedImageIndex] : null;
@@ -144,104 +133,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos, onAddImage
     };
   }, [selectedImageIndex]);
 
-  // Read and convert file to base64 for submission
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!uploaderName.trim()) {
-      setUploadError('Vui lòng nhập tên người gửi trước khi chọn ảnh!');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-    setUploadSuccess(null);
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Data = reader.result as string;
-
-      if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
-        // Real upload to Google Drive via Google Apps Script
-        try {
-          await fetch(appsScriptUrl, {
-            method: 'POST',
-            mode: 'no-cors', // Standard Google Apps Script POST
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'upload_photo',
-              uploaderName: uploaderName.trim(),
-              fileData: base64Data
-            })
-          });
-
-          const simulatedNewImg: MemoryImage = {
-            id: `user-${Date.now()}`,
-            url: base64Data,
-            caption: caption.trim() || `Ảnh gửi từ bạn ${uploaderName}`,
-            date: 'Mới đăng tải',
-            isUserUploaded: true
-          };
-
-          onAddImage(simulatedNewImg);
-          setUploadSuccess('Ảnh của bạn đã được gửi thành công lên thư mục Google Drive của lớp! ❤️');
-          setCaption('');
-          if (fileInputRef.current) fileInputRef.current.value = '';
-        } catch (error) {
-          console.error('Lỗi khi tải lên Google Drive:', error);
-          setUploadError('Có lỗi xảy ra khi truyền ảnh lên Google Drive. Đã tạm thời lưu hiển thị cục bộ!');
-          
-          const localNewImg: MemoryImage = {
-            id: `user-${Date.now()}`,
-            url: base64Data,
-            caption: caption.trim() || `Ảnh gửi từ bạn ${uploaderName}`,
-            date: 'Mới đăng tải',
-            isUserUploaded: true
-          };
-          onAddImage(localNewImg);
-        } finally {
-          setIsUploading(false);
-        }
-      } else {
-        // Simulation mode
-        setTimeout(() => {
-          const simulatedNewImg: MemoryImage = {
-            id: `user-${Date.now()}`,
-            url: base64Data,
-            caption: caption.trim() || `Ảnh gửi từ bạn ${uploaderName}`,
-            date: 'Mới đăng tải (Giả lập)',
-            isUserUploaded: true
-          };
-
-          onAddImage(simulatedNewImg);
-          setUploadSuccess('Giả lập tải ảnh thành công! Ảnh đã được hiển thị trực tiếp lên Bộ sưu tập.');
-          setCaption('');
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          setIsUploading(false);
-        }, 1000);
-      }
-    };
-
-    reader.onerror = () => {
-      setUploadError('Lỗi đọc file từ thiết bị.');
-      setIsUploading(false);
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  const triggerFileInput = () => {
-    if (!uploaderName.trim()) {
-      setUploadError('Vui lòng điền Tên người gửi trước để BTC biết ai đã tải ảnh lên nhé! 😊');
-      return;
-    }
-    fileInputRef.current?.click();
-  };
-
   return (
     <div id="memory-corner-section" className="space-y-8">
       {/* Memories Video - Editorial Style */}
@@ -251,34 +142,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos, onAddImage
             <Video className="w-4 h-4 text-brand-gold" />
             <h3 className="text-xs uppercase tracking-[0.2em] font-sans font-bold text-brand-text">Thước Phim Ngày Ấy</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowDriveGuide(!showDriveGuide)}
-            className="flex items-center gap-1 text-[10px] uppercase font-sans tracking-wider text-brand-gold hover:underline font-bold cursor-pointer"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-            <span>Cách lấy link?</span>
-          </button>
+          <span className="text-[10px] font-sans font-bold text-brand-gold uppercase tracking-wider">
+            K8A1 (2003 — 2006)
+          </span>
         </div>
-
-        {showDriveGuide && (
-          <div className="bg-[#FAF9F6] p-4 rounded-sm text-xs space-y-2 border border-brand-border leading-relaxed text-brand-text-muted font-serif italic">
-            <p className="font-bold text-brand-text font-sans uppercase tracking-wider not-italic text-[10px]">Cách nhúng video từ Google Drive vào web:</p>
-            <ol className="list-decimal pl-4 space-y-1">
-              <li>Mở video trên Google Drive bằng máy tính.</li>
-              <li>Bấm vào biểu tượng <strong>Ba chấm đứng</strong> ở góc trên bên phải → chọn <strong>Mở trong cửa sổ mới</strong>.</li>
-              <li>Trong cửa sổ mới, bấm tiếp vào <strong>Ba chấm đứng</strong> → chọn <strong>Nhúng mục...</strong>.</li>
-              <li>Sao chép thuộc tính <code>src</code> (ví dụ: <code>https://drive.google.com/file/d/.../preview</code>) hoặc dán toàn bộ mã iframe.</li>
-            </ol>
-            <button
-              type="button"
-              onClick={() => setShowDriveGuide(false)}
-              className="text-brand-gold hover:underline font-sans font-bold uppercase tracking-wider text-[10px] not-italic block mt-1 cursor-pointer"
-            >
-              Đóng hướng dẫn
-            </button>
-          </div>
-        )}
 
         {videos.map((vid) => (
           <div key={vid.id} className="space-y-2">
@@ -389,84 +256,31 @@ export default function MemoryCorner({ appsScriptUrl, images, videos, onAddImage
         </div>
       </div>
 
-      {/* Interactive Photo Upload Form - Editorial Style */}
-      <div id="photo-upload-card" className="bg-white rounded-sm p-6 md:p-8 shadow-xs border border-brand-border space-y-5">
-        <div className="text-left space-y-1.5 border-b border-brand-border pb-4">
-          <span className="text-[10px] font-bold tracking-[0.2em] font-sans text-brand-gold uppercase">GÓP ẢNH CHUNG VUI</span>
-          <h4 className="text-lg font-light text-brand-text font-serif">Đóng Góp Hình Ảnh Kỷ Niệm</h4>
-          <p className="text-xs text-brand-text-muted font-serif italic">
-            Gửi những bức ảnh tự chụp, ảnh ngày xưa hoặc ảnh trực tiếp tại sự kiện để ban tổ chức lưu giữ và cập nhật vào thư mục chung của lớp nhé!
+      {/* Photo Contribution Banner - Direct to Zalo/Drive */}
+      <div id="photo-upload-card" className="bg-gradient-to-r from-[#FAF8F5] via-[#FFFDF9] to-[#F5EFE6] rounded-sm p-6 md:p-8 shadow-xs border border-brand-gold/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="text-left space-y-2 max-w-xl">
+          <span className="text-[10px] font-bold tracking-[0.2em] font-sans text-brand-gold uppercase flex items-center gap-1.5">
+            <Camera className="w-3.5 h-3.5" />
+            <span>GÓP ẢNH CHUNG VUI • K8A1</span>
+          </span>
+          <h4 className="text-lg md:text-xl font-serif text-brand-text font-bold">
+            Bạn Còn Giữ Tấm Ảnh Cũ Nào Thời Cấp 3 Không?
+          </h4>
+          <p className="text-xs text-brand-text-muted font-serif italic leading-relaxed">
+            Hãy gửi ngay những bức ảnh kỷ niệm thời 2003 – 2006 hoặc ảnh chụp mới nhất vào Nhóm Zalo Lớp để Ban tổ chức tổng hợp vào Video & Kỷ yếu 20 Năm nhé!
           </p>
         </div>
 
-        <div className="space-y-6 max-w-md">
-          <div>
-            <label htmlFor="uploaderName" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-              Tên người gửi <span className="text-brand-rose">*</span>
-            </label>
-            <input
-              type="text"
-              id="uploaderName"
-              placeholder="Nhập tên của bạn để lưu danh"
-              required
-              value={uploaderName}
-              onChange={(e) => setUploaderName(e.target.value)}
-              className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="imageCaption" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-              Lời tựa cho bức ảnh (Không bắt buộc)
-            </label>
-            <input
-              type="text"
-              id="imageCaption"
-              placeholder="Ví dụ: Đội bóng lớp mình năm 2005"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
-            />
-          </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            className="hidden"
-          />
-
-          {uploadError && (
-            <div className="p-3 bg-red-50 border border-red-100 text-xs text-red-600 rounded-sm">
-              {uploadError}
-            </div>
-          )}
-
-          {uploadSuccess && (
-            <div className="p-3.5 bg-brand-gold-light/50 border border-brand-border text-xs text-brand-text rounded-sm leading-relaxed italic">
-              {uploadSuccess}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={triggerFileInput}
-            disabled={isUploading}
-            className="w-full bg-brand-text hover:bg-brand-text/90 text-white font-sans font-bold text-xs uppercase tracking-widest py-3.5 px-4 rounded-sm shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+        <div className="shrink-0 w-full sm:w-auto">
+          <a
+            href="https://zalo.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 w-full sm:w-auto bg-brand-text hover:bg-brand-gold text-white text-xs font-sans font-bold uppercase tracking-wider rounded-sm shadow-xs transition-colors cursor-pointer"
           >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Đang truyền tải ảnh lên Google Drive...
-              </>
-            ) : (
-              <>
-                <Upload className="w-3.5 h-3.5" />
-                Chọn Ảnh Từ Máy & Gửi Ngay
-              </>
-            )}
-          </button>
+            <Camera className="w-4 h-4 text-brand-gold" />
+            <span>Gửi Ảnh Vào Nhóm Zalo Lớp</span>
+          </a>
         </div>
       </div>
 

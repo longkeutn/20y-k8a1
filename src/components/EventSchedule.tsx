@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Calendar, MapPin, Sparkles, Download, CheckCircle, ExternalLink } from 'lucide-react';
+import { Clock, Calendar, MapPin, Sparkles, CheckCircle, ExternalLink } from 'lucide-react';
 import { EVENT_SCHEDULE } from '../data';
 import { ScheduleItem } from '../types';
 import InteractiveMap from './InteractiveMap';
@@ -14,31 +14,6 @@ export default function EventSchedule() {
     // 2026-09-27T08:30:00 to 2026-09-27T15:30:00 in UTC (01:30 to 08:30)
     const dates = "20260927T013000Z/20260927T083000Z";
     window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`, '_blank');
-  };
-
-  const handleDownloadIcs = () => {
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Hoi Ngo 20 Nam//Lop K8A1 THPT Thai Nguyen//VI
-CALSCALE:GREGORIAN
-BEGIN:VEVENT
-SUMMARY:Hội ngộ 20 năm: Lớp K8A1 - Trường THPT Thái Nguyên (2006 - 2026)
-DESCRIPTION:Kỷ niệm 20 năm ngày ra trường Lớp K8A1 (Khóa 8), THPT Thái Nguyên tại Crown Palace Thái Nguyên. Đón tiếp từ 08:30 sáng.
-LOCATION:Trung tâm sự kiện - tiệc cưới Crown Palace, 779 Dương Tự Minh, TP. Thái Nguyên
-DTSTART:20260927T013000Z
-DTEND:20260927T083000Z
-STATUS:CONFIRMED
-END:VEVENT
-END:VCALENDAR`;
-
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'Hoi-Ngo-20-Nam-Lop-K8A1-27-09-2026.ics');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
@@ -81,14 +56,6 @@ END:VCALENDAR`;
             >
               <Calendar className="w-3.5 h-3.5 text-brand-gold" />
               <span>Thêm vào Google Calendar</span>
-            </button>
-            <button
-              onClick={handleDownloadIcs}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-brand-bg-alt text-brand-text text-xs font-sans font-bold uppercase tracking-wider border border-brand-border rounded-xs cursor-pointer transition-colors"
-              title="Tải tệp .ICS về máy (hỗ trợ Apple Calendar, Outlook)"
-            >
-              <Download className="w-3.5 h-3.5 text-brand-gold" />
-              <span>Tải .ICS</span>
             </button>
           </div>
         </div>

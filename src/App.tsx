@@ -44,7 +44,6 @@ import DeveloperGuide from './components/DeveloperGuide';
 // Advanced Components
 import StudentPassModal from './components/StudentPassModal';
 import EventSchedule from './components/EventSchedule';
-import SponsorAndFinance from './components/SponsorAndFinance';
 
 type NavTab = 
   | 'all' 
@@ -557,7 +556,7 @@ export default function App() {
                 </section>
               )}
 
-              {/* SECTION 3: MEMORIES & WISHES & CONDENSED FINANCE */}
+              {/* SECTION 3: MEMORIES & WISHES (EMOTIONAL NOSTALGIA FOCUS) */}
               {(activeTab === 'all' || activeTab === 'memories') && (
                 <section id="nostalgia-memories-section" className="space-y-12 scroll-mt-16">
                   <MemoryCorner 
@@ -570,9 +569,6 @@ export default function App() {
                     appsScriptUrl={appsScriptUrl}
                     wishesList={wishesList}
                     onAddWish={handleAddWish}
-                  />
-                  <SponsorAndFinance 
-                    totalAttendeesCount={rsvpList.filter(a => a.status === 'yes').length}
                   />
                 </section>
               )}
