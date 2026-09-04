@@ -1,6 +1,7 @@
 export interface RsvpData {
   id?: string;
   fullName: string;
+  nickname?: string; // Biệt danh ngày xưa thời cấp 3 (e.g. "Anh Còi", "Tuấn Béo")
   phone: string;
   status: 'yes' | 'no';
   className?: string;

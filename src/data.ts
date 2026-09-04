@@ -17,6 +17,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
     id: '1',
     fullName: 'Nguyễn Minh Anh',
+    nickname: 'Anh Còi',
     phone: '0901234567',
     status: 'yes',
     className: 'K8A1 (Lớp trưởng)',
@@ -29,6 +30,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
     id: '2',
     fullName: 'Trần Thị Mai',
+    nickname: 'Mai Tồ',
     phone: '0912345678',
     status: 'yes',
     className: 'K8A1',
@@ -40,6 +42,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
     id: '3',
     fullName: 'Lê Hoàng Nam',
+    nickname: 'Nam Cận',
     phone: '0987654321',
     status: 'no',
     className: 'K8A1',
@@ -51,6 +54,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
     id: '4',
     fullName: 'Hoàng Kim Yến',
+    nickname: 'Yến Nhỏ',
     phone: '0933221100',
     status: 'yes',
     className: 'K8A1',
@@ -62,6 +66,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
     id: '5',
     fullName: 'Vũ Đức Trọng',
+    nickname: 'Trọng Béo',
     phone: '0944556677',
     status: 'yes',
     className: 'K8A1',

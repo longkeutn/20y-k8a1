@@ -223,9 +223,16 @@ export default function StudentPassModal({
                 <p className="text-[9px] uppercase tracking-wider font-sans text-brand-text-muted font-bold">
                   Họ và Tên Thành Viên
                 </p>
-                <p className="text-lg sm:text-xl font-serif font-bold text-brand-text tracking-wide leading-tight">
-                  {name || 'Họ và Tên Bạn'}
-                </p>
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <p className="text-lg sm:text-xl font-serif font-bold text-brand-text tracking-wide leading-tight">
+                    {name || 'Họ và Tên Bạn'}
+                  </p>
+                  {defaultAttendee?.nickname && (
+                    <span className="text-[10px] font-sans font-bold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300 italic">
+                      "{defaultAttendee.nickname}"
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-brand-gold/20">

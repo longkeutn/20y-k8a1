@@ -13,6 +13,7 @@ interface RsvpFormProps {
 
 export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPassModal }: RsvpFormProps) {
   const [fullName, setFullName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
   const [shirtSize, setShirtSize] = useState('L');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
@@ -37,6 +38,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
     const rsvpPayload: RsvpData = {
       id: `rsvp-${Date.now()}`,
       fullName: fullName.trim(),
+      nickname: nickname.trim() || undefined,
       phone: phone.trim(),
       className: 'K8A1',
       shirtSize: status === 'yes' ? shirtSize : undefined,
@@ -104,6 +106,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
 
         // Clear form
         setFullName('');
+        setNickname('');
         setPhone('');
         setMessage('');
       }, 800);
@@ -140,6 +143,22 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
             </div>
 
             <div>
+              <label htmlFor="nickname" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
+                Biệt danh thời cấp 3 <span className="text-brand-gold text-[9px] font-normal lowercase">(gợi nhớ kỷ niệm xưa)</span>
+              </label>
+              <input
+                type="text"
+                id="nickname"
+                placeholder='Ví dụ: "Tuấn Béo", "Nam Cận", "Mai Tồ"...'
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
               <label htmlFor="phone" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
                 Số điện thoại <span className="text-brand-rose">*</span>
               </label>
@@ -153,7 +172,6 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
                 className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
               />
             </div>
-          </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -184,6 +202,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
                 <option value="3XL">Size 3XL (Trên 90kg)</option>
               </select>
             </div>
+          </div>
 
           {/* Size Chart Popover */}
           {showSizeGuide && (

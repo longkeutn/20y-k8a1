@@ -70,9 +70,10 @@ export default function ConfirmedAttendees({
       // Search term
       if (term) {
         const matchName = (item.fullName || '').toLowerCase().includes(term);
+        const matchNick = (item.nickname || '').toLowerCase().includes(term);
         const matchPhone = (item.phone || '').includes(term);
         const matchMsg = item.message ? item.message.toLowerCase().includes(term) : false;
-        return matchName || matchPhone || matchMsg;
+        return matchName || matchNick || matchPhone || matchMsg;
       }
       return true;
     });
@@ -112,8 +113,9 @@ export default function ConfirmedAttendees({
     }
     text += `------------------------------------\n`;
     confirmedAttendees.forEach((att, idx) => {
+      const nick = att.nickname ? ` ("${att.nickname}")` : '';
       const shirt = att.shirtSize ? ` - Size ${att.shirtSize}` : '';
-      text += `${idx + 1}. ${att.fullName}${shirt}\n`;
+      text += `${idx + 1}. ${att.fullName}${nick}${shirt}\n`;
     });
     text += `------------------------------------\n`;
     text += `👉 Các bạn vào link web để xác nhận tiếp nhé!`;
@@ -363,15 +365,22 @@ export default function ConfirmedAttendees({
                       {String(index + 1).padStart(2, '0')}
                     </td>
 
-                    {/* Name */}
+                    {/* Name & Nickname */}
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-full bg-brand-gold-light text-brand-gold flex items-center justify-center font-serif text-xs font-bold shrink-0 border border-brand-border/30">
                           {attendee.fullName.charAt(0).toUpperCase()}
                         </div>
-                        <p className="font-serif font-bold text-brand-text text-sm leading-tight">
-                          {attendee.fullName}
-                        </p>
+                        <div className="flex flex-wrap items-baseline gap-1.5">
+                          <span className="font-serif font-bold text-brand-text text-sm leading-tight">
+                            {attendee.fullName}
+                          </span>
+                          {attendee.nickname && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-200/80 text-[10px] font-sans font-bold italic" title="Biệt danh thời cấp 3">
+                              "{attendee.nickname}"
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
 
@@ -448,9 +457,16 @@ export default function ConfirmedAttendees({
                       {attendee.fullName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-brand-text font-serif">
-                        {attendee.fullName}
-                      </h4>
+                      <div className="flex flex-wrap items-baseline gap-1.5">
+                        <h4 className="text-xs font-bold text-brand-text font-serif">
+                          {attendee.fullName}
+                        </h4>
+                        {attendee.nickname && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-xs bg-amber-50 text-amber-900 border border-amber-200/80 text-[9px] font-sans font-bold italic">
+                            "{attendee.nickname}"
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-brand-text-muted font-sans">
                         Lớp K8A1 (2003 — 2006)
                       </p>
