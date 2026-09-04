@@ -29,35 +29,35 @@ const ZONES: VenueZone[] = [
   },
   {
     id: 'z-to1',
-    name: 'Bàn Tiệc Chi Hội Tổ 1 - Lớp K8A1 (Bàn 3 & 4)',
+    name: 'Bàn Tiệc Hội Ngộ K8A1 (Dãy Bàn 3 & 4)',
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
-    desc: 'Khu vực tập trung của các thành viên Tổ 1 Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['Tổ 1 - K8A1', 'Menu Crown Palace']
+    desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
+    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
   },
   {
     id: 'z-to2',
-    name: 'Bàn Tiệc Chi Hội Tổ 2 - Lớp K8A1 (Bàn 5 & 6)',
+    name: 'Bàn Tiệc Hội Ngộ K8A1 (Dãy Bàn 5 & 6)',
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
-    desc: 'Khu vực tập trung của các thành viên Tổ 2 Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['Tổ 2 - K8A1', 'Menu Crown Palace']
+    desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
+    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
   },
   {
     id: 'z-to3',
-    name: 'Bàn Tiệc Chi Hội Tổ 3 - Lớp K8A1 (Bàn 7 & 8)',
+    name: 'Bàn Tiệc Hội Ngộ K8A1 (Dãy Bàn 7 & 8)',
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
-    desc: 'Khu vực tập trung của các thành viên Tổ 3 Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['Tổ 3 - K8A1', 'Menu Crown Palace']
+    desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
+    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
   },
   {
     id: 'z-to4',
-    name: 'Bàn Tiệc Chi Hội Tổ 4 - Lớp K8A1 (Bàn 9 & 10)',
+    name: 'Bàn Tiệc Hội Ngộ K8A1 (Dãy Bàn 9 & 10)',
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
-    desc: 'Khu vực tập trung của các thành viên Tổ 4 Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['Tổ 4 - K8A1', 'Menu Crown Palace']
+    desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
+    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
   },
   {
     id: 'z-buffet',
@@ -99,7 +99,7 @@ export default function VenueLayout() {
           Sơ Đồ Bàn Tiệc & Khu Vực Hội Ngộ Lớp K8A1
         </h2>
         <p className="text-xs text-brand-text-muted font-serif italic max-w-xl mx-auto">
-          Bấm vào từng khu vực trên sơ đồ để xem vị trí bàn tiệc của từng tổ và các không gian đón tiếp tại Crown Palace.
+          Bấm vào từng khu vực trên sơ đồ để xem vị trí bàn tiệc và các không gian đón tiếp tại Crown Palace.
         </p>
       </div>
 
@@ -162,7 +162,7 @@ export default function VenueLayout() {
                 }`}
               >
                 <span className="font-serif font-bold text-xs block">Bàn 3 & 4</span>
-                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Tổ 1 — K8A1</span>
+                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Bàn Tiệc K8A1</span>
               </button>
 
               <button
@@ -174,7 +174,7 @@ export default function VenueLayout() {
                 }`}
               >
                 <span className="font-serif font-bold text-xs block">Bàn 5 & 6</span>
-                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Tổ 2 — K8A1</span>
+                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Bàn Tiệc K8A1</span>
               </button>
 
               <button
@@ -186,7 +186,7 @@ export default function VenueLayout() {
                 }`}
               >
                 <span className="font-serif font-bold text-xs block">Bàn 7 & 8</span>
-                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Tổ 3 — K8A1</span>
+                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Bàn Tiệc K8A1</span>
               </button>
 
               <button
@@ -198,7 +198,7 @@ export default function VenueLayout() {
                 }`}
               >
                 <span className="font-serif font-bold text-xs block">Bàn 9 & 10</span>
-                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Tổ 4 — K8A1</span>
+                <span className="text-[10px] font-sans text-brand-gold font-bold uppercase">Bàn Tiệc K8A1</span>
               </button>
             </div>
 

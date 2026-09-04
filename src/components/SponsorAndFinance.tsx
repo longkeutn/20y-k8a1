@@ -37,7 +37,7 @@ export default function SponsorAndFinance({ config, totalAttendeesCount = 45 }: 
           <div className="flex items-center gap-2">
             <Award className="w-4 h-4 text-brand-gold" />
             <h3 className="font-serif font-bold text-base text-brand-text">
-              Danh Sách Tri Ân Bạn Bè & Các Tập Thể Tổ K8A1 Tài Trợ
+              Danh Sách Tri Ân Bạn Bè K8A1 Đồng Lòng Đóng Góp & Tài Trợ
             </h3>
           </div>
           <span className="text-[10px] font-sans font-bold text-brand-gold uppercase tracking-wider">

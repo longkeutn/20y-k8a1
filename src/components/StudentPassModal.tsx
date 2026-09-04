@@ -140,7 +140,7 @@ export default function StudentPassModal({
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               className="w-full px-2 py-1.5 border border-brand-border rounded bg-white text-xs font-serif font-bold text-brand-text focus:outline-none focus:border-brand-gold"
-              placeholder="VD: K8A1 (Tổ 1, 2, 3, 4)"
+              placeholder="VD: K8A1 (2003 - 2006)"
             />
           </div>
           <div>

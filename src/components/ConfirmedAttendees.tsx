@@ -37,7 +37,6 @@ export default function ConfirmedAttendees({
 }: ConfirmedAttendeesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'yes' | 'all' | 'no'>('yes');
-  const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
   const [viewMode, setViewMode] = useState<'compact' | 'cards'>('compact');
   const [visibleCount, setVisibleCount] = useState<number>(15);
@@ -47,17 +46,6 @@ export default function ConfirmedAttendees({
   // Total confirmed
   const confirmedAttendees = useMemo(() => {
     return rsvpList.filter(item => item.status === 'yes');
-  }, [rsvpList]);
-
-  // Extract unique groups/tổ
-  const availableGroups = useMemo(() => {
-    const groups = new Set<string>();
-    rsvpList.forEach(item => {
-      if (item.className && item.className.trim()) {
-        groups.add(item.className.trim());
-      }
-    });
-    return Array.from(groups);
   }, [rsvpList]);
 
   // Calculate shirt size breakdown for BTC
@@ -79,16 +67,12 @@ export default function ConfirmedAttendees({
       if (statusFilter === 'yes' && item.status !== 'yes') return false;
       if (statusFilter === 'no' && item.status !== 'no') return false;
 
-      // Group filter
-      if (selectedGroup !== 'all' && item.className !== selectedGroup) return false;
-
       // Search term
       if (term) {
         const matchName = (item.fullName || '').toLowerCase().includes(term);
         const matchPhone = (item.phone || '').includes(term);
-        const matchClass = (item.className || '').toLowerCase().includes(term);
         const matchMsg = item.message ? item.message.toLowerCase().includes(term) : false;
-        return matchName || matchPhone || matchClass || matchMsg;
+        return matchName || matchPhone || matchMsg;
       }
       return true;
     });
@@ -100,7 +84,7 @@ export default function ConfirmedAttendees({
     }
 
     return result;
-  }, [rsvpList, statusFilter, selectedGroup, searchTerm, sortBy]);
+  }, [rsvpList, statusFilter, searchTerm, sortBy]);
 
   // Displayed slice
   const displayedItems = useMemo(() => {
@@ -129,8 +113,7 @@ export default function ConfirmedAttendees({
     text += `------------------------------------\n`;
     confirmedAttendees.forEach((att, idx) => {
       const shirt = att.shirtSize ? ` - Size ${att.shirtSize}` : '';
-      const to = att.className ? ` (${att.className})` : '';
-      text += `${idx + 1}. ${att.fullName}${to}${shirt}\n`;
+      text += `${idx + 1}. ${att.fullName}${shirt}\n`;
     });
     text += `------------------------------------\n`;
     text += `👉 Các bạn vào link web để xác nhận tiếp nhé!`;
@@ -281,44 +264,28 @@ export default function ConfirmedAttendees({
             </button>
           </div>
 
-          {/* Group Filter & View Mode Toggle */}
-          <div className="flex items-center gap-2">
-            {availableGroups.length > 1 && (
-              <select
-                value={selectedGroup}
-                onChange={(e) => { setSelectedGroup(e.target.value); setVisibleCount(15); }}
-                className="text-[10px] font-sans font-bold uppercase tracking-wider py-1.5 px-2 bg-white border border-brand-border rounded-xs text-brand-text focus:outline-none focus:border-brand-gold cursor-pointer"
-              >
-                <option value="all">Tất cả các Tổ</option>
-                {availableGroups.map((grp) => (
-                  <option key={grp} value={grp}>{grp}</option>
-                ))}
-              </select>
-            )}
-
-            {/* View Mode Toggle */}
-            <div className="flex border border-brand-border rounded-xs overflow-hidden bg-white">
-              <button
-                type="button"
-                onClick={() => setViewMode('compact')}
-                className={`p-1.5 transition-colors cursor-pointer ${
-                  viewMode === 'compact' ? 'bg-brand-gold-light text-brand-gold' : 'text-brand-text-muted hover:text-brand-text'
-                }`}
-                title="Dạng danh bạ tinh gọn (tiết kiệm chỗ)"
-              >
-                <LayoutList className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('cards')}
-                className={`p-1.5 transition-colors cursor-pointer ${
-                  viewMode === 'cards' ? 'bg-brand-gold-light text-brand-gold' : 'text-brand-text-muted hover:text-brand-text'
-                }`}
-                title="Dạng thẻ trực quan"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* View Mode Toggle */}
+          <div className="flex border border-brand-border rounded-xs overflow-hidden bg-white self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setViewMode('compact')}
+              className={`p-1.5 transition-colors cursor-pointer ${
+                viewMode === 'compact' ? 'bg-brand-gold-light text-brand-gold' : 'text-brand-text-muted hover:text-brand-text'
+              }`}
+              title="Dạng danh bạ tinh gọn (tiết kiệm chỗ)"
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`p-1.5 transition-colors cursor-pointer ${
+                viewMode === 'cards' ? 'bg-brand-gold-light text-brand-gold' : 'text-brand-text-muted hover:text-brand-text'
+              }`}
+              title="Dạng thẻ trực quan"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
@@ -379,8 +346,7 @@ export default function ConfirmedAttendees({
               <thead>
                 <tr className="bg-[#FAF9F6] border-b border-brand-border text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text-muted">
                   <th className="py-2.5 px-3 w-12 text-center">STT</th>
-                  <th className="py-2.5 px-3">Họ và Tên</th>
-                  <th className="py-2.5 px-3 hidden sm:table-cell">Lớp / Tổ</th>
+                  <th className="py-2.5 px-3">Họ và Tên Thành Viên</th>
                   <th className="py-2.5 px-3 text-center">Size Áo</th>
                   <th className="py-2.5 px-3 text-center">Trạng Thái</th>
                   <th className="py-2.5 px-3 text-right">Kỷ Niệm</th>
@@ -397,28 +363,16 @@ export default function ConfirmedAttendees({
                       {String(index + 1).padStart(2, '0')}
                     </td>
 
-                    {/* Name & Phone */}
+                    {/* Name */}
                     <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-brand-gold-light text-brand-gold flex items-center justify-center font-serif text-xs font-bold shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-brand-gold-light text-brand-gold flex items-center justify-center font-serif text-xs font-bold shrink-0 border border-brand-border/30">
                           {attendee.fullName.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="font-serif font-bold text-brand-text text-xs leading-tight">
-                            {attendee.fullName}
-                          </p>
-                          <p className="text-[10px] font-sans text-brand-text-muted/70 sm:hidden">
-                            {attendee.className || 'K8A1'}
-                          </p>
-                        </div>
+                        <p className="font-serif font-bold text-brand-text text-sm leading-tight">
+                          {attendee.fullName}
+                        </p>
                       </div>
-                    </td>
-
-                    {/* Class / Group */}
-                    <td className="py-2.5 px-3 hidden sm:table-cell">
-                      <span className="text-[10px] font-sans font-medium text-brand-text-muted bg-[#FAF9F6] border border-brand-border/60 px-1.5 py-0.5 rounded-xs">
-                        {attendee.className || 'K8A1'}
-                      </span>
                     </td>
 
                     {/* Shirt Size */}
@@ -498,7 +452,7 @@ export default function ConfirmedAttendees({
                         {attendee.fullName}
                       </h4>
                       <p className="text-[10px] text-brand-text-muted font-sans">
-                        {attendee.className || 'K8A1'} • {maskPhone(attendee.phone)}
+                        Lớp K8A1 (2003 — 2006)
                       </p>
                     </div>
                   </div>
@@ -597,7 +551,7 @@ export default function ConfirmedAttendees({
                     {viewingMessage.fullName}
                   </h4>
                   <p className="text-[10px] font-sans text-brand-text-muted">
-                    {viewingMessage.className || 'K8A1'} • Niên khóa 2003 - 2006
+                    Lớp K8A1 • Niên khóa 2003 - 2006
                   </p>
                 </div>
               </div>
@@ -635,7 +589,7 @@ export default function ConfirmedAttendees({
       {/* Footer prompt */}
       <div className="p-3 bg-[#FAF9F6] border border-brand-border rounded-sm text-[11px] text-brand-text-muted font-serif italic flex items-center justify-between">
         <span>
-          💡 Danh sách cập nhật tự động. Các bạn có thể lọc theo Tổ hoặc tìm nhanh tên mình.
+          💡 Danh sách cập nhật tự động. Các bạn có thể tìm nhanh tên mình hoặc kiểm tra size áo.
         </span>
         <a 
           href="#rsvp-section" 

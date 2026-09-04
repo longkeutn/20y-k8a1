@@ -13,7 +13,6 @@ interface RsvpFormProps {
 export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPassModal }: RsvpFormProps) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [className, setClassName] = useState('K8A1');
   const [shirtSize, setShirtSize] = useState('L');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [status, setStatus] = useState<'yes' | 'no'>('yes');
@@ -38,7 +37,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
       id: `rsvp-${Date.now()}`,
       fullName: fullName.trim(),
       phone: phone.trim(),
-      className: className.trim() || 'K8A1',
+      className: 'K8A1',
       shirtSize: status === 'yes' ? shirtSize : undefined,
       status,
       message: message.trim(),
@@ -140,23 +139,6 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
             </div>
 
             <div>
-              <label htmlFor="className" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-                Lớp / Tổ <span className="text-brand-rose">*</span>
-              </label>
-              <input
-                type="text"
-                id="className"
-                placeholder="VD: K8A1 (Tổ 1, Tổ 2, Tổ 3...)"
-                required
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
-                className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
               <label htmlFor="phone" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
                 Số điện thoại <span className="text-brand-rose">*</span>
               </label>
@@ -170,6 +152,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
                 className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
               />
             </div>
+          </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">

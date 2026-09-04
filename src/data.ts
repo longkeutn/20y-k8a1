@@ -31,7 +31,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     fullName: 'Trần Thị Mai',
     phone: '0912345678',
     status: 'yes',
-    className: 'K8A1 (Tổ 1)',
+    className: 'K8A1',
     shirtSize: 'M',
     message: 'Nôn nao quá, nhớ lớp A1 Khóa 8 THPT Thái Nguyên thân yêu niên khóa 2003-2006.',
     submittedAt: '2026-09-04 09:15',
@@ -42,7 +42,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     fullName: 'Lê Hoàng Nam',
     phone: '0987654321',
     status: 'no',
-    className: 'K8A1 (Tổ 3)',
+    className: 'K8A1',
     shirtSize: 'XL',
     message: 'Tiếc quá đợt 27/9 mình đang đi công tác nước ngoài không về kịp Crown Palace. Chúc lớp K8A1 mình hội ngộ thật vui!',
     submittedAt: '2026-09-04 10:02',
@@ -53,7 +53,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     fullName: 'Hoàng Kim Yến',
     phone: '0933221100',
     status: 'yes',
-    className: 'K8A1 (Tổ 2)',
+    className: 'K8A1',
     shirtSize: 'S',
     message: 'Hẹn gặp lại các bạn A1 thân yêu sau 2 thập kỷ tại Crown Palace!',
     submittedAt: '2026-09-04 11:20',
@@ -64,7 +64,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     fullName: 'Vũ Đức Trọng',
     phone: '0944556677',
     status: 'yes',
-    className: 'K8A1 (Tổ 4)',
+    className: 'K8A1',
     shirtSize: 'XL',
     message: 'Đã sẵn sàng bay về Thái Nguyên bùng nổ cùng anh em A1!',
     submittedAt: '2026-09-04 12:45',
@@ -271,7 +271,7 @@ export const EVENT_SCHEDULE: ScheduleItem[] = [
   {
     time: '09:15 — 10:15',
     title: 'Khai Mạc Hội Ngộ & Thước Phim Ký Ức 20 Năm K8A1',
-    desc: 'Tuyên bố lý do ngày hội ngộ 20 năm, điểm danh các thành viên K8A1, trình chiếu video phóng sự ảnh "20 Năm Ngày Trở Về - K8A1 THPT Thái Nguyên" và đại diện các tổ chia sẻ cảm xúc.',
+    desc: 'Tuyên bố lý do ngày hội ngộ 20 năm, điểm danh các thành viên K8A1, trình chiếu video phóng sự ảnh "20 Năm Ngày Trở Về - K8A1 THPT Thái Nguyên" và các bạn thành viên chia sẻ cảm xúc.',
     location: 'Sân khấu Sảnh Tiệc Crown Palace'
   },
   {
@@ -297,8 +297,8 @@ export const EVENT_SCHEDULE: ScheduleItem[] = [
 export const SPONSORS_LIST: SponsorItem[] = [
   {
     id: 'sp-1',
-    name: 'Tập thể Tổ 1 - Lớp K8A1',
-    className: 'Tổ 1 - K8A1',
+    name: 'Nhóm Cựu Học Sinh K8A1',
+    className: 'K8A1',
     amount: 5000000,
     note: 'Ủng hộ chi phí Backdrop chụp hình và quà tặng kỷ niệm lớp',
     date: '01/09/2026'
@@ -313,16 +313,16 @@ export const SPONSORS_LIST: SponsorItem[] = [
   },
   {
     id: 'sp-3',
-    name: 'Tập thể Tổ 2 & Tổ 3 - K8A1',
-    className: 'Tổ 2 & 3 - K8A1',
+    name: 'Nhóm Bạn K8A1 Hà Nội',
+    className: 'K8A1',
     amount: 6000000,
     note: 'Tài trợ hệ thống âm thanh, ánh sáng và nhạc cụ giao lưu',
     date: '03/09/2026'
   },
   {
     id: 'sp-4',
-    name: 'Tập thể Tổ 4 - Lớp K8A1',
-    className: 'Tổ 4 - K8A1',
+    name: 'Nhóm Bạn K8A1 Thái Nguyên',
+    className: 'K8A1',
     amount: 5000000,
     note: 'Tài trợ chi phí in ấn thẻ học sinh, phóng sự ảnh và video lưu niệm',
     date: '04/09/2026'
@@ -364,7 +364,7 @@ export const INITIAL_WISHES_LIST: WishData[] = [
   {
     id: 'wish-1',
     fullName: 'Đặng Thanh Vân',
-    className: 'Tổ 1 - K8A1',
+    className: 'K8A1',
     message: 'Hai mươi năm rồi mới lại có dịp ngồi lại bên nhau đông đủ như thế này! Chúc đại gia đình K8A1 Trường THPT Thái Nguyên luôn tràn đầy niềm vui, thành công và mãi giữ tinh thần đoàn kết!',
     tag: '🎓 Tự hào K8A1',
     likes: 18,
@@ -373,7 +373,7 @@ export const INITIAL_WISHES_LIST: WishData[] = [
   {
     id: 'wish-2',
     fullName: 'Phạm Quốc Bảo',
-    className: 'Tổ 2 - K8A1',
+    className: 'K8A1',
     message: 'Hẹn gặp lại tất cả các bạn lớp A1 vào sáng 27/9 tại Crown Palace nhé! Cảm ơn Ban Cán Sự Lớp đã nhiệt tình kết nối bạn bè sau 20 năm.',
     tag: '❤️ Tình bạn 20 năm',
     likes: 14,
@@ -382,7 +382,7 @@ export const INITIAL_WISHES_LIST: WishData[] = [
   {
     id: 'wish-3',
     fullName: 'Vũ Thúy Hằng',
-    className: 'Tổ 3 - K8A1',
+    className: 'K8A1',
     message: 'Mãi mãi một tình yêu với K8A1 THPT Thái Nguyên! Nhớ từng nụ cười, từng trò nghịch ngợm thời áo trắng.',
     tag: '🌸 Kỷ niệm thanh xuân',
     likes: 16,
