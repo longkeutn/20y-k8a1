@@ -40,7 +40,7 @@ export default function BankTransfer({
         <span className="text-[10px] font-bold tracking-[0.2em] font-sans text-brand-gold uppercase">GÓP GIÓ THÀNH BÃO</span>
         <h3 className="text-xl font-light text-brand-text">Đóng Quỹ Sự Kiện (Tạm Ứng)</h3>
         <p className="text-xs text-brand-text-muted">
-          Mức đóng góp dự kiến: <strong>500.000đ / thành viên</strong> (Kinh phí dùng để thuê hội trường, tiệc mặn, quà tặng thầy cô và làm kỷ yếu).
+          Mức đóng góp dự kiến: <strong>500.000đ / thành viên</strong> (Kinh phí dùng để thuê sảnh tiệc Crown Palace, áo đồng phục kỷ niệm 20 năm và làm kỷ yếu lớp).
         </p>
       </div>
 

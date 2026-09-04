@@ -45,7 +45,6 @@ import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
 import EventSchedule from './components/EventSchedule';
 import SponsorAndFinance from './components/SponsorAndFinance';
-import TeachersHonorRoll from './components/TeachersHonorRoll';
 
 type NavTab = 
   | 'all' 
@@ -557,10 +556,9 @@ export default function App() {
                 </section>
               )}
 
-              {/* SECTION 3: TEACHERS & MEMORIES & WISHES & CONDENSED FINANCE */}
+              {/* SECTION 3: MEMORIES & WISHES & CONDENSED FINANCE */}
               {(activeTab === 'all' || activeTab === 'memories') && (
                 <section id="nostalgia-memories-section" className="space-y-12 scroll-mt-16">
-                  <TeachersHonorRoll />
                   <MemoryCorner 
                     appsScriptUrl={appsScriptUrl} 
                     images={images} 
