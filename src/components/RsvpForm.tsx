@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Clock, Users, Heart, CheckCircle2, XCircle, Send, Loader2, Sparkles, Shirt, Info, Award } from 'lucide-react';
+import { CheckCircle2, Send, Loader2, Sparkles, Shirt, Info, Award, UserCheck } from 'lucide-react';
 import { RsvpData } from '../types';
 import { triggerFullscreenFireworks } from '../utils/confetti';
-import InteractiveMap from './InteractiveMap';
-import QuickShare from './QuickShare';
 
 interface RsvpFormProps {
   appsScriptUrl: string;
@@ -24,23 +22,6 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastSubmittedAttendee, setLastSubmittedAttendee] = useState<RsvpData | null>(null);
-
-  // Tab for active list
-  const [filterStatus, setFilterStatus] = useState<'all' | 'yes' | 'no'>('all');
-
-  const filteredList = rsvpList.filter(item => {
-    if (filterStatus === 'all') return true;
-    return item.status === filterStatus;
-  });
-
-  // Calculate shirt size breakdown for BTC
-  const shirtStats = rsvpList
-    .filter(i => i.status === 'yes' && i.shirtSize)
-    .reduce((acc, curr) => {
-      const size = curr.shirtSize || 'Khác';
-      acc[size] = (acc[size] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,55 +112,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
 
 
   return (
-    <div id="rsvp-section" className="space-y-8">
-      {/* Event Details Card - Editorial Style */}
-      <div id="event-details" className="bg-white rounded-sm p-6 md:p-8 shadow-xs border border-brand-border space-y-6">
-        <div className="text-left space-y-2 border-b border-brand-border pb-4">
-          <span className="text-[10px] font-bold tracking-[0.2em] font-sans text-brand-gold uppercase">THƯ MỜI SỰ KIỆN</span>
-          <h3 className="text-2xl font-light text-brand-text">Hội Ngộ 20 Năm Lớp K8A1 (2006 — 2026)</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-brand-gold-light text-brand-gold rounded-sm">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text-muted">Thời gian</p>
-              <p className="text-sm font-semibold text-brand-text">Chủ Nhật, 27.09.2026</p>
-              <p className="text-xs text-brand-text-muted">Từ 08:30 sáng đến 15:30</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-brand-gold-light text-brand-gold rounded-sm">
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text-muted">Địa điểm</p>
-              <p className="text-sm font-semibold text-brand-text">Crown Palace Thái Nguyên</p>
-              <p className="text-xs text-brand-text-muted font-serif italic">779 Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-brand-gold-light text-brand-gold rounded-sm">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text-muted">Chương trình</p>
-              <p className="text-sm font-semibold text-brand-text">Gặp gỡ bạn bè & Tiệc mừng</p>
-              <p className="text-xs text-brand-text-muted">Giao lưu ôn kỷ niệm 20 năm</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive Google Maps Component */}
-        <div id="maps-wrapper" className="pt-2">
-          <InteractiveMap />
-        </div>
-      </div>
-
+    <div id="rsvp-section" className="space-y-6">
       {/* Biểu mẫu Xác Nhận Tham Dự - Phong cách Tạp chí */}
       <div id="rsvp-form-card" className="bg-white rounded-sm p-6 md:p-8 shadow-xs border border-brand-border">
         <div className="text-left space-y-2 mb-6 border-b border-brand-border pb-4">
@@ -427,127 +360,6 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
             )}
           </button>
         </form>
-      </div>
-
-      {/* Attendees List Card - Editorial Style */}
-      <div id="attendees-list-card" className="bg-white rounded-sm p-6 md:p-8 shadow-xs border border-brand-border space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-border pb-4">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-brand-gold" />
-            <h3 className="text-xs uppercase tracking-[0.2em] font-sans font-bold text-brand-text">Thành Viên ({rsvpList.length})</h3>
-          </div>
-          
-          <div className="flex gap-1 bg-brand-gold-light p-1 rounded-sm self-start">
-            <button
-              type="button"
-              onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1 text-[10px] uppercase font-sans font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                filterStatus === 'all' ? 'bg-white text-brand-text shadow-xs' : 'text-brand-text-muted hover:text-brand-text'
-              }`}
-            >
-              Tất cả
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus('yes')}
-              className={`px-3 py-1 text-[10px] uppercase font-sans font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                filterStatus === 'yes' ? 'bg-white text-brand-gold shadow-xs' : 'text-brand-text-muted hover:text-brand-text'
-              }`}
-            >
-              Tham gia ({rsvpList.filter(i => i.status === 'yes').length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus('no')}
-              className={`px-3 py-1 text-[10px] uppercase font-sans font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                filterStatus === 'no' ? 'bg-white text-brand-text shadow-xs' : 'text-brand-text-muted hover:text-brand-text'
-              }`}
-            >
-              Vắng ({rsvpList.filter(i => i.status === 'no').length})
-            </button>
-          </div>
-        </div>
-
-        {/* BTC Shirt Sizes Summary Bar */}
-        {Object.keys(shirtStats).length > 0 && (
-          <div className="bg-[#FAF8F5] border border-brand-border/80 rounded-xs p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-1.5 font-sans font-bold text-[10px] uppercase tracking-wider text-brand-text">
-              <Shirt className="w-3.5 h-3.5 text-brand-gold" />
-              <span>Tổng hợp đặt may áo đồng phục:</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {Object.entries(shirtStats).map(([size, count]) => (
-                <span
-                  key={size}
-                  className="bg-white border border-brand-border px-2 py-0.5 rounded text-[10px] font-sans font-bold text-brand-gold"
-                >
-                  Size {size}: <strong>{count}</strong> áo
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="max-h-[350px] overflow-y-auto pr-2 space-y-3 no-scrollbar">
-          {filteredList.length === 0 ? (
-            <p className="text-center py-8 text-xs text-brand-text-muted font-serif italic">Chưa có ai đăng ký ở bộ lọc này.</p>
-          ) : (
-            filteredList.map((rsvp, idx) => (
-              <div
-                key={rsvp.id || idx}
-                className={`p-4 rounded-xs border transition-all flex items-start justify-between gap-4 ${
-                  rsvp.status === 'yes' 
-                    ? 'border-brand-border bg-brand-bg/20 hover:bg-brand-gold-light/40' 
-                    : 'border-brand-border/60 bg-[#FAF9F6]/50 hover:bg-brand-gold-light/20 opacity-80'
-                }`}
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-sm text-brand-text">{rsvp.fullName}</span>
-                    {rsvp.className && (
-                      <span className="text-[10px] font-sans font-bold text-brand-gold bg-brand-gold/10 px-1.5 py-0.5 rounded-xs">
-                        {rsvp.className}
-                      </span>
-                    )}
-                    {rsvp.shirtSize && rsvp.status === 'yes' && (
-                      <span className="text-[10px] font-sans font-medium text-brand-text-muted bg-white border border-brand-border px-1.5 py-0.5 rounded-xs flex items-center gap-0.5">
-                        <Shirt className="w-2.5 h-2.5 text-brand-gold" />
-                        Size {rsvp.shirtSize}
-                      </span>
-                    )}
-                    <span className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-xs font-bold ${
-                      rsvp.status === 'yes'
-                        ? 'bg-brand-gold/10 text-brand-gold'
-                        : 'bg-brand-text/10 text-brand-text-muted'
-                    }`}>
-                      {rsvp.status === 'yes' ? 'Tham gia' : 'Vắng'}
-                    </span>
-                  </div>
-                  {rsvp.message && (
-                    <p className="text-xs text-brand-text-muted italic leading-relaxed font-serif">
-                      " {rsvp.message} "
-                    </p>
-                  )}
-                  <p className="text-[10px] text-brand-text-muted/70 font-sans uppercase tracking-wider">
-                    SĐT: {rsvp.phone.replace(/(\d{4})(\d{3})(\d{3})/, '$1***$3')} • Gửi lúc {rsvp.submittedAt}
-                  </p>
-                </div>
-
-                {rsvp.status === 'yes' && onOpenPassModal && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenPassModal(rsvp)}
-                    className="shrink-0 inline-flex items-center gap-1 px-2 py-1 bg-white hover:bg-brand-gold-light text-brand-text text-[10px] font-sans font-bold uppercase tracking-wider border border-brand-border rounded-xs transition-colors cursor-pointer"
-                    title="Xem Thẻ Học Sinh Cá Nhân Hóa"
-                  >
-                    <Award className="w-3 h-3 text-brand-gold" />
-                    <span>Xem thẻ</span>
-                  </button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   );

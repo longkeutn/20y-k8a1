@@ -543,6 +543,7 @@ export default function App() {
                     rsvpList={rsvpList}
                     onRefresh={handleRefreshData}
                     isRefreshing={isRefreshing}
+                    onOpenPassModal={handleOpenPass}
                   />
 
                   <BankTransfer />

@@ -2,6 +2,7 @@ import React from 'react';
 import { Clock, Calendar, MapPin, Sparkles, Download, CheckCircle, ExternalLink } from 'lucide-react';
 import { EVENT_SCHEDULE } from '../data';
 import { ScheduleItem } from '../types';
+import InteractiveMap from './InteractiveMap';
 
 export default function EventSchedule() {
   const schedule: ScheduleItem[] = EVENT_SCHEDULE;
@@ -127,6 +128,17 @@ END:VCALENDAR`;
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Google Map of Crown Palace Thái Nguyên */}
+      <div className="bg-white border border-brand-border rounded-sm p-5 md:p-6 shadow-xs space-y-3">
+        <div className="flex items-center gap-2 border-b border-brand-border pb-3">
+          <MapPin className="w-4 h-4 text-brand-gold" />
+          <h3 className="font-serif font-bold text-base text-brand-text">
+            Bản Đồ Chỉ Đường Đến Crown Palace Thái Nguyên
+          </h3>
+        </div>
+        <InteractiveMap />
       </div>
     </section>
   );
