@@ -34,3 +34,31 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font-display);
 }
+
+/* Print optimizations for Student Souvenir Pass */
+@media print {
+  body {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #student-souvenir-card,
+  #student-souvenir-card * {
+    visibility: visible;
+  }
+  #student-souvenir-card {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px !important;
+    max-width: 95% !important;
+    box-shadow: none !important;
+    border: 2px solid #C5A880 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

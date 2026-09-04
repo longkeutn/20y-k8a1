@@ -10,6 +10,7 @@ export interface RsvpData {
   submittedAt?: string;
   checkedIn?: boolean;
   checkedInAt?: string;
+  avatarUrl?: string; // Ảnh thẻ / avatar thành viên
 }
 
 export interface WishData {
