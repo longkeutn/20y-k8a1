@@ -319,7 +319,7 @@ export default function App() {
         ) : (
           <div className="space-y-10">
             
-            {/* MODULE 1: HEADER & LỜI NGỎ */}
+            {/* MODULE 1: CINEMATIC HERO BANNER & VIP INVITATION */}
             <motion.section 
               id="hero"
               initial={{ opacity: 0, y: 30 }}
@@ -327,45 +327,157 @@ export default function App() {
               transition={{ duration: 0.8 }}
               className="text-left space-y-6"
             >
-              {/* Header block resembling the Editorial aesthetic design */}
-              <div className="border-b border-brand-text/20 pb-6 mb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div className="max-w-xl">
-                  <h1 className="text-4xl md:text-5xl font-light tracking-tight leading-none text-brand-text">
-                    Hội Ngộ 20 Năm Lớp K8A1
+              {/* CINEMATIC HERO POSTER BANNER */}
+              <div className="relative overflow-hidden rounded-md bg-gradient-to-br from-[#1A1613] via-[#26201A] to-[#14110F] border-2 border-amber-400/40 p-6 sm:p-10 md:p-12 shadow-2xl text-white space-y-6">
+                {/* Ambient Golden Glows */}
+                <div className="absolute -top-24 -left-24 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-amber-600/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute inset-0 bg-[radial-gradient(#C5A059_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+
+                {/* Top Badge: 20th Anniversary Emblem */}
+                <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-amber-400/20 pb-5">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-400/40 bg-amber-950/50 backdrop-blur-md text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.22em] shadow-inner">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                    <span>Hội Khóa 20 Năm • Niên Khóa 2003 — 2006</span>
+                  </div>
+                  <QuickShare variant="pill" buttonText="Rủ bạn vào Zalo" />
+                </div>
+
+                {/* Hero Title & Emotional Subtitle */}
+                <div className="relative z-10 space-y-3 max-w-2xl">
+                  <h1 className="text-3xl sm:text-5xl md:text-6xl font-serif text-[#FFFDF8] font-normal tracking-tight leading-[1.12]">
+                    20 Năm Ngày Trở Về
+                    <span className="block text-xl sm:text-2xl md:text-3xl font-light italic text-amber-200/90 mt-2 font-serif">
+                      Lớp K8A1 — Trường THPT Thái Nguyên
+                    </span>
                   </h1>
-                  <p className="text-lg italic mt-2 text-brand-text-muted font-serif">
-                    Gặp gỡ bạn bè sau 20 năm (2006 — 2026) • THPT Thái Nguyên
+                  <p className="text-xs sm:text-sm md:text-base text-amber-100/80 font-serif italic leading-relaxed pt-1">
+                    "Hai mươi năm — một chặng đường đủ dài để trưởng thành, nhưng chỉ cần gặp lại bạn bè là thanh xuân tuổi 18 lại bừng sáng vẹn nguyên."
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-widest font-sans font-bold text-brand-text-muted">
-                    <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
-                    <span>Kỷ niệm 20 năm ngày ra trường</span>
+
+                {/* Quick Event Summary Strip inside Poster */}
+                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 sm:p-4 rounded bg-white/5 border border-amber-400/25 backdrop-blur-xs text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/70 font-bold">Thời gian hội ngộ</p>
+                      <p className="font-serif font-bold text-white text-sm">Chủ Nhật, 27/09/2026 (08:30 — 15:30)</p>
+                    </div>
                   </div>
-                  <QuickShare variant="pill" buttonText="Chia sẻ" />
+
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/70 font-bold">Địa điểm gặp mặt</p>
+                      <p className="font-serif font-bold text-white text-sm">Crown Palace Thái Nguyên (779 Dương Tự Minh)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Action Buttons on Banner */}
+                <div className="relative z-10 flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      document.getElementById('rsvp-management-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-sm shadow-xl shadow-amber-950/50 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <CheckCircle className="w-4 h-4 text-amber-100" />
+                    <span>Xác Nhận Tham Dự Ngay (RSVP)</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenPass()}
+                    className="inline-flex items-center gap-1.5 px-4 py-3 bg-white/10 hover:bg-white/20 border border-amber-400/40 text-amber-100 font-sans font-bold text-xs uppercase tracking-wider rounded-sm backdrop-blur-xs transition-colors cursor-pointer"
+                  >
+                    <Award className="w-4 h-4 text-amber-300" />
+                    <span>Thẻ Học Sinh Kỷ Niệm 🎓</span>
+                  </button>
                 </div>
               </div>
 
-              {/* MODULE ĐẾM NGƯỢC THỜI GIAN (COUNTDOWN TIMER) */}
+              {/* MODULE ĐẾM NGƯỢC THỜI GIAN */}
               <div className="pt-1">
                 <CountdownTimer targetDate="2026-09-27T08:30:00+07:00" />
               </div>
 
-              {/* Editorial Invitation Letter (Lời Ngỏ Thân Tình) */}
+              {/* LIVE CLASSMATES GATHERING STRIP (SOCIAL PROOF) */}
+              <div className="bg-gradient-to-r from-[#FFFDF9] via-[#FAF6F0] to-[#F5EFE6] border border-amber-300/60 rounded-sm p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  {/* Overlapping Avatars */}
+                  <div className="flex -space-x-2.5 overflow-hidden py-1 shrink-0">
+                    {rsvpList.filter(a => a.status === 'yes').slice(0, 5).map((att, i) => (
+                      <div 
+                        key={att.id || i}
+                        className="inline-block h-9 w-9 rounded-full ring-2 ring-white bg-gradient-to-br from-amber-200 to-amber-400 text-amber-950 font-serif font-bold text-xs flex items-center justify-center shadow-xs"
+                        title={`${att.fullName} ${att.nickname ? `("${att.nickname}")` : ''}`}
+                      >
+                        {att.fullName.charAt(0).toUpperCase()}
+                      </div>
+                    ))}
+                    <div className="inline-block h-9 w-9 rounded-full ring-2 ring-white bg-brand-text text-amber-300 font-sans font-bold text-[10px] flex items-center justify-center shadow-xs">
+                      +{rsvpList.filter(a => a.status === 'yes').length}
+                    </div>
+                  </div>
+
+                  <div className="text-left space-y-0.5">
+                    <p className="text-xs sm:text-sm font-serif font-bold text-brand-text flex items-center gap-1.5">
+                      <span>{rsvpList.filter(a => a.status === 'yes').length} bạn bè K8A1 đã xác nhận trở về!</span>
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] text-brand-text-muted font-sans">
+                      Các bạn vào điền tên và biệt danh để lớp chuẩn bị áo đồng phục nhé!
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    document.getElementById('rsvp-management-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2 bg-brand-burgundy hover:bg-brand-burgundy/90 text-white font-sans font-bold text-[11px] uppercase tracking-wider rounded-xs shadow-xs transition-all cursor-pointer whitespace-nowrap self-stretch sm:self-auto text-center"
+                >
+                  Điền Điểm Danh Ngay ✍️
+                </button>
+              </div>
+
+              {/* TẤM THIỆP MỜI VIP DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}
               <div 
                 id="invitation-letter-card" 
-                className="bg-gradient-to-br from-[#FFFDF9] via-[#FAF6EE] to-[#F6EFE2] border-2 border-brand-gold/50 rounded-sm p-6 sm:p-9 md:p-10 shadow-sm relative overflow-hidden text-left space-y-6"
+                className="bg-[#FFFEFA] border-[3px] border-double border-amber-500/50 rounded-sm p-6 sm:p-9 md:p-12 shadow-lg relative overflow-hidden text-left space-y-6"
               >
-                {/* Decorative background watermark */}
-                <div className="absolute -right-6 -bottom-8 text-brand-gold/10 pointer-events-none select-none">
-                  <Quote className="w-44 h-44" />
+                {/* Classical Ornate Corner Accents */}
+                <div className="absolute top-2 left-2 w-5 h-5 border-t-2 border-l-2 border-amber-600/70 pointer-events-none" />
+                <div className="absolute top-2 right-2 w-5 h-5 border-t-2 border-r-2 border-amber-600/70 pointer-events-none" />
+                <div className="absolute bottom-2 left-2 w-5 h-5 border-b-2 border-l-2 border-amber-600/70 pointer-events-none" />
+                <div className="absolute bottom-2 right-2 w-5 h-5 border-b-2 border-r-2 border-amber-600/70 pointer-events-none" />
+
+                {/* Red Wax Seal Badge in Top Right */}
+                <div className="absolute -top-3 right-6 sm:right-10 z-20 pointer-events-none">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#8B1E2D] via-[#701524] to-[#4A0D17] shadow-xl border-2 border-amber-400/60 flex flex-col items-center justify-center text-white text-center select-none transform rotate-6">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 mb-0.5" />
+                    <span className="text-[10px] sm:text-xs font-serif font-black tracking-widest text-amber-200 uppercase">K8A1</span>
+                    <span className="text-[7px] sm:text-[8px] font-sans font-bold tracking-wider text-amber-300/90 uppercase">20 NĂM</span>
+                  </div>
                 </div>
-                <div className="absolute -top-12 -left-12 w-32 h-32 bg-brand-gold/5 rounded-full blur-2xl pointer-events-none" />
+
+                {/* Decorative background watermark */}
+                <div className="absolute -right-6 -bottom-8 text-amber-600/5 pointer-events-none select-none">
+                  <Quote className="w-48 h-48" />
+                </div>
 
                 {/* Letter Header */}
-                <div className="space-y-2 border-b border-brand-gold/25 pb-5 relative z-10">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-gold/15 border border-brand-gold/30 rounded-full text-brand-gold text-[10px] font-sans font-bold uppercase tracking-[0.2em]">
-                    <MailOpen className="w-3.5 h-3.5 text-brand-gold" />
+                <div className="space-y-2 border-b border-amber-400/30 pb-5 relative z-10 max-w-xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-300/60 rounded-full text-amber-800 text-[10px] font-sans font-bold uppercase tracking-[0.2em]">
+                    <MailOpen className="w-3.5 h-3.5 text-amber-600" />
                     <span>Thư Ngỏ Kỷ Niệm 20 Năm • Lớp K8A1 (2006 — 2026)</span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-brand-text font-normal tracking-tight leading-snug">
@@ -378,28 +490,28 @@ export default function App() {
 
                 {/* Letter Body */}
                 <div className="text-sm sm:text-base md:text-lg text-brand-text leading-relaxed space-y-4 font-serif relative z-10">
-                  <p className="italic text-brand-text/90 first-letter:text-3xl sm:first-letter:text-4xl first-letter:font-bold first-letter:text-brand-gold first-letter:mr-2 first-letter:float-left first-letter:leading-none">
+                  <p className="italic text-brand-text/90 first-letter:text-4xl sm:first-letter:text-5xl first-letter:font-bold first-letter:text-amber-600 first-letter:mr-2.5 first-letter:float-left first-letter:leading-none">
                     Hai mươi năm — một chặng đường đủ dài để mỗi thành viên Lớp K8A1 (Khóa 8) chúng ta trưởng thành, gây dựng sự nghiệp và vun vén cho những tổ ấm riêng. Dù hôm nay mỗi người mỗi ngả, bộn bề với những lo toan cuộc sống, nhưng sâu thẳm trong tim mỗi chúng ta vẫn luôn vẹn nguyên một ngăn ký ức thiêng liêng dành cho những năm tháng cấp 3 rực rỡ dưới mái trường THPT Thái Nguyên thân thương.
                   </p>
 
-                  {/* Rendezvous Highlight Callout inside the letter */}
-                  <div className="my-3 p-4 sm:p-5 bg-white/80 backdrop-blur-xs border border-brand-gold/40 rounded-sm space-y-2 shadow-2xs font-sans">
-                    <div className="flex items-center gap-2 text-brand-gold font-bold text-xs uppercase tracking-wider">
-                      <Sparkles className="w-4 h-4" />
+                  {/* Golden Ticket Style Callout */}
+                  <div className="my-4 p-4 sm:p-6 bg-gradient-to-r from-[#FAF3E0] via-[#FFFDF5] to-[#FAF3E0] border-2 border-dashed border-amber-500/60 rounded-sm shadow-xs font-sans relative">
+                    <div className="flex items-center gap-2 text-amber-800 font-bold text-xs uppercase tracking-wider mb-2">
+                      <Sparkles className="w-4 h-4 text-amber-600" />
                       <span>Hẹn Ngày Trở Về: Chủ Nhật, 27 Tháng 09 Năm 2026</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs text-brand-text">
                       <div className="flex items-start gap-2">
-                        <Clock className="w-3.5 h-3.5 text-brand-gold mt-0.5 shrink-0" />
+                        <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                         <div>
-                          <p className="font-bold">Thời gian đón tiếp:</p>
+                          <p className="font-bold text-brand-text">Thời gian đón tiếp:</p>
                           <p className="text-brand-text-muted">Từ 08:30 sáng đến 15:30 chiều</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-brand-gold mt-0.5 shrink-0" />
+                        <MapPin className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                         <div>
-                          <p className="font-bold">Địa điểm họp mặt:</p>
+                          <p className="font-bold text-brand-text">Địa điểm họp mặt:</p>
                           <p className="text-brand-text-muted">Crown Palace Thái Nguyên (779 Dương Tự Minh)</p>
                         </div>
                       </div>
@@ -411,8 +523,8 @@ export default function App() {
                   </p>
                 </div>
 
-                {/* Primary CTA: Form Registration Scroll Action */}
-                <div className="pt-4 border-t border-brand-gold/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                {/* Primary CTA & Signature */}
+                <div className="pt-4 border-t border-amber-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => {
@@ -423,23 +535,23 @@ export default function App() {
                           setActiveTab('rsvp');
                         }
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-3 bg-brand-text hover:bg-brand-gold text-white text-xs sm:text-sm font-sans font-bold uppercase tracking-wider rounded-sm shadow-md transition-all duration-300 hover:scale-105 cursor-pointer"
+                      className="inline-flex items-center gap-2 px-5 py-3 bg-brand-text hover:bg-amber-600 text-white text-xs sm:text-sm font-sans font-bold uppercase tracking-wider rounded-sm shadow-md transition-all duration-300 hover:scale-105 cursor-pointer"
                     >
-                      <CheckCircle className="w-4 h-4 text-brand-gold" />
+                      <CheckCircle className="w-4 h-4 text-amber-400" />
                       <span>Xác Nhận Tham Dự Ngay (RSVP)</span>
                     </button>
 
                     <button
                       onClick={() => setActiveTab('program')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/90 hover:bg-white text-brand-text text-xs font-sans font-bold uppercase tracking-wider border border-brand-border rounded-sm shadow-2xs transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-amber-50 text-brand-text text-xs font-sans font-bold uppercase tracking-wider border border-brand-border rounded-sm shadow-2xs transition-colors cursor-pointer"
                     >
-                      <Clock className="w-3.5 h-3.5 text-brand-gold" />
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
                       <span>Xem Lịch Trình</span>
                     </button>
                   </div>
 
                   <div className="text-left sm:text-right space-y-0.5">
-                    <p className="text-[11px] font-sans font-bold uppercase tracking-wider text-brand-gold">
+                    <p className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-700">
                       Ban Liên Lạc Lớp K8A1 (Khóa 8)
                     </p>
                     <p className="text-xs font-serif italic text-brand-text-muted">
@@ -447,25 +559,6 @@ export default function App() {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Secondary Action Bar */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <button
-                  onClick={() => handleOpenPass()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-text hover:bg-brand-gold text-white text-xs font-sans font-bold uppercase tracking-wider rounded-sm shadow-xs transition-colors cursor-pointer"
-                >
-                  <Award className="w-4 h-4 text-brand-gold" />
-                  <span>Xem Thẻ Học Sinh Kỷ Niệm 🎓</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('program')}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#FAF8F5] text-brand-text text-xs font-sans font-bold uppercase tracking-wider border border-brand-border rounded-sm shadow-2xs transition-colors cursor-pointer"
-                >
-                  <Clock className="w-4 h-4 text-brand-gold" />
-                  <span>Xem Lịch Trình 27/9</span>
-                </button>
               </div>
 
               {/* Quick Share Banner - Web Share API to Zalo / Facebook */}

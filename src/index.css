@@ -3,14 +3,17 @@
 @theme {
   --font-display: "Playfair Display", "Be Vietnam Pro", Georgia, serif;
   --font-sans: "Be Vietnam Pro", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --color-brand-bg: #F7F3EE;
-  --color-brand-text: #3D3A35;
-  --color-brand-text-muted: #7C7464;
-  --color-brand-gold: #8C7A6B;
-  --color-brand-gold-light: #EBE7E0;
-  --color-brand-rose: #8C7A6B;
-  --color-brand-rose-light: #EBE7E0;
-  --color-brand-border: #D9D1C7;
+  --color-brand-bg: #FCF9F2;
+  --color-brand-bg-alt: #F5EFE4;
+  --color-brand-text: #2B2621;
+  --color-brand-text-muted: #6F6659;
+  --color-brand-gold: #B8860B;
+  --color-brand-gold-dark: #8F6B12;
+  --color-brand-gold-light: #FAF2DF;
+  --color-brand-burgundy: #8B1E2D;
+  --color-brand-rose: #B8860B;
+  --color-brand-rose-light: #FAF2DF;
+  --color-brand-border: #E5DAC9;
 }
 
 /* Custom smooth transitions and animations */

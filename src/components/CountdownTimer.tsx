@@ -105,7 +105,7 @@ export default function CountdownTimer({
         ) : (
           <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Days */}
-            <div className="bg-[#FAF8F5] border border-brand-border rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px]">
+            <div className="bg-gradient-to-b from-[#FFFDF9] to-[#F7F2EA] border border-amber-300/60 rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px] shadow-2xs">
               <span className="block text-lg sm:text-xl font-serif font-bold text-brand-text tabular-nums leading-tight">
                 {timeLeft.days}
               </span>
@@ -114,10 +114,10 @@ export default function CountdownTimer({
               </span>
             </div>
 
-            <span className="text-brand-gold font-serif font-bold text-xs">:</span>
+            <span className="text-amber-600 font-serif font-bold text-xs">:</span>
 
             {/* Hours */}
-            <div className="bg-[#FAF8F5] border border-brand-border rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px]">
+            <div className="bg-gradient-to-b from-[#FFFDF9] to-[#F7F2EA] border border-amber-300/60 rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px] shadow-2xs">
               <span className="block text-lg sm:text-xl font-serif font-bold text-brand-text tabular-nums leading-tight">
                 {formatNumber(timeLeft.hours)}
               </span>
@@ -126,10 +126,10 @@ export default function CountdownTimer({
               </span>
             </div>
 
-            <span className="text-brand-gold font-serif font-bold text-xs">:</span>
+            <span className="text-amber-600 font-serif font-bold text-xs">:</span>
 
             {/* Minutes */}
-            <div className="bg-[#FAF8F5] border border-brand-border rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px]">
+            <div className="bg-gradient-to-b from-[#FFFDF9] to-[#F7F2EA] border border-amber-300/60 rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px] shadow-2xs">
               <span className="block text-lg sm:text-xl font-serif font-bold text-brand-text tabular-nums leading-tight">
                 {formatNumber(timeLeft.minutes)}
               </span>
@@ -138,11 +138,11 @@ export default function CountdownTimer({
               </span>
             </div>
 
-            <span className="text-brand-gold font-serif font-bold text-xs">:</span>
+            <span className="text-amber-600 font-serif font-bold text-xs">:</span>
 
             {/* Seconds */}
-            <div className="bg-[#FAF8F5] border border-brand-border rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px]">
-              <span className="block text-lg sm:text-xl font-serif font-bold text-brand-gold tabular-nums leading-tight animate-pulse">
+            <div className="bg-gradient-to-b from-[#FFFDF9] to-[#F7F2EA] border border-amber-300/60 rounded px-2.5 py-1.5 text-center min-w-[52px] sm:min-w-[58px] shadow-2xs">
+              <span className="block text-lg sm:text-xl font-serif font-bold text-amber-600 tabular-nums leading-tight animate-pulse">
                 {formatNumber(timeLeft.seconds)}
               </span>
               <span className="block text-[8px] sm:text-[9px] font-sans font-bold uppercase tracking-wider text-brand-text-muted">
