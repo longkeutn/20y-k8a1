@@ -216,7 +216,7 @@ fetch(SCRIPT_URL + '?action=get_confirmed_attendees')
             <span>Thời gian hội ngộ</span>
           </div>
           <div className="text-xs font-bold font-sans text-brand-text pt-1">
-            08:30 — 18/10/2026
+            08:30 — 27/09/2026
           </div>
         </div>
       </div>
