@@ -605,6 +605,8 @@ const CONFIG = {
   WISHES_SHEET_NAME: "Loi_Chuc",
   // Tên trang tính lưu toàn bộ cấu hình sự kiện (Địa điểm, Quỹ, Ngân hàng, Thư ngỏ, Banner)
   CONFIG_SHEET_NAME: "Cau_Hinh",
+  // Tên trang tính lưu danh bạ sĩ số học sinh lớp K8A1 (Single Source of Truth)
+  ROSTER_SHEET_NAME: "Danh_Sach_Lop",
   // Tên trang tính lưu danh sách video và media địa điểm
   MEDIA_SHEET_NAME: "Media_Cai_Dat",
   // Tên trang tính đếm lượt truy cập
@@ -654,6 +656,11 @@ function doGet(e) {
       return handleResponse(getRSVPList());
     }
 
+    // 7. Lấy danh bạ sĩ số lớp K8A1
+    if (action === 'get_roster' || action === 'get_members' || action === 'get_class_roster') {
+      return handleResponse(getClassRoster());
+    }
+
     // Dọn dẹp bản ghi trùng lặp
     if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
       return handleResponse(deduplicateRSVP());
@@ -701,6 +708,23 @@ function doPost(e) {
     // 2. Lưu Media (Video, Venue Media)
     if (action === 'save_media' || action === 'update_media') {
       return handleResponse(saveMediaSettings(postData));
+    }
+
+    // 3. Quản lý danh bạ lớp K8A1 (Sheet: "Danh_Sach_Lop")
+    if (action === 'save_roster' || action === 'update_roster') {
+      return handleResponse(saveClassRoster(postData));
+    }
+
+    if (action === 'add_member' || action === 'create_member') {
+      return handleResponse(addClassMember(postData));
+    }
+
+    if (action === 'update_member' || action === 'edit_member') {
+      return handleResponse(updateClassMember(postData));
+    }
+
+    if (action === 'delete_member' || action === 'remove_member') {
+      return handleResponse(deleteClassMember(postData));
     }
 
     if (action === 'record_view' || action === 'hit_view') {
@@ -1665,7 +1689,287 @@ function saveMediaSettings(postData) {
 
 /**
  * -------------------------------------------------------------
- * 3. TOÀN BỘ CƠ SỞ DỮ LIỆU ĐỒNG BỘ 1 LỆNH (SINGLE SOURCE OF TRUTH)
+ * 3. ĐỒNG BỘ DANH BẠ SĨ SỐ LỚP K8A1 (SHEET: "Danh_Sach_Lop")
+ * Quản lý danh sách thành viên, biệt danh, SĐT, chức vụ, cỡ áo
+ * -------------------------------------------------------------
+ */
+function initRosterSheet(sheet) {
+  const headers = ['Mã TV', 'Họ và tên', 'Biệt danh', 'Số điện thoại', 'Vai trò', 'Giới tính', 'Size áo', 'Ghi chú', 'Ngày cập nhật'];
+  sheet.appendRow(headers);
+  sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#FAF3E0');
+
+  const defaultMembers = [
+    ['m01', 'Nguyễn Tuấn Anh', 'Tuấn Báo', "'0988123456", 'Bí thư', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m02', 'Trần Thị Thanh Hương', 'Hương Béo', "'0912345678", 'Lớp phó', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m03', 'Lê Hoàng Nam', 'Nam Còi', "'0977889900", 'Thành viên', 'Nam', 'XL', '', 'Khởi tạo'],
+    ['m04', 'Phạm Đức Thắng', 'Thắng Đầu Gấu', "'0903112233", 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m05', 'Vũ Mai Phương', 'Phương Mèo', "'0966554433", 'Thủ quỹ', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m06', 'Đỗ Hoàng Long', 'Long Kều', "'0919337588", 'Ban Liên Lạc (Admin)', 'Nam', 'XL', '', 'Khởi tạo'],
+    ['m07', 'Nguyễn Thái Bảo', 'Bảo Cận', '', 'Lớp trưởng', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m08', 'Bùi Quang Huy', 'Huy Lắc', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m09', 'Hoàng Văn Hải', 'Hải Bánh', '', 'Thành viên', 'Nam', 'M', '', 'Khởi tạo'],
+    ['m10', 'Đặng Thùy Dung', 'Dung Điệu', '', 'Thành viên', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m11', 'Lê Thu Trang', 'Trang Ốc', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m12', 'Nguyễn Minh Đức', 'Đức Còi', '', 'Thành viên', 'Nam', 'M', '', 'Khởi tạo'],
+    ['m13', 'Phạm Thùy Linh', 'Linh Nhím', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m14', 'Dương Quốc Toàn', 'Toàn Xoăn', '', 'Thành viên', 'Nam', 'XL', '', 'Khởi tạo'],
+    ['m15', 'Vũ Tuấn Dũng', 'Dũng Béo', '', 'Thành viên', 'Nam', '2XL', '', 'Khởi tạo'],
+    ['m16', 'Trần Phương Thảo', 'Thảo Xinh', '', 'Thành viên', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m17', 'Ngô Quang Vinh', 'Vinh Râu', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m18', 'Đoàn Thị Bích Ngọc', 'Ngọc Nấm', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m19', 'Trịnh Văn Quân', 'Quân Tàu', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m20', 'Đinh Hoàng Yến', 'Yến Phụng', '', 'Thành viên', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m21', 'Phan Minh Trí', 'Trí Rùa', '', 'Thành viên', 'Nam', 'M', '', 'Khởi tạo'],
+    ['m22', 'Mai Anh Tuấn', 'Tuấn Đen', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m23', 'Đỗ Thúy Hằng', 'Hằng Nga', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m24', 'Hà Việt Cường', 'Cường Đôla', '', 'Thành viên', 'Nam', 'XL', '', 'Khởi tạo'],
+    ['m25', 'Tạ Thị Thu Hà', 'Hà Mít', '', 'Thành viên', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m26', 'Lưu Đức Trọng', 'Trọng Kính', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m27', 'Đào Diệu Linh', 'Linh Tít', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m28', 'Lý Tuấn Phong', 'Phong Gió', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m29', 'Chu Thị Mai Anh', 'Mai Hoa', '', 'Thành viên', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m30', 'Dương Đình Khoa', 'Khoa Học', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m31', 'Phùng Thị Kim Oanh', 'Oanh Vàng', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m32', 'Lương Việt Hưng', 'Hưng Híp', '', 'Thành viên', 'Nam', 'M', '', 'Khởi tạo'],
+    ['m33', 'Bùi Thu Hương', 'Hương Mây', '', 'Thành viên', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m34', 'Nguyễn Xuân Kiên', 'Kiên Nhẫn', '', 'Thành viên', 'Nam', 'XL', '', 'Khởi tạo'],
+    ['m35', 'Hoàng Thị Minh Châu', 'Châu Báu', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m36', 'Phạm Ngọc Long', 'Long Nhỏ', '', 'Thành viên', 'Nam', 'M', '', 'Khởi tạo'],
+    ['m37', 'Lê Thị Quỳnh Trang', 'Trang Moon', '', 'Thành viên', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m38', 'Vũ Trọng Nghĩa', 'Nghĩa Khí', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m39', 'Cao Thị Bích Thủy', 'Thủy Tiên', '', 'Thành viên', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m40', 'Triệu Văn Đạt', 'Đạt Chuẩn', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo']
+  ];
+  sheet.getRange(2, 1, defaultMembers.length, 9).setValues(defaultMembers);
+}
+
+function getClassRoster() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.ROSTER_SHEET_NAME);
+      initRosterSheet(sheet);
+    }
+    if (sheet.getLastRow() <= 1) {
+      initRosterSheet(sheet);
+    }
+
+    const rows = sheet.getDataRange().getValues();
+    const members = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const id = String(row[0] || ('m' + (i < 10 ? '0' + i : i))).trim();
+      const fullName = String(row[1] || '').trim();
+      if (!fullName) continue;
+      const nickname = String(row[2] || '').trim();
+      let phone = String(row[3] || '').trim();
+      if (phone.startsWith("'")) phone = phone.substring(1);
+      const role = String(row[4] || 'Thành viên').trim();
+      const genderStr = String(row[5] || 'Nam').toLowerCase();
+      const gender = (genderStr.includes('nữ') || genderStr === 'female') ? 'female' : 'male';
+      const shirtSize = String(row[6] || 'L').trim().toUpperCase();
+      const note = String(row[7] || '').trim();
+
+      members.push({
+        id: id,
+        fullName: fullName,
+        nickname: nickname,
+        phone: phone,
+        role: role,
+        gender: gender,
+        shirtSize: shirtSize,
+        note: note
+      });
+    }
+
+    return { status: 'success', data: members, total: members.length };
+  } catch (err) {
+    return { status: 'error', message: err.toString(), data: [] };
+  }
+}
+
+function saveClassRoster(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.ROSTER_SHEET_NAME);
+    }
+    const roster = postData.roster || [];
+    if (!Array.isArray(roster)) {
+      return { status: 'error', message: 'Dữ liệu danh bạ không đúng định dạng mảng!' };
+    }
+
+    sheet.clear();
+    const headers = ['Mã TV', 'Họ và tên', 'Biệt danh', 'Số điện thoại', 'Vai trò', 'Giới tính', 'Size áo', 'Ghi chú', 'Ngày cập nhật'];
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#FAF3E0');
+
+    const nowStr = formatDate(new Date());
+    const rows = roster.map((m, idx) => {
+      const id = String(m.id || ('m' + (idx < 9 ? '0' + (idx + 1) : (idx + 1))));
+      const fullName = String(m.fullName || '').trim();
+      const nickname = String(m.nickname || '').trim();
+      let phone = String(m.phone || '').trim();
+      if (phone && !phone.startsWith("'")) phone = "'" + phone;
+      const role = String(m.role || 'Thành viên').trim();
+      const gender = (m.gender === 'female' || String(m.gender).includes('Nữ')) ? 'Nữ' : 'Nam';
+      const shirtSize = String(m.shirtSize || 'L').trim().toUpperCase();
+      const note = String(m.note || '').trim();
+      return [id, fullName, nickname, phone, role, gender, shirtSize, note, nowStr];
+    });
+
+    if (rows.length > 0) {
+      sheet.getRange(2, 1, rows.length, 9).setValues(rows);
+    }
+
+    return { status: 'success', message: 'Đã lưu danh bạ ' + rows.length + ' thành viên vào Google Sheet thành công!', count: rows.length };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function addClassMember(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.ROSTER_SHEET_NAME);
+      initRosterSheet(sheet);
+    }
+
+    const member = postData.member || postData;
+    const fullName = String(member.fullName || '').trim();
+    if (!fullName) {
+      return { status: 'error', message: 'Họ và tên không được để trống' };
+    }
+
+    const lastRow = sheet.getLastRow();
+    const nextIdx = lastRow;
+    const id = String(member.id || ('m' + (nextIdx < 10 ? '0' + nextIdx : nextIdx)));
+    const nickname = String(member.nickname || '').trim();
+    let phone = String(member.phone || '').trim();
+    if (phone && !phone.startsWith("'")) phone = "'" + phone;
+    const role = String(member.role || 'Thành viên').trim();
+    const gender = (member.gender === 'female' || String(member.gender).includes('Nữ')) ? 'Nữ' : 'Nam';
+    const shirtSize = String(member.shirtSize || 'L').trim().toUpperCase();
+    const note = String(member.note || '').trim();
+    const nowStr = formatDate(new Date());
+
+    sheet.appendRow([id, fullName, nickname, phone, role, gender, shirtSize, note, nowStr]);
+    return { status: 'success', message: 'Đã thêm bạn ' + fullName + ' vào Danh Bạ Lớp thành công!', id: id };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function updateClassMember(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (!sheet) return { status: 'error', message: 'Không tìm thấy sheet Danh_Sach_Lop' };
+
+    const member = postData.member || postData;
+    const memberId = String(member.id || '').trim();
+    const searchPhone = normalizePhone(member.phone);
+    const searchName = String(member.fullName || '').toLowerCase().trim();
+
+    const rows = sheet.getDataRange().getValues();
+    let targetRowIndex = -1;
+
+    for (let i = 1; i < rows.length; i++) {
+      const rowId = String(rows[i][0] || '').trim();
+      const rowPhone = normalizePhone(rows[i][3]);
+      const rowName = String(rows[i][1] || '').toLowerCase().trim();
+
+      if (memberId && rowId === memberId) {
+        targetRowIndex = i + 1;
+        break;
+      }
+      if (searchPhone && rowPhone && searchPhone === rowPhone) {
+        targetRowIndex = i + 1;
+        break;
+      }
+      if (searchName && rowName && searchName === rowName) {
+        targetRowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return { status: 'error', message: 'Không tìm thấy thành viên cần cập nhật' };
+    }
+
+    const nowStr = formatDate(new Date());
+    if (member.fullName) sheet.getRange(targetRowIndex, 2).setValue(String(member.fullName).trim());
+    if (member.nickname !== undefined) sheet.getRange(targetRowIndex, 3).setValue(String(member.nickname).trim());
+    if (member.phone !== undefined) {
+      let p = String(member.phone).trim();
+      if (p && !p.startsWith("'")) p = "'" + p;
+      sheet.getRange(targetRowIndex, 4).setValue(p);
+    }
+    if (member.role !== undefined) sheet.getRange(targetRowIndex, 5).setValue(String(member.role).trim());
+    if (member.gender !== undefined) {
+      const g = (member.gender === 'female' || String(member.gender).includes('Nữ')) ? 'Nữ' : 'Nam';
+      sheet.getRange(targetRowIndex, 6).setValue(g);
+    }
+    if (member.shirtSize !== undefined) sheet.getRange(targetRowIndex, 7).setValue(String(member.shirtSize).trim().toUpperCase());
+    if (member.note !== undefined) sheet.getRange(targetRowIndex, 8).setValue(String(member.note).trim());
+    sheet.getRange(targetRowIndex, 9).setValue(nowStr);
+
+    return { status: 'success', message: 'Đã cập nhật thông tin thành viên thành công!' };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function deleteClassMember(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (!sheet) return { status: 'error', message: 'Không tìm thấy sheet Danh_Sach_Lop' };
+
+    const memberId = String(postData.id || postData.memberId || '').trim();
+    const memberPhone = normalizePhone(postData.phone);
+    const memberName = String(postData.fullName || '').toLowerCase().trim();
+
+    const rows = sheet.getDataRange().getValues();
+    let targetRowIndex = -1;
+
+    for (let i = 1; i < rows.length; i++) {
+      const rowId = String(rows[i][0] || '').trim();
+      const rowPhone = normalizePhone(rows[i][3]);
+      const rowName = String(rows[i][1] || '').toLowerCase().trim();
+
+      if (memberId && rowId === memberId) {
+        targetRowIndex = i + 1;
+        break;
+      }
+      if (memberPhone && rowPhone && memberPhone === rowPhone) {
+        targetRowIndex = i + 1;
+        break;
+      }
+      if (memberName && rowName && memberName === rowName) {
+        targetRowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      return { status: 'error', message: 'Không tìm thấy thành viên để xóa' };
+    }
+
+    sheet.deleteRow(targetRowIndex);
+    return { status: 'success', message: 'Đã xóa thành viên khỏi Danh Bạ Lớp!' };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+/**
+ * -------------------------------------------------------------
+ * 4. TOÀN BỘ CƠ SỞ DỮ LIỆU ĐỒNG BỘ 1 LỆNH (SINGLE SOURCE OF TRUTH)
  * -------------------------------------------------------------
  */
 function getAllData() {
@@ -1674,6 +1978,7 @@ function getAllData() {
     const wishes = (getWishesList() || {}).data || [];
     const config = (getEventConfig() || {}).data || {};
     const media = (getMediaSettings() || {}).data || { videos: [], venueMedia: [] };
+    const roster = (getClassRoster() || {}).data || [];
     const viewCount = (getViewCount() || {}).count || 1258;
 
     return {
@@ -1683,6 +1988,7 @@ function getAllData() {
         wishes: wishes,
         config: config,
         media: media,
+        roster: roster,
         viewCount: viewCount
       }
     };

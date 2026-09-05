@@ -414,7 +414,7 @@ export default function DeveloperGuide({
                 Truy cập <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-brand-gold font-bold underline inline-flex items-center gap-0.5">sheets.new <ExternalLink className="w-3 h-3" /></a> để tạo bảng tính mới. Đặt tên file là: <code>Hội Ngộ 20 Năm Lớp K8A1</code>.
               </p>
               <div className="p-2.5 bg-[#FAF8F5] rounded border border-brand-border/60 text-[11px] text-brand-text font-sans">
-                💡 <strong>Mẹo hay:</strong> Bạn không cần gõ tiêu đề cột thủ công! Script thông minh sẽ tự động tạo dòng tiêu đề chuẩn và tự động sinh thêm Sheet mang tên <code>Loi_Chuc</code>, <code>Luot_Truy_Cap</code> khi có lượt gửi đầu tiên.
+                💡 <strong>Mẹo hay:</strong> Bạn không cần gõ tiêu đề cột thủ công! Script thông minh sẽ tự động tạo dòng tiêu đề chuẩn và tự động sinh thêm các Sheet mang tên <code>Danh_Sach_Lop</code> (quản lý danh bạ thành viên), <code>Cau_Hinh</code>, <code>Loi_Chuc</code>, <code>Media_Cai_Dat</code>, <code>Luot_Truy_Cap</code> một cách hoàn toàn tự động.
               </div>
             </div>
 
@@ -822,7 +822,11 @@ export default function DeveloperGuide({
                 <span>4. Có cần tạo trước các cột trong Google Sheets không?</span>
               </h5>
               <p className="text-brand-text-muted font-serif italic leading-relaxed pl-6">
-                <strong>Không cần!</strong> Mã nguồn Apps Script đã được lập trình để tự động kiểm tra: nếu Sheet còn trống, script sẽ tự động tạo dòng tiêu đề gồm <code>Mã Đăng Ký, Họ và Tên, Số Điện Thoại, Lớp / Tổ, Cỡ Áo, Tham Dự, Lời Nhắn, Thời Gian Gửi, Điểm Danh</code>. Đồng thời tự động tạo thêm tab <code>Loi_Chuc</code> và <code>Luot_Truy_Cap</code> một cách hoàn toàn tự động.
+                <strong>Không cần!</strong> Mã nguồn Apps Script đã được lập trình để tự động kiểm tra và khởi tạo đầy đủ cơ sở dữ liệu:
+                tab <code>Danh_Sach_Lop</code> (chứa danh bạ thành viên, SĐT, biệt danh, vai trò, size áo),
+                tab <code>Trang_tinh_1</code> (chứa danh sách RSVP, điểm danh, đóng quỹ),
+                tab <code>Cau_Hinh</code> (cấu hình sự kiện, địa điểm, STK ngân hàng),
+                tab <code>Loi_Chuc</code>, <code>Media_Cai_Dat</code> và <code>Luot_Truy_Cap</code> một cách hoàn toàn tự động.
               </p>
             </div>
           </div>

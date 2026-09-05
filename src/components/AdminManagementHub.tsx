@@ -323,6 +323,21 @@ export default function AdminManagementHub({
     fundNote: ''
   });
 
+  // State Quản Lý Danh Bạ Lớp K8A1 (Lưu trên Google Sheet tab "Danh_Sach_Lop")
+  const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
+  const [editingRosterMember, setEditingRosterMember] = useState<ClassMember | null>(null);
+  const [rosterFormData, setRosterFormData] = useState<Partial<ClassMember>>({
+    fullName: '',
+    nickname: '',
+    phone: '',
+    role: 'Thành viên',
+    gender: 'male',
+    shirtSize: 'L',
+    note: ''
+  });
+  const [isRosterSyncing, setIsRosterSyncing] = useState(false);
+  const [rosterFeedbackMsg, setRosterFeedbackMsg] = useState('');
+
   // Comprehensive Fund Reconciliation & Proof Modal States
   const [adjustFundMember, setAdjustFundMember] = useState<RsvpData | null>(null);
   const [fundAdjustAmount, setFundAdjustAmount] = useState<number>(500000);
@@ -623,6 +638,121 @@ export default function AdminManagementHub({
       });
       onUpdateRsvpList(updated);
       localStorage.setItem('rsvp_list', JSON.stringify(updated));
+    }
+  };
+
+  // =========================================================================
+  // XỬ LÝ QUẢN TRỊ DANH BẠ LỚP K8A1 (GOOGLE SHEET TAB "Danh_Sach_Lop")
+  // =========================================================================
+  const handleOpenAddRosterMember = () => {
+    setEditingRosterMember(null);
+    setRosterFormData({
+      fullName: '',
+      nickname: '',
+      phone: '',
+      role: 'Thành viên',
+      gender: 'male',
+      shirtSize: 'L',
+      note: ''
+    });
+    setIsRosterModalOpen(true);
+  };
+
+  const handleOpenEditRosterMember = (member: ClassMember) => {
+    setEditingRosterMember(member);
+    setRosterFormData({
+      id: member.id,
+      fullName: String(member.fullName || ''),
+      nickname: String(member.nickname || ''),
+      phone: String(member.phone || ''),
+      role: String(member.role || 'Thành viên'),
+      gender: member.gender || 'male',
+      shirtSize: String(member.shirtSize || 'L'),
+      note: String(member.note || '')
+    });
+    setIsRosterModalOpen(true);
+  };
+
+  const handleSaveRosterMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = String(rosterFormData.fullName || '').trim();
+    if (!cleanName) {
+      alert('Vui lòng nhập Họ và Tên bạn học!');
+      return;
+    }
+
+    let updatedList: ClassMember[] = [];
+    if (editingRosterMember) {
+      updatedList = rosterList.map(item => {
+        if (item.id === editingRosterMember.id) {
+          return {
+            ...item,
+            fullName: cleanName,
+            nickname: String(rosterFormData.nickname || '').trim(),
+            phone: String(rosterFormData.phone || '').trim(),
+            role: String(rosterFormData.role || 'Thành viên').trim(),
+            gender: (rosterFormData.gender === 'female' ? 'female' : 'male'),
+            shirtSize: String(rosterFormData.shirtSize || 'L').trim().toUpperCase(),
+            note: String(rosterFormData.note || '').trim()
+          };
+        }
+        return item;
+      });
+      setRosterFeedbackMsg(`✓ Đã cập nhật bạn "${cleanName}" vào Google Sheet tab Danh_Sach_Lop!`);
+    } else {
+      const newId = 'm' + (rosterList.length + 1 < 10 ? '0' + (rosterList.length + 1) : (rosterList.length + 1));
+      const newMember: ClassMember = {
+        id: newId,
+        fullName: cleanName,
+        nickname: String(rosterFormData.nickname || '').trim(),
+        phone: String(rosterFormData.phone || '').trim(),
+        role: String(rosterFormData.role || 'Thành viên').trim(),
+        gender: (rosterFormData.gender === 'female' ? 'female' : 'male'),
+        shirtSize: String(rosterFormData.shirtSize || 'L').trim().toUpperCase(),
+        note: String(rosterFormData.note || '').trim()
+      };
+      updatedList = [...rosterList, newMember];
+      setRosterFeedbackMsg(`✓ Đã thêm bạn "${cleanName}" vào Google Sheet tab Danh_Sach_Lop!`);
+    }
+
+    if (onUpdateClassRoster) {
+      onUpdateClassRoster(updatedList);
+    }
+    setTimeout(() => setRosterFeedbackMsg(''), 4000);
+    setIsRosterModalOpen(false);
+  };
+
+  const handleDeleteRosterMember = (member: ClassMember) => {
+    if (currentUserRole !== 'admin') {
+      alert('Chỉ Trưởng Ban (Admin) mới có quyền xóa học sinh khỏi danh bạ lớp!');
+      return;
+    }
+
+    if (confirm(`Bạn có chắc chắn muốn xóa bạn "${member.fullName}" khỏi Danh Bạ Lớp (tab Danh_Sach_Lop trên Google Sheet)?`)) {
+      const updatedList = rosterList.filter(item => item.id !== member.id);
+      if (onUpdateClassRoster) {
+        onUpdateClassRoster(updatedList);
+      }
+      setRosterFeedbackMsg(`✓ Đã xóa bạn "${member.fullName}" khỏi Danh Bạ Lớp!`);
+      setTimeout(() => setRosterFeedbackMsg(''), 4000);
+    }
+  };
+
+  const handleForceSyncRoster = () => {
+    setIsRosterSyncing(true);
+    try {
+      if (onUpdateClassRoster) {
+        onUpdateClassRoster(rosterList);
+      }
+      if (onRefreshData) {
+        onRefreshData();
+      }
+      setRosterFeedbackMsg(`✓ Đã gửi lệnh đồng bộ toàn bộ danh bạ lớp lên Google Sheet!`);
+      setTimeout(() => setRosterFeedbackMsg(''), 4000);
+    } catch (e) {
+      alert('Lỗi đồng bộ: ' + e);
+    } finally {
+      setIsRosterSyncing(false);
     }
   };
 
@@ -1890,6 +2020,46 @@ export default function AdminManagementHub({
                     </div>
                   </div>
 
+                  {/* Google Sheet Status & Quick Sync Banner */}
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 rounded-xl text-xs text-amber-950 shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <div>
+                        <span>
+                          Quản lý danh sách thành viên trực tiếp trên Google Sheet: tab <strong>"Danh_Sach_Lop"</strong> ({rosterList.length} bạn).
+                        </span>
+                        {rosterFeedbackMsg && (
+                          <span className="block sm:inline sm:ml-2 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded text-[11px] animate-pulse">
+                            {rosterFeedbackMsg}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {onRefreshData && (
+                        <button
+                          type="button"
+                          onClick={onRefreshData}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-lg font-bold text-[11px] transition shadow-2xs cursor-pointer"
+                          title="Tải lại dữ liệu mới nhất từ Google Sheet"
+                        >
+                          <RefreshCw className="w-3 h-3 text-slate-500" />
+                          <span>Tải lại Sheet</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleForceSyncRoster}
+                        disabled={isRosterSyncing}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] transition shadow-xs cursor-pointer"
+                        title="Đẩy toàn bộ danh bạ hiện tại lưu vĩnh viễn vào Google Sheet"
+                      >
+                        <Save className={`w-3 h-3 ${isRosterSyncing ? 'animate-spin' : ''}`} />
+                        <span>{isRosterSyncing ? 'Đang lưu...' : 'Lưu Danh Bạ Lên Sheet'}</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Roster Controls Toolbar */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-amber-200 shadow-2xs">
                     <div className="flex flex-1 items-center gap-2">
@@ -1899,7 +2069,7 @@ export default function AdminManagementHub({
                           type="text"
                           value={memberSearch}
                           onChange={(e) => setMemberSearch(e.target.value)}
-                          placeholder="Tìm trong danh bạ (Tên, Biệt danh, Chức vụ)..."
+                          placeholder="Tìm trong danh bạ (Tên, Biệt danh, Chức vụ, SĐT)..."
                           className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
                         />
                       </div>
@@ -1917,11 +2087,11 @@ export default function AdminManagementHub({
                     </div>
 
                     <button
-                      onClick={handleOpenAddMember}
+                      onClick={handleOpenAddRosterMember}
                       className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer shrink-0"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
-                      <span>+ Thêm Bạn Mới</span>
+                      <span>+ Thêm Bạn Vào Danh Bạ Lớp</span>
                     </button>
                   </div>
 
@@ -2013,49 +2183,69 @@ export default function AdminManagementHub({
                                 </td>
 
                                 <td className="py-2.5 px-3 text-right">
-                                  <div className="flex items-center justify-end gap-1.5">
-                                    {m.matchedRsvp ? (
-                                      <>
-                                        {onOpenPassModal && (
-                                          <button
-                                            onClick={() => onOpenPassModal(m.matchedRsvp!)}
-                                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100/50 rounded transition cursor-pointer"
-                                            title="Xem Thẻ Học Sinh Kỷ Niệm"
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                          </button>
-                                        )}
-                                        <button
-                                          onClick={() => handleOpenEditMember(m.matchedRsvp!)}
-                                          className="inline-flex items-center gap-1 px-2 py-1 text-slate-600 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded transition text-[11px] cursor-pointer"
-                                          title="Sửa thông tin"
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                          <span>Sửa</span>
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <button
-                                        onClick={() => handleQuickRegisterMember(m)}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded shadow-2xs transition text-[11px] cursor-pointer"
-                                        title="Điểm danh hộ bạn này khi liên hệ qua điện thoại hoặc Zalo"
-                                      >
-                                        <Sparkles className="w-3 h-3" />
-                                        <span>⚡ Điểm danh hộ</span>
-                                      </button>
-                                    )}
+                                   <div className="flex items-center justify-end gap-1">
+                                     {m.matchedRsvp ? (
+                                       <>
+                                         {onOpenPassModal && (
+                                           <button
+                                             onClick={() => onOpenPassModal(m.matchedRsvp!)}
+                                             className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100/50 rounded transition cursor-pointer"
+                                             title="Xem Thẻ Học Sinh Kỷ Niệm"
+                                           >
+                                             <Eye className="w-3.5 h-3.5" />
+                                           </button>
+                                         )}
+                                         <button
+                                           onClick={() => handleOpenEditMember(m.matchedRsvp!)}
+                                           className="inline-flex items-center gap-1 px-2 py-1 text-slate-600 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded transition text-[11px] cursor-pointer"
+                                           title="Sửa phản hồi RSVP (tham gia, chuyển khoản quỹ...)"
+                                         >
+                                           <Edit className="w-3 h-3" />
+                                           <span>RSVP</span>
+                                         </button>
+                                       </>
+                                     ) : (
+                                       <button
+                                         onClick={() => handleQuickRegisterMember(m)}
+                                         className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded shadow-2xs transition text-[11px] cursor-pointer"
+                                         title="Điểm danh hộ bạn này khi liên hệ qua điện thoại hoặc Zalo"
+                                       >
+                                         <Sparkles className="w-3 h-3" />
+                                         <span>Điểm danh</span>
+                                       </button>
+                                     )}
 
-                                    {(m.matchedRsvp?.phone || m.phone) && (
-                                      <a
-                                        href={`tel:${m.matchedRsvp?.phone || m.phone}`}
-                                        className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"
-                                        title={`Gọi cho ${m.fullName}: ${m.matchedRsvp?.phone || m.phone}`}
-                                      >
-                                        <Phone className="w-3.5 h-3.5" />
-                                      </a>
-                                    )}
-                                  </div>
-                                </td>
+                                     {/* Sửa thông tin cố định trong Danh Bạ Lớp (tab Danh_Sach_Lop) */}
+                                     <button
+                                       onClick={() => handleOpenEditRosterMember(m)}
+                                       className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100/60 rounded transition cursor-pointer"
+                                       title={`Sửa thông tin bạn ${m.fullName} trong Danh Bạ Lớp (Sheet Danh_Sach_Lop)`}
+                                     >
+                                       <Edit className="w-3.5 h-3.5" />
+                                     </button>
+
+                                     {/* Xóa khỏi Danh Bạ (Chỉ dành cho Admin) */}
+                                     {isAdmin && (
+                                       <button
+                                         onClick={() => handleDeleteRosterMember(m)}
+                                         className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                         title={`Xóa bạn ${m.fullName} khỏi Danh Bạ Lớp`}
+                                       >
+                                         <Trash2 className="w-3.5 h-3.5" />
+                                       </button>
+                                     )}
+
+                                     {(m.matchedRsvp?.phone || m.phone) && (
+                                       <a
+                                         href={`tel:${m.matchedRsvp?.phone || m.phone}`}
+                                         className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"
+                                         title={`Gọi cho ${m.fullName}: ${m.matchedRsvp?.phone || m.phone}`}
+                                       >
+                                         <Phone className="w-3.5 h-3.5" />
+                                       </a>
+                                     )}
+                                   </div>
+                                 </td>
                               </tr>
                             ))
                           )}
@@ -4255,6 +4445,174 @@ export default function AdminManagementHub({
 
         </div>
       </motion.div>
+
+      {/* =================================================================== */}
+      {/* MODAL: ADD / EDIT ROSTER MEMBER (DANH BẠ LỚP - TAB "Danh_Sach_Lop") */}
+      {/* =================================================================== */}
+      <AnimatePresence>
+        {isRosterModalOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-lg p-6 space-y-4 text-xs"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-800 font-bold">
+                    {editingRosterMember ? '✏️' : '➕'}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold font-serif text-slate-900">
+                      {editingRosterMember ? 'Chỉnh Sửa Bạn Học Trong Danh Bạ Lớp' : 'Thêm Bạn Học Vào Danh Bạ Lớp'}
+                    </h3>
+                    <p className="text-[11px] text-emerald-700 font-sans">
+                      Lưu và đồng bộ trực tiếp vào Google Sheet (tab <strong>"Danh_Sach_Lop"</strong>)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRosterModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveRosterMember} className="space-y-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Họ và Tên (*):</label>
+                    <input
+                      type="text"
+                      required
+                      value={rosterFormData.fullName || ''}
+                      onChange={(e) => setRosterFormData({ ...rosterFormData, fullName: e.target.value })}
+                      placeholder="VD: Nguyễn Tuấn Anh"
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 font-bold text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Biệt danh thời cấp 3:</label>
+                    <input
+                      type="text"
+                      value={rosterFormData.nickname || ''}
+                      onChange={(e) => setRosterFormData({ ...rosterFormData, nickname: e.target.value })}
+                      placeholder="VD: Tuấn Báo, Hương Béo..."
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-amber-800 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Số Điện Thoại:</label>
+                    <input
+                      type="tel"
+                      value={rosterFormData.phone || ''}
+                      onChange={(e) => setRosterFormData({ ...rosterFormData, phone: e.target.value })}
+                      placeholder="VD: 0988123456"
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Vai trò trong lớp:</label>
+                    <select
+                      value={rosterFormData.role || 'Thành viên'}
+                      onChange={(e) => setRosterFormData({ ...rosterFormData, role: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer font-medium"
+                    >
+                      <option value="Thành viên">Thành viên</option>
+                      <option value="Lớp trưởng">Lớp trưởng</option>
+                      <option value="Lớp phó">Lớp phó</option>
+                      <option value="Bí thư">Bí thư</option>
+                      <option value="Thủ quỹ">Thủ quỹ</option>
+                      <option value="Ban Liên Lạc (Admin)">Ban Liên Lạc (Admin)</option>
+                      <option value="Thầy cô">Thầy cô giáo</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Giới tính:</label>
+                    <div className="flex items-center gap-4 pt-1.5">
+                      <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <input
+                          type="radio"
+                          name="rosterGender"
+                          checked={rosterFormData.gender !== 'female'}
+                          onChange={() => setRosterFormData({ ...rosterFormData, gender: 'male' })}
+                          className="text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Nam</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <input
+                          type="radio"
+                          name="rosterGender"
+                          checked={rosterFormData.gender === 'female'}
+                          onChange={() => setRosterFormData({ ...rosterFormData, gender: 'female' })}
+                          className="text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Nữ</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Size Áo Dự Kiến:</label>
+                    <select
+                      value={rosterFormData.shirtSize || 'L'}
+                      onChange={(e) => setRosterFormData({ ...rosterFormData, shirtSize: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="S">Size S (&lt; 50kg)</option>
+                      <option value="M">Size M (50 - 58kg)</option>
+                      <option value="L">Size L (59 - 68kg)</option>
+                      <option value="XL">Size XL (69 - 78kg)</option>
+                      <option value="2XL">Size 2XL (79 - 88kg)</option>
+                      <option value="3XL">Size 3XL (&gt; 88kg)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Ghi chú (Nơi ở, công tác, ghi chú riêng):</label>
+                  <textarea
+                    rows={2}
+                    value={rosterFormData.note || ''}
+                    onChange={(e) => setRosterFormData({ ...rosterFormData, note: e.target.value })}
+                    placeholder="VD: Đang ở Thái Nguyên, bay từ Sài Gòn..."
+                    className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setIsRosterModalOpen(false)}
+                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-bold transition cursor-pointer"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-lg font-bold shadow-md transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{editingRosterMember ? 'Lưu Thay Đổi Vào Sheet' : 'Thêm Vào Danh Bạ Sheet'}</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* =================================================================== */}
       {/* MODAL: ADD / EDIT MEMBER */}

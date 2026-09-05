@@ -200,26 +200,40 @@ export default function App() {
     fundPaidAt: item.fundPaidAt ? String(item.fundPaidAt) : ''
   });
 
+  // Helper chuẩn hóa dữ liệu học sinh danh bạ lớp, chống crash do dữ liệu dạng số từ Google Sheet
+  const sanitizeClassMember = (item: any, idx: number): ClassMember => ({
+    id: item.id ? String(item.id) : ('m' + (idx < 9 ? '0' + (idx + 1) : (idx + 1))),
+    fullName: String(item.fullName || '').trim(),
+    nickname: item.nickname ? String(item.nickname).trim() : '',
+    phone: item.phone ? String(item.phone).trim() : '',
+    role: item.role ? String(item.role).trim() : 'Thành viên',
+    gender: (item.gender === 'female' || String(item.gender).toLowerCase().includes('nữ')) ? 'female' : 'male',
+    shirtSize: item.shirtSize ? String(item.shirtSize).trim().toUpperCase() : 'L',
+    note: item.note ? String(item.note).trim() : ''
+  });
+
   // Class Roster Master Directory state (Sĩ số học sinh lớp K8A1)
   const [classRoster, setClassRoster] = useState<ClassMember[]>(() => {
     try {
       const local = localStorage.getItem('k8a1_class_roster');
       if (!local) return CLASS_ROSTER_K8A1;
       const parsed = JSON.parse(local);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : CLASS_ROSTER_K8A1;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed.map(sanitizeClassMember) : CLASS_ROSTER_K8A1;
     } catch {
       return CLASS_ROSTER_K8A1;
     }
   });
 
   const handleUpdateClassRoster = (updated: ClassMember[]) => {
-    setClassRoster(updated);
+    const sanitized = updated.map(sanitizeClassMember);
+    setClassRoster(sanitized);
     try {
-      localStorage.setItem('k8a1_class_roster', JSON.stringify(updated));
+      localStorage.setItem('k8a1_class_roster', JSON.stringify(sanitized));
     } catch (e) {
       console.warn('Lỗi lưu danh bạ lớp vào localStorage:', e);
     }
-    syncToBackend('save_roster', { roster: updated });
+    // Ghi trực tiếp lên Google Sheet tab "Danh_Sach_Lop"
+    syncToBackend('save_roster', { roster: sanitized });
   };
 
   // RSVP list state
@@ -448,7 +462,7 @@ export default function App() {
       const res = await fetch(`${targetUrl}?action=get_all_data&t=${Date.now()}`);
       const result = await res.json();
       if (result && result.status === 'success' && result.data) {
-        const { rsvp, wishes, config, media } = result.data;
+        const { rsvp, wishes, config, media, roster } = result.data;
 
         // 1. Đồng bộ RSVP từ Google Sheet (lọc trùng lặp thông minh)
         if (Array.isArray(rsvp) && rsvp.length > 0) {
@@ -519,6 +533,19 @@ export default function App() {
           if (Array.isArray(media.venueMedia) && media.venueMedia.length > 0) {
             setVenueMediaList(media.venueMedia);
             localStorage.setItem('k8a1_venue_media_list', JSON.stringify(media.venueMedia));
+          }
+        }
+
+        // 5. Đồng bộ Danh bạ Sĩ số Lớp K8A1 từ Google Sheet (tab "Danh_Sach_Lop")
+        if (Array.isArray(roster) && roster.length > 0) {
+          const sanitizedRoster = roster
+            .filter((r: any) => r && (r.fullName || r.id))
+            .map((r: any, idx: number) => sanitizeClassMember(r, idx));
+          if (sanitizedRoster.length > 0) {
+            setClassRoster(sanitizedRoster);
+            try {
+              localStorage.setItem('k8a1_class_roster', JSON.stringify(sanitizedRoster));
+            } catch (e) {}
           }
         }
       }
