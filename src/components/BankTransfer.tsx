@@ -9,9 +9,11 @@ import {
   Maximize2,
   Download,
   X,
-  QrCode
+  QrCode,
+  Sparkles,
+  UserCheck
 } from 'lucide-react';
-import { RsvpData } from '../types';
+import { RsvpData, ClassMember } from '../types';
 import { generateVietQrUrl } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
@@ -26,6 +28,7 @@ interface BankTransferProps {
   qrTemplate?: 'compact' | 'compact2' | 'qr_only';
   appsScriptUrl?: string;
   rsvpList?: RsvpData[];
+  activeMember?: ClassMember | null;
   onUpdateRsvpList?: (list: RsvpData[]) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
 }
@@ -41,6 +44,7 @@ export default function BankTransfer({
   qrTemplate = "compact",
   appsScriptUrl = "",
   rsvpList = [],
+  activeMember,
   onUpdateRsvpList,
   onOpenReceiptModal
 }: BankTransferProps) {
@@ -52,13 +56,18 @@ export default function BankTransfer({
   const [isLocalModalOpen, setIsLocalModalOpen] = useState(false);
   const [isZoomQrOpen, setIsZoomQrOpen] = useState(false);
 
-  // Chuẩn hóa an toàn tuyệt đối các biến cấu hình tài khoản (kể cả khi Google Sheet trả về dạng Number)
+  // Chuẩn hóa an toàn tuyệt đối các biến cấu hình tài khoản
   const accountStr = String(bankAccount || '10123456789');
   const bankNameStr = String(bankName || 'Vietcombank (VCB)');
   const bankHolderStr = String(bankHolder || 'NGUYEN VAN BAN TO CHUC');
   const transferSyntaxStr = String(transferSyntax || 'KY NIEM 20 NAM K8A1');
   const fundAmountNum = Number(fundAmount) || 500000;
   const bankCodeStr = String(bankCode || 'vietcombank');
+
+  // Tự động cá nhân hóa cú pháp chuyển khoản khi đã nhận diện thành viên
+  const effectiveSyntax = activeMember
+    ? `K8A1 ${activeMember.fullName.toUpperCase()} ${activeMember.phone ? activeMember.phone : ''}`.trim()
+    : transferSyntaxStr;
 
   // Sinh mã VietQR chuẩn xác, tương thích 100% Napas và app ngân hàng
   const dynamicQrUrl = generateVietQrUrl({
@@ -67,7 +76,7 @@ export default function BankTransfer({
     bankAccount: accountStr,
     bankHolder: bankHolderStr,
     fundAmount: fundAmountNum,
-    transferSyntax: transferSyntaxStr,
+    transferSyntax: effectiveSyntax,
     template: selectedTemplate
   });
 
@@ -86,7 +95,22 @@ export default function BankTransfer({
 
   const handleOpenUpload = () => {
     if (onOpenReceiptModal) {
-      onOpenReceiptModal();
+      if (activeMember) {
+        const matched = (rsvpList || []).find(r => r.fullName.toLowerCase() === activeMember.fullName.toLowerCase());
+        onOpenReceiptModal(matched || {
+          id: `temp-${Date.now()}`,
+          fullName: activeMember.fullName,
+          nickname: activeMember.nickname,
+          phone: activeMember.phone || '',
+          className: 'K8A1',
+          status: 'yes',
+          shirtSize: activeMember.shirtSize || 'L',
+          message: '',
+          submittedAt: new Date().toISOString()
+        });
+      } else {
+        onOpenReceiptModal();
+      }
     } else {
       setIsLocalModalOpen(true);
     }
@@ -104,7 +128,7 @@ export default function BankTransfer({
   };
 
   return (
-    <div id="bank-transfer-card" className="bg-white rounded-2xl p-6 sm:p-8 shadow-xs border border-amber-200/90 space-y-6">
+    <div id="bank-transfer-card" className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-md border border-amber-200/90 space-y-6">
       {/* Header */}
       <div className="text-left space-y-1.5 border-b border-amber-200/80 pb-4">
         <div className="flex items-center gap-2">
@@ -114,18 +138,25 @@ export default function BankTransfer({
           <span className="text-xs text-slate-400">• Quỹ Tổ Chức Hội Khóa 20 Năm K8A1</span>
         </div>
         <h3 className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
-          Đóng Quỹ Sự Kiện (Tạm Ứng {fundAmount ? fundAmount.toLocaleString('vi-VN') : '500.000'} VNĐ / Bạn)
+          Đóng Quỹ Sự Kiện (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'} VNĐ / Bạn)
         </h3>
         <p className="text-xs text-slate-600 font-sans leading-relaxed">
           Kinh phí bao gồm: Tiệc trưa Crown Palace Thái Nguyên, Áo polo đồng phục kỷ niệm 20 năm, Thẻ học sinh, Backdrop & quà lưu niệm.
         </p>
+
+        {activeMember && (
+          <div className="pt-1 flex items-center gap-1.5 text-xs text-emerald-800 font-sans font-medium">
+            <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Đã tự động điền cú pháp cho <strong>{activeMember.fullName}</strong> {activeMember.nickname ? `(“${activeMember.nickname}”)` : ''}</span>
+          </div>
+        )}
       </div>
 
       {/* Grid: Bank Details & QR Code */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center">
         {/* Bank Details */}
         <div className="space-y-4 order-2 md:order-1">
-          <div className="bg-[#FAF9F6] p-4 sm:p-5 rounded-xl border border-amber-200/70 space-y-3.5">
+          <div className="bg-[#FAF9F6] p-4 sm:p-5 rounded-2xl border border-amber-200/70 space-y-3.5">
             <div className="flex items-center gap-2 border-b border-amber-200/60 pb-2">
               <Landmark className="w-4 h-4 text-amber-700" />
               <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-slate-800">
@@ -136,7 +167,7 @@ export default function BankTransfer({
             <div className="space-y-0.5">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Ngân hàng</span>
               <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <span>{bankName}</span>
+                <span>{bankNameStr}</span>
                 <span className="text-[10px] font-normal text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                   Napas 24/7
                 </span>
@@ -146,11 +177,11 @@ export default function BankTransfer({
             <div className="space-y-0.5">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Số tài khoản</span>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-base font-mono font-bold text-emerald-700 tracking-wider select-all">{bankAccount}</span>
+                <span className="text-base font-mono font-bold text-emerald-700 tracking-wider select-all">{accountStr}</span>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(bankAccount, 'account')}
-                  className="flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-200/80 px-2.5 py-1 rounded-md font-bold cursor-pointer transition-all"
+                  onClick={() => copyToClipboard(accountStr, 'account')}
+                  className="flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-200/80 px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-all"
                 >
                   {copiedAccount ? (
                     <>
@@ -169,10 +200,10 @@ export default function BankTransfer({
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Chủ tài khoản (Thủ Quỹ BLL)</span>
-              <p className="text-sm font-semibold text-slate-900 uppercase font-mono">{bankHolder}</p>
+              <p className="text-sm font-semibold text-slate-900 uppercase font-mono">{bankHolderStr}</p>
             </div>
 
-            <div className="space-y-1 bg-white p-2.5 rounded-lg border border-amber-200/70">
+            <div className="space-y-1 bg-white p-2.5 rounded-xl border border-amber-200/70">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">
                   Nội dung chuyển khoản
@@ -183,11 +214,11 @@ export default function BankTransfer({
               </div>
               <div className="flex items-start justify-between gap-2 mt-0.5">
                 <p className="text-xs font-semibold text-slate-800 leading-relaxed break-all select-all font-mono">
-                  {transferSyntax}
+                  {effectiveSyntax}
                 </p>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(transferSyntax, 'syntax')}
+                  onClick={() => copyToClipboard(effectiveSyntax, 'syntax')}
                   className="flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-200/80 px-2 py-0.5 rounded-md font-bold shrink-0 mt-0.5 cursor-pointer"
                 >
                   {copiedSyntax ? (
@@ -239,7 +270,7 @@ export default function BankTransfer({
             <button
               type="button"
               onClick={() => setIsZoomQrOpen(true)}
-              className="inline-flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-950 font-semibold bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-md border border-amber-200 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-950 font-semibold bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 cursor-pointer transition-colors"
             >
               <Maximize2 className="w-3 h-3" />
               <span>Phóng to</span>
@@ -248,7 +279,7 @@ export default function BankTransfer({
             <button
               type="button"
               onClick={handleDownloadQr}
-              className="inline-flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-900 font-semibold bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-900 font-semibold bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 cursor-pointer transition-colors"
             >
               <Download className="w-3 h-3" />
               <span>Tải ảnh</span>
@@ -263,7 +294,7 @@ export default function BankTransfer({
       </div>
 
       {/* COMPACT & ELEGANT ACTION FOOTER STRIP */}
-      <div className="pt-4 border-t border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-[#FAF8F5] to-[#F5EFE6] -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 p-4 sm:p-5 rounded-b-2xl">
+      <div className="pt-4 border-t border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-[#FAF8F5] to-[#F5EFE6] -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 p-4 sm:p-5 rounded-b-2xl sm:rounded-b-3xl">
         <div className="flex items-center gap-2.5 text-left">
           <div className="w-9 h-9 rounded-full bg-amber-500/20 text-amber-900 border border-amber-400/40 flex items-center justify-center shrink-0">
             <Receipt className="w-4 h-4 text-amber-700" />
@@ -288,9 +319,7 @@ export default function BankTransfer({
         </button>
       </div>
 
-      {/* ============================================================ */}
       {/* FULLSCREEN / ZOOM QR MODAL CHO APP QUÉT CỰC NÉT */}
-      {/* ============================================================ */}
       {isZoomQrOpen && (
         <div 
           className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -363,26 +392,26 @@ export default function BankTransfer({
             <div className="bg-[#FAF9F6] p-3.5 rounded-xl border border-amber-200 text-xs space-y-1.5">
               <div className="flex justify-between items-center text-slate-600">
                 <span>Ngân hàng:</span>
-                <span className="font-bold text-slate-900">{bankName}</span>
+                <span className="font-bold text-slate-900">{bankNameStr}</span>
               </div>
               <div className="flex justify-between items-center text-slate-600">
                 <span>Số tài khoản:</span>
-                <span className="font-mono font-bold text-emerald-700 select-all">{bankAccount}</span>
+                <span className="font-mono font-bold text-emerald-700 select-all">{accountStr}</span>
               </div>
               <div className="flex justify-between items-center text-slate-600">
                 <span>Chủ tài khoản:</span>
-                <span className="font-bold text-slate-900 uppercase font-mono">{bankHolder}</span>
+                <span className="font-bold text-slate-900 uppercase font-mono">{bankHolderStr}</span>
               </div>
               <div className="flex justify-between items-center text-slate-600">
                 <span>Số tiền:</span>
                 <span className="font-bold text-amber-800">
-                  {fundAmount ? fundAmount.toLocaleString('vi-VN') : '500.000'} VNĐ
+                  {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'} VNĐ
                 </span>
               </div>
               <div className="flex justify-between items-start text-slate-600 pt-1 border-t border-amber-100">
                 <span className="shrink-0">Nội dung:</span>
                 <span className="font-mono font-bold text-slate-800 text-right select-all break-all">
-                  {transferSyntax}
+                  {effectiveSyntax}
                 </span>
               </div>
             </div>
@@ -399,7 +428,7 @@ export default function BankTransfer({
               </button>
               <button
                 type="button"
-                onClick={() => copyToClipboard(bankAccount, 'account')}
+                onClick={() => copyToClipboard(accountStr, 'account')}
                 className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {copiedAccount ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
@@ -423,4 +452,3 @@ export default function BankTransfer({
     </div>
   );
 }
-

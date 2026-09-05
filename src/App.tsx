@@ -254,6 +254,32 @@ export default function App() {
     syncToBackend('save_roster', { roster: sanitized });
   };
 
+  // Đồng bộ định danh thành viên toàn bộ WebApp (chọn 1 lần sẽ tự điền ở Lưu bút, Điểm danh RSVP, Quỹ lớp)
+  const [activeMember, setActiveMember] = useState<ClassMember | null>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_active_member');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleSelectActiveMember = (member: ClassMember | null) => {
+    setActiveMember(member);
+    try {
+      if (member) {
+        localStorage.setItem('k8a1_active_member', JSON.stringify(member));
+      } else {
+        localStorage.removeItem('k8a1_active_member');
+      }
+    } catch (e) {
+      console.warn('Lỗi lưu activeMember vào localStorage:', e);
+    }
+  };
+
   // RSVP list state
   const [rsvpList, setRsvpList] = useState<RsvpData[]>(() => {
     try {
@@ -1122,6 +1148,9 @@ export default function App() {
                 appsScriptUrl={activeAppsScriptUrl}
                 wishesList={wishesList}
                 onAddWish={handleAddWish}
+                classRoster={classRoster}
+                activeMember={activeMember}
+                onSelectActiveMember={handleSelectActiveMember}
               />
             </section>
 
@@ -1135,6 +1164,8 @@ export default function App() {
                 appsScriptUrl={activeAppsScriptUrl} 
                 rsvpList={rsvpList} 
                 classRoster={classRoster}
+                activeMember={activeMember}
+                onSelectActiveMember={handleSelectActiveMember}
                 onAddRsvp={handleAddRsvp} 
                 onOpenPassModal={handleOpenPass}
                 onOpenReceiptModal={handleOpenReceiptModal}
@@ -1162,6 +1193,7 @@ export default function App() {
                 qrTemplate={eventConfig.qrTemplate}
                 appsScriptUrl={activeAppsScriptUrl}
                 rsvpList={rsvpList}
+                activeMember={activeMember}
                 onOpenReceiptModal={handleOpenReceiptModal}
                 onUpdateRsvpList={(updated) => {
                   setRsvpList(updated);

@@ -1,5 +1,20 @@
-import React, { useState } from 'react';
-import { CheckCircle2, Send, Loader2, Sparkles, Shirt, Info, Award, UserCheck, Users } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  CheckCircle2, 
+  Send, 
+  Loader2, 
+  Sparkles, 
+  Shirt, 
+  Info, 
+  Award, 
+  Users, 
+  UserCheck, 
+  RotateCcw,
+  X,
+  CreditCard,
+  HeartHandshake,
+  CalendarCheck
+} from 'lucide-react';
 import { RsvpData, ClassMember } from '../types';
 import { CLASS_ROSTER_K8A1 } from '../data';
 import { triggerFullscreenFireworks } from '../utils/confetti';
@@ -9,12 +24,25 @@ interface RsvpFormProps {
   appsScriptUrl: string;
   rsvpList: RsvpData[];
   classRoster?: ClassMember[];
+  activeMember?: ClassMember | null;
+  onSelectActiveMember?: (member: ClassMember | null) => void;
   onAddRsvp: (newRsvp: RsvpData) => void;
   onOpenPassModal?: (attendee: RsvpData) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
 }
 
-export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRsvp, onOpenPassModal, onOpenReceiptModal }: RsvpFormProps) {
+export default function RsvpForm({
+  appsScriptUrl,
+  rsvpList,
+  classRoster,
+  activeMember,
+  onSelectActiveMember,
+  onAddRsvp,
+  onOpenPassModal,
+  onOpenReceiptModal
+}: RsvpFormProps) {
+  const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+
   const [fullName, setFullName] = useState('');
   const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
@@ -22,17 +50,14 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [status, setStatus] = useState<'yes' | 'no'>('yes');
   const [message, setMessage] = useState('');
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastSubmittedAttendee, setLastSubmittedAttendee] = useState<RsvpData | null>(null);
 
-  // Quản lý chọn thành viên từ danh bạ lớp K8A1 (chống gõ sai và trùng lặp)
-  const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
-  const [isCustomMode, setIsCustomMode] = useState(false);
-
-  // Normalize helpers for phone and name to detect existing registrations (an toàn tuyệt đối trước kiểu Number)
+  // Normalize helpers for phone and name to detect existing registrations
   const normalizePhone = (p?: any) => {
     if (p === null || p === undefined) return '';
     let clean = String(p).replace(/[^0-9]/g, '');
@@ -46,7 +71,8 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
     return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
   };
 
-  const matchedExistingAttendee = React.useMemo(() => {
+  // Find existing RSVP record for current input (or active member)
+  const matchedExistingAttendee = useMemo(() => {
     const p = normalizePhone(phone);
     const n = normalizeName(fullName);
     if (!p && !n) return null;
@@ -61,32 +87,22 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
     });
   }, [phone, fullName, rsvpList]);
 
-  // Xử lý khi bạn học chọn tên mình từ danh bạ lớp
-  const handleSelectMember = (memberId: string) => {
-    setSelectedMemberId(memberId);
-    if (memberId === 'custom') {
-      setIsCustomMode(true);
-      return;
-    }
-    if (!memberId) {
-      setFullName('');
-      setNickname('');
-      return;
-    }
-    setIsCustomMode(false);
-    const member = rosterList.find((m) => m.id === memberId);
-    if (member) {
-      setFullName(member.fullName);
-      if (member.nickname) setNickname(member.nickname);
-      if (member.shirtSize) setShirtSize(member.shirtSize);
+  // Synchronize state when activeMember is chosen or changed anywhere in the WebApp
+  useEffect(() => {
+    if (activeMember) {
+      setFullName(activeMember.fullName);
+      if (activeMember.nickname) setNickname(activeMember.nickname);
+      if (activeMember.shirtSize) setShirtSize(activeMember.shirtSize);
+      if (activeMember.phone) setPhone(String(activeMember.phone));
+      setIsCustomMode(false);
 
-      // Tìm xem bạn này đã từng đăng ký trước đó chưa
+      // Check if this member has already registered in rsvpList
       const existing = (rsvpList || []).find((item) => {
         if (!item) return false;
         const itemP = normalizePhone(item.phone);
         const itemN = normalizeName(item.fullName);
-        const mP = normalizePhone(member.phone);
-        const mN = normalizeName(member.fullName);
+        const mP = normalizePhone(activeMember.phone);
+        const mN = normalizeName(activeMember.fullName);
         if (mP && itemP && mP === itemP) return true;
         if (mN && itemN && mN === itemN) return true;
         return false;
@@ -98,23 +114,58 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
         if (existing.status) setStatus(existing.status);
         if (existing.message) setMessage(String(existing.message));
         if (existing.nickname) setNickname(String(existing.nickname));
-      } else if (member.phone) {
-        setPhone(String(member.phone));
+      }
+    } else if (!isCustomMode) {
+      setFullName('');
+      setNickname('');
+      setPhone('');
+      setMessage('');
+      setStatus('yes');
+    }
+  }, [activeMember, isCustomMode, rsvpList]);
+
+  // Handle member selection from dropdown inside RSVP Form
+  const handleSelectMember = (memberId: string) => {
+    if (memberId === 'custom') {
+      setIsCustomMode(true);
+      if (onSelectActiveMember) onSelectActiveMember(null);
+      setFullName('');
+      setNickname('');
+      setPhone('');
+      return;
+    }
+
+    if (!memberId) {
+      if (onSelectActiveMember) onSelectActiveMember(null);
+      setFullName('');
+      setNickname('');
+      setPhone('');
+      return;
+    }
+
+    const member = rosterList.find((m) => m.id === memberId);
+    if (member) {
+      setIsCustomMode(false);
+      if (onSelectActiveMember) {
+        onSelectActiveMember(member);
+      } else {
+        setFullName(member.fullName);
+        if (member.nickname) setNickname(member.nickname);
+        if (member.shirtSize) setShirtSize(member.shirtSize);
+        if (member.phone) setPhone(String(member.phone));
       }
     }
   };
 
-  // Tự động điền biệt danh hoặc gợi ý size áo nếu tìm thấy thành viên đã đăng ký
-  React.useEffect(() => {
-    if (matchedExistingAttendee) {
-      if (!nickname && matchedExistingAttendee.nickname) {
-        setNickname(String(matchedExistingAttendee.nickname));
-      }
-      if (matchedExistingAttendee.shirtSize && matchedExistingAttendee.shirtSize !== 'L') {
-        setShirtSize(String(matchedExistingAttendee.shirtSize));
-      }
-    }
-  }, [matchedExistingAttendee]);
+  const handleResetMember = () => {
+    if (onSelectActiveMember) onSelectActiveMember(null);
+    setIsCustomMode(false);
+    setFullName('');
+    setNickname('');
+    setPhone('');
+    setMessage('');
+    setStatus('yes');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,14 +222,6 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
         if (status === 'yes') {
           triggerFullscreenFireworks();
         }
-
-        // Clear form
-        setFullName('');
-        setNickname('');
-        setPhone('');
-        setMessage('');
-        setSelectedMemberId('');
-        setIsCustomMode(false);
       } catch (error) {
         console.error('Lỗi khi gửi lên Apps Script:', error);
         setSubmitError('Có lỗi xảy ra khi kết nối tới máy chủ Google Sheets. Đăng ký tạm thời lưu cục bộ!');
@@ -200,7 +243,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
               : 'Đã cập nhật phản hồi: Rất tiếc bạn không thể tham gia. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (status === 'yes'
               ? 'Chúc mừng! Bạn đã xác nhận tham dự thành công. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
-              : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn nhớ về bạn.');
+              : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn lưu giữ những kỷ niệm đẹp về bạn.');
         
         setSubmitSuccess(successMessage);
         setIsSubmitting(false);
@@ -208,333 +251,452 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
         if (status === 'yes') {
           triggerFullscreenFireworks();
         }
-
-        // Clear form
-        setFullName('');
-        setNickname('');
-        setPhone('');
-        setMessage('');
-        setSelectedMemberId('');
-        setIsCustomMode(false);
-      }, 800);
+      }, 600);
     }
   };
 
+  const confirmedCount = useMemo(() => {
+    return (rsvpList || []).filter(r => r.status === 'yes').length;
+  }, [rsvpList]);
 
   return (
     <div id="rsvp-section" className="space-y-6">
-      {/* Biểu mẫu Xác Nhận Tham Dự - Phong cách Tạp chí */}
-      <div id="rsvp-form-card" className="bg-white rounded-sm p-6 md:p-8 shadow-xs border border-brand-border">
-        <div className="text-left space-y-2 mb-6 border-b border-brand-border pb-4">
-          <h3 className="text-xl font-light text-brand-text">Xác Nhận Tham Dự Lớp K8A1</h3>
-          <p className="text-xs text-brand-text-muted">
-            Hạn chót chốt danh sách đến hết ngày 20/09/2026 để Ban liên lạc lớp chuẩn bị chu đáo nhất.
-          </p>
-        </div>
+      {/* Khung Biểu Mẫu Điểm Danh K8A1 - Phong Cách Ấm Áp Hoàng Gia */}
+      <div 
+        id="rsvp-form-card" 
+        className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-lg space-y-6 text-left relative overflow-hidden"
+      >
+        {/* Nền hiệu ứng sáng tinh tế */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-200/20 via-orange-100/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-amber-300/15 via-transparent to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Bộ chọn thành viên thông minh từ danh bạ K8A1 */}
-          <div className="bg-[#FAF8F5] border border-amber-300/80 rounded-sm p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-2">
-              <div className="flex items-center gap-1.5 text-amber-900 font-sans font-bold text-xs uppercase tracking-wider">
-                <Users className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Chọn bạn trong Danh Bạ Lớp K8A1</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const nextMode = !isCustomMode;
-                  setIsCustomMode(nextMode);
-                  if (nextMode) {
-                    setSelectedMemberId('custom');
-                  } else {
-                    setSelectedMemberId('');
-                    setFullName('');
-                    setNickname('');
-                  }
-                }}
-                className="text-[11px] font-sans text-amber-800 hover:text-amber-950 font-bold underline cursor-pointer text-left sm:text-right"
-              >
-                {isCustomMode ? '← Chọn lại từ danh bạ lớp' : '✏️ Nhập tên khác (khách mời / thầy cô)'}
-              </button>
+        {/* 🌟 HEADER SANG TRỌNG */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-300/60 pb-4 sm:pb-5 gap-3 relative z-10">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-950 text-xs font-bold tracking-wider font-sans uppercase border border-amber-300/80 shadow-2xs">
+              <CalendarCheck className="w-3.5 h-3.5 text-amber-700" />
+              <span>Điểm Danh Trực Tuyến • Hội Ngộ 20 Năm K8A1</span>
             </div>
 
-            {!isCustomMode ? (
-              <div className="space-y-2">
-                <p className="text-[11px] text-slate-600 font-sans">
-                  💡 <em>Chọn tên của bạn dưới đây để hệ thống tự động điền và kết nối hồ sơ điểm danh:</em>
-                </p>
-                <select
-                  value={selectedMemberId}
-                  onChange={(e) => handleSelectMember(e.target.value)}
-                  className="w-full bg-white border border-amber-300 rounded-sm py-2 px-3 text-xs sm:text-sm font-sans font-semibold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
-                >
-                  <option value="">-- Bấm vào đây để chọn tên bạn trong lớp K8A1 --</option>
-                  {rosterList.map((m) => {
-                    const isRegistered = rsvpList.some(r => 
-                      normalizeName(r.fullName) === normalizeName(m.fullName) || 
-                      (m.phone && normalizePhone(r.phone) === normalizePhone(m.phone))
-                    );
-                    return (
-                      <option key={m.id} value={m.id}>
-                        {m.fullName} {m.nickname ? `("${m.nickname}")` : ''} {m.role && m.role !== 'Thành viên' ? `[${m.role}]` : ''} {isRegistered ? '✅ (Đã đăng ký)' : ''}
-                      </option>
-                    );
-                  })}
-                  <option value="custom">✏️ Nhập tên khác (Khách mời / Thầy cô / Bạn mới)</option>
-                </select>
+            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-[#1E293B] tracking-tight">
+              Xác Nhận Tham Dự Lớp K8A1
+            </h3>
 
-                {selectedMemberId && selectedMemberId !== 'custom' && (
-                  <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded-sm text-xs text-amber-900 font-sans flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span>Đã chọn: <strong className="text-amber-900">{fullName}</strong></span>
-                      {nickname && <span className="italic"> (“{nickname}”)</span>}
-                      {matchedExistingAttendee ? (
-                        <p className="text-[11px] text-emerald-800 font-medium mt-0.5">
-                          ✓ Hệ thống nhận diện bạn đã đăng ký trước đó. Bạn có thể thay đổi số điện thoại, size áo hoặc lời nhắn bên dưới rồi bấm "Cập nhật".
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-slate-600 mt-0.5">
-                          Xin vui lòng xác nhận số điện thoại và size áo đồng phục bên dưới.
-                        </p>
+            <p className="text-xs sm:text-sm text-slate-600 font-serif italic leading-relaxed">
+              “Hạn chốt đến hết ngày 20/09/2026 để Ban Liên Lạc chuẩn bị quà kỷ niệm, may áo polo đồng phục và đặt tiệc trọn vẹn nhất.”
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-sans font-bold text-amber-900 bg-amber-100/80 px-3 py-1.5 rounded-xl border border-amber-300/60 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>{confirmedCount} Bạn Đã Xác Nhận</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 🌟 FORM ĐIỂM DANH */}
+        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+          
+          {/* ======================================================== */}
+          {/* 👤 KHỐI NHẬN DIỆN THÀNH VIÊN ĐỒNG BỘ TOÀN DỰ ÁN */}
+          {/* ======================================================== */}
+          <div className="bg-[#FAF8F5] border border-amber-200 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase font-sans tracking-wide">
+                <Users className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>Nhận diện thành viên Lớp K8A1</span>
+              </div>
+              
+              {activeMember ? (
+                <button
+                  type="button"
+                  onClick={handleResetMember}
+                  className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-amber-800 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300/70 transition cursor-pointer"
+                  title="Đổi sang bạn khác hoặc tự nhập tên"
+                >
+                  <RotateCcw className="w-3 h-3 text-amber-700" />
+                  <span>Chọn bạn khác / Tự nhập</span>
+                </button>
+              ) : (
+                <span className="text-[11px] text-slate-500 font-serif italic">
+                  (Chọn 1 lần sẽ tự điền cả Sổ lưu bút & Quỹ lớp)
+                </span>
+              )}
+            </div>
+
+            {activeMember ? (
+              /* Khi đã nhận diện được thành viên */
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-emerald-200 shadow-2xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-serif font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                    {activeMember.fullName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-serif font-bold text-sm sm:text-base text-[#1E293B]">
+                        {activeMember.fullName}
+                      </h4>
+                      {activeMember.nickname && (
+                        <span className="text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-sans font-bold">
+                          “{activeMember.nickname}”
+                        </span>
+                      )}
+                      {activeMember.role && activeMember.role !== 'Thành viên' && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-sans font-semibold">
+                          {activeMember.role}
+                        </span>
                       )}
                     </div>
+                    <p className="text-[11px] text-emerald-700 font-sans flex items-center gap-1 mt-0.5">
+                      <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>
+                        {matchedExistingAttendee 
+                          ? `Đã đăng ký trước đó (${matchedExistingAttendee.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt'}) • Bấm gửi bên dưới để cập nhật`
+                          : 'Đã kết nối danh bạ • Mời bạn xác nhận tham gia và chọn size áo'}
+                      </span>
+                    </p>
                   </div>
+                </div>
+
+                {matchedExistingAttendee && (
+                  <span className="text-[10px] font-sans font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg shrink-0 self-start sm:self-auto">
+                    Chế độ Cập nhật 🔄
+                  </span>
                 )}
               </div>
             ) : (
-              <div className="text-xs text-slate-600 font-sans italic bg-white p-2.5 rounded border border-slate-200">
-                Chế độ tự nhập: Hãy điền Họ tên và Biệt danh của bạn ở ô bên dưới.
+              /* Khi chưa nhận diện: Dropdown chọn nhanh từ Roster */
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+                  <div className="sm:col-span-8">
+                    <select
+                      value={isCustomMode ? 'custom' : ''}
+                      onChange={(e) => handleSelectMember(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-sans font-semibold text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
+                    >
+                      <option value="">-- Bấm vào đây để chọn tên bạn trong Danh Bạ K8A1 --</option>
+                      {rosterList.map((m) => {
+                        const isRegistered = rsvpList.some(r => 
+                          normalizeName(r.fullName) === normalizeName(m.fullName) || 
+                          (m.phone && normalizePhone(r.phone) === normalizePhone(m.phone))
+                        );
+                        return (
+                          <option key={m.id} value={m.id}>
+                            {m.fullName} {m.nickname ? `(“${m.nickname}”)` : ''} {m.role && m.role !== 'Thành viên' ? `[${m.role}]` : ''} {isRegistered ? '✅ (Đã đăng ký)' : ''}
+                          </option>
+                        );
+                      })}
+                      <option value="custom">✍️ Nhập tên khác (Khách mời / Thầy cô / Bạn bè ngoài lớp)</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-4 text-[11px] text-slate-500 font-serif italic">
+                    {isCustomMode ? 'Đang ở chế độ tự nhập họ tên' : 'Chọn đúng tên để tự điền SĐT & size áo!'}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="fullName" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-                Họ và tên của bạn <span className="text-brand-rose">*</span>
-              </label>
-              <input
-                type="text"
-                id="fullName"
-                placeholder="Nguyễn Văn A"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
-              />
-            </div>
+          {/* ======================================================== */}
+          {/* 🔘 2 NÚT CHỌN TRẠNG THÁI THAM GIA TO RÕ, ĐẸP MẮT */}
+          {/* ======================================================== */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-700 font-sans">
+              Khả năng tham dự của bạn: <span className="text-rose-500">*</span>
+            </label>
 
-            <div>
-              <label htmlFor="nickname" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-                Biệt danh thời cấp 3 <span className="text-brand-gold text-[9px] font-normal lowercase">(gợi nhớ kỷ niệm xưa)</span>
-              </label>
-              <input
-                type="text"
-                id="nickname"
-                placeholder='Ví dụ: "Tuấn Béo", "Nam Cận", "Mai Tồ"...'
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="phone" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-                Số điện thoại <span className="text-brand-rose">*</span>
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                placeholder="090x xxx xxx"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="shirtSize" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text">
-                  Kích cỡ áo đồng phục kỷ niệm
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowSizeGuide(!showSizeGuide)}
-                  className="text-[10px] font-sans text-brand-gold hover:underline cursor-pointer flex items-center gap-0.5"
-                >
-                  <Info className="w-3 h-3" />
-                  <span>Bảng size</span>
-                </button>
-              </div>
-              <select
-                id="shirtSize"
-                value={shirtSize}
-                onChange={(e) => setShirtSize(e.target.value)}
-                disabled={status === 'no'}
-                className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all cursor-pointer disabled:opacity-50"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Option 1: Yes */}
+              <button
+                type="button"
+                onClick={() => setStatus('yes')}
+                className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center gap-3.5 cursor-pointer text-left ${
+                  status === 'yes'
+                    ? 'border-amber-500 bg-white shadow-md ring-2 ring-amber-400/30'
+                    : 'border-slate-200 bg-white/60 hover:bg-white hover:border-amber-300 text-slate-600'
+                }`}
               >
-                <option value="S">Size S (Dưới 50kg, Cao dưới 1m60)</option>
-                <option value="M">Size M (50 - 60kg, Cao 1m60 - 1m68)</option>
-                <option value="L">Size L (61 - 70kg, Cao 1m68 - 1m75)</option>
-                <option value="XL">Size XL (71 - 80kg, Cao 1m73 - 1m80)</option>
-                <option value="2XL">Size 2XL (81 - 90kg, Cao trên 1m75)</option>
-                <option value="3XL">Size 3XL (Trên 90kg)</option>
-              </select>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                  status === 'yes'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-400'
+                }`}>
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold font-serif ${status === 'yes' ? 'text-amber-950' : 'text-slate-700'}`}>
+                      Có Tham Gia 🎉
+                    </span>
+                    {status === 'yes' && (
+                      <span className="text-[10px] bg-amber-100 text-amber-900 font-sans font-bold px-2 py-0.2 rounded-full">
+                        Chắc chắn
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-sans mt-0.5">
+                    Hội ngộ cùng cả lớp K8A1 tại Crown Palace
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: No */}
+              <button
+                type="button"
+                onClick={() => setStatus('no')}
+                className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center gap-3.5 cursor-pointer text-left ${
+                  status === 'no'
+                    ? 'border-rose-400 bg-white shadow-md ring-2 ring-rose-300/30'
+                    : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300 text-slate-600'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                  status === 'no'
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-400'
+                }`}>
+                  <HeartHandshake className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold font-serif ${status === 'no' ? 'text-rose-950' : 'text-slate-700'}`}>
+                      Rất Tiếc Vắng Mặt 🌸
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-sans mt-0.5">
+                    Không thể đến trực tiếp, gửi lời chúc tới lớp
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* Size Chart Popover */}
-          {showSizeGuide && (
-            <div className="bg-[#FAF8F5] border border-brand-gold/40 rounded p-3 text-xs space-y-2">
-              <div className="flex items-center justify-between font-bold text-brand-text font-serif">
-                <span className="flex items-center gap-1">
-                  <Shirt className="w-3.5 h-3.5 text-brand-gold" />
-                  Hướng dẫn chọn size áo đồng phục Hội khóa 20 năm:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowSizeGuide(false)}
-                  className="text-brand-text-muted hover:text-brand-text"
+          {/* ======================================================== */}
+          {/* 📝 CÁC TRƯỜNG THÔNG TIN CÁ NHÂN */}
+          {/* ======================================================== */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Họ tên */}
+              <div className="space-y-1">
+                <label htmlFor="rsvp-fullName" className="block text-xs font-bold text-slate-700 font-sans">
+                  Họ và tên của bạn: <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="rsvp-fullName"
+                  placeholder="VD: Nguyễn Văn A"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-sans"
+                />
+              </div>
+
+              {/* Biệt danh */}
+              <div className="space-y-1">
+                <label htmlFor="rsvp-nickname" className="block text-xs font-bold text-slate-700 font-sans">
+                  Biệt danh thời cấp 3 <span className="text-amber-700 text-[11px] font-normal italic">(gợi nhớ kỷ niệm xưa)</span>:
+                </label>
+                <input
+                  type="text"
+                  id="rsvp-nickname"
+                  placeholder='VD: "Tuấn Béo", "Nam Cận", "Mai Tồ"...'
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-sans"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Số điện thoại */}
+              <div className="space-y-1">
+                <label htmlFor="rsvp-phone" className="block text-xs font-bold text-slate-700 font-sans">
+                  Số điện thoại liên hệ: <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  id="rsvp-phone"
+                  placeholder="090x xxx xxx"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-mono"
+                />
+              </div>
+
+              {/* Chọn Size Áo */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="rsvp-shirtSize" className="block text-xs font-bold text-slate-700 font-sans">
+                    Size áo polo đồng phục 20 năm:
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSizeGuide(!showSizeGuide)}
+                    className="text-[11px] font-sans text-amber-800 hover:text-amber-950 font-bold underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Info className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Xem Bảng Size</span>
+                  </button>
+                </div>
+
+                <select
+                  id="rsvp-shirtSize"
+                  value={shirtSize}
+                  onChange={(e) => setShirtSize(e.target.value)}
+                  disabled={status === 'no'}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs cursor-pointer disabled:opacity-50 disabled:bg-slate-100 font-sans font-medium"
                 >
-                  ✕
-                </button>
+                  <option value="S">Size S (Dưới 50kg • Cao dưới 1m60)</option>
+                  <option value="M">Size M (50 - 60kg • Cao 1m60 - 1m68)</option>
+                  <option value="L">Size L (61 - 70kg • Cao 1m68 - 1m75)</option>
+                  <option value="XL">Size XL (71 - 80kg • Cao 1m73 - 1m80)</option>
+                  <option value="2XL">Size 2XL (81 - 90kg • Cao trên 1m75)</option>
+                  <option value="3XL">Size 3XL (Trên 90kg • Form rộng rãi)</option>
+                </select>
               </div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-[10px] font-sans">
-                <div className="bg-white p-1.5 rounded border border-brand-border">
-                  <span className="font-bold block text-brand-gold">Size S</span>
-                  <span className="text-brand-text-muted">Dưới 50kg</span>
-                </div>
-                <div className="bg-white p-1.5 rounded border border-brand-border">
-                  <span className="font-bold block text-brand-gold">Size M</span>
-                  <span className="text-brand-text-muted">50 - 60kg</span>
-                </div>
-                <div className="bg-white p-1.5 rounded border border-brand-border">
-                  <span className="font-bold block text-brand-gold">Size L</span>
-                  <span className="text-brand-text-muted">61 - 70kg</span>
-                </div>
-                <div className="bg-white p-1.5 rounded border border-brand-border">
-                  <span className="font-bold block text-brand-gold">Size XL</span>
-                  <span className="text-brand-text-muted">71 - 80kg</span>
-                </div>
-                <div className="bg-white p-1.5 rounded border border-brand-border">
-                  <span className="font-bold block text-brand-gold">Size 2XL</span>
-                  <span className="text-brand-text-muted">81 - 90kg</span>
-                </div>
-                <div className="bg-white p-1.5 rounded border border-brand-border">
-                  <span className="font-bold block text-brand-gold">Size 3XL</span>
-                  <span className="text-brand-text-muted">&gt; 90kg</span>
-                </div>
-              </div>
-              <p className="text-[10px] text-brand-text-muted font-serif italic">
-                * Form áo polo cổ bẻ cao cấp, co giãn thoải mái. Nếu phân vân giữa 2 cỡ, bạn nên chọn tăng 1 size để mặc rộng rãi.
-              </p>
             </div>
-          )}
 
-          <div>
-            <label className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-2">
-              Bạn có thể tham gia được không? <span className="text-brand-rose">*</span>
-            </label>
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2 text-sm cursor-pointer text-brand-text">
-                <input
-                  type="radio"
-                  name="rsvp-status"
-                  checked={status === 'yes'}
-                  onChange={() => setStatus('yes')}
-                  className="accent-brand-gold h-4 w-4"
-                />
-                Có tham gia
-              </label>
+            {/* Bảng Tra Cứu Size Áo Popover / Card */}
+            {showSizeGuide && (
+              <div className="bg-[#FAF8F5] border border-amber-300/80 rounded-xl p-3.5 space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between font-bold text-slate-900 font-serif text-xs">
+                  <span className="flex items-center gap-1.5 text-amber-900">
+                    <Shirt className="w-4 h-4 text-amber-700" />
+                    Bảng thông số chọn size áo polo đồng phục Hội khóa K8A1:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSizeGuide(false)}
+                    className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
 
-              <label className="flex items-center gap-2 text-sm cursor-pointer text-brand-text-muted opacity-80">
-                <input
-                  type="radio"
-                  name="rsvp-status"
-                  checked={status === 'no'}
-                  onChange={() => setStatus('no')}
-                  className="accent-brand-gold h-4 w-4"
-                />
-                Rất tiếc không thể đến
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-[10px] font-sans">
+                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
+                    <span className="font-bold block text-amber-800 text-xs">Size S</span>
+                    <span className="text-slate-600">&lt; 50kg</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
+                    <span className="font-bold block text-amber-800 text-xs">Size M</span>
+                    <span className="text-slate-600">50 - 60kg</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
+                    <span className="font-bold block text-amber-800 text-xs">Size L</span>
+                    <span className="text-slate-600">61 - 70kg</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
+                    <span className="font-bold block text-amber-800 text-xs">Size XL</span>
+                    <span className="text-slate-600">71 - 80kg</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
+                    <span className="font-bold block text-amber-800 text-xs">Size 2XL</span>
+                    <span className="text-slate-600">81 - 90kg</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
+                    <span className="font-bold block text-amber-800 text-xs">Size 3XL</span>
+                    <span className="text-slate-600">&gt; 90kg</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 font-serif italic">
+                  * Chất liệu cá sấu cotton 4 chiều cao cấp, co giãn thoải mái. Nếu bạn phân vân giữa 2 cỡ, hãy chọn tăng 1 size để mặc rộng rãi nhé!
+                </p>
+              </div>
+            )}
+
+            {/* Lời nhắn */}
+            <div className="space-y-1">
+              <label htmlFor="rsvp-message" className="block text-xs font-bold text-slate-700 font-sans">
+                Lời nhắn gửi tới cả lớp / Lý do (Tùy chọn):
               </label>
+              <textarea
+                id="rsvp-message"
+                rows={2}
+                placeholder="Gửi gắm lời chào, kỷ niệm xưa hoặc lý do nếu bạn vắng mặt..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-serif resize-none"
+              />
             </div>
           </div>
 
-          <div>
-            <label htmlFor="message" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-              Lời nhắn gửi tới cả lớp (Tùy chọn)
-            </label>
-            <textarea
-              id="message"
-              rows={2}
-              placeholder="Gửi gắm lời chào, kỷ niệm xưa hoặc lý do vắng mặt..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full border-b border-brand-border py-2 text-sm focus:outline-none focus:border-brand-gold bg-transparent text-brand-text transition-all resize-none"
-            ></textarea>
-          </div>
-
+          {/* ======================================================== */}
+          {/* ⚠️ THÔNG BÁO LỖI / THÀNH CÔNG */}
+          {/* ======================================================== */}
           {submitError && (
-            <div className="p-3 bg-red-50 border border-red-100 text-xs text-red-600 rounded-sm">
+            <div className="p-3.5 bg-rose-50 border border-rose-200 text-xs text-rose-700 rounded-xl">
               {submitError}
             </div>
           )}
 
           {submitSuccess && (
-            <div className="p-4 bg-[#FAF9F6] border border-brand-gold/50 text-xs text-brand-text rounded-sm shadow-xs space-y-2.5">
-              <div className="flex items-start gap-2.5 text-left">
-                <CheckCircle2 className="w-4 h-4 text-brand-gold shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-serif font-medium text-xs sm:text-sm text-brand-text leading-relaxed">
+            <div className="p-4 sm:p-5 bg-white border border-emerald-300 rounded-2xl shadow-sm space-y-3.5 text-left animate-in fade-in duration-300">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <p className="font-serif font-bold text-sm sm:text-base text-emerald-900 leading-snug">
                     {submitSuccess}
                   </p>
-                  <p className="text-[10px] text-brand-text-muted font-sans">
-                    Thông tin đã được đồng bộ. Bạn có thể tra cứu tên mình trong danh sách thành viên tham dự phía dưới.
+                  <p className="text-xs text-slate-500 font-sans">
+                    Dữ liệu điểm danh đã được ghi nhận trực tiếp vào Google Sheets tab "Diem_Danh".
                   </p>
                 </div>
               </div>
 
+              {/* Action Banner: Đóng quỹ / Tải biên lai & Nhận thẻ học sinh */}
               {lastSubmittedAttendee && lastSubmittedAttendee.status === 'yes' && (
-                <div className="p-3 bg-amber-50/90 border border-amber-300/80 rounded text-xs text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">💳</span>
-                    <span className="leading-snug font-sans">
-                      <strong>Đóng quỹ sự kiện (500.000đ):</strong> Bạn có thể chuyển khoản và tự tải ảnh biên lai lên để Ban Liên Lạc đối soát ngay.
-                    </span>
+                <div className="p-3.5 bg-gradient-to-r from-[#FAF6EE] to-[#F5EFE6] border border-amber-300/80 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4 text-amber-700" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 font-sans">
+                        Đóng Quỹ Sự Kiện (Tạm Ứng 500.000đ)
+                      </p>
+                      <p className="text-[11px] text-slate-600 font-sans">
+                        Bạn có thể chuyển khoản và gửi ảnh biên lai để Ban Liên Lạc đối soát ngay.
+                      </p>
+                    </div>
                   </div>
-                  {onOpenReceiptModal ? (
-                    <button
-                      type="button"
-                      onClick={() => onOpenReceiptModal(lastSubmittedAttendee)}
-                      className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded-lg transition whitespace-nowrap self-stretch sm:self-auto text-center cursor-pointer shadow-xs"
-                    >
-                      Tải Ảnh Biên Lai ➔
-                    </button>
-                  ) : (
-                    <a
-                      href="#bank-transfer-card"
-                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded transition whitespace-nowrap self-stretch sm:self-auto text-center"
-                    >
-                      Tải Ảnh Biên Lai ➔
-                    </a>
-                  )}
+
+                  <div className="flex items-center gap-2 self-stretch sm:self-auto">
+                    {onOpenReceiptModal ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenReceiptModal(lastSubmittedAttendee)}
+                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-xs whitespace-nowrap cursor-pointer flex-1 sm:flex-none text-center"
+                      >
+                        Gửi Ảnh Biên Lai ➔
+                      </button>
+                    ) : (
+                      <a
+                        href="#bank-transfer-card"
+                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-xs whitespace-nowrap flex-1 sm:flex-none text-center"
+                      >
+                        Gửi Ảnh Biên Lai ➔
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="pt-2 border-t border-brand-border/40 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+              {/* Utility actions footer */}
+              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={triggerFullscreenFireworks}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-gold-light hover:bg-brand-gold/20 text-brand-text text-[10px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                    title="Nhấn để bắn pháo hoa ăn mừng lần nữa"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
                     <span>Bắn lại pháo hoa 🎉</span>
                   </button>
 
@@ -542,48 +704,36 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRs
                     <button
                       type="button"
                       onClick={() => onOpenPassModal(lastSubmittedAttendee)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-text hover:bg-brand-gold text-white text-[10px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E293B] hover:bg-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
                     >
-                      <Award className="w-3.5 h-3.5 text-brand-gold" />
+                      <Award className="w-3.5 h-3.5 text-amber-300" />
                       <span>Nhận Thẻ Học Sinh Của Bạn 🎓</span>
                     </button>
                   )}
                 </div>
 
-                <QuickShare variant="pill" buttonText="Rủ thêm bạn trong lớp" />
+                <QuickShare variant="pill" buttonText="Rủ bạn K8A1 cùng đăng ký" />
               </div>
             </div>
           )}
 
-          {/* Thông báo nếu tìm thấy thông tin đã từng đăng ký trước đó */}
-          {matchedExistingAttendee && (
-            <div className="p-3 bg-amber-50/90 border border-amber-300 rounded-lg text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
-              <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <div className="space-y-0.5 text-left">
-                <p className="font-bold text-amber-900">
-                  Chào {matchedExistingAttendee.fullName}! Bạn đã xác nhận tham dự trước đó ({matchedExistingAttendee.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt'}).
-                </p>
-                <p className="text-[11px] text-amber-800">
-                  Khi gửi biểu mẫu này, hệ thống sẽ tự động <strong>cập nhật thông tin mới nhất</strong> của bạn vào Google Sheet mà không tạo bản ghi trùng lặp.
-                </p>
-              </div>
-            </div>
-          )}
-
+          {/* ======================================================== */}
+          {/* 🚀 NÚT GỬI ĐIỂM DANH */}
+          {/* ======================================================== */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-brand-text hover:bg-brand-text/90 text-white font-sans font-bold text-xs uppercase tracking-widest py-3.5 px-4 rounded-sm shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-75 cursor-pointer"
+            className="w-full bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-widest py-3.5 sm:py-4 px-6 rounded-xl sm:rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 disabled:opacity-60 cursor-pointer transform hover:-translate-y-0.5"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {matchedExistingAttendee ? 'Đang cập nhật...' : 'Đang gửi đăng ký...'}
+                <span>{matchedExistingAttendee ? 'Đang cập nhật...' : 'Đang gửi đăng ký...'}</span>
               </>
             ) : (
               <>
-                <Send className="w-3.5 h-3.5" />
-                {matchedExistingAttendee ? 'Cập Nhật Thông Tin Tham Dự' : 'Gửi Xác Nhận Tham Dự'}
+                <Send className="w-4 h-4" />
+                <span>{matchedExistingAttendee ? 'Cập Nhật Thông Tin Tham Dự' : 'Gửi Xác Nhận Tham Dự Lớp K8A1'}</span>
               </>
             )}
           </button>
