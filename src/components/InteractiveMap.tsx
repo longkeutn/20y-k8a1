@@ -1,343 +1,816 @@
-import React, { useState } from 'react';
-import {
-  APIProvider,
-  Map,
-  AdvancedMarker,
-  Pin,
-  InfoWindow,
-  useAdvancedMarkerRef,
-} from '@vis.gl/react-google-maps';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   MapPin,
   Navigation,
   Copy,
   Check,
   ExternalLink,
-  Layers,
   Car,
   Compass,
   Sparkles,
-  Info
+  Play,
+  Video,
+  Image as ImageIcon,
+  Calendar,
+  Phone,
+  Clock,
+  ChevronRight,
+  Maximize2,
+  Edit3,
+  X,
+  Link2,
+  Share2,
+  Info,
+  ShieldCheck,
+  Building2,
+  Layers
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
-// Venue coordinates: Trung tâm tổ chức sự kiện - tiệc cưới Crown Palace, Thái Nguyên
-const VENUE_COORDINATES = {
-  lat: 21.6041,
-  lng: 105.8286
-};
-
-const VENUE_INFO = {
-  name: 'Trung tâm tổ chức sự kiện - tiệc cưới Crown Palace, Thái Nguyên',
+// ============================================================================
+// CONSTANTS & VENUE METADATA (CROWN PALACE THÁI NGUYÊN)
+// ============================================================================
+export const VENUE_DETAILS = {
+  name: 'Trung Tâm Hội Nghị & Tiệc Cưới Crown Palace',
+  subtitle: 'Địa điểm tổ chức Đại Lễ Kỷ Niệm 20 Năm Ngày Trở Về — Lớp K8A1',
   address: 'Số 779 đường Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên, Tỉnh Thái Nguyên',
-  time: 'Từ 08:30 Sáng - Chủ Nhật, ngày 27/09/2026',
-  parking: 'Bãi đỗ xe ô tô & xe máy rộng rãi ngay trong khuôn viên Crown Palace.',
+  shortAddress: '779 Dương Tự Minh, TP. Thái Nguyên',
+  coordinates: { lat: 21.6041, lng: 105.8286 },
+  eventTime: '08:30 — 15:30 • Chủ Nhật, ngày 27/09/2026',
+  hotline: '0208 3858 888',
+  bllContact: '0912 345 678 (Ban Liên Lạc K8A1)',
+  parkingInfo: 'Bãi đỗ xe ô tô & xe máy rộng rãi ngay trong khuôn viên Crown Palace, an ninh 24/7, bảo vệ hướng dẫn tận tình miễn phí.',
   googleMapsUrl: 'https://maps.google.com/?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&ll=21.6041,105.8286&z=16',
-  directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.6041,105.8286'
+  directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.6041,105.8286',
+  embedMapUrl: 'https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=&z=15&ie=UTF8&iwloc=&output=embed'
 };
 
+export interface VenueMediaItem {
+  id: string;
+  title: string;
+  url: string;
+  type?: 'youtube' | 'facebook' | 'drive' | 'direct_video' | 'image';
+  thumbnail?: string;
+  desc?: string;
+}
+
+// Media mặc định minh họa không gian sang trọng của Crown Palace
+export const DEFAULT_VENUE_MEDIA: VenueMediaItem[] = [
+  {
+    id: 'vm-1',
+    title: 'Video Không Gian Sảnh Tiệc & Hội Nghị Crown Palace',
+    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    thumbnail: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80',
+    desc: 'Video giới thiệu toàn cảnh không gian sảnh tiệc lộng lẫy, hệ thống âm thanh ánh sáng hiện đại tại Crown Palace Thái Nguyên.'
+  },
+  {
+    id: 'vm-2',
+    title: 'Ảnh Toàn Cảnh Sảnh Đại Tiệc Hoàng Gia',
+    url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80',
+    desc: 'Không gian sảnh tiệc chính nơi đại gia đình K8A1 cùng quây quần bên bàn tiệc ấm cúng.'
+  },
+  {
+    id: 'vm-3',
+    title: 'Ảnh Khu Vực Đón Tiếp & Photobooth Check-in',
+    url: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=1200&q=80',
+    desc: 'Khu vực tiền sảnh rộng rãi, bố trí backdrop check-in "20 Năm Ngày Trở Về" đón bạn bè và thầy cô.'
+  },
+  {
+    id: 'vm-4',
+    title: 'Ảnh Khuôn Viên & Bãi Đỗ Xe Thuận Tiện',
+    url: 'https://images.unsplash.com/photo-1545232979-fbf68fe9ec1c?auto=format&fit=crop&w=1200&q=80',
+    desc: 'Khuôn viên Crown Palace nằm trên trục đường lớn Dương Tự Minh với bãi đỗ xe ô tô và xe máy rộng rãi.'
+  }
+];
+
+// ============================================================================
+// HÀM PARSE LINK VIDEO / ẢNH TỔNG HỢP (FACEBOOK, YOUTUBE, DRIVE, MP4, IMAGE)
+// ============================================================================
+export function parseVenueMedia(url: string): {
+  type: 'youtube' | 'facebook' | 'drive' | 'direct_video' | 'image' | 'empty';
+  embedUrl: string;
+  rawUrl: string;
+  label: string;
+  videoId?: string;
+  driveId?: string;
+} {
+  if (!url || typeof url !== 'string') {
+    return { type: 'empty', embedUrl: '', rawUrl: '', label: 'Trống' };
+  }
+  const cleanUrl = url.trim();
+
+  // 1. Facebook Video / Post / Reel / Watch Link
+  if (cleanUrl.includes('facebook.com') || cleanUrl.includes('fb.watch')) {
+    const encoded = encodeURIComponent(cleanUrl);
+    return {
+      type: 'facebook',
+      embedUrl: `https://www.facebook.com/plugins/video.php?href=${encoded}&show_text=0&autoplay=0`,
+      rawUrl: cleanUrl,
+      label: 'Facebook Video'
+    };
+  }
+
+  // 2. YouTube Video (watch?v=, youtu.be/, embed/, shorts/)
+  const ytMatch = cleanUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (ytMatch && ytMatch[1]) {
+    return {
+      type: 'youtube',
+      embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`,
+      rawUrl: cleanUrl,
+      videoId: ytMatch[1],
+      label: 'YouTube Video'
+    };
+  }
+
+  // 3. Google Drive Video or Image File
+  const driveMatch = cleanUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/i);
+  if (driveMatch && driveMatch[1]) {
+    const fileId = driveMatch[1];
+    return {
+      type: 'drive',
+      embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+      rawUrl: cleanUrl,
+      driveId: fileId,
+      label: 'Google Drive'
+    };
+  }
+
+  // 4. Direct video file (.mp4, .webm, .ogg, .mov)
+  if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(cleanUrl)) {
+    return {
+      type: 'direct_video',
+      embedUrl: cleanUrl,
+      rawUrl: cleanUrl,
+      label: 'Video Trực Tiếp'
+    };
+  }
+
+  // 5. Image link (JPG, PNG, WebP, SVG, Unsplash, Google Drive Thumbnail, etc.)
+  return {
+    type: 'image',
+    embedUrl: cleanUrl,
+    rawUrl: cleanUrl,
+    label: 'Hình Ảnh Minh Họa'
+  };
+}
+
+// ============================================================================
+// MAIN INTERACTIVE MAP & VENUE SHOWCASE COMPONENT
+// ============================================================================
 interface InteractiveMapProps {
   className?: string;
+  customVenueMedia?: VenueMediaItem[];
 }
 
-function LiveMap() {
-  const [markerRef, marker] = useAdvancedMarkerRef();
-  const [infoWindowOpen, setInfoWindowOpen] = useState(true);
+export default function InteractiveMap({ className = '', customVenueMedia }: InteractiveMapProps) {
+  // Tab view: 'media' (Video & Không Gian) | 'map' (Bản Đồ Google Maps) | 'guide' (Chỉ Đường & Đỗ Xe)
+  const [activeTab, setActiveTab] = useState<'all' | 'media' | 'map' | 'guide'>('all');
   const [copied, setCopied] = useState(false);
 
-  const handleCopyAddress = () => {
-    navigator.clipboard.writeText(VENUE_INFO.address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="w-full h-full relative">
-      <Map
-        mapId="DEMO_MAP_ID"
-        defaultCenter={VENUE_COORDINATES}
-        defaultZoom={16}
-        gestureHandling="cooperative"
-        renderingType="VECTOR"
-        internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
-        className="w-full h-full"
-        style={{ width: '100%', height: '100%' }}
-        disableDefaultUI={false}
-        fullscreenControl={true}
-        zoomControl={true}
-        streetViewControl={true}
-        mapTypeControl={true}
-      >
-        <AdvancedMarker
-          ref={markerRef}
-          position={VENUE_COORDINATES}
-          title={VENUE_INFO.name}
-          onClick={() => setInfoWindowOpen((prev) => !prev)}
-        >
-          <Pin
-            background="#A3834C"
-            borderColor="#5C4520"
-            glyphColor="#FFFFFF"
-            scale={1.2}
-          />
-        </AdvancedMarker>
-
-        {infoWindowOpen && (
-          <InfoWindow
-            anchor={marker}
-            onCloseClick={() => setInfoWindowOpen(false)}
-            headerContent={
-              <span className="font-serif font-bold text-xs text-brand-text">
-                {VENUE_INFO.name}
-              </span>
-            }
-          >
-            <div className="p-1 space-y-2 max-w-[240px] text-left">
-              <p className="text-[11px] text-brand-text-muted font-sans leading-snug">
-                {VENUE_INFO.address}
-              </p>
-              <div className="flex items-center gap-2 pt-1 border-t border-brand-border/40">
-                <a
-                  href={VENUE_INFO.directionsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] uppercase font-sans font-bold bg-brand-text text-white px-2 py-1 rounded-xs hover:bg-brand-gold transition-colors"
-                >
-                  <Navigation className="w-3 h-3" />
-                  <span>Chỉ đường</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={handleCopyAddress}
-                  className="inline-flex items-center gap-1 text-[10px] uppercase font-sans font-medium text-brand-text-muted hover:text-brand-text px-2 py-1 border border-brand-border rounded-xs"
-                >
-                  {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                  <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
-                </button>
-              </div>
-            </div>
-          </InfoWindow>
-        )}
-      </Map>
-    </div>
-  );
-}
-
-export default function InteractiveMap({ className = '' }: InteractiveMapProps) {
-  // Read Google Maps API Key from environment or manual key
-  const envApiKey = ((import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY as string) || '';
-  const [customKey, setCustomKey] = useState<string>(() => {
+  // Danh sách media (Video & Ảnh của nhà hàng)
+  const [mediaList, setMediaList] = useState<VenueMediaItem[]>(() => {
     try {
-      return localStorage.getItem('user_google_maps_api_key') || '';
-    } catch {
-      return '';
-    }
+      const local = localStorage.getItem('k8a1_venue_media_list');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return customVenueMedia && customVenueMedia.length > 0 ? customVenueMedia : DEFAULT_VENUE_MEDIA;
   });
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [tempKeyInput, setTempKeyInput] = useState('');
-  const [copied, setCopied] = useState(false);
 
-  const activeApiKey = envApiKey || customKey;
+  const [activeMediaIndex, setActiveMediaIndex] = useState<number>(0);
 
+  // Modal thêm/sửa link video/ảnh cho nhà hàng
+  const [isEditMediaModalOpen, setIsEditMediaModalOpen] = useState(false);
+  const [newMediaUrl, setNewMediaUrl] = useState('');
+  const [newMediaTitle, setNewMediaTitle] = useState('');
+  const [newMediaDesc, setNewMediaDesc] = useState('');
+  const [editSuccessMsg, setEditSuccessMsg] = useState('');
+
+  const currentMedia = mediaList[activeMediaIndex] || mediaList[0] || DEFAULT_VENUE_MEDIA[0];
+  const parsedCurrentMedia = useMemo(() => parseVenueMedia(currentMedia.url), [currentMedia.url]);
+
+  // Sao chép địa chỉ nhà hàng
   const handleCopyAddress = () => {
     try {
       if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(VENUE_INFO.address);
+        navigator.clipboard.writeText(VENUE_DETAILS.address);
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    confetti({ particleCount: 20, spread: 40, origin: { y: 0.8 } });
+    setTimeout(() => setCopied(false), 2500);
   };
 
-  const handleSaveCustomKey = (e: React.FormEvent) => {
+  // Thêm sự kiện vào Google Calendar
+  const handleAddToCalendar = () => {
+    const title = encodeURIComponent('[Hội Ngộ 20 Năm Lớp K8A1] Ngày Trở Về — THPT Thái Nguyên');
+    const details = encodeURIComponent(
+      `Đại Lễ Kỷ Niệm 20 Năm Ngày Trở Về — Tập Thể Lớp K8A1 (Khóa 8, 2003 - 2006).\n` +
+      `Địa điểm: ${VENUE_DETAILS.name} (${VENUE_DETAILS.address}).\n` +
+      `Thời gian đón tiếp: 08:30 sáng - 15:30 chiều Chủ Nhật ngày 27/09/2026.\n` +
+      `Liên hệ BLL: ${VENUE_DETAILS.bllContact}`
+    );
+    const location = encodeURIComponent(`${VENUE_DETAILS.name}, ${VENUE_DETAILS.address}`);
+    // 2026-09-27 08:30 (VN = UTC+7 => UTC 01:30) to 15:30 (UTC 08:30)
+    const dates = "20260927T013000Z/20260927T083000Z";
+    window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`, '_blank');
+  };
+
+  // Lưu media mới (Video/Ảnh)
+  const handleAddMediaSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = tempKeyInput.trim();
-    setCustomKey(clean);
+    if (!newMediaUrl.trim()) return;
+
+    const parsed = parseVenueMedia(newMediaUrl.trim());
+    const newItem: VenueMediaItem = {
+      id: `vm-${Date.now()}`,
+      title: newMediaTitle.trim() || (parsed.type === 'image' ? 'Ảnh Không Gian Nhà Hàng' : `Video Minh Họa (${parsed.label})`),
+      url: newMediaUrl.trim(),
+      type: parsed.type === 'empty' ? 'image' : parsed.type,
+      desc: newMediaDesc.trim() || 'Minh họa không gian tổ chức sự kiện tại Crown Palace Thái Nguyên.'
+    };
+
+    const updated = [newItem, ...mediaList];
+    setMediaList(updated);
+    setActiveMediaIndex(0);
     try {
-      localStorage.setItem('user_google_maps_api_key', clean);
-    } catch {
-      // ignore
-    }
-    setShowKeyModal(false);
+      localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
+    } catch {}
+
+    setEditSuccessMsg('Đã thêm link video/ảnh nhà hàng thành công!');
+    setTimeout(() => {
+      setEditSuccessMsg('');
+      setIsEditMediaModalOpen(false);
+      setNewMediaUrl('');
+      setNewMediaTitle('');
+      setNewMediaDesc('');
+    }, 1200);
+  };
+
+  // Reset về mặc định
+  const handleResetDefaultMedia = () => {
+    setMediaList(DEFAULT_VENUE_MEDIA);
+    setActiveMediaIndex(0);
+    try {
+      localStorage.removeItem('k8a1_venue_media_list');
+    } catch {}
+    setEditSuccessMsg('Đã khôi phục danh sách minh họa mặc định!');
+    setTimeout(() => setEditSuccessMsg(''), 1500);
   };
 
   return (
-    <div id="interactive-event-map" className={`space-y-3 ${className}`}>
-      {/* Map Action & Venue Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-brand-gold-light text-brand-gold rounded-xs">
-            <Compass className="w-4 h-4" />
+    <section id="dia-diem" className={`space-y-6 scroll-mt-20 ${className}`}>
+      
+      {/* ======================================================== */}
+      {/* 🌟 HEADER KHỐI ĐỊA ĐIỂM & KHÔNG GIAN CROWN PALACE */}
+      {/* ======================================================== */}
+      <div className="bg-[#FAF7F2] border border-amber-200/90 rounded-3xl p-5 sm:p-8 shadow-lg relative overflow-hidden space-y-6 text-left">
+        
+        {/* Nền hoa văn trang trí */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-200/20 via-orange-100/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-amber-300/60 pb-5 gap-4 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 to-amber-200/80 text-amber-950 text-[10px] font-bold tracking-wider font-sans uppercase border border-amber-300/60 shadow-2xs">
+              <Building2 className="w-3.5 h-3.5 text-amber-700" />
+              <span>Địa Điểm Tổ Chức • Crown Palace Thái Nguyên</span>
+            </div>
+
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-[#1E293B] tracking-tight">
+              Địa Điểm & Không Gian Hội Ngộ
+            </h3>
+
+            <p className="text-xs sm:text-sm text-slate-600 font-serif italic leading-relaxed">
+              Trung tâm tổ chức sự kiện sang trọng bậc nhất Thái Nguyên — nơi lớp K8A1 hội ngộ sau 20 năm ngày ra trường.
+            </p>
           </div>
-          <div>
-            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text">
-              Bản Đồ Vị Trí Sự Kiện — Crown Palace
-            </span>
-            <span className="text-[10px] text-brand-text-muted block font-serif italic">
-              Crown Palace Thái Nguyên • 779 Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên
-            </span>
+
+          {/* Quick Action Buttons on Header */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href={VENUE_DETAILS.directionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <Navigation className="w-3.5 h-3.5 text-amber-200" />
+              <span>Chỉ Đường Google Maps</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={handleCopyAddress}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300/90 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
+              title="Sao chép địa chỉ chính xác"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+              <span>{copied ? 'Đã Sao Chép' : 'Sao Chép Địa Chỉ'}</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <a
-            href={VENUE_INFO.directionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-text hover:bg-brand-text/90 text-white rounded-xs text-[10px] font-sans font-bold uppercase tracking-wider transition-colors shadow-2xs"
-          >
-            <Navigation className="w-3 h-3 text-brand-gold" />
-            <span>Chỉ đường</span>
-          </a>
+        {/* ======================================================== */}
+        {/* 🌟 THANH TAB ĐIỀU HƯỚNG TRỰC QUAN */}
+        {/* ======================================================== */}
+        <div className="flex items-center justify-between gap-3 flex-wrap relative z-10">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'all'
+                  ? 'bg-[#1E293B] text-amber-200 shadow-sm border border-slate-700'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Tất Cả (Song Song)</span>
+            </button>
 
+            <button
+              onClick={() => setActiveTab('media')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'media'
+                  ? 'bg-[#1E293B] text-amber-200 shadow-sm border border-slate-700'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50'
+              }`}
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span>Video & Không Gian ({mediaList.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'map'
+                  ? 'bg-[#1E293B] text-amber-200 shadow-sm border border-slate-700'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Bản Đồ Chỉ Đường</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('guide')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'guide'
+                  ? 'bg-[#1E293B] text-amber-200 shadow-sm border border-slate-700'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50'
+              }`}
+            >
+              <Car className="w-3.5 h-3.5" />
+              <span>Bãi Đỗ Xe & Di Chuyển</span>
+            </button>
+          </div>
+
+          {/* Nút chỉnh sửa link video/ảnh nhà hàng */}
           <button
             type="button"
-            onClick={handleCopyAddress}
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-brand-bg-alt text-brand-text border border-brand-border rounded-xs text-[10px] font-sans font-medium uppercase tracking-wider transition-colors"
-            title="Sao chép địa chỉ chính xác"
+            onClick={() => setIsEditMediaModalOpen(true)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-100/80 hover:bg-amber-200/90 text-amber-900 rounded-lg text-xs font-sans font-semibold border border-amber-300/80 transition cursor-pointer"
+            title="Dán link Facebook, YouTube, Drive hoặc ảnh minh họa nhà hàng"
           >
-            {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-            <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
+            <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+            <span>Đổi Video / Ảnh Nhà Hàng</span>
           </button>
-
-          <a
-            href={VENUE_INFO.googleMapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 text-brand-text-muted hover:text-brand-gold border border-brand-border bg-white rounded-xs transition-colors"
-            title="Mở toàn màn hình trên Google Maps"
-          >
-            <ExternalLink className="w-3 h-3" />
-          </a>
         </div>
-      </div>
 
-      {/* Main Map Container */}
-      <div className="relative overflow-hidden rounded-sm border border-brand-border bg-[#F5F2EC] h-[280px] sm:h-[320px] shadow-xs">
-        {activeApiKey ? (
-          /* Live Google Maps Platform JavaScript API via @vis.gl/react-google-maps */
-          <APIProvider apiKey={activeApiKey} language="vi" region="VN">
-            <LiveMap />
-          </APIProvider>
-        ) : (
-          /* Rich Interactive Preview Mode with Google Maps Embed and Quick Navigation */
-          <div className="w-full h-full relative">
-            <iframe
-              title="Bản đồ tương tác Crown Palace Thái Nguyên"
-              src="https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=&z=15&ie=UTF8&iwloc=&output=embed"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen={true}
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
+        {/* ======================================================== */}
+        {/* 🌟 BỐ CỤC CHÍNH: DUAL COLUMN BENTO (MEDIA + GOOGLE MAPS) */}
+        {/* ======================================================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-stretch">
+          
+          {/* ========================================== */}
+          {/* 🎬 CỘT 1: VIDEO / ẢNH MINH HỌA NHÀ HÀNG */}
+          {/* ========================================== */}
+          {(activeTab === 'all' || activeTab === 'media') && (
+            <div className={`${activeTab === 'media' ? 'lg:col-span-12' : 'lg:col-span-6'} bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm flex flex-col justify-between space-y-4`}>
+              
+              {/* Media Title & Badges */}
+              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                    {parsedCurrentMedia.type === 'image' ? (
+                      <ImageIcon className="w-4 h-4" />
+                    ) : (
+                      <Video className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-800 block">
+                      {parsedCurrentMedia.label}
+                    </span>
+                    <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
+                      {currentMedia.title}
+                    </h4>
+                  </div>
+                </div>
 
-            {/* Subtle Overlay Badge for API status */}
-            <div className="absolute top-2.5 right-2.5 bg-white/95 backdrop-blur-xs border border-brand-border px-2.5 py-1.5 rounded-xs shadow-xs flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              <div className="text-left">
-                <p className="text-[9px] font-sans font-bold uppercase tracking-wider text-brand-text">
-                  Chế độ Xem Trực Quan
+                <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                  {activeMediaIndex + 1} / {mediaList.length}
+                </span>
+              </div>
+
+              {/* 🌟 KHUNG PHÁT MEDIA CHÍNH (HỖ TRỢ FACEBOOK, YOUTUBE, DRIVE, MP4, ẢNH) */}
+              <div className="relative rounded-xl overflow-hidden bg-slate-950 border-2 border-amber-300/40 shadow-inner aspect-video flex items-center justify-center">
+                
+                {/* 1. Facebook Video Embed */}
+                {parsedCurrentMedia.type === 'facebook' && (
+                  <iframe
+                    title={currentMedia.title}
+                    src={parsedCurrentMedia.embedUrl}
+                    className="w-full h-full border-0"
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                )}
+
+                {/* 2. YouTube Video Embed */}
+                {parsedCurrentMedia.type === 'youtube' && (
+                  <iframe
+                    title={currentMedia.title}
+                    src={parsedCurrentMedia.embedUrl}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                )}
+
+                {/* 3. Google Drive Video / File Embed */}
+                {parsedCurrentMedia.type === 'drive' && (
+                  <iframe
+                    title={currentMedia.title}
+                    src={parsedCurrentMedia.embedUrl}
+                    className="w-full h-full border-0"
+                    allow="autoplay"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                )}
+
+                {/* 4. Direct HTML5 Video (.mp4 / .webm) */}
+                {parsedCurrentMedia.type === 'direct_video' && (
+                  <video
+                    src={parsedCurrentMedia.embedUrl}
+                    controls
+                    className="w-full h-full object-cover"
+                    poster={currentMedia.thumbnail}
+                  >
+                    Trình duyệt của bạn không hỗ trợ thẻ video.
+                  </video>
+                )}
+
+                {/* 5. Image Showcase */}
+                {parsedCurrentMedia.type === 'image' && (
+                  <div className="w-full h-full relative group">
+                    <img
+                      src={parsedCurrentMedia.embedUrl}
+                      alt={currentMedia.title}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                      <p className="text-white text-xs font-serif italic">
+                        {currentMedia.desc || 'Không gian sảnh tiệc sang trọng tại Crown Palace Thái Nguyên'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty / Error state fallback */}
+                {parsedCurrentMedia.type === 'empty' && (
+                  <div className="text-center p-6 text-slate-400 space-y-2">
+                    <Video className="w-10 h-10 text-slate-500 mx-auto animate-pulse" />
+                    <p className="text-xs font-serif">Chưa có video hoặc ảnh minh họa nào được thiết lập.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Mô tả media hiện tại */}
+              {currentMedia.desc && (
+                <p className="text-xs text-slate-600 font-serif italic bg-amber-50/60 p-2.5 rounded-lg border border-amber-200/60">
+                  💡 {currentMedia.desc}
                 </p>
-                <p className="text-[8px] text-brand-text-muted font-sans">
-                  Sẵn sàng kết nối khóa dịch vụ bản đồ
+              )}
+
+              {/* Thumbnail Bar: Chuyển đổi giữa các góc của Crown Palace */}
+              {mediaList.length > 1 && (
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
+                    Góc nhìn không gian Crown Palace:
+                  </span>
+                  
+                  <div className="grid grid-cols-4 gap-2">
+                    {mediaList.map((item, idx) => {
+                      const isActive = idx === activeMediaIndex;
+                      const parsed = parseVenueMedia(item.url);
+                      const isVid = parsed.type !== 'image';
+
+                      return (
+                        <div
+                          key={item.id || idx}
+                          onClick={() => setActiveMediaIndex(idx)}
+                          className={`relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all aspect-[4/3] bg-slate-900 ${
+                            isActive
+                              ? 'border-amber-500 ring-2 ring-amber-400/40 shadow-sm scale-102'
+                              : 'border-slate-200 hover:border-amber-400 opacity-75 hover:opacity-100'
+                          }`}
+                          title={item.title}
+                        >
+                          <img
+                            src={item.thumbnail || (parsed.type === 'image' ? item.url : 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=400&q=80')}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            {isVid ? (
+                              <Play className={`w-3.5 h-3.5 ${isActive ? 'text-amber-300 fill-amber-300' : 'text-white'}`} />
+                            ) : (
+                              <ImageIcon className={`w-3 h-3 ${isActive ? 'text-amber-300' : 'text-white'}`} />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* ========================================== */}
+          {/* 🗺️ CỘT 2: BẢN ĐỒ GOOGLE MAPS TƯƠNG TÁC */}
+          {/* ========================================== */}
+          {(activeTab === 'all' || activeTab === 'map') && (
+            <div className={`${activeTab === 'map' ? 'lg:col-span-12' : 'lg:col-span-6'} bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm flex flex-col justify-between space-y-4`}>
+              
+              {/* Map Header */}
+              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                    <Compass className="w-4 h-4 text-amber-700" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-amber-800 block">
+                      Vị Trí Bản Đồ Google Maps
+                    </span>
+                    <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
+                      {VENUE_DETAILS.name}
+                    </h4>
+                  </div>
+                </div>
+
+                <a
+                  href={VENUE_DETAILS.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 px-2 py-1 rounded border border-amber-200"
+                >
+                  <span>Mở Google Maps</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              {/* 🌟 GOOGLE MAPS EMBED CONTAINER */}
+              <div className="relative rounded-xl overflow-hidden border-2 border-amber-300/40 shadow-inner aspect-video bg-[#E5E3DF]">
+                <iframe
+                  title="Bản đồ Google Maps Crown Palace Thái Nguyên"
+                  src={VENUE_DETAILS.embedMapUrl}
+                  className="w-full h-full border-0"
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+
+                {/* Pin Badge Overlay */}
+                <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold flex items-center gap-1.5 shadow-md border border-white/20 pointer-events-none">
+                  <MapPin className="w-3 h-3 text-amber-400" />
+                  <span>Crown Palace Thái Nguyên</span>
+                </div>
+              </div>
+
+              {/* Thông tin chi tiết địa chỉ & thời gian */}
+              <div className="space-y-2 text-xs text-slate-700 font-sans">
+                <div className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                  <MapPin className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-900 block">Địa chỉ tổ chức:</span>
+                    <span className="text-slate-600 font-serif">{VENUE_DETAILS.address}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                    <Clock className="w-4 h-4 text-amber-700 shrink-0" />
+                    <div>
+                      <span className="font-bold text-[11px] text-slate-900 block">Thời gian đón tiếp:</span>
+                      <span className="text-[11px] text-slate-600 font-mono">Từ 08:30 Chủ Nhật</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                    <Car className="w-4 h-4 text-amber-700 shrink-0" />
+                    <div>
+                      <span className="font-bold text-[11px] text-slate-900 block">Bãi đỗ xe:</span>
+                      <span className="text-[11px] text-emerald-700 font-bold">Ô tô & Xe máy Free</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons for Map */}
+              <div className="flex items-center gap-2 pt-1">
+                <a
+                  href={VENUE_DETAILS.directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#1E293B] hover:bg-slate-800 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition"
+                >
+                  <Navigation className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Bật Chỉ Đường Ngay</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleAddToCalendar}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition cursor-pointer"
+                  title="Thêm nhắc nhở vào Google Calendar"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                  <span className="hidden sm:inline">Lưu Lịch Hẹn</span>
+                </button>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+        {/* ======================================================== */}
+        {/* 🚗 KHỐI HƯỚNG DẪN DI CHUYỂN & ĐỖ XE TIỆN LỢI */}
+        {/* ======================================================== */}
+        {(activeTab === 'all' || activeTab === 'guide') && (
+          <div className="bg-gradient-to-r from-amber-50 via-orange-50/40 to-amber-50 rounded-2xl border border-amber-200/90 p-4 sm:p-5 relative z-10 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-900 font-sans uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Hướng Dẫn Di Chuyển & Đón Tiếp Chu Đáo Cho Bạn Bè K8A1</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="bg-white/90 p-3 rounded-xl border border-amber-200/60 space-y-1">
+                <span className="font-bold text-amber-950 flex items-center gap-1">
+                  🚗 Bạn đi Ô Tô Riêng:
+                </span>
+                <p className="text-slate-600 font-serif italic text-[11px] leading-relaxed">
+                  Crown Palace có khuôn viên đỗ xe ô tô cực kỳ rộng rãi và râm mát ngay phía trước sảnh tiệc. Có bảo vệ túc trực phân làn 24/7.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setTempKeyInput(customKey);
-                  setShowKeyModal(true);
-                }}
-                className="ml-1 text-[9px] font-sans font-bold text-brand-gold hover:underline cursor-pointer"
-              >
-                Cài đặt khóa
-              </button>
+
+              <div className="bg-white/90 p-3 rounded-xl border border-amber-200/60 space-y-1">
+                <span className="font-bold text-amber-950 flex items-center gap-1">
+                  🛵 Bạn đi Xe Máy:
+                </span>
+                <p className="text-slate-600 font-serif italic text-[11px] leading-relaxed">
+                  Khu vực để xe máy có mái che, bảo vệ phát thẻ xe tự động và hướng dẫn chu đáo ngay khi bạn rẽ vào cổng 779 Dương Tự Minh.
+                </p>
+              </div>
+
+              <div className="bg-white/90 p-3 rounded-xl border border-amber-200/60 space-y-1">
+                <span className="font-bold text-amber-950 flex items-center gap-1">
+                  ✈️ Bạn ở xa về (Hà Nội / Tỉnh khác):
+                </span>
+                <p className="text-slate-600 font-serif italic text-[11px] leading-relaxed">
+                  Xe khách hoặc Taxi chạy thẳng theo trục đường cao tốc Hà Nội - Thái Nguyên, qua cầu Gia Bảy đến đường Dương Tự Minh (~5 phút).
+                </p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Quick Venue Badge floating at bottom left */}
-        <div className="absolute bottom-2.5 left-2.5 max-w-[calc(100%-20px)] sm:max-w-xs bg-white/95 backdrop-blur-xs border border-brand-border p-2 rounded-xs shadow-xs pointer-events-auto">
-          <div className="flex items-start gap-1.5 text-left">
-            <MapPin className="w-3.5 h-3.5 text-brand-gold shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <p className="font-serif font-bold text-xs text-brand-text leading-none">
-                Buffet Sen Tây Hồ
-              </p>
-              <p className="text-[10px] text-brand-text-muted font-sans line-clamp-1">
-                {VENUE_INFO.address}
-              </p>
-              <div className="flex items-center gap-2 text-[9px] text-brand-text-muted/90 pt-0.5">
-                <span className="flex items-center gap-0.5">
-                  <Car className="w-2.5 h-2.5 text-brand-gold" /> Bãi xe ô tô & xe máy rộng
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* API Key Configuration Modal (Optional for direct in-browser testing) */}
-      {showKeyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-2xs">
-          <div className="bg-white border border-brand-border rounded-sm max-w-md w-full p-6 space-y-4 shadow-xl text-left">
-            <div className="flex items-center gap-2 border-b border-brand-border pb-3">
-              <Sparkles className="w-4 h-4 text-brand-gold" />
-              <h4 className="font-sans font-bold uppercase text-xs tracking-wider text-brand-text">
-                Cấu hình Khóa Bản Đồ (Google Maps)
-              </h4>
+      {/* ======================================================== */}
+      {/* ✏️ MODAL TÙY CHỈNH LINK VIDEO / ẢNH MINH HỌA NHÀ HÀNG */}
+      {/* ======================================================== */}
+      {isEditMediaModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-amber-200 relative text-left space-y-5">
+            
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditMediaModalOpen(false);
+                setEditSuccessMsg('');
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1 border-b border-slate-200 pb-3">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Cấu Hình Không Gian Sự Kiện</span>
+              </div>
+              <h3 className="font-serif font-bold text-xl text-[#1E293B]">
+                Tùy Chỉnh Video & Ảnh Nhà Hàng
+              </h3>
+              <p className="text-xs text-slate-500 font-serif italic">
+                Hỗ trợ dán link video từ <strong>Facebook, YouTube, Google Drive, Direct MP4</strong> hoặc link ảnh không gian Crown Palace.
+              </p>
             </div>
 
-            <p className="text-xs text-brand-text-muted leading-relaxed font-serif italic">
-              Để sử dụng tính năng bản đồ tương tác với Vector Map, Advanced Markers và tùy chỉnh điều khiển qua <strong>@vis.gl/react-google-maps</strong>, bạn có thể nhập Google Maps API Key hoặc Maps Demo Key tại đây (hoặc cấu hình biến môi trường <code>VITE_GOOGLE_MAPS_API_KEY</code>).
-            </p>
+            {editSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{editSuccessMsg}</span>
+              </div>
+            )}
 
-            <form onSubmit={handleSaveCustomKey} className="space-y-3">
+            <form onSubmit={handleAddMediaSubmit} className="space-y-4 text-xs">
               <div>
-                <label htmlFor="apiKeyInput" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">
-                  Khóa truy cập Google Maps (API Key):
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Đường dẫn Link (Facebook / YouTube / Google Drive / Ảnh): <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  id="apiKeyInput"
-                  placeholder="AIzaSy..."
-                  value={tempKeyInput}
-                  onChange={(e) => setTempKeyInput(e.target.value)}
-                  className="w-full px-3 py-2 border border-brand-border rounded-xs text-xs font-mono focus:outline-none focus:border-brand-gold"
+                  required
+                  placeholder="https://www.facebook.com/watch/?v=... hoặc https://youtu.be/..."
+                  value={newMediaUrl}
+                  onChange={(e) => setNewMediaUrl(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800 font-mono text-xs"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  💡 Bạn có thể dán link video Facebook fanpage nhà hàng, video review YouTube, hoặc link ảnh chụp sảnh tiệc.
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Tiêu đề video / ảnh (Tùy chọn):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Video Giới Thiệu Sảnh Tiệc Hoàng Gia Crown Palace"
+                  value={newMediaTitle}
+                  onChange={(e) => setNewMediaTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800"
                 />
               </div>
 
-              <div className="text-[10px] text-brand-text-muted space-y-1 bg-[#FAF9F6] p-2.5 rounded-xs border border-brand-border/60">
-                <div className="flex items-start gap-1">
-                  <Info className="w-3 h-3 text-brand-gold shrink-0 mt-0.5" />
-                  <p>
-                    Bạn có thể lấy <strong>Maps Demo Key</strong> miễn phí để thử nghiệm từ Google Maps Platform Console.
-                  </p>
-                </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Mô tả ngắn (Tùy chọn):
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Mô tả về không gian, thực đơn, bãi đỗ xe..."
+                  value={newMediaDesc}
+                  onChange={(e) => setNewMediaDesc(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800"
+                />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-brand-border">
+              <div className="pt-2 flex items-center justify-between gap-3 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={() => setShowKeyModal(false)}
-                  className="px-3 py-1.5 text-xs text-brand-text-muted hover:text-brand-text cursor-pointer"
+                  onClick={handleResetDefaultMedia}
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition"
                 >
-                  Đóng
+                  Khôi Phục Mặc Định
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-brand-text hover:bg-brand-gold text-white text-xs font-sans font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
-                >
-                  Lưu & Áp Dụng
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditMediaModalOpen(false)}
+                    className="px-3.5 py-2 bg-white border border-slate-300 text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md cursor-pointer transition"
+                  >
+                    Lưu & Hiển Thị Ngay
+                  </button>
+                </div>
               </div>
             </form>
+
           </div>
         </div>
       )}
-    </div>
+
+    </section>
   );
 }
