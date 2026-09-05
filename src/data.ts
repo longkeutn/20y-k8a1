@@ -2051,6 +2051,7 @@ function getAllData() {
     const media = (getMediaSettings() || {}).data || { videos: [], venueMedia: [], photos: [] };
     const roster = (getClassRoster() || {}).data || [];
     const viewCount = (getViewCount() || {}).count || 1258;
+    const drivePhotos = (getDrivePhotos() || {}).data || [];
 
     return {
       status: 'success',
@@ -2060,7 +2061,8 @@ function getAllData() {
         config: config,
         media: media,
         roster: roster,
-        viewCount: viewCount
+        viewCount: viewCount,
+        drivePhotos: drivePhotos
       }
     };
   } catch (err) {
