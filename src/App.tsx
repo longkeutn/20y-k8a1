@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Heart, 
@@ -14,10 +14,13 @@ import {
   MailOpen,
   Quote,
   Users,
-  Award
+  Award,
+  Lock,
+  Crown,
+  Shield
 } from 'lucide-react';
 
-import { RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast } from './types';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast } from './types';
 import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS } from './data';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -33,9 +36,10 @@ import ActivityToastManager from './components/ActivityToastManager';
 import QuickShare from './components/QuickShare';
 import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
+import AdminManagementHub from './components/AdminManagementHub';
 
 export default function App() {
-  // Config state
+  // Config state (Google Apps Script WebApp URL)
   const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => {
     try {
       return localStorage.getItem('apps_script_url') || '';
@@ -43,6 +47,20 @@ export default function App() {
       return '';
     }
   });
+
+  // User Role (RBAC): 'guest' | 'bll' | 'admin'
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
+    try {
+      const saved = sessionStorage.getItem('user_role');
+      if (saved === 'admin' || saved === 'bll') return saved;
+      return 'guest';
+    } catch {
+      return 'guest';
+    }
+  });
+
+  // Admin / BLL Management Hub Modal
+  const [isAdminHubOpen, setIsAdminHubOpen] = useState(false);
 
   // Student Souvenir Pass modal state
   const [selectedPassAttendee, setSelectedPassAttendee] = useState<RsvpData | null>(null);
@@ -86,8 +104,22 @@ export default function App() {
     }
   });
 
+  // Videos list state
+  const [videos, setVideos] = useState<MemoryVideo[]>(() => {
+    try {
+      const local = localStorage.getItem('custom_videos') || localStorage.getItem('k8a1_video_list');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_VIDEOS;
+    } catch {
+      return DEFAULT_VIDEOS;
+    }
+  });
+
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showLegacyAdminPanel, setShowLegacyAdminPanel] = useState(false);
   const [latestAction, setLatestAction] = useState<ActivityToast | null>(null);
 
   // Open pass modal helper
@@ -225,45 +257,95 @@ export default function App() {
             </div>
           </a>
 
-          <nav className="flex items-center space-x-1.5 sm:space-x-4 text-xs sm:text-sm font-medium">
-            <a href="#ky-uc" className="hover:text-amber-300 transition px-2.5 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+          <nav className="flex items-center space-x-1.5 sm:space-x-3 text-xs sm:text-sm font-medium">
+            <a href="#ky-uc" className="hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <Camera className="w-3.5 h-3.5 text-amber-400" />
-              <span>Ký Ức</span>
+              <span className="hidden xs:inline">Ký Ức</span>
             </a>
-            <a href="#tu-hoi" className="hover:text-amber-300 transition px-2.5 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+            <a href="#tu-hoi" className="hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <Compass className="w-3.5 h-3.5 text-amber-400" />
-              <span>Tụ Hội</span>
+              <span className="hidden xs:inline">Tụ Hội</span>
             </a>
-            <a href="#luu-but" className="hover:text-amber-300 transition px-2.5 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+            <a href="#luu-but" className="hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <PenTool className="w-3.5 h-3.5 text-amber-400" />
-              <span>Lưu Bút</span>
+              <span className="hidden xs:inline">Lưu Bút</span>
             </a>
             <a 
               href="#diem-danh" 
-              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs"
+              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs"
             >
               <CheckCircle className="w-3.5 h-3.5 text-amber-200" />
               <span>Điểm Danh</span>
             </a>
+
+            {/* Quick Admin Access Pill in Header */}
+            <button
+              onClick={() => setIsAdminHubOpen(true)}
+              className={`px-2.5 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                currentUserRole === 'admin'
+                  ? 'bg-amber-400 text-amber-950 hover:bg-amber-300 shadow-sm'
+                  : currentUserRole === 'bll'
+                  ? 'bg-emerald-400 text-emerald-950 hover:bg-emerald-300 shadow-sm'
+                  : 'bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-400/30'
+              }`}
+              title="Mở bảng điều khiển Quản trị & Đối soát K8A1"
+            >
+              {currentUserRole === 'admin' ? (
+                <>
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>Admin</span>
+                </>
+              ) : currentUserRole === 'bll' ? (
+                <>
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>BLL</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Quản Trị (PIN)</span>
+                </>
+              )}
+            </button>
           </nav>
         </div>
       </header>
 
-      {/* Nút Bật/Tắt Quản Trị Cấu Hình (Góc Dưới Màn Hình) */}
+      {/* 📌 NÚT BẬT TRUNG TÂM QUẢN TRỊ & ĐỐI SOÁT (FLOATING ACTION BUTTON) */}
       <div className="fixed bottom-4 right-4 z-40">
         <button
-          onClick={() => setShowAdminPanel(!showAdminPanel)}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E293B] text-amber-300 font-sans font-bold text-xs rounded-full shadow-lg border border-amber-500/30 hover:bg-[#0F172A] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          onClick={() => setIsAdminHubOpen(true)}
+          className={`flex items-center gap-2 px-4 py-2.5 font-sans font-bold text-xs rounded-full shadow-2xl transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95 ${
+            currentUserRole === 'admin'
+              ? 'bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-white border-2 border-amber-300 ring-2 ring-amber-400/50 shadow-amber-900/50'
+              : currentUserRole === 'bll'
+              ? 'bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white border-2 border-emerald-300 ring-2 ring-emerald-400/50 shadow-emerald-900/50'
+              : 'bg-[#1E293B] text-amber-300 border border-amber-500/40 hover:bg-[#0F172A]'
+          }`}
         >
-          <Settings className="w-3.5 h-3.5 text-amber-400" />
-          <span>{showAdminPanel ? "Về Trang Chủ" : "Cấu Hình Sheet"}</span>
+          {currentUserRole === 'admin' ? (
+            <>
+              <Crown className="w-4 h-4 text-amber-200 animate-pulse" />
+              <span>👑 Quản Trị Viên (Admin)</span>
+            </>
+          ) : currentUserRole === 'bll' ? (
+            <>
+              <Shield className="w-4 h-4 text-emerald-200" />
+              <span>🛡️ Ban Liên Lạc (Trực Lễ Tân)</span>
+            </>
+          ) : (
+            <>
+              <Lock className="w-4 h-4 text-amber-400" />
+              <span>Quản Trị & Đối Soát (PIN)</span>
+            </>
+          )}
         </button>
       </div>
 
       {/* Main Container */}
       <main className="w-full max-w-4xl px-4 pt-6 md:pt-8 space-y-12">
         
-        {showAdminPanel ? (
+        {showLegacyAdminPanel ? (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -528,7 +610,7 @@ export default function App() {
               <MemoryCorner 
                 appsScriptUrl={appsScriptUrl} 
                 images={images} 
-                videos={DEFAULT_VIDEOS} 
+                videos={videos} 
                 onAddImage={handleAddImage} 
               />
             </section>
@@ -601,6 +683,49 @@ export default function App() {
 
       </main>
 
+      {/* 👑 BẢNG ĐIỀU KHIỂN QUẢN TRỊ & ĐỐI SOÁT TOÀN DIỆN (ADMIN & BAN LIÊN LẠC) */}
+      <AdminManagementHub
+        isOpen={isAdminHubOpen}
+        onClose={() => setIsAdminHubOpen(false)}
+        currentUserRole={currentUserRole}
+        onLoginSuccess={(role) => {
+          setCurrentUserRole(role);
+          sessionStorage.setItem('user_role', role);
+        }}
+        onLogout={() => {
+          setCurrentUserRole('guest');
+          sessionStorage.removeItem('user_role');
+        }}
+        rsvpList={rsvpList}
+        onUpdateRsvpList={(updated) => {
+          setRsvpList(updated);
+          localStorage.setItem('rsvp_list', JSON.stringify(updated));
+        }}
+        wishesList={wishesList}
+        onUpdateWishesList={(updated) => {
+          setWishesList(updated);
+          localStorage.setItem('wishes_list', JSON.stringify(updated));
+        }}
+        images={images}
+        onUpdateImages={(updated) => {
+          setImages(updated);
+          localStorage.setItem('uploaded_images', JSON.stringify(updated.filter(i => i.isUserUploaded)));
+        }}
+        videos={videos}
+        onUpdateVideos={(updated) => {
+          setVideos(updated);
+          localStorage.setItem('custom_videos', JSON.stringify(updated));
+          localStorage.setItem('k8a1_video_list', JSON.stringify(updated));
+        }}
+        appsScriptUrl={appsScriptUrl}
+        onSaveAppsScriptUrl={(url) => {
+          setAppsScriptUrl(url);
+          localStorage.setItem('apps_script_url', url);
+        }}
+        onRefreshData={handleRefreshData}
+        onOpenPassModal={handleOpenPass}
+      />
+
       {/* Thẻ Học Sinh Kỷ Niệm (Digital Souvenir Pass) */}
       <StudentPassModal
         isOpen={isPassModalOpen}
@@ -619,4 +744,3 @@ export default function App() {
     </div>
   );
 }
-

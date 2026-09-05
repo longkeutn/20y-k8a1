@@ -1,7 +1,9 @@
+﻿export type UserRole = 'guest' | 'bll' | 'admin';
+
 export interface RsvpData {
   id?: string;
   fullName: string;
-  nickname?: string; // Biệt danh ngày xưa thời cấp 3 (e.g. "Anh Còi", "Tuấn Béo")
+  nickname?: string;
   phone: string;
   status: 'yes' | 'no';
   className?: string;
@@ -10,7 +12,10 @@ export interface RsvpData {
   submittedAt?: string;
   checkedIn?: boolean;
   checkedInAt?: string;
-  avatarUrl?: string; // Ảnh thẻ / avatar thành viên
+  avatarUrl?: string;
+  fundStatus?: 'paid' | 'unpaid' | 'pending';
+  fundAmount?: number;
+  fundNote?: string;
 }
 
 export interface WishData {
@@ -21,13 +26,14 @@ export interface WishData {
   tag?: string;
   likes?: number;
   submittedAt?: string;
+  isPinned?: boolean;
 }
 
 export interface TeacherData {
   id: string;
   name: string;
-  role: string; // e.g. "Thầy Hiệu Trưởng", "Cô Chủ Nhiệm 12A1"
-  subject: string; // e.g. "Môn Toán", "Môn Ngữ Văn"
+  role: string;
+  subject: string;
   status: 'attending' | 'wishing' | 'pending';
   quote?: string;
   avatarUrl?: string;
@@ -47,7 +53,7 @@ export interface TeacherTribute {
 export interface TimelineMilestone {
   id: string;
   year: string;
-  period: string; // e.g. "Tháng 09/2003"
+  period: string;
   title: string;
   description: string;
   tag: string;
@@ -88,7 +94,7 @@ export interface SponsorItem {
 
 export interface AlumniRegion {
   id: string;
-  regionName: string; // e.g. "Hà Nội", "TP. Hồ Chí Minh", "Quốc tế (Nhật, Úc, Mỹ...)"
+  regionName: string;
   count: number;
   coordinates?: [number, number];
   membersHighlight: string[];
@@ -111,9 +117,9 @@ export interface MemoryVideo {
 }
 
 export interface ReunionConfig {
-  appsScriptUrl: string; // User's deployed Web App URL
-  audioUrl: string;      // Google Drive MP3 file direct link
-  qrUrl: string;         // Google Drive QR Image direct link
+  appsScriptUrl: string;
+  audioUrl: string;
+  qrUrl: string;
   bankName: string;
   bankAccount: string;
   bankHolder: string;
@@ -129,5 +135,3 @@ export interface ActivityToast {
   timeAgo: string;
   isNew?: boolean;
 }
-
-

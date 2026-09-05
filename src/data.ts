@@ -1,4 +1,4 @@
-﻿import { RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem } from './types';
+import { RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem } from './types';
 
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
@@ -11,7 +11,10 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     shirtSize: 'L',
     message: 'Chắc chắn có mặt! Nhớ anh em bàn cuối lắm rồi!',
     submittedAt: '01/09/2026 09:15',
-    checkedIn: false
+    checkedIn: false,
+    fundStatus: 'paid',
+    fundAmount: 500000,
+    fundNote: 'Đã chuyển khoản Vietcombank'
   },
   {
     id: '2',
@@ -23,7 +26,10 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     shirtSize: 'M',
     message: 'Hẹn gặp cả lớp, gửi đứa nào hay giấu dép ngày xưa chuẩn bị tinh thần nha 😆',
     submittedAt: '01/09/2026 10:30',
-    checkedIn: false
+    checkedIn: false,
+    fundStatus: 'paid',
+    fundAmount: 500000,
+    fundNote: 'Thủ quỹ lớp đã xác nhận'
   },
   {
     id: '3',
@@ -35,7 +41,10 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     shirtSize: 'XL',
     message: 'Đã đặt vé bay từ Sài Gòn ra Thái Nguyên, hẹn gặp lại tất cả!',
     submittedAt: '02/09/2026 14:20',
-    checkedIn: false
+    checkedIn: false,
+    fundStatus: 'paid',
+    fundAmount: 1000000,
+    fundNote: 'Ủng hộ thêm quỹ lớp 500k'
   },
   {
     id: '4',
@@ -47,7 +56,10 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     shirtSize: 'L',
     message: 'Không say không về nhé anh em!',
     submittedAt: '02/09/2026 16:45',
-    checkedIn: false
+    checkedIn: false,
+    fundStatus: 'unpaid',
+    fundAmount: 0,
+    fundNote: 'Hẹn đóng trực tiếp tại bàn lễ tân'
   },
   {
     id: '5',
@@ -59,7 +71,10 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     shirtSize: 'S',
     message: 'Rất mong chờ ngày gặp lại mọi người sau 20 năm.',
     submittedAt: '03/09/2026 08:10',
-    checkedIn: false
+    checkedIn: false,
+    fundStatus: 'paid',
+    fundAmount: 500000,
+    fundNote: 'Đã chuyển khoản'
   }
 ];
 
@@ -71,7 +86,8 @@ export const INITIAL_WISHES_LIST: WishData[] = [
     message: 'Nhớ nhất những buổi trốn học bơi sông Cầu với mấy thằng bàn cuối. 20 năm rồi chớp mắt một cái, mong gặp lại anh em đầy đủ!',
     tag: 'bg-amber-100/90 text-amber-900 border-amber-200',
     submittedAt: 'Hôm qua',
-    likes: 12
+    likes: 12,
+    isPinned: true
   },
   {
     id: 'w2',
@@ -80,7 +96,8 @@ export const INITIAL_WISHES_LIST: WishData[] = [
     message: 'Mong ngày hội ngộ từng ngày! Gửi đứa nào hồi xưa hay giấu dép với cất bút bi của tôi thì tự giác chuẩn bị nhận tội nhé 😆',
     tag: 'bg-emerald-100/90 text-emerald-900 border-emerald-200',
     submittedAt: 'Hôm nay',
-    likes: 18
+    likes: 18,
+    isPinned: false
   },
   {
     id: 'w3',
@@ -89,7 +106,8 @@ export const INITIAL_WISHES_LIST: WishData[] = [
     message: 'Đã chốt vé bay từ Sài Gòn ra Thái Nguyên từ tháng trước. Hẹn gặp cả lớp thân thương, không say không về!',
     tag: 'bg-rose-100/90 text-rose-900 border-rose-200',
     submittedAt: '3 ngày trước',
-    likes: 15
+    likes: 15,
+    isPinned: false
   }
 ];
 
@@ -147,6 +165,7 @@ export const DEFAULT_VIDEOS: MemoryVideo[] = [
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * GOOGLE APPS SCRIPT (Code.gs)
  * Phục vụ WebApp "Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên"
+ * Hỗ trợ Phân quyền Admin (8888) & Ban Liên Lạc (2006) với Full CRUD
  * 
  * HƯỚNG DẪN TRIỂN KHAI CHUẨN ĐỂ KHÔNG BỊ LỖI "Failed to fetch":
  * 1. Mở Google Sheet -> Chọn Tiện ích mở rộng (Extensions) -> Apps Script
@@ -211,7 +230,7 @@ function doGet(e) {
 }
 
 /**
- * Xử lý yêu cầu POST: Ghi điểm danh, lời chúc, ảnh vào Google Sheet / Drive
+ * Xử lý yêu cầu POST: Ghi điểm danh, lời chúc, đối soát quỹ vào Google Sheet / Drive
  */
 function doPost(e) {
   try {
@@ -240,6 +259,18 @@ function doPost(e) {
       return handleResponse(saveWish(postData));
     }
 
+    if (action === 'delete_wish') {
+      return handleResponse(deleteWish(postData));
+    }
+
+    if (action === 'update_rsvp') {
+      return handleResponse(updateRSVP(postData));
+    }
+
+    if (action === 'delete_rsvp') {
+      return handleResponse(deleteRSVP(postData));
+    }
+
     if (action === 'rsvp' || (postData.fullName && postData.phone)) {
       return handleResponse(saveRSVP(postData));
     }
@@ -265,12 +296,10 @@ function getRSVPList() {
     return { status: 'success', data: [] };
   }
 
-  const headers = rows[0];
   const list = [];
-
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row[0] && !row[1]) continue;
+    if (!row[0] && !row[1] && !row[2]) continue;
 
     const item = {
       id: String(i),
@@ -280,7 +309,12 @@ function getRSVPList() {
       status: row[3] === 'Có tham gia' || row[3] === 'yes' ? 'yes' : 'no',
       shirtSize: String(row[4] || 'L'),
       message: String(row[5] || ''),
-      submittedAt: formatDate(row[6] || new Date())
+      submittedAt: formatDate(row[6] || new Date()),
+      checkedIn: row[7] === 'ĐÃ ĐẾN' || row[7] === true,
+      checkedInAt: String(row[8] || ''),
+      fundStatus: row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 'paid' : 'unpaid',
+      fundAmount: Number(row[10]) || (row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 500000 : 0),
+      fundNote: String(row[11] || '')
     };
     list.push(item);
   }
@@ -298,10 +332,23 @@ function saveRSVP(data) {
     sheet = ss.getSheets()[0];
   }
 
-  // Nếu sheet trống, khởi tạo tiêu đề cột
+  // Khởi tạo tiêu đề cột đầy đủ
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Họ và Tên', 'Biệt danh', 'Số điện thoại', 'Tình trạng', 'Size áo', 'Lời nhắn', 'Thời gian gửi']);
-    sheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#FAF3E0');
+    sheet.appendRow([
+      'Họ và Tên', 
+      'Biệt danh', 
+      'Số điện thoại', 
+      'Tình trạng', 
+      'Size áo', 
+      'Lời nhắn', 
+      'Thời gian gửi',
+      'Điểm danh đến',
+      'Giờ đến',
+      'Quỹ 500k',
+      'Số tiền',
+      'Ghi chú quỹ'
+    ]);
+    sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#FAF3E0');
   }
 
   const row = [
@@ -311,11 +358,70 @@ function saveRSVP(data) {
     data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
     data.shirtSize || 'L',
     data.message || '',
-    new Date()
+    new Date(),
+    data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
+    data.checkedInAt || '',
+    data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : 'CHƯA ĐÓNG',
+    data.fundAmount || (data.fundStatus === 'paid' ? 500000 : 0),
+    data.fundNote || ''
   ];
 
   sheet.appendRow(row);
   return { status: 'success', message: 'Điểm danh thành công!' };
+}
+
+/**
+ * Cập nhật thông tin RSVP / Đối soát quỹ
+ */
+function updateRSVP(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
+  if (!sheet) sheet = ss.getSheets()[0];
+
+  const rows = sheet.getDataRange().getValues();
+  const phone = String(data.phone || '').trim();
+  let updated = false;
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][2]).trim() === phone || (data.rowId && i === Number(data.rowId))) {
+      const rowIndex = i + 1;
+      if (data.fullName) sheet.getRange(rowIndex, 1).setValue(data.fullName);
+      if (data.nickname !== undefined) sheet.getRange(rowIndex, 2).setValue(data.nickname);
+      if (data.status) sheet.getRange(rowIndex, 4).setValue(data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt');
+      if (data.shirtSize) sheet.getRange(rowIndex, 5).setValue(data.shirtSize);
+      if (data.message !== undefined) sheet.getRange(rowIndex, 6).setValue(data.message);
+      if (data.checkedIn !== undefined) sheet.getRange(rowIndex, 8).setValue(data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN');
+      if (data.checkedInAt !== undefined) sheet.getRange(rowIndex, 9).setValue(data.checkedInAt);
+      if (data.fundStatus !== undefined) sheet.getRange(rowIndex, 10).setValue(data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : 'CHƯA ĐÓNG');
+      if (data.fundAmount !== undefined) sheet.getRange(rowIndex, 11).setValue(data.fundAmount);
+      if (data.fundNote !== undefined) sheet.getRange(rowIndex, 12).setValue(data.fundNote);
+      updated = true;
+      break;
+    }
+  }
+
+  return { status: updated ? 'success' : 'not_found', message: updated ? 'Cập nhật thành công' : 'Không tìm thấy dòng tương ứng' };
+}
+
+/**
+ * Xóa dòng RSVP (Admin Only)
+ */
+function deleteRSVP(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
+  if (!sheet) sheet = ss.getSheets()[0];
+
+  const rows = sheet.getDataRange().getValues();
+  const phone = String(data.phone || '').trim();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][2]).trim() === phone || (data.rowId && i === Number(data.rowId))) {
+      sheet.deleteRow(i + 1);
+      return { status: 'success', message: 'Đã xóa thành viên thành công' };
+    }
+  }
+
+  return { status: 'not_found', message: 'Không tìm thấy dòng để xóa' };
 }
 
 /**
@@ -369,6 +475,22 @@ function saveWish(data) {
   ]);
 
   return { status: 'success', message: 'Dán lời chúc thành công!' };
+}
+
+/**
+ * Xóa lời chúc
+ */
+function deleteWish(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG.WISHES_SHEET_NAME);
+  if (!sheet) return { status: 'error', message: 'Không tìm thấy sheet lời chúc' };
+
+  if (data.rowId) {
+    sheet.deleteRow(Number(data.rowId) + 1);
+    return { status: 'success', message: 'Đã xóa lời chúc' };
+  }
+
+  return { status: 'error', message: 'Thiếu rowId' };
 }
 
 /**
