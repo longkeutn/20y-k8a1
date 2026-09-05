@@ -69,7 +69,10 @@ import {
   Scale,
   Maximize2,
   Landmark,
-  QrCode
+  QrCode,
+  ShieldCheck,
+  Loader2,
+  Lock
 } from 'lucide-react';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from '../types';
 import { 
@@ -86,7 +89,8 @@ import {
   SHIRT_SIZE_OPTIONS,
   formatDateTimeVi,
   EXPENSE_CATEGORIES,
-  INITIAL_EXPENSES_LIST
+  INITIAL_EXPENSES_LIST,
+  updatePinsViaBackend
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
@@ -253,21 +257,12 @@ export default function AdminManagementHub({
     }
   }, [isOpen, initialTab, initialMediaSubTab]);
 
-  // Stored PINs (default Admin 8888, Thủ Quỹ 6868, BLL 2006)
-  const [adminPin, setAdminPin] = useState(() => {
-    return localStorage.getItem('k8a1_admin_pin') || '8888';
-  });
-  const [treasurerPin, setTreasurerPin] = useState(() => {
-    return localStorage.getItem('k8a1_treasurer_pin') || '6868';
-  });
-  const [bllPin, setBllPin] = useState(() => {
-    return localStorage.getItem('k8a1_bll_pin') || '2006';
-  });
-
-  // Settings form states
+  // Settings form states (Bảo mật qua Google Sheets & Google Apps Script Backend)
+  const [currentAdminPinConfirm, setCurrentAdminPinConfirm] = useState('');
   const [newAdminPin, setNewAdminPin] = useState('');
   const [newTreasurerPin, setNewTreasurerPin] = useState('');
   const [newBllPin, setNewBllPin] = useState('');
+  const [isUpdatingPins, setIsUpdatingPins] = useState(false);
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
   const [copiedScriptCode, setCopiedScriptCode] = useState(false);
   const [showScriptCodeModal, setShowScriptCodeModal] = useState(false);
@@ -2052,45 +2047,10 @@ export default function AdminManagementHub({
 
     let msg = 'Đã lưu cấu hình sự kiện thành công! ';
 
-    // 2. Lưu Cài đặt bảo mật (PIN & Google Apps Script URL) nếu là Admin
-    if (currentUserRole === 'admin') {
-      if (newAdminPin) {
-        if (!/^\d{4}$/.test(newAdminPin)) {
-          alert('Mã PIN Admin phải đúng 4 chữ số!');
-          return;
-        }
-        setAdminPin(newAdminPin);
-        localStorage.setItem('k8a1_admin_pin', newAdminPin);
-        msg += 'Đã đổi mã PIN Admin mới. ';
-        setNewAdminPin('');
-      }
-
-      if (newTreasurerPin) {
-        if (!/^\d{4}$/.test(newTreasurerPin)) {
-          alert('Mã PIN Thủ Quỹ phải đúng 4 chữ số!');
-          return;
-        }
-        setTreasurerPin(newTreasurerPin);
-        localStorage.setItem('k8a1_treasurer_pin', newTreasurerPin);
-        msg += 'Đã đổi mã PIN Thủ Quỹ mới. ';
-        setNewTreasurerPin('');
-      }
-
-      if (newBllPin) {
-        if (!/^\d{4}$/.test(newBllPin)) {
-          alert('Mã PIN Ban Liên Lạc phải đúng 4 chữ số!');
-          return;
-        }
-        setBllPin(newBllPin);
-        localStorage.setItem('k8a1_bll_pin', newBllPin);
-        msg += 'Đã đổi mã PIN Ban Liên Lạc mới. ';
-        setNewBllPin('');
-      }
-
-      if (scriptUrlInput !== appsScriptUrl) {
-        onSaveAppsScriptUrl(scriptUrlInput.trim());
-        msg += 'Đã lưu URL Google Apps Script. ';
-      }
+    // 2. Lưu URL Google Apps Script nếu là Admin
+    if (currentUserRole === 'admin' && scriptUrlInput !== appsScriptUrl) {
+      onSaveAppsScriptUrl(scriptUrlInput.trim());
+      msg += 'Đã lưu URL Google Apps Script. ';
     }
 
     setSettingsSuccessMsg(msg);
@@ -2098,8 +2058,57 @@ export default function AdminManagementHub({
     setTimeout(() => setSettingsSuccessMsg(''), 4000);
   };
 
+  const handleUpdateSecurityPins = async () => {
+    if (currentUserRole !== 'admin') return;
+    if (!currentAdminPinConfirm) {
+      alert('Vui lòng nhập mã PIN Admin hiện tại để xác minh quyền quản trị!');
+      return;
+    }
+    if (!newAdminPin && !newTreasurerPin && !newBllPin) {
+      alert('Vui lòng nhập ít nhất một mã PIN mới cần thay đổi!');
+      return;
+    }
+    if (newAdminPin && !/^\d{4}$/.test(newAdminPin)) {
+      alert('Mã PIN Admin mới phải đúng 4 chữ số!');
+      return;
+    }
+    if (newTreasurerPin && !/^\d{4}$/.test(newTreasurerPin)) {
+      alert('Mã PIN Thủ Quỹ mới phải đúng 4 chữ số!');
+      return;
+    }
+    if (newBllPin && !/^\d{4}$/.test(newBllPin)) {
+      alert('Mã PIN Ban Liên Lạc mới phải đúng 4 chữ số!');
+      return;
+    }
+
+    setIsUpdatingPins(true);
+    try {
+      const res = await updatePinsViaBackend({
+        currentAdminPin: currentAdminPinConfirm,
+        newAdminPin: newAdminPin || undefined,
+        newTreasurerPin: newTreasurerPin || undefined,
+        newBllPin: newBllPin || undefined
+      }, appsScriptUrl);
+
+      if (res.success) {
+        confetti({ particleCount: 35, spread: 65, origin: { y: 0.6 } });
+        alert(res.message);
+        setCurrentAdminPinConfirm('');
+        setNewAdminPin('');
+        setNewTreasurerPin('');
+        setNewBllPin('');
+      } else {
+        alert('Cập nhật thất bại: ' + res.message);
+      }
+    } catch (e: any) {
+      alert('Lỗi khi cập nhật mã PIN: ' + (e?.message || e));
+    } finally {
+      setIsUpdatingPins(false);
+    }
+  };
+
   const handleResetEventConfigDefault = () => {
-    if (confirm('Bạn có chắc muốn khôi phục toàn bộ thông tin sự kiện (Crown Palace Thái Nguyên, 27/09/2026, Quỹ 500k) về mặc định ban đầu?')) {
+    if (confirm('Bạn có chắc muốn khôi phục toàn bộ thông tin sự kiện về mặc định ban đầu?')) {
       setEventConfigForm(DEFAULT_EVENT_CONFIG);
       if (onUpdateEventConfig) {
         onUpdateEventConfig(DEFAULT_EVENT_CONFIG);
@@ -2112,16 +2121,32 @@ export default function AdminManagementHub({
     }
   };
 
-  const handleResetToDefault = () => {
+  const handleResetToDefault = async () => {
     if (currentUserRole !== 'admin') return;
-    if (confirm('CẢNH BÁO: Bạn có chắc muốn khôi phục toàn bộ cài đặt mã PIN về mặc định của hệ thống?')) {
-      setAdminPin('8888');
-      setTreasurerPin('6868');
-      setBllPin('2006');
-      localStorage.removeItem('k8a1_admin_pin');
-      localStorage.removeItem('k8a1_treasurer_pin');
-      localStorage.removeItem('k8a1_bll_pin');
-      alert('Đã khôi phục mã PIN mặc định thành công (Admin: 8888, Thủ Quỹ: 6868, BLL: 2006)!');
+    const pinConfirm = prompt('Nhập mã PIN Admin hiện tại để xác nhận khôi phục mã PIN hệ thống về mặc định:');
+    if (!pinConfirm) return;
+
+    setIsUpdatingPins(true);
+    try {
+      const res = await updatePinsViaBackend({
+        currentAdminPin: pinConfirm.trim(),
+        newAdminPin: '8888',
+        newTreasurerPin: '6868',
+        newBllPin: '2006'
+      }, appsScriptUrl);
+
+      if (res.success) {
+        localStorage.removeItem('k8a1_admin_pin');
+        localStorage.removeItem('k8a1_treasurer_pin');
+        localStorage.removeItem('k8a1_bll_pin');
+        alert('Đã khôi phục cài đặt mã PIN về mặc định thành công trên Google Sheets!');
+      } else {
+        alert('Khôi phục thất bại: ' + res.message);
+      }
+    } catch (e: any) {
+      alert('Lỗi kết nối: ' + (e?.message || e));
+    } finally {
+      setIsUpdatingPins(false);
     }
   };
 
@@ -2272,9 +2297,7 @@ export default function AdminManagementHub({
         isOpen={isOpen}
         onClose={onClose}
         onSuccess={onLoginSuccess}
-        adminPin={adminPin}
-        treasurerPin={treasurerPin}
-        bllPin={bllPin}
+        appsScriptUrl={appsScriptUrl}
       />
     );
   }
@@ -5528,6 +5551,54 @@ export default function AdminManagementHub({
                           </div>
                         </div>
 
+                        {/* Admin verification & Save PIN button */}
+                        <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                                <Lock className="w-3.5 h-3.5 text-amber-700" />
+                                <span>Xác minh mã PIN Admin hiện tại (*):</span>
+                              </label>
+                              <p className="text-[11px] text-slate-500">
+                                Nhập 4 số PIN Admin đang dùng để xác thực quyền đổi mã PIN hệ thống
+                              </p>
+                            </div>
+                            <input
+                              type="password"
+                              maxLength={4}
+                              value={currentAdminPinConfirm}
+                              onChange={(e) => setCurrentAdminPinConfirm(e.target.value.replace(/\D/g, ''))}
+                              placeholder="••••"
+                              className="w-32 px-3 py-1.5 bg-white border border-amber-300 rounded-lg font-mono text-center tracking-widest text-sm focus:outline-none focus:border-amber-600 font-bold shadow-inner"
+                            />
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-amber-200/80">
+                            <p className="text-[11px] text-amber-900/80 flex items-center gap-1">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Mã PIN được băm mật mã và đồng bộ trực tiếp lên Google Sheets (Sheet: Bao_Mat_PIN)</span>
+                            </p>
+                            <button
+                              type="button"
+                              disabled={isUpdatingPins}
+                              onClick={handleUpdateSecurityPins}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-700 to-amber-800 hover:from-amber-800 hover:to-amber-900 text-white font-bold rounded-xl text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
+                            >
+                              {isUpdatingPins ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Đang Đồng Bộ Lên Google Sheets...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                                  <span>Lưu & Đồng Bộ Mã PIN Lên Google Sheets</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
                         {/* GOOGLE APPS SCRIPT MASTER BACKEND */}
                         <div className="p-4 bg-gradient-to-br from-amber-500/10 via-amber-100/40 to-slate-50 rounded-xl border-2 border-amber-300 space-y-4">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-3">
@@ -5657,10 +5728,11 @@ export default function AdminManagementHub({
                         <div className="pt-2 flex items-center justify-between">
                           <button
                             type="button"
+                            disabled={isUpdatingPins}
                             onClick={handleResetToDefault}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer"
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer disabled:opacity-50"
                           >
-                            Khôi Phục PIN Mặc Định
+                            {isUpdatingPins ? 'Đang Xử Lý...' : 'Khôi Phục PIN Mặc Định (8888 / 6868 / 2006)'}
                           </button>
                         </div>
                       </div>

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { KeyRound, Lock, X, Delete } from 'lucide-react';
+import { KeyRound, Lock, X, Delete, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { verifyPinViaBackend } from '../data';
 
 interface PinAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (role: 'admin' | 'bll' | 'treasurer') => void;
+  appsScriptUrl?: string;
   adminPin?: string;
   bllPin?: string;
   treasurerPin?: string;
@@ -16,18 +18,12 @@ export default function PinAuthModal({
   isOpen,
   onClose,
   onSuccess,
-  adminPin: propAdminPin,
-  bllPin: propBllPin,
-  treasurerPin: propTreasurerPin
+  appsScriptUrl
 }: PinAuthModalProps) {
   const [enteredPin, setEnteredPin] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   const [isShake, setIsShake] = useState<boolean>(false);
-
-  // Lấy mã PIN từ localStorage hoặc props (Mặc định: Admin 8888, Thủ Quỹ 6868, BLL 2006)
-  const getAdminPin = () => propAdminPin || localStorage.getItem('k8a1_admin_pin') || '8888';
-  const getTreasurerPin = () => propTreasurerPin || localStorage.getItem('k8a1_treasurer_pin') || '6868';
-  const getBllPin = () => propBllPin || localStorage.getItem('k8a1_bll_pin') || '2006';
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
   // Luôn reset sạch sẽ trạng thái mỗi khi mở modal hoặc sau khi đăng xuất
   useEffect(() => {
@@ -35,39 +31,29 @@ export default function PinAuthModal({
       setEnteredPin('');
       setPinError('');
       setIsShake(false);
+      setIsVerifying(false);
     }
   }, [isOpen]);
 
-  // Hàm kiểm tra mã PIN siêu tốc (0ms delay)
-  const verifyPin = useCallback((pinToTest: string) => {
-    const adminCode = getAdminPin();
-    const treasurerCode = getTreasurerPin();
-    const bllCode = getBllPin();
+  // Hàm kiểm tra mã PIN an toàn qua Google Apps Script backend
+  const verifyPin = useCallback(async (pinToTest: string) => {
+    setIsVerifying(true);
+    setPinError('');
 
-    if (pinToTest === adminCode) {
-      try {
-        confetti({ particleCount: 45, spread: 55, origin: { y: 0.5 } });
-      } catch (e) {}
-      setEnteredPin('');
-      setPinError('');
-      onSuccess('admin');
-    } else if (pinToTest === treasurerCode) {
-      try {
-        confetti({ particleCount: 45, spread: 55, origin: { y: 0.5 } });
-      } catch (e) {}
-      setEnteredPin('');
-      setPinError('');
-      onSuccess('treasurer');
-    } else if (pinToTest === bllCode) {
-      try {
-        confetti({ particleCount: 35, spread: 45, origin: { y: 0.5 } });
-      } catch (e) {}
-      setEnteredPin('');
-      setPinError('');
-      onSuccess('bll');
-    } else {
-      // Báo sai mã PIN & rung lắc nhẹ
-      setPinError('Mã PIN không đúng! Vui lòng thử lại.');
+    try {
+      const result = await verifyPinViaBackend(pinToTest, appsScriptUrl);
+      if (result.success && result.role) {
+        try {
+          confetti({ particleCount: 45, spread: 55, origin: { y: 0.5 } });
+        } catch (e) {}
+        setEnteredPin('');
+        setPinError('');
+        setIsVerifying(false);
+        onSuccess(result.role);
+        return;
+      }
+
+      setPinError(result.message || 'Mã PIN không đúng! Vui lòng thử lại.');
       setIsShake(true);
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([40, 60, 40]);
@@ -75,12 +61,22 @@ export default function PinAuthModal({
       setTimeout(() => {
         setEnteredPin('');
         setIsShake(false);
-      }, 400);
+        setIsVerifying(false);
+      }, 500);
+    } catch (err: any) {
+      setPinError('Lỗi xác thực: ' + (err?.message || 'Vui lòng thử lại!'));
+      setIsVerifying(false);
+      setIsShake(true);
+      setTimeout(() => {
+        setEnteredPin('');
+        setIsShake(false);
+      }, 500);
     }
-  }, [onSuccess, propAdminPin, propBllPin, propTreasurerPin]);
+  }, [onSuccess, appsScriptUrl]);
 
-  // Thao tác nhập từng số (Tối ưu phản hồi tức thì < 1ms)
+  // Thao tác nhập từng số (Tối ưu phản hồi tức thì)
   const handleDigit = useCallback((digit: string) => {
+    if (isVerifying) return;
     setEnteredPin((prev) => {
       if (prev.length >= 4) return prev;
       const next = prev + digit;
@@ -90,13 +86,14 @@ export default function PinAuthModal({
       }
       return next;
     });
-  }, [verifyPin]);
+  }, [verifyPin, isVerifying]);
 
   // Xóa 1 ký tự cuối
   const handleDelete = useCallback(() => {
+    if (isVerifying) return;
     setEnteredPin((prev) => prev.slice(0, -1));
     setPinError('');
-  }, []);
+  }, [isVerifying]);
 
   // Xóa toàn bộ
   const handleClear = useCallback(() => {
@@ -160,12 +157,16 @@ export default function PinAuthModal({
           <div className="text-center space-y-2 pt-1">
             <div className="w-13 h-13 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/20 flex items-center justify-center">
               <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center">
-                <KeyRound className="w-6 h-6 text-amber-400" />
+                {isVerifying ? (
+                  <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                ) : (
+                  <KeyRound className="w-6 h-6 text-amber-400" />
+                )}
               </div>
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-serif font-bold text-amber-200 tracking-tight">
-                Xác Thực Mã PIN Quản Trị
+                {isVerifying ? 'Đang Xác Thực Mã PIN...' : 'Xác Thực Mã PIN Quản Trị'}
               </h3>
               <p className="text-[11px] sm:text-xs text-slate-300 font-sans mt-0.5">
                 Dành riêng cho <strong className="text-amber-300">Admin</strong>, <strong className="text-emerald-300">Thủ Quỹ</strong> & <strong className="text-amber-300">Ban Liên Lạc</strong>

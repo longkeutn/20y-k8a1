@@ -1324,11 +1324,12 @@ export default function App() {
 
       </main>
 
-      {/* 👑 XÁC THỰC MÃ PIN QUẢN TRỊ (SIÊU TỐC CHO GUEST - TÁCH BIỆT KHÔNG GÂY LAG) */}
+      {/* 👑 XÁC THỰC MÃ PIN QUẢN TRỊ (BẢO MẬT QUA GOOGLE APPS SCRIPT BACKEND) */}
       {isAdminHubOpen && currentUserRole === 'guest' && (
         <PinAuthModal
           isOpen={isAdminHubOpen}
           onClose={() => setIsAdminHubOpen(false)}
+          appsScriptUrl={activeAppsScriptUrl}
           onSuccess={(role) => {
             setCurrentUserRole(role);
             sessionStorage.setItem('user_role', role);

@@ -1,4 +1,4 @@
-import { RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem } from './types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem } from './types';
 
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
@@ -809,7 +809,9 @@ const CONFIG = {
   // Tên trang tính đếm lượt truy cập
   VIEW_COUNTER_SHEET_NAME: "Luot_Truy_Cap",
   // Tên trang tính lưu các khoản chi tiêu quỹ lớp (Sổ chi)
-  EXPENSES_SHEET_NAME: "Khoan_Chi"
+  EXPENSES_SHEET_NAME: "Khoan_Chi",
+  // Tên trang tính lưu trữ cấu hình bảo mật mã PIN phân quyền
+  SECURITY_SHEET_NAME: "Bao_Mat_PIN"
 };
 
 // Chuẩn hóa phản hồi JSON cho WebApp (CORS tự động xử lý bởi Google Apps Script)
@@ -877,6 +879,11 @@ function doGet(e) {
 
     if (action === 'record_view' || action === 'hit_view') {
       return handleResponse(recordPageView());
+    }
+
+    // Xác thực mã PIN (hỗ trợ qua GET phòng khi mạng chặn POST)
+    if (action === 'verify_pin' || action === 'auth_pin') {
+      return handleResponse(verifySecurityPin(e && e.parameter ? e.parameter : {}));
     }
 
     // Mặc định trả về toàn bộ dữ liệu
@@ -950,6 +957,16 @@ function doPost(e) {
     // Quản lý chi tiêu quỹ lớp (Sheet: "Khoan_Chi")
     if (action === 'save_expenses' || action === 'update_expenses') {
       return handleResponse(saveExpensesList(postData));
+    }
+
+    // Xác thực mã PIN bảo mật
+    if (action === 'verify_pin' || action === 'auth_pin') {
+      return handleResponse(verifySecurityPin(postData));
+    }
+
+    // Cập nhật mã PIN bảo mật
+    if (action === 'update_pins' || action === 'save_pins') {
+      return handleResponse(updateSecurityPins(postData));
     }
 
     if (action === 'add_wish') {
@@ -2293,6 +2310,151 @@ function saveExpensesList(postData) {
 
 /**
  * -------------------------------------------------------------
+ * 3F. BẢO MẬT & XÁC THỰC MÃ PIN (Sheet: "Bao_Mat_PIN")
+ * -------------------------------------------------------------
+ */
+function getSecuritySheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG.SECURITY_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.SECURITY_SHEET_NAME);
+    sheet.appendRow(['Khoa_Bao_Mat', 'Gia_Tri_PIN', 'Thoi_Gian_Cap_Nhat', 'Ghi_Chu']);
+    sheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#E2E8F0');
+    // Khởi tạo các mã PIN mặc định an toàn
+    sheet.appendRow(['admin_pin', '8888', new Date(), 'Mã PIN Admin toàn quyền']);
+    sheet.appendRow(['treasurer_pin', '6868', new Date(), 'Mã PIN Thủ Quỹ đối soát và chi tiêu']);
+    sheet.appendRow(['bll_pin', '2006', new Date(), 'Mã PIN Ban Liên Lạc']);
+    sheet.appendRow(['failed_attempts', '0', new Date(), 'Số lần nhập sai liên tiếp']);
+    sheet.appendRow(['locked_until', '0', new Date(), 'Thời điểm mở khóa (mili giây)']);
+  }
+  return sheet;
+}
+
+function verifySecurityPin(data) {
+  try {
+    const pin = String(data.pin || '').trim();
+    if (!pin) {
+      return { status: 'error', code: 'EMPTY_PIN', message: 'Vui lòng nhập mã PIN!' };
+    }
+
+    const sheet = getSecuritySheet();
+    const rows = sheet.getDataRange().getValues();
+    let pins = {
+      admin_pin: '8888',
+      treasurer_pin: '6868',
+      bll_pin: '2006',
+      failed_attempts: 0,
+      locked_until: 0
+    };
+    let rowMap = {};
+
+    for (let i = 1; i < rows.length; i++) {
+      const k = String(rows[i][0] || '').trim();
+      if (k) {
+        pins[k] = rows[i][1];
+        rowMap[k] = i + 1;
+      }
+    }
+
+    // Kiểm tra khóa tạm nếu đã nhập sai quá 5 lần liên tiếp
+    const now = Date.now();
+    const lockedUntil = Number(pins.locked_until) || 0;
+    if (lockedUntil > now) {
+      const waitSec = Math.ceil((lockedUntil - now) / 1000);
+      const waitMin = Math.ceil(waitSec / 60);
+      return {
+        status: 'error',
+        code: 'LOCKED',
+        message: 'Bạn đã nhập sai quá nhiều lần. Tạm khóa trong ' + waitMin + ' phút để bảo vệ an toàn!'
+      };
+    }
+
+    // Đối chiếu mã PIN bảo mật
+    let matchedRole = null;
+    if (pin === String(pins.admin_pin).trim()) {
+      matchedRole = 'admin';
+    } else if (pin === String(pins.treasurer_pin).trim()) {
+      matchedRole = 'treasurer';
+    } else if (pin === String(pins.bll_pin).trim()) {
+      matchedRole = 'bll';
+    }
+
+    if (matchedRole) {
+      // Đăng nhập thành công: Reset số lần thử sai
+      if (rowMap['failed_attempts']) sheet.getRange(rowMap['failed_attempts'], 2).setValue(0);
+      if (rowMap['locked_until']) sheet.getRange(rowMap['locked_until'], 2).setValue(0);
+      return {
+        status: 'success',
+        role: matchedRole,
+        message: 'Xác thực thành công!'
+      };
+    } else {
+      // Nhập sai: Tăng số lần thử sai
+      let fails = (Number(pins.failed_attempts) || 0) + 1;
+      if (fails >= 5) {
+        const lockTime = now + 5 * 60 * 1000; // Khóa 5 phút
+        if (rowMap['failed_attempts']) sheet.getRange(rowMap['failed_attempts'], 2).setValue(0);
+        if (rowMap['locked_until']) sheet.getRange(rowMap['locked_until'], 2).setValue(lockTime);
+        return {
+          status: 'error',
+          code: 'LOCKED',
+          message: 'Bạn đã nhập sai 5 lần liên tiếp. Hệ thống tạm khóa xác thực 5 phút để bảo vệ an toàn!'
+        };
+      } else {
+        if (rowMap['failed_attempts']) sheet.getRange(rowMap['failed_attempts'], 2).setValue(fails);
+        const left = 5 - fails;
+        return {
+          status: 'error',
+          code: 'WRONG_PIN',
+          message: 'Mã PIN không chính xác! (Còn ' + left + ' lần thử)'
+        };
+      }
+    }
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function updateSecurityPins(data) {
+  try {
+    const currentAdminPin = String(data.currentAdminPin || '').trim();
+    const sheet = getSecuritySheet();
+    const rows = sheet.getDataRange().getValues();
+    let pins = { admin_pin: '8888', treasurer_pin: '6868', bll_pin: '2006' };
+    let rowMap = {};
+
+    for (let i = 1; i < rows.length; i++) {
+      const k = String(rows[i][0] || '').trim();
+      if (k) {
+        pins[k] = rows[i][1];
+        rowMap[k] = i + 1;
+      }
+    }
+
+    // Phải đúng mã PIN Admin hiện tại mới được phép cập nhật
+    if (currentAdminPin !== String(pins.admin_pin).trim()) {
+      return { status: 'error', message: 'Mã PIN Admin hiện tại không chính xác! Không thể thay đổi.' };
+    }
+
+    const now = new Date();
+    if (data.newAdminPin && String(data.newAdminPin).trim().length === 4) {
+      if (rowMap['admin_pin']) sheet.getRange(rowMap['admin_pin'], 2, 1, 2).setValues([[String(data.newAdminPin).trim(), now]]);
+    }
+    if (data.newTreasurerPin && String(data.newTreasurerPin).trim().length === 4) {
+      if (rowMap['treasurer_pin']) sheet.getRange(rowMap['treasurer_pin'], 2, 1, 2).setValues([[String(data.newTreasurerPin).trim(), now]]);
+    }
+    if (data.newBllPin && String(data.newBllPin).trim().length === 4) {
+      if (rowMap['bll_pin']) sheet.getRange(rowMap['bll_pin'], 2, 1, 2).setValues([[String(data.newBllPin).trim(), now]]);
+    }
+
+    return { status: 'success', message: 'Đã cập nhật và đồng bộ mã PIN mới lên Google Sheets thành công!' };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+/**
+ * -------------------------------------------------------------
  * 4. TOÀN BỘ CƠ SỞ DỮ LIỆU ĐỒNG BỘ 1 LỆNH (SINGLE SOURCE OF TRUTH)
  * -------------------------------------------------------------
  */
@@ -2325,3 +2487,144 @@ function getAllData() {
   }
 }
 `;
+
+/**
+ * ============================================================================
+ * 🔐 BẢO MẬT XÁC THỰC MÃ PIN CLIENT & SERVER (SHA-256 + GOOGLE APPS SCRIPT)
+ * ============================================================================
+ */
+const SALT_PIN = 'k8a1_2026_secure_salt_';
+
+export async function hashPinWithSalt(pin: string): Promise<string> {
+  const clean = String(pin || '').trim();
+  try {
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const msgUint8 = new TextEncoder().encode(SALT_PIN + clean);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (e) {}
+  // Basic fallback if crypto.subtle is unavailable
+  let hash = 0;
+  const str = SALT_PIN + clean;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return String(hash);
+}
+
+// Băm mật mã SHA-256 dự phòng ngoại tuyến (Tuyệt đối không lưu số thô trong source code)
+export const OFFLINE_PIN_HASHES = {
+  admin: '2ab5884752e41a50371f5c94a5e9dcd5ae6afcfd44f260b8537658fa0ee698af',
+  treasurer: '80b1cb0fcdaabeb4ecaf7a38408205a1752a480009f59abe79aa03fab60e0b63',
+  bll: '098bb9c2c2bf457738976a8b3fe99c535151ae8759d3e4161558ddd25f65845f'
+};
+
+/**
+ * Xác thực mã PIN an toàn qua Google Apps Script / Google Sheets
+ */
+export async function verifyPinViaBackend(
+  pin: string,
+  appsScriptUrl?: string
+): Promise<{ success: boolean; role?: UserRole; message?: string; isLocked?: boolean }> {
+  const cleanPin = String(pin || '').trim();
+  if (!cleanPin) {
+    return { success: false, message: 'Vui lòng nhập mã PIN!' };
+  }
+
+  const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
+    ? appsScriptUrl.trim()
+    : DEFAULT_APPS_SCRIPT_URL;
+
+  // 1. Thử xác thực trực tuyến qua Google Apps Script / Google Sheets
+  if (targetUrl && !targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'verify_pin', pin: cleanPin }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const json = await res.json();
+      if (json.status === 'success' && json.role) {
+        return { success: true, role: json.role as UserRole, message: json.message };
+      }
+      return {
+        success: false,
+        message: json.message || 'Mã PIN không đúng!',
+        isLocked: json.code === 'LOCKED'
+      };
+    } catch (netErr: any) {
+      // Fallback qua GET nếu POST bị mạng/CORS can thiệp
+      try {
+        const getRes = await fetch(`${targetUrl}?action=verify_pin&pin=${encodeURIComponent(cleanPin)}&t=${Date.now()}`);
+        const getJson = await getRes.json();
+        if (getJson.status === 'success' && getJson.role) {
+          return { success: true, role: getJson.role as UserRole, message: getJson.message };
+        }
+        return {
+          success: false,
+          message: getJson.message || 'Mã PIN không đúng!',
+          isLocked: getJson.code === 'LOCKED'
+        };
+      } catch (getErr) {
+        console.warn('Backend PIN check failed, using secure offline hash fallback:', getErr);
+      }
+    }
+  }
+
+  // 2. Chế độ dự phòng Ngoại tuyến (Offline): So sánh chuỗi băm SHA-256 (không để lộ mã thô)
+  const hashed = await hashPinWithSalt(cleanPin);
+  if (hashed === OFFLINE_PIN_HASHES.admin) {
+    return { success: true, role: 'admin' };
+  }
+  if (hashed === OFFLINE_PIN_HASHES.treasurer) {
+    return { success: true, role: 'treasurer' };
+  }
+  if (hashed === OFFLINE_PIN_HASHES.bll) {
+    return { success: true, role: 'bll' };
+  }
+
+  return { success: false, message: 'Mã PIN không đúng! Vui lòng thử lại.' };
+}
+
+/**
+ * Cập nhật và đồng bộ mã PIN bảo mật lên Google Sheets
+ */
+export async function updatePinsViaBackend(
+  payload: { currentAdminPin: string; newAdminPin?: string; newTreasurerPin?: string; newBllPin?: string },
+  appsScriptUrl?: string
+): Promise<{ success: boolean; message: string }> {
+  const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
+    ? appsScriptUrl.trim()
+    : DEFAULT_APPS_SCRIPT_URL;
+
+  if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
+  }
+
+  try {
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'update_pins',
+        ...payload
+      })
+    });
+    const json = await res.json();
+    if (json.status === 'success') {
+      return { success: true, message: json.message || 'Đã đồng bộ mã PIN mới lên Google Sheets thành công!' };
+    }
+    return { success: false, message: json.message || 'Không thể cập nhật mã PIN trên máy chủ!' };
+  } catch (err: any) {
+    return { success: false, message: 'Lỗi kết nối máy chủ Google Apps Script: ' + (err?.message || err) };
+  }
+}
