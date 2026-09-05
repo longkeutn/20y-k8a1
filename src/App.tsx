@@ -1192,23 +1192,83 @@ export default function App() {
             </section>
 
             {/* ======================================================== */}
-            {/* ☕ FOOTER: LỜI KẾT ẤM ÁP */}
+            {/* ☕ FOOTER: LỜI KẾT ẤM ÁP & THÔNG TIN HỘI KHÓA */}
             {/* ======================================================== */}
-            <footer className="text-center space-y-3 pt-10 pb-6 border-t border-slate-200 text-xs text-slate-500 flex flex-col items-center">
-              <div className="space-y-1">
-                <p className="font-bold text-[#1E293B] font-serif text-sm">
-                  Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên
-                </p>
-                <p className="font-serif italic text-slate-600">
-                  “20 năm bôn ba muôn phương, khi về lại K8A1 — ta mãi là những cô cậu học trò tuổi 18.”
-                </p>
-                <p className="text-amber-700 font-mono text-[11px] pt-1">
-                  Đồng bộ dữ liệu tự động với Google Sheets & Google Drive
-                </p>
+            <footer className="mt-14 pt-8 pb-8 border border-amber-200/80 bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 shadow-xs text-xs text-slate-600">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pb-6 border-b border-amber-200/60">
+                {/* Cột 1: Thông tin Lớp & Tâm tình */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-900 font-serif font-bold text-xs">
+                      20y
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-[#1E293B] font-serif text-sm">
+                        Lớp K8A1 — THPT Thái Nguyên
+                      </h4>
+                      <p className="text-[11px] text-amber-800/80 font-serif">
+                        Niên khóa 2003 — 2006
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-serif italic text-slate-600 text-xs leading-relaxed">
+                    “20 năm bôn ba muôn phương, khi về lại K8A1 — ta mãi là những cô cậu học trò tuổi 18.”
+                  </p>
+                </div>
+
+                {/* Cột 2: Thời gian & Địa điểm */}
+                <div className="space-y-2">
+                  <h4 className="font-bold text-[#1E293B] font-serif text-sm flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                    Thời Gian & Địa Điểm
+                  </h4>
+                  <ul className="space-y-1.5 text-xs text-slate-600">
+                    <li className="flex items-start gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <span>{eventConfig.eventDateText || "Chủ Nhật, 27/09/2026 (08:30 — 15:30)"}</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <span>
+                        <strong className="text-slate-800 font-medium">{eventConfig.venueName || "Crown Palace Thái Nguyên"}</strong>
+                        <br />
+                        <span className="text-[11px] text-slate-500">{eventConfig.venueAddress || "779 Dương Tự Minh, TP. Thái Nguyên"}</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Cột 3: Ban Liên Lạc & Hỗ trợ */}
+                <div className="space-y-2">
+                  <h4 className="font-bold text-[#1E293B] font-serif text-sm flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-amber-700" />
+                    Ban Liên Lạc & Đón Tiếp
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Bạn bè từ xa về cần hỗ trợ đón tiếp, phương tiện hay lưu trú xin liên hệ Ban Liên Lạc để được sắp xếp chu đáo nhất.
+                  </p>
+                  <div className="pt-1 flex flex-wrap gap-2 text-[11px]">
+                    <a 
+                      href={eventConfig.venueAddress ? `https://maps.google.com/?q=${encodeURIComponent(eventConfig.venueAddress)}` : "https://maps.google.com/?q=Crown+Palace+Thai+Nguyen"}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-900 hover:bg-amber-50 hover:border-amber-300 transition-colors font-medium shadow-2xs"
+                    >
+                      <MapPin className="w-3 h-3 text-amber-700" />
+                      Chỉ đường Google Maps
+                    </a>
+                  </div>
+                </div>
               </div>
 
-              <div className="pt-2">
-                <ViewCounter appsScriptUrl={activeAppsScriptUrl} />
+              {/* Dòng đáy: Copyright & ViewCounter */}
+              <div className="pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-[11px] text-slate-500">
+                <p>
+                  © 2006 — 2026 <span className="font-medium text-slate-700">Lớp K8A1</span> (Khóa 2003 — 2006) • Trường THPT Thái Nguyên
+                </p>
+                <div>
+                  <ViewCounter appsScriptUrl={activeAppsScriptUrl} />
+                </div>
               </div>
             </footer>
 

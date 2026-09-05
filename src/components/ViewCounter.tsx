@@ -117,42 +117,17 @@ export default function ViewCounter({ appsScriptUrl }: ViewCounterProps) {
   return (
     <div 
       id="footer-view-counter" 
-      className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#FAF9F6] border border-brand-border text-brand-text-muted shadow-2xs transition-all hover:border-brand-gold/60"
+      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF9F6] border border-amber-200/80 text-slate-500 shadow-2xs text-xs font-sans"
     >
-      <div className="flex items-center gap-1.5 text-[10px] font-sans uppercase tracking-wider font-semibold">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <Eye className="w-3.5 h-3.5 text-brand-gold shrink-0" />
-        <span>Lượt ghé thăm:</span>
-      </div>
-
-      <div className="flex items-center gap-1">
-        <span className="font-serif font-bold text-brand-text text-xs tracking-wide tabular-nums">
-          {formattedCount}
-        </span>
-        <span className="text-[10px] font-serif italic text-brand-text-muted">lượt</span>
-      </div>
-
-      {isLiveConnected && (
-        <span 
-          title="Đồng bộ thời gian thực từ Google Sheets (Sheet: Luot_Truy_Cap & Script Properties)" 
-          className="text-[9px] font-sans px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-tight font-medium"
-        >
-          Google Sheet
-        </span>
-      )}
-
-      <button
-        type="button"
-        onClick={handleRefresh}
-        disabled={isLoading}
-        className="text-brand-text-muted hover:text-brand-gold transition-colors p-0.5 ml-0.5 rounded-full cursor-pointer"
-        title="Làm mới số lượt truy cập"
-      >
-        <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin text-brand-gold' : ''}`} />
-      </button>
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+      </span>
+      <span className="text-[11px] text-slate-600 font-medium">Lượt ghé thăm:</span>
+      <span className="font-serif font-bold text-amber-900 text-xs tracking-wide tabular-nums">
+        {formattedCount}
+      </span>
+      <span className="text-[11px] font-serif italic text-slate-500">lượt</span>
     </div>
   );
 }
