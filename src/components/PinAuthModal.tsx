@@ -6,9 +6,10 @@ import confetti from 'canvas-confetti';
 interface PinAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (role: 'admin' | 'bll') => void;
+  onSuccess: (role: 'admin' | 'bll' | 'treasurer') => void;
   adminPin?: string;
   bllPin?: string;
+  treasurerPin?: string;
 }
 
 export default function PinAuthModal({
@@ -16,14 +17,16 @@ export default function PinAuthModal({
   onClose,
   onSuccess,
   adminPin: propAdminPin,
-  bllPin: propBllPin
+  bllPin: propBllPin,
+  treasurerPin: propTreasurerPin
 }: PinAuthModalProps) {
   const [enteredPin, setEnteredPin] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   const [isShake, setIsShake] = useState<boolean>(false);
 
-  // Lấy mã PIN từ localStorage hoặc props (Mặc định: Admin 8888, BLL 2006)
+  // Lấy mã PIN từ localStorage hoặc props (Mặc định: Admin 8888, Thủ Quỹ 6868, BLL 2006)
   const getAdminPin = () => propAdminPin || localStorage.getItem('k8a1_admin_pin') || '8888';
+  const getTreasurerPin = () => propTreasurerPin || localStorage.getItem('k8a1_treasurer_pin') || '6868';
   const getBllPin = () => propBllPin || localStorage.getItem('k8a1_bll_pin') || '2006';
 
   // Luôn reset sạch sẽ trạng thái mỗi khi mở modal hoặc sau khi đăng xuất
@@ -38,6 +41,7 @@ export default function PinAuthModal({
   // Hàm kiểm tra mã PIN siêu tốc (0ms delay)
   const verifyPin = useCallback((pinToTest: string) => {
     const adminCode = getAdminPin();
+    const treasurerCode = getTreasurerPin();
     const bllCode = getBllPin();
 
     if (pinToTest === adminCode) {
@@ -47,6 +51,13 @@ export default function PinAuthModal({
       setEnteredPin('');
       setPinError('');
       onSuccess('admin');
+    } else if (pinToTest === treasurerCode) {
+      try {
+        confetti({ particleCount: 45, spread: 55, origin: { y: 0.5 } });
+      } catch (e) {}
+      setEnteredPin('');
+      setPinError('');
+      onSuccess('treasurer');
     } else if (pinToTest === bllCode) {
       try {
         confetti({ particleCount: 35, spread: 45, origin: { y: 0.5 } });
@@ -66,7 +77,7 @@ export default function PinAuthModal({
         setIsShake(false);
       }, 400);
     }
-  }, [onSuccess, propAdminPin, propBllPin]);
+  }, [onSuccess, propAdminPin, propBllPin, propTreasurerPin]);
 
   // Thao tác nhập từng số (Tối ưu phản hồi tức thì < 1ms)
   const handleDigit = useCallback((digit: string) => {
@@ -157,7 +168,7 @@ export default function PinAuthModal({
                 Xác Thực Mã PIN Quản Trị
               </h3>
               <p className="text-[11px] sm:text-xs text-slate-300 font-sans mt-0.5">
-                Dành riêng cho <strong className="text-amber-300">Admin</strong> và <strong className="text-amber-300">Ban Liên Lạc K8A1</strong>
+                Dành riêng cho <strong className="text-amber-300">Admin</strong>, <strong className="text-emerald-300">Thủ Quỹ</strong> & <strong className="text-amber-300">Ban Liên Lạc</strong>
               </p>
             </div>
           </div>

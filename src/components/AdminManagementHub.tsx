@@ -172,6 +172,7 @@ interface AdminManagementHubProps {
   onSaveAppsScriptUrl: (url: string) => void;
   onRefreshData?: () => void;
   onOpenPassModal?: (attendee: RsvpData) => void;
+  activeMember?: ClassMember | null;
 
   // Quản lý Sổ Chi Tiêu Quỹ Lớp (Khoan_Chi)
   expenses?: ExpenseItem[];
@@ -210,16 +211,30 @@ export default function AdminManagementHub({
   onSaveAppsScriptUrl,
   onRefreshData,
   onOpenPassModal,
+  activeMember,
   expenses = [],
   onAddExpense,
   onUpdateExpense,
   onDeleteExpense,
   onSaveAllExpenses
 }: AdminManagementHubProps) {
-  // User Role Helpers
+  // User Role Helpers (RBAC)
   const isAdmin = currentUserRole === 'admin';
+  const isTreasurer = currentUserRole === 'treasurer';
   const isBll = currentUserRole === 'bll';
-  const isAuthorized = isAdmin || isBll;
+  const isAuthorized = isAdmin || isTreasurer || isBll;
+  const canAuditAndSpend = isTreasurer || isAdmin; // Chỉ Thủ Quỹ hoặc Admin mới có quyền đối soát và nhập liệu chi
+
+  // Helper tính tên người đối soát tự động theo vai trò và danh tính
+  const getDefaultAuditorName = useCallback(() => {
+    if (isTreasurer) {
+      return activeMember?.fullName ? `Thủ Quỹ ${activeMember.fullName}` : 'Thủ Quỹ BLL';
+    }
+    if (isAdmin) {
+      return activeMember?.fullName ? `Admin (${activeMember.fullName})` : 'Trưởng Ban (Admin)';
+    }
+    return 'Ban Liên Lạc';
+  }, [isTreasurer, isAdmin, activeMember]);
 
   // Navigation tabs
   type ActiveTab = 'members' | 'fund' | 'wishes' | 'media' | 'settings';
@@ -236,9 +251,12 @@ export default function AdminManagementHub({
     }
   }, [isOpen, initialTab, initialMediaSubTab]);
 
-  // Stored PINs (default Admin 8888, BLL 2006)
+  // Stored PINs (default Admin 8888, Thủ Quỹ 6868, BLL 2006)
   const [adminPin, setAdminPin] = useState(() => {
     return localStorage.getItem('k8a1_admin_pin') || '8888';
+  });
+  const [treasurerPin, setTreasurerPin] = useState(() => {
+    return localStorage.getItem('k8a1_treasurer_pin') || '6868';
   });
   const [bllPin, setBllPin] = useState(() => {
     return localStorage.getItem('k8a1_bll_pin') || '2006';
@@ -246,6 +264,7 @@ export default function AdminManagementHub({
 
   // Settings form states
   const [newAdminPin, setNewAdminPin] = useState('');
+  const [newTreasurerPin, setNewTreasurerPin] = useState('');
   const [newBllPin, setNewBllPin] = useState('');
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
   const [copiedScriptCode, setCopiedScriptCode] = useState(false);
@@ -588,7 +607,11 @@ export default function AdminManagementHub({
   }, [effectiveExpenses, expenseSearch, expenseCategoryFilter]);
 
   const handleOpenAddExpense = (preset?: Partial<ExpenseItem>) => {
-    const defaultSpender = classRoster && classRoster.length > 0 ? classRoster[0].fullName : 'Thủ Quỹ BLL';
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền tạo khoản chi tiêu!');
+      return;
+    }
+    const defaultSpender = activeMember?.fullName || (classRoster && classRoster.length > 0 ? classRoster[0].fullName : 'Thủ Quỹ BLL');
     const amountVal = preset?.amount !== undefined ? Number(preset.amount) : 500000;
     setEditingExpense(null);
     setExpenseFormData({
@@ -607,6 +630,10 @@ export default function AdminManagementHub({
   };
 
   const handleOpenEditExpense = (item: ExpenseItem) => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền chỉnh sửa khoản chi tiêu!');
+      return;
+    }
     setEditingExpense(item);
     setExpenseFormData({ ...item });
     setExpenseAmountFormatted((item.amount || 0).toLocaleString('vi-VN'));
@@ -615,6 +642,10 @@ export default function AdminManagementHub({
 
   const handleSaveExpense = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền lưu khoản chi tiêu!');
+      return;
+    }
     const cleanTitle = String(expenseFormData.title || '').trim();
     if (!cleanTitle) {
       alert('Vui lòng nhập tên / nội dung khoản chi!');
@@ -634,7 +665,7 @@ export default function AdminManagementHub({
       category: (expenseFormData.category as ExpenseCategory) || 'party',
       amount: amountNum,
       date: String(expenseFormData.date || '').trim() || new Date().toISOString().split('T')[0],
-      spender: String(expenseFormData.spender || '').trim() || 'Thủ Quỹ BLL',
+      spender: String(expenseFormData.spender || '').trim() || (activeMember?.fullName || 'Thủ Quỹ BLL'),
       recipient: String(expenseFormData.recipient || '').trim(),
       receiptUrl: String(expenseFormData.receiptUrl || '').trim(),
       eventScope: String(expenseFormData.eventScope || '').trim() || 'Kỷ niệm 20 năm',
@@ -661,6 +692,10 @@ export default function AdminManagementHub({
   };
 
   const handleDeleteExpenseItem = (item: ExpenseItem) => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền xóa khoản chi tiêu!');
+      return;
+    }
     if (!window.confirm(`Bạn có chắc chắn muốn xóa khoản chi "${item.title}" (${(item.amount || 0).toLocaleString('vi-VN')} đ) không?`)) {
       return;
     }
@@ -979,11 +1014,15 @@ export default function AdminManagementHub({
   // FUND RECONCILIATION CRUD HANDLERS
   // ---------------------------------------------------------------------------
   const handleToggleFundPaid = (attendee: RsvpData) => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền đối soát và xác nhận nộp tiền!');
+      return;
+    }
     const isCurrentlyPaid = attendee.fundStatus === 'paid';
     const nextStatus = isCurrentlyPaid ? 'unpaid' : 'paid';
     const nextAmount = nextStatus === 'paid' ? (attendee.fundAmount || 500000) : 0;
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const auditor = currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc';
+    const auditor = getDefaultAuditorName();
 
     const updated = rsvpList.map(item => {
       if ((item.id && item.id === attendee.id) || item.phone === attendee.phone) {
@@ -1026,8 +1065,12 @@ export default function AdminManagementHub({
   };
 
   const handleApproveFundDirect = (attendee: RsvpData, customAmount: number = 500000, note?: string) => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền đối soát và duyệt tiền quỹ!');
+      return;
+    }
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const auditor = currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc';
+    const auditor = getDefaultAuditorName();
     const finalAmount = customAmount || 500000;
     const finalNote = note || (attendee.fundNote ? `${attendee.fundNote} (BLL đã khớp lệnh)` : 'BLL đã đối soát khớp bill');
 
@@ -1079,7 +1122,7 @@ export default function AdminManagementHub({
     }
 
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const auditor = currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc';
+    const auditor = getDefaultAuditorName();
 
     setViewReceiptModal(prev => prev ? {
       ...prev,
@@ -1099,7 +1142,7 @@ export default function AdminManagementHub({
     setFundAdjustPaymentMethod(attendee.fundPaymentMethod || 'bank_transfer');
     setFundAdjustReceiptUrl(attendee.fundReceiptUrl || '');
     setFundAdjustPaidAt(attendee.fundPaidAt ? formatDateTimeVi(attendee.fundPaidAt) : (isPaid ? '01/09/2026' : new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })));
-    setFundAdjustAuditedBy(attendee.fundAuditedBy || (currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc'));
+    setFundAdjustAuditedBy(attendee.fundAuditedBy || getDefaultAuditorName());
     setReceiptUploadErrorMsg('');
     setReceiptUploadSuccessMsg('');
   };
@@ -1133,7 +1176,7 @@ export default function AdminManagementHub({
             fundAmount: fundAdjustAmount,
             fundPaymentMethod: fundAdjustPaymentMethod,
             fundPaidAt: fundAdjustPaidAt || new Date().toLocaleString('vi-VN'),
-            fundAuditedBy: currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc',
+            fundAuditedBy: getDefaultAuditorName(),
             fundNote: fundAdjustNote
           };
 
@@ -1166,10 +1209,14 @@ export default function AdminManagementHub({
   const handleSaveAdjustFund = (e: React.FormEvent) => {
     e.preventDefault();
     if (!adjustFundMember) return;
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền lưu chỉnh sửa đối soát!');
+      return;
+    }
 
     const targetStatus = fundAdjustStatus || (fundAdjustAmount > 0 ? 'paid' : 'unpaid');
     const auditedTime = fundAdjustPaidAt || (targetStatus === 'paid' ? new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : undefined);
-    const auditorName = fundAdjustAuditedBy || (currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc');
+    const auditorName = fundAdjustAuditedBy || getDefaultAuditorName();
 
     const updated = rsvpList.map(item => {
       if ((adjustFundMember.id && item.id === adjustFundMember.id) || item.phone === adjustFundMember.phone) {
@@ -1937,6 +1984,17 @@ export default function AdminManagementHub({
         setNewAdminPin('');
       }
 
+      if (newTreasurerPin) {
+        if (!/^\d{4}$/.test(newTreasurerPin)) {
+          alert('Mã PIN Thủ Quỹ phải đúng 4 chữ số!');
+          return;
+        }
+        setTreasurerPin(newTreasurerPin);
+        localStorage.setItem('k8a1_treasurer_pin', newTreasurerPin);
+        msg += 'Đã đổi mã PIN Thủ Quỹ mới. ';
+        setNewTreasurerPin('');
+      }
+
       if (newBllPin) {
         if (!/^\d{4}$/.test(newBllPin)) {
           alert('Mã PIN Ban Liên Lạc phải đúng 4 chữ số!');
@@ -1977,10 +2035,12 @@ export default function AdminManagementHub({
     if (currentUserRole !== 'admin') return;
     if (confirm('CẢNH BÁO: Bạn có chắc muốn khôi phục toàn bộ cài đặt mã PIN về mặc định của hệ thống?')) {
       setAdminPin('8888');
+      setTreasurerPin('6868');
       setBllPin('2006');
       localStorage.removeItem('k8a1_admin_pin');
+      localStorage.removeItem('k8a1_treasurer_pin');
       localStorage.removeItem('k8a1_bll_pin');
-      alert('Đã khôi phục mã PIN mặc định thành công!');
+      alert('Đã khôi phục mã PIN mặc định thành công (Admin: 8888, Thủ Quỹ: 6868, BLL: 2006)!');
     }
   };
 
@@ -2119,13 +2179,14 @@ export default function AdminManagementHub({
         onClose={onClose}
         onSuccess={onLoginSuccess}
         adminPin={adminPin}
+        treasurerPin={treasurerPin}
         bllPin={bllPin}
       />
     );
   }
 
   // ===========================================================================
-  // SCREEN 2: MAIN MANAGEMENT HUB (WHEN AUTHENTICATED AS ADMIN OR BLL)
+  // SCREEN 2: MAIN MANAGEMENT HUB (WHEN AUTHENTICATED AS ADMIN, TREASURER OR BLL)
   // ===========================================================================
 
   return (
@@ -2144,27 +2205,33 @@ export default function AdminManagementHub({
             <div className={`p-2 rounded-xl flex items-center justify-center shadow-inner ${
               isAdmin 
                 ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white' 
-                : 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
+                : isTreasurer
+                ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
+                : 'bg-gradient-to-br from-indigo-600 to-blue-700 text-white'
             }`}>
-              {isAdmin ? <Crown className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+              {isAdmin ? <Crown className="w-5 h-5" /> : isTreasurer ? <Coins className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-serif font-bold text-amber-200 leading-tight">
-                  Trung Tâm Quản Trị & Đối Soát K8A1
+                  Trung Tâm Quản Trị & Điều Hành K8A1
                 </h2>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider ${
                   isAdmin 
                     ? 'bg-amber-400 text-amber-950 shadow-xs' 
-                    : 'bg-emerald-400 text-emerald-950 shadow-xs'
+                    : isTreasurer
+                    ? 'bg-emerald-400 text-emerald-950 shadow-xs'
+                    : 'bg-indigo-300 text-indigo-950 shadow-xs'
                 }`}>
-                  {isAdmin ? '👑 ADMIN (Toàn Quyền)' : '🛡️ BAN LIÊN LẠC'}
+                  {isAdmin ? '👑 ADMIN (Toàn Quyền)' : isTreasurer ? '💰 THỦ QUỸ LỚP' : '🛡️ BAN LIÊN LẠC'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 font-sans">
                 {isAdmin 
-                  ? 'Quản lý thành viên, đối soát quỹ 500k, đổi ảnh bìa, video & cấu hình' 
-                  : 'Tiếp đón thành viên, check-in tại bàn lễ tân và đối soát quỹ lớp'}
+                  ? 'Quản lý toàn diện thành viên, sổ quỹ thu chi, media kỷ niệm & cấu hình' 
+                  : isTreasurer
+                  ? 'Đối soát thu quỹ chuyển khoản, quản lý các khoản chi tiêu & hóa đơn chứng từ'
+                  : 'Tiếp đón thành viên, check-in điểm danh, lưu bút & giám sát hoạt động lớp'}
               </p>
             </div>
           </div>
@@ -2272,7 +2339,12 @@ export default function AdminManagementHub({
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
-            <span>2. Đối Soát Quỹ Lớp (500k)</span>
+            <span>2. Thu & Chi Quỹ Lớp</span>
+            {canAuditAndSpend ? (
+              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">Thủ Quỹ 💰</span>
+            ) : (
+              <span className="text-[9px] bg-indigo-800 text-indigo-200 px-1.5 py-0.2 rounded font-mono">Giám Sát 👁️</span>
+            )}
           </button>
 
           <button
@@ -2311,8 +2383,10 @@ export default function AdminManagementHub({
             <span>5. Cấu Hình Sự Kiện & Hệ Thống</span>
             {isAdmin ? (
               <span className="text-[9px] bg-amber-800 text-amber-200 px-1.5 py-0.2 rounded font-mono">Admin 👑</span>
+            ) : isTreasurer ? (
+              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">Thủ Quỹ 💰</span>
             ) : (
-              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">BLL 🛡️</span>
+              <span className="text-[9px] bg-indigo-700 text-indigo-100 px-1.5 py-0.2 rounded font-mono">BLL 🛡️</span>
             )}
           </button>
         </div>
@@ -2853,6 +2927,26 @@ export default function AdminManagementHub({
           {/* --------------------------------------------------------------- */}
           {activeTab === 'fund' && (
             <div className="space-y-4">
+              {/* Giám Sát BLL Info Banner */}
+              {!canAuditAndSpend && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs text-indigo-900 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 text-lg">
+                      👁️
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-indigo-950 text-sm">Chế độ Giám Sát Ban Liên Lạc</h4>
+                      <p className="text-indigo-700 text-xs mt-0.5">
+                        Bạn đang xem toàn bộ sổ thu - chi và hóa đơn chứng từ với vai trò BLL. Thẩm quyền đối soát duyệt bill và nhập khoản chi quỹ thuộc về <strong>Thủ Quỹ</strong> (PIN 6868) hoặc Admin.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 px-2.5 py-1 bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-lg font-mono font-bold text-[11px] hidden sm:inline-block">
+                    Chỉ Đọc (Read-Only)
+                  </span>
+                </div>
+              )}
+
               {/* Header Sổ Quỹ Thu - Chi K8A1 */}
               <div className="bg-gradient-to-r from-[#1A1613] via-[#26201A] to-[#14110F] text-white p-5 rounded-2xl border border-amber-400/40 shadow-xl relative overflow-hidden">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
@@ -2995,14 +3089,20 @@ export default function AdminManagementHub({
                 </div>
 
                 {fundSubTab === 'expense' && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAddExpense()}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition cursor-pointer self-start sm:self-auto"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>+ Thêm Khoản Chi Mới</span>
-                  </button>
+                  canAuditAndSpend ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddExpense()}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition cursor-pointer self-start sm:self-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Thêm Khoản Chi Mới</span>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5 self-start sm:self-auto">
+                      👁️ Quyền thêm chi tiêu dành cho Thủ Quỹ
+                    </span>
+                  )
                 )}
               </div>
 
@@ -3313,7 +3413,7 @@ export default function AdminManagementHub({
                                       Bill
                                     </span>
                                   </button>
-                                ) : (
+                                ) : canAuditAndSpend ? (
                                   <button
                                     type="button"
                                     onClick={() => handleOpenAdjustFund(item)}
@@ -3323,12 +3423,31 @@ export default function AdminManagementHub({
                                     <Camera className="w-3 h-3 text-slate-400" />
                                     <span>+ Đính bill</span>
                                   </button>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 italic">Chưa có</span>
                                 )}
                               </td>
 
                               {/* 1-Touch Status Toggle */}
                               <td className="py-2.5 px-3 text-center">
-                                {item.fundStatus === 'pending' ? (
+                                {!canAuditAndSpend ? (
+                                  item.fundStatus === 'pending' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                      <Clock className="w-3 h-3 text-amber-600" />
+                                      <span>Chờ duyệt</span>
+                                    </span>
+                                  ) : isPaid ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Đã Thu Tiền</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                      <span>Chưa Nộp</span>
+                                    </span>
+                                  )
+                                ) : item.fundStatus === 'pending' ? (
                                   <div className="inline-flex flex-col items-center gap-1">
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
                                       <Clock className="w-3 h-3 text-amber-600" />
@@ -3383,15 +3502,27 @@ export default function AdminManagementHub({
 
                               {/* Action: Open Deep Reconciliation Modal */}
                               <td className="py-2.5 px-3 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenAdjustFund(item)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-bold text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg shadow-2xs transition cursor-pointer"
-                                  title="Đối soát chi tiết, sửa tiền hoặc upload ảnh chứng từ"
-                                >
-                                  <Edit className="w-3 h-3 text-amber-700" />
-                                  <span>Đối Soát</span>
-                                </button>
+                                {canAuditAndSpend ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAdjustFund(item)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-bold text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg shadow-2xs transition cursor-pointer"
+                                    title="Đối soát chi tiết, sửa tiền hoặc upload ảnh chứng từ"
+                                  >
+                                    <Edit className="w-3 h-3 text-amber-700" />
+                                    <span>Đối Soát</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAdjustFund(item)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-bold text-indigo-900 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-2xs transition cursor-pointer"
+                                    title="Xem chi tiết thông tin đóng quỹ"
+                                  >
+                                    <Eye className="w-3 h-3 text-indigo-700" />
+                                    <span>Chi Tiết</span>
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           );
@@ -3410,107 +3541,109 @@ export default function AdminManagementHub({
           {fundSubTab === 'expense' && (
             <div className="space-y-4">
               {/* Quick Shortcut Presets based on Class Charter (Quy chế K8A1 Điều 3 & 4) */}
-              <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-amber-200/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-wider font-sans font-bold text-amber-900 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    Gợi ý chi nhanh theo Quy chế & Kỷ niệm 20 năm (Bấm để điền mẫu):
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-sans hidden sm:inline">
-                    Chuẩn định mức Điều 3 & Điều 4
-                  </span>
+              {canAuditAndSpend && (
+                <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-amber-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] uppercase tracking-wider font-sans font-bold text-amber-900 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      Gợi ý chi nhanh theo Quy chế & Kỷ niệm 20 năm (Bấm để điền mẫu):
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-sans hidden sm:inline">
+                      Chuẩn định mức Điều 3 & Điều 4
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs font-sans">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddExpense({
+                        title: 'Phúng viếng tứ thân phụ mẫu (kèm vòng hoa)',
+                        category: 'care',
+                        amount: 500000,
+                        eventScope: 'Thường niên theo quy chế',
+                        note: 'Mức chi 500.000 đ/người gồm cả vòng hoa (Điều 3 Quy chế K8A1)'
+                      })}
+                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
+                    >
+                      <span>🌹 Viếng phụ mẫu (500k)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddExpense({
+                        title: 'Thăm hỏi ốm đau / khó khăn đột xuất',
+                        category: 'care',
+                        amount: 300000,
+                        eventScope: 'Thường niên theo quy chế',
+                        note: 'Mức chi 300.000 đ/trường hợp theo Điều 3 Quy chế K8A1'
+                      })}
+                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
+                    >
+                      <span>🩹 Thăm ốm đau (300k)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddExpense({
+                        title: 'Đặt cọc sảnh tiệc Crown Palace Thái Nguyên',
+                        category: 'party',
+                        amount: 5000000,
+                        recipient: 'Trung tâm Tiệc cưới Crown Palace Thái Nguyên',
+                        eventScope: 'Kỷ niệm 20 năm',
+                        note: 'Cọc sảnh tiệc trưa Chủ Nhật 27/09/2026'
+                      })}
+                      className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
+                    >
+                      <span>🍽️ Cọc tiệc Crown Palace</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddExpense({
+                        title: 'Đặt may in áo polo đồng phục 20 năm K8A1',
+                        category: 'souvenir',
+                        amount: 6750000,
+                        recipient: 'Xưởng may đồng phục Thái Nguyên',
+                        eventScope: 'Kỷ niệm 20 năm',
+                        note: 'May áo polo cá sấu thêu logo 20 năm theo size đăng ký'
+                      })}
+                      className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
+                    >
+                      <span>👕 May áo polo K8A1</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddExpense({
+                        title: 'Hoa tươi & quà tri ân các Thầy Cô giáo cũ',
+                        category: 'teacher',
+                        amount: 3000000,
+                        recipient: 'Tiệm hoa & Quà tặng Thái Nguyên',
+                        eventScope: 'Kỷ niệm 20 năm',
+                        note: 'Tri ân thầy cô chủ nhiệm và bộ môn gắn bó cùng K8A1'
+                      })}
+                      className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
+                    >
+                      <span>💐 Quà tri ân Thầy Cô</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddExpense({
+                        title: 'In ấn Backdrop sân khấu, check-in & Thẻ học sinh',
+                        category: 'media',
+                        amount: 2500000,
+                        recipient: 'Công ty In ấn & Quảng cáo Thái Nguyên',
+                        eventScope: 'Kỷ niệm 20 năm',
+                        note: 'Backdrop sân khấu + 45 thẻ cựu học sinh kèm dây đeo'
+                      })}
+                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
+                    >
+                      <span>📸 Backdrop & Thẻ học sinh</span>
+                    </button>
+                  </div>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-1.5 text-xs font-sans">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAddExpense({
-                      title: 'Phúng viếng tứ thân phụ mẫu (kèm vòng hoa)',
-                      category: 'care',
-                      amount: 500000,
-                      eventScope: 'Thường niên theo quy chế',
-                      note: 'Mức chi 500.000 đ/người gồm cả vòng hoa (Điều 3 Quy chế K8A1)'
-                    })}
-                    className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                  >
-                    <span>🌹 Viếng phụ mẫu (500k)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAddExpense({
-                      title: 'Thăm hỏi ốm đau / khó khăn đột xuất',
-                      category: 'care',
-                      amount: 300000,
-                      eventScope: 'Thường niên theo quy chế',
-                      note: 'Mức chi 300.000 đ/trường hợp theo Điều 3 Quy chế K8A1'
-                    })}
-                    className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                  >
-                    <span>🩹 Thăm ốm đau (300k)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAddExpense({
-                      title: 'Đặt cọc sảnh tiệc Crown Palace Thái Nguyên',
-                      category: 'party',
-                      amount: 5000000,
-                      recipient: 'Trung tâm Tiệc cưới Crown Palace Thái Nguyên',
-                      eventScope: 'Kỷ niệm 20 năm',
-                      note: 'Cọc sảnh tiệc trưa Chủ Nhật 27/09/2026'
-                    })}
-                    className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                  >
-                    <span>🍽️ Cọc tiệc Crown Palace</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAddExpense({
-                      title: 'Đặt may in áo polo đồng phục 20 năm K8A1',
-                      category: 'souvenir',
-                      amount: 6750000,
-                      recipient: 'Xưởng may đồng phục Thái Nguyên',
-                      eventScope: 'Kỷ niệm 20 năm',
-                      note: 'May áo polo cá sấu thêu logo 20 năm theo size đăng ký'
-                    })}
-                    className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                  >
-                    <span>👕 May áo polo K8A1</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAddExpense({
-                      title: 'Hoa tươi & quà tri ân các Thầy Cô giáo cũ',
-                      category: 'teacher',
-                      amount: 3000000,
-                      recipient: 'Tiệm hoa & Quà tặng Thái Nguyên',
-                      eventScope: 'Kỷ niệm 20 năm',
-                      note: 'Tri ân thầy cô chủ nhiệm và bộ môn gắn bó cùng K8A1'
-                    })}
-                    className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                  >
-                    <span>💐 Quà tri ân Thầy Cô</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAddExpense({
-                      title: 'In ấn Backdrop sân khấu, check-in & Thẻ học sinh',
-                      category: 'media',
-                      amount: 2500000,
-                      recipient: 'Công ty In ấn & Quảng cáo Thái Nguyên',
-                      eventScope: 'Kỷ niệm 20 năm',
-                      note: 'Backdrop sân khấu + 45 thẻ cựu học sinh kèm dây đeo'
-                    })}
-                    className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                  >
-                    <span>📸 Backdrop & Thẻ học sinh</span>
-                  </button>
-                </div>
-              </div>
+              )}
 
               {/* Expense Search & Category Filters Toolbar */}
               <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3">
@@ -3693,24 +3826,30 @@ export default function AdminManagementHub({
                               </td>
 
                               <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                                <div className="flex items-center justify-end gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenEditExpense(item)}
-                                    className="p-1.5 text-slate-500 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition cursor-pointer"
-                                    title="Sửa thông tin khoản chi"
-                                  >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteExpenseItem(item)}
-                                    className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                    title="Xóa khoản chi này"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                                {canAuditAndSpend ? (
+                                  <div className="flex items-center justify-end gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditExpense(item)}
+                                      className="p-1.5 text-slate-500 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                                      title="Sửa thông tin khoản chi"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteExpenseItem(item)}
+                                      className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                      title="Xóa khoản chi này"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 font-sans italic">
+                                    Chỉ xem
+                                  </span>
+                                )}
                               </td>
                             </tr>
                           );
@@ -5016,35 +5155,53 @@ export default function AdminManagementHub({
 
                     {isAdmin ? (
                       <div className="space-y-4 text-xs">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="space-y-1.5">
                             <label className="font-bold text-slate-700 flex items-center justify-between">
-                              <span>👑 Mã PIN Admin (Toàn quyền):</span>
-                              <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">Đã kích hoạt: ••••</span>
+                              <span>👑 Mã PIN Admin:</span>
+                              <span className="font-mono text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 font-bold text-[10px]">••••</span>
                             </label>
                             <input
                               type="password"
                               maxLength={4}
                               value={newAdminPin}
                               onChange={(e) => setNewAdminPin(e.target.value.replace(/\D/g, ''))}
-                              placeholder="Nhập 4 số PIN Admin mới..."
+                              placeholder="4 số PIN Admin (8888)..."
                               className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-amber-500"
                             />
+                            <p className="text-[10px] text-slate-500">Toàn quyền hệ thống & cấu hình</p>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>💰 Mã PIN Thủ Quỹ:</span>
+                              <span className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-bold text-[10px]">••••</span>
+                            </label>
+                            <input
+                              type="password"
+                              maxLength={4}
+                              value={newTreasurerPin}
+                              onChange={(e) => setNewTreasurerPin(e.target.value.replace(/\D/g, ''))}
+                              placeholder="4 số PIN Thủ Quỹ (6868)..."
+                              className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-emerald-500"
+                            />
+                            <p className="text-[10px] text-slate-500">Đối soát bill nộp & chi tiêu quỹ</p>
                           </div>
 
                           <div className="space-y-1.5">
                             <label className="font-bold text-slate-700 flex items-center justify-between">
                               <span>🛡️ Mã PIN Ban Liên Lạc:</span>
-                              <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">Đã kích hoạt: ••••</span>
+                              <span className="font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 font-bold text-[10px]">••••</span>
                             </label>
                             <input
                               type="password"
                               maxLength={4}
                               value={newBllPin}
                               onChange={(e) => setNewBllPin(e.target.value.replace(/\D/g, ''))}
-                              placeholder="Nhập 4 số PIN BLL mới..."
-                              className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-amber-500"
+                              placeholder="4 số PIN BLL (2006)..."
+                              className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
                             />
+                            <p className="text-[10px] text-slate-500">Giám sát, điểm danh, xuất CSV</p>
                           </div>
                         </div>
 
@@ -5576,6 +5733,13 @@ export default function AdminManagementHub({
               </div>
 
               <form onSubmit={handleSaveAdjustFund} className="space-y-4">
+                {!canAuditAndSpend && (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex items-center gap-2.5 text-xs text-indigo-900 shadow-2xs">
+                    <span className="text-base shrink-0">👁️</span>
+                    <span><strong>Chế độ Giám Sát BLL:</strong> Bạn đang xem chi tiết thông tin đối soát. Thẩm quyền duyệt khớp lệnh và lưu sửa đổi thuộc về <strong>Thủ Quỹ</strong> (PIN 6868) hoặc Admin.</span>
+                  </div>
+                )}
+
                 {/* 1. Số tiền đóng & Presets */}
                 <div className="space-y-1.5 bg-[#FAF8F5] p-3.5 rounded-xl border border-amber-200/80">
                   <div className="flex items-center justify-between">
@@ -5589,72 +5753,79 @@ export default function AdminManagementHub({
                   <input
                     type="number"
                     step={50000}
+                    disabled={!canAuditAndSpend}
                     value={fundAdjustAmount}
                     onChange={(e) => {
                       const val = Number(e.target.value);
                       setFundAdjustAmount(val);
                       if (val > 0 && fundAdjustStatus === 'unpaid') setFundAdjustStatus('paid');
                     }}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg font-mono text-lg font-bold text-emerald-700 focus:outline-none focus:border-amber-500 shadow-2xs"
+                    className={`w-full px-3.5 py-2.5 border rounded-lg font-mono text-lg font-bold shadow-2xs ${
+                      canAuditAndSpend
+                        ? 'bg-white border-slate-300 text-emerald-700 focus:outline-none focus:border-amber-500'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed'
+                    }`}
                   />
 
                   {/* Preset Buttons */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => { setFundAdjustAmount(500000); setFundAdjustStatus('paid'); }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                        fundAdjustAmount === 500000 ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      }`}
-                    >
-                      500k Chuẩn
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setFundAdjustAmount(1000000); setFundAdjustStatus('paid'); }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                        fundAdjustAmount === 1000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
-                      }`}
-                    >
-                      1 Triệu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setFundAdjustAmount(1500000); setFundAdjustStatus('paid'); }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                        fundAdjustAmount === 1500000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
-                      }`}
-                    >
-                      1.5 Triệu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setFundAdjustAmount(2000000); setFundAdjustStatus('paid'); }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                        fundAdjustAmount === 2000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
-                      }`}
-                    >
-                      2 Triệu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setFundAdjustAmount(5000000); setFundAdjustStatus('paid'); }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                        fundAdjustAmount === 5000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
-                      }`}
-                    >
-                      5 Triệu
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setFundAdjustAmount(0); setFundAdjustStatus('unpaid'); }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                        fundAdjustAmount === 0 ? 'bg-slate-700 text-white' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
-                      }`}
-                    >
-                      0đ (Chưa nộp)
-                    </button>
-                  </div>
+                  {canAuditAndSpend && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => { setFundAdjustAmount(500000); setFundAdjustStatus('paid'); }}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          fundAdjustAmount === 500000 ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        }`}
+                      >
+                        500k Chuẩn
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setFundAdjustAmount(1000000); setFundAdjustStatus('paid'); }}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          fundAdjustAmount === 1000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                        }`}
+                      >
+                        1 Triệu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setFundAdjustAmount(1500000); setFundAdjustStatus('paid'); }}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          fundAdjustAmount === 1500000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                        }`}
+                      >
+                        1.5 Triệu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setFundAdjustAmount(2000000); setFundAdjustStatus('paid'); }}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          fundAdjustAmount === 2000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                        }`}
+                      >
+                        2 Triệu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setFundAdjustAmount(5000000); setFundAdjustStatus('paid'); }}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          fundAdjustAmount === 5000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                        }`}
+                      >
+                        5 Triệu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setFundAdjustAmount(0); setFundAdjustStatus('unpaid'); }}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                          fundAdjustAmount === 0 ? 'bg-slate-700 text-white' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
+                        }`}
+                      >
+                        0đ (Chưa nộp)
+                      </button>
+                    </div>
+                  )}
 
                   {fundAdjustAmount > 500000 && (
                     <div className="p-2 bg-amber-100 text-amber-900 rounded-lg text-[11px] font-sans font-medium flex items-center gap-1.5 mt-2">
@@ -5672,8 +5843,11 @@ export default function AdminManagementHub({
                     <label className="font-bold text-slate-700 text-xs block">Trạng thái đối soát:</label>
                     <select
                       value={fundAdjustStatus}
+                      disabled={!canAuditAndSpend}
                       onChange={(e) => setFundAdjustStatus(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                      className={`w-full px-3 py-2 border rounded-lg text-xs font-sans ${
+                        canAuditAndSpend ? 'bg-[#FAF8F5] border-slate-300 focus:outline-none focus:border-amber-500 cursor-pointer' : 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
+                      }`}
                     >
                       <option value="paid">✅ Đã nộp đầy đủ</option>
                       <option value="pending">⏳ Chờ đối soát giao dịch</option>
@@ -5686,8 +5860,11 @@ export default function AdminManagementHub({
                     <label className="font-bold text-slate-700 text-xs block">Hình thức nộp tiền:</label>
                     <select
                       value={fundAdjustPaymentMethod}
+                      disabled={!canAuditAndSpend}
                       onChange={(e) => setFundAdjustPaymentMethod(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                      className={`w-full px-3 py-2 border rounded-lg text-xs font-sans ${
+                        canAuditAndSpend ? 'bg-[#FAF8F5] border-slate-300 focus:outline-none focus:border-amber-500 cursor-pointer' : 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
+                      }`}
                     >
                       <option value="bank_transfer">🏦 Chuyển khoản Ngân hàng (VCB, MB...)</option>
                       <option value="cash">💵 Tiền mặt tại bàn đón tiếp</option>
@@ -5702,10 +5879,13 @@ export default function AdminManagementHub({
                     <label className="font-bold text-slate-700 text-xs block">Thời gian nộp:</label>
                     <input
                       type="text"
+                      disabled={!canAuditAndSpend}
                       value={fundAdjustPaidAt}
                       onChange={(e) => setFundAdjustPaidAt(e.target.value)}
                       placeholder="VD: 01/09/2026 09:30"
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                      className={`w-full px-3 py-2 border rounded-lg font-mono text-xs ${
+                        canAuditAndSpend ? 'bg-[#FAF8F5] border-slate-300 focus:outline-none focus:border-amber-500' : 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
+                      }`}
                     />
                   </div>
 
@@ -5713,10 +5893,13 @@ export default function AdminManagementHub({
                     <label className="font-bold text-slate-700 text-xs block">Người xác nhận đối soát:</label>
                     <input
                       type="text"
+                      disabled={!canAuditAndSpend}
                       value={fundAdjustAuditedBy}
                       onChange={(e) => setFundAdjustAuditedBy(e.target.value)}
                       placeholder="VD: Thủ Quỹ BLL / Admin"
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                      className={`w-full px-3 py-2 border rounded-lg text-xs font-sans ${
+                        canAuditAndSpend ? 'bg-[#FAF8F5] border-slate-300 focus:outline-none focus:border-amber-500' : 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
+                      }`}
                     />
                   </div>
                 </div>
@@ -5726,10 +5909,13 @@ export default function AdminManagementHub({
                   <label className="font-bold text-slate-700 text-xs block">Ghi chú giao dịch / Mã tham chiếu:</label>
                   <input
                     type="text"
+                    disabled={!canAuditAndSpend}
                     value={fundAdjustNote}
                     onChange={(e) => setFundAdjustNote(e.target.value)}
                     placeholder="VD: Mã GD VCB-98124, bạn Hoàng nộp hộ, nộp tiền mặt..."
-                    className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                    className={`w-full px-3 py-2 border rounded-lg text-xs font-sans ${
+                      canAuditAndSpend ? 'bg-[#FAF8F5] border-slate-300 focus:outline-none focus:border-amber-500' : 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
+                    }`}
                   />
                 </div>
 
@@ -5746,36 +5932,41 @@ export default function AdminManagementHub({
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
+                      disabled={!canAuditAndSpend}
                       value={fundAdjustReceiptUrl}
                       onChange={(e) => setFundAdjustReceiptUrl(e.target.value)}
                       placeholder="Dán link ảnh Google Drive hoặc URL chứng từ..."
-                      className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                      className={`flex-1 px-3 py-2 border rounded-lg font-mono text-xs ${
+                        canAuditAndSpend ? 'bg-[#FAF8F5] border-slate-300 focus:outline-none focus:border-amber-500' : 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
+                      }`}
                     />
 
-                    <label className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition cursor-pointer whitespace-nowrap shadow-xs ${
-                      isUploadingReceipt
-                        ? 'bg-slate-400 text-white cursor-not-allowed'
-                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                    }`}>
-                      {isUploadingReceipt ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Đang tải lên Drive...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Tải Bill Từ Máy</span>
-                        </>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        disabled={isUploadingReceipt}
-                        onChange={handleReceiptFileUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    {canAuditAndSpend && (
+                      <label className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition cursor-pointer whitespace-nowrap shadow-xs ${
+                        isUploadingReceipt
+                          ? 'bg-slate-400 text-white cursor-not-allowed'
+                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                      }`}>
+                        {isUploadingReceipt ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Đang tải lên Drive...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Tải Bill Từ Máy</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isUploadingReceipt}
+                          onChange={handleReceiptFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
 
                   {receiptUploadSuccessMsg && (
@@ -5829,16 +6020,18 @@ export default function AdminManagementHub({
                         >
                           Xem Lớn
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFundAdjustReceiptUrl('');
-                            setReceiptUploadSuccessMsg('');
-                          }}
-                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-bold transition cursor-pointer"
-                        >
-                          Gỡ Ảnh
-                        </button>
+                        {canAuditAndSpend && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFundAdjustReceiptUrl('');
+                              setReceiptUploadSuccessMsg('');
+                            }}
+                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-bold transition cursor-pointer"
+                          >
+                            Gỡ Ảnh
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -5851,15 +6044,21 @@ export default function AdminManagementHub({
                     onClick={() => setAdjustFundMember(null)}
                     className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition text-xs"
                   >
-                    Hủy
+                    {canAuditAndSpend ? 'Hủy' : 'Đóng'}
                   </button>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md cursor-pointer transition text-xs"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Lưu Đối Soát & Đồng Bộ</span>
-                  </button>
+                  {canAuditAndSpend ? (
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md cursor-pointer transition text-xs"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Lưu Đối Soát & Đồng Bộ</span>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-200 flex items-center gap-1">
+                      👁️ Read-Only (Chỉ Thủ Quỹ mới có quyền lưu)
+                    </span>
+                  )}
                 </div>
               </form>
             </motion.div>
@@ -5983,7 +6182,11 @@ export default function AdminManagementHub({
 
               {/* BLL Quick Action Buttons */}
               <div className="flex flex-wrap items-center gap-2">
-                {viewReceiptModal.status !== 'paid' ? (
+                {!canAuditAndSpend ? (
+                  <span className="text-xs text-indigo-300 font-sans italic px-3 py-1.5 bg-indigo-950/60 rounded-xl border border-indigo-400/30">
+                    👁️ Chế độ Giám Sát (Chỉ Thủ Quỹ mới có quyền duyệt bill)
+                  </span>
+                ) : viewReceiptModal.status !== 'paid' ? (
                   <>
                     <button
                       type="button"
@@ -6026,7 +6229,7 @@ export default function AdminManagementHub({
                         }}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-slate-200 border border-white/20 rounded-xl font-sans text-xs transition cursor-pointer"
                       >
-                        <Edit className="w-3 h-3 text-slate-300" />
+                        <Edit className="w-3.5 h-3.5" />
                         <span>Sửa Lại</span>
                       </button>
                     )}

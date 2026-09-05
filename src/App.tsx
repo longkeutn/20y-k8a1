@@ -17,6 +17,7 @@ import {
   Lock,
   Crown,
   Shield,
+  Coins,
   Music,
   Edit3,
   ScrollText
@@ -139,11 +140,11 @@ export default function App() {
     syncToBackend('save_config', { config: cleanConfig });
   };
 
-  // User Role (RBAC): 'guest' | 'bll' | 'admin'
+  // User Role (RBAC): 'guest' | 'bll' | 'treasurer' | 'admin'
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     try {
       const saved = sessionStorage.getItem('user_role');
-      if (saved === 'admin' || saved === 'bll') return saved;
+      if (saved === 'admin' || saved === 'treasurer' || saved === 'bll') return saved as UserRole;
       return 'guest';
     } catch {
       return 'guest';
@@ -818,21 +819,34 @@ export default function App() {
             </a>
 
             {/* Discrete Mini Admin Button in Navbar (Subtle icon with tooltip) */}
+            {/* Discrete Mini Admin Button in Navbar (Subtle icon with tooltip) */}
             <button
               onClick={() => setIsAdminHubOpen(true)}
               className={`p-1.5 sm:p-2 rounded-full transition-all duration-200 cursor-pointer ${
                 currentUserRole === 'admin'
                   ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/50 shadow-xs'
-                  : currentUserRole === 'bll'
+                  : currentUserRole === 'treasurer'
                   ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-400/50 shadow-xs'
+                  : currentUserRole === 'bll'
+                  ? 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-400/50 shadow-xs'
                   : 'text-slate-400 hover:text-amber-300 hover:bg-white/10'
               }`}
-              title={currentUserRole === 'admin' ? "Quản trị viên (Admin)" : currentUserRole === 'bll' ? "Ban liên lạc (BLL)" : "Dành cho Ban Tổ Chức"}
+              title={
+                currentUserRole === 'admin' 
+                  ? "Quản trị viên (Admin)" 
+                  : currentUserRole === 'treasurer'
+                  ? "Thủ Quỹ Lớp (Thu & Chi)"
+                  : currentUserRole === 'bll' 
+                  ? "Ban liên lạc (BLL)" 
+                  : "Dành cho Ban Tổ Chức"
+              }
             >
               {currentUserRole === 'admin' ? (
                 <Crown className="w-3.5 h-3.5 text-amber-300" />
+              ) : currentUserRole === 'treasurer' ? (
+                <Coins className="w-3.5 h-3.5 text-emerald-300" />
               ) : currentUserRole === 'bll' ? (
-                <Shield className="w-3.5 h-3.5 text-emerald-300" />
+                <Shield className="w-3.5 h-3.5 text-indigo-300" />
               ) : (
                 <Lock className="w-3.5 h-3.5" />
               )}
@@ -848,16 +862,28 @@ export default function App() {
           className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center backdrop-blur-md shadow-lg transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 ${
             currentUserRole === 'admin'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/60 shadow-amber-950/40 ring-1 ring-amber-400/30'
-              : currentUserRole === 'bll'
+              : currentUserRole === 'treasurer'
               ? 'bg-[#1E293B] text-emerald-300 border border-emerald-400/60 shadow-emerald-950/40'
+              : currentUserRole === 'bll'
+              ? 'bg-[#1E293B] text-indigo-300 border border-indigo-400/60 shadow-indigo-950/40'
               : 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-slate-400 hover:text-amber-300 border border-slate-700/60'
           }`}
-          title={currentUserRole === 'admin' ? "Quản trị viên" : currentUserRole === 'bll' ? "Ban liên lạc" : "Dành cho Ban Tổ Chức"}
+          title={
+            currentUserRole === 'admin' 
+              ? "Quản trị viên" 
+              : currentUserRole === 'treasurer'
+              ? "Thủ quỹ lớp"
+              : currentUserRole === 'bll' 
+              ? "Ban liên lạc" 
+              : "Dành cho Ban Tổ Chức"
+          }
         >
           {currentUserRole === 'admin' ? (
             <Crown className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+          ) : currentUserRole === 'treasurer' ? (
+            <Coins className="w-3.5 h-3.5 text-emerald-300" />
           ) : currentUserRole === 'bll' ? (
-            <Shield className="w-3.5 h-3.5 text-emerald-300" />
+            <Shield className="w-3.5 h-3.5 text-indigo-300" />
           ) : (
             <Lock className="w-3.5 h-3.5" />
           )}
@@ -1316,6 +1342,7 @@ export default function App() {
           isOpen={isAdminHubOpen}
           onClose={() => setIsAdminHubOpen(false)}
           currentUserRole={currentUserRole}
+          activeMember={activeMember}
           initialTab={adminHubInitialTab}
           initialMediaSubTab={adminHubInitialMediaSubTab}
           onLoginSuccess={(role) => {
