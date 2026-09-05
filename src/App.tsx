@@ -519,9 +519,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
-              {/* Quick Share Banner */}
-              <QuickShare variant="banner" />
             </motion.section>
 
             {/* ======================================================== */}
@@ -622,3 +619,4 @@ export default function App() {
     </div>
   );
 }
+
