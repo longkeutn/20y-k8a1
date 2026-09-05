@@ -542,6 +542,36 @@ export function generateVietQrUrl(opts?: {
   return url;
 }
 
+/**
+ * Chuẩn hóa URL hình ảnh:
+ * - Tự động nhận diện & chuyển đổi link chia sẻ Google Drive thành URL CDN lh3.googleusercontent.com hiển thị trực tiếp và nhanh chóng trong thẻ <img>.
+ * - Hỗ trợ các dạng: /file/d/ID/view, open?id=ID, uc?id=ID, thumbnail?id=ID.
+ * - Chuyển link Dropbox thành raw=1 để hiển thị trực tiếp.
+ * - Bảo toàn các link ảnh tiêu chuẩn (Unsplash, HTTPS, Data URLs hợp lệ).
+ */
+export function normalizeImageUrl(rawUrl?: string): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+
+  // 1. Nhận diện link Google Drive
+  const driveFileMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch && driveFileMatch[1]) {
+    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}=w1600`;
+  }
+  const driveIdMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (trimmed.includes('drive.google.com') && driveIdMatch && driveIdMatch[1]) {
+    return `https://lh3.googleusercontent.com/d/${driveIdMatch[1]}=w1600`;
+  }
+
+  // 2. Nhận diện link Dropbox
+  if (trimmed.includes('dropbox.com')) {
+    return trimmed.replace(/\?dl=0$/, '?raw=1').replace(/&dl=0$/, '&raw=1');
+  }
+
+  return trimmed;
+}
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
@@ -731,7 +761,7 @@ function doPost(e) {
       return handleResponse(recordPageView());
     }
 
-    if (action === 'upload_photo') {
+    if (action === 'upload_photo' || action === 'upload_banner') {
       return handleResponse(uploadPhotoToDrive(postData));
     }
 
@@ -1587,7 +1617,26 @@ function saveEventConfig(postData) {
     for (const [key, value] of Object.entries(newConfig)) {
       if (key === 'action') continue;
       const rowIndex = keyToRowIndex[key];
-      const valToSave = typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+      let valToSave = typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+
+      // Tự động chuyển đổi Base64 ảnh bìa sang Google Drive để tránh làm phình cell Google Sheet
+      if (key === 'heroBannerUrl' && valToSave.indexOf('data:image/') === 0) {
+        try {
+          const upRes = uploadPhotoToDrive({ fileData: valToSave, caption: 'Hero_Banner' });
+          if (upRes && upRes.data && upRes.data.url) {
+            valToSave = upRes.data.url;
+            newConfig.heroBannerUrl = valToSave;
+          }
+        } catch (eUp) {
+          console.warn('Không thể tự động tải banner lên Drive:', eUp);
+        }
+      }
+
+      // Giới hạn an toàn chống lỗi ô quá 50,000 ký tự của Google Sheet
+      if (valToSave.length > 45000) {
+        valToSave = valToSave.substring(0, 45000);
+      }
+
       if (rowIndex) {
         sheet.getRange(rowIndex, 2).setValue(valToSave);
         sheet.getRange(rowIndex, 4).setValue(nowStr);

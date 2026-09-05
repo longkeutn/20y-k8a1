@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1 } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -75,7 +75,9 @@ export default function App() {
     fundAmountPerPerson: Number(cfg?.fundAmountPerPerson) || DEFAULT_EVENT_CONFIG.fundAmountPerPerson,
     customQrUrl: cfg?.customQrUrl ? String(cfg.customQrUrl) : '',
     bankCode: cfg?.bankCode ? String(cfg.bankCode) : DEFAULT_EVENT_CONFIG.bankCode,
-    qrTemplate: cfg?.qrTemplate || DEFAULT_EVENT_CONFIG.qrTemplate
+    qrTemplate: cfg?.qrTemplate || DEFAULT_EVENT_CONFIG.qrTemplate,
+    heroBannerUrl: cfg?.heroBannerUrl ? normalizeImageUrl(String(cfg.heroBannerUrl)) : DEFAULT_EVENT_CONFIG.heroBannerUrl,
+    heroBannerPosition: cfg?.heroBannerPosition !== undefined ? (Number(cfg.heroBannerPosition) || 50) : 50
   });
 
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
@@ -110,6 +112,18 @@ export default function App() {
   const handleUpdateEventConfig = (newConfig: EventConfig) => {
     const cleanConfig = sanitizeEventConfig(newConfig);
     setEventConfig(cleanConfig);
+    if (cleanConfig.heroBannerUrl) {
+      setHeroBannerUrl(cleanConfig.heroBannerUrl);
+      try {
+        localStorage.setItem('k8a1_hero_banner_url', cleanConfig.heroBannerUrl);
+      } catch (e) {}
+    }
+    if (cleanConfig.heroBannerPosition !== undefined) {
+      setHeroBannerPosition(cleanConfig.heroBannerPosition);
+      try {
+        localStorage.setItem('k8a1_hero_banner_position', cleanConfig.heroBannerPosition.toString());
+      } catch (e) {}
+    }
     try {
       localStorage.setItem('k8a1_event_config', JSON.stringify(cleanConfig));
     } catch (err) {
@@ -441,16 +455,20 @@ export default function App() {
 
   // Update hero banner url and vertical crop position with direct Google Sheet sync
   const handleUpdateHeroBanner = (url: string, positionY: number = 50) => {
-    setHeroBannerUrl(url);
+    const cleanUrl = normalizeImageUrl(url);
+    setHeroBannerUrl(cleanUrl);
     setHeroBannerPosition(positionY);
     try {
-      localStorage.setItem('k8a1_hero_banner_url', url);
+      localStorage.setItem('k8a1_hero_banner_url', cleanUrl);
       localStorage.setItem('k8a1_hero_banner_position', positionY.toString());
     } catch (e) {
       console.warn('Lỗi lưu k8a1_hero_banner vào localStorage:', e);
     }
-    const nextConfig = { ...eventConfig, heroBannerUrl: url, heroBannerPosition: positionY };
+    const nextConfig = { ...eventConfig, heroBannerUrl: cleanUrl, heroBannerPosition: positionY };
     setEventConfig(nextConfig);
+    try {
+      localStorage.setItem('k8a1_event_config', JSON.stringify(nextConfig));
+    } catch (e) {}
     syncToBackend('save_config', { config: nextConfig });
   };
 
@@ -513,13 +531,18 @@ export default function App() {
           });
 
           if (config.heroBannerUrl) {
-            setHeroBannerUrl(config.heroBannerUrl);
-            localStorage.setItem('k8a1_hero_banner_url', config.heroBannerUrl);
+            const cleanBanner = normalizeImageUrl(config.heroBannerUrl);
+            setHeroBannerUrl(cleanBanner);
+            try {
+              localStorage.setItem('k8a1_hero_banner_url', cleanBanner);
+            } catch (e) {}
           }
           if (config.heroBannerPosition !== undefined) {
             const pos = Number(config.heroBannerPosition) || 50;
             setHeroBannerPosition(pos);
-            localStorage.setItem('k8a1_hero_banner_position', pos.toString());
+            try {
+              localStorage.setItem('k8a1_hero_banner_position', pos.toString());
+            } catch (e) {}
           }
         }
 
@@ -673,6 +696,12 @@ export default function App() {
             src={heroBannerUrl}
             alt="Kỷ Niệm Thanh Xuân K8A1 THPT Thái Nguyên"
             style={{ objectPosition: `center ${heroBannerPosition}%` }}
+            onError={(e) => {
+              const fallback = DEFAULT_EVENT_CONFIG.heroBannerUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+              if ((e.target as HTMLImageElement).src !== fallback) {
+                (e.target as HTMLImageElement).src = fallback;
+              }
+            }}
             className="w-full h-full object-cover filter brightness-65 contrast-105 saturate-90 scale-102 transition-[object-position] duration-300"
           />
           {/* Top Darkening Tint for Navbar Contrast */}

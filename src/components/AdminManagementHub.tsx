@@ -73,9 +73,54 @@ import {
   generateVietQrUrl, 
   sanitizeVietQrText, 
   GOOGLE_APPS_SCRIPT_CODE,
-  CLASS_ROSTER_K8A1 
+  CLASS_ROSTER_K8A1,
+  normalizeImageUrl
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
+
+/**
+ * Nén ảnh bằng Canvas HTML5 trước khi lưu trữ hoặc đẩy lên Google Drive / Sheet:
+ * Giới hạn chiều rộng tối đa 1600px, chất lượng JPEG 0.82.
+ * Giảm kích thước ảnh từ 5-10MB xuống chỉ còn ~80-120KB,
+ * giải quyết triệt để lỗi QuotaExceededError của localStorage và lỗi ô 50,000 ký tự của Google Sheets.
+ */
+export async function compressImageToJpeg(file: File, maxWidth = 1600, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 interface AdminManagementHubProps {
   isOpen: boolean;
@@ -196,6 +241,7 @@ export default function AdminManagementHub({
   const [dragStartY, setDragStartY] = useState(0);
   const [dragStartPos, setDragStartPos] = useState(50);
   const bannerPreviewRef = React.useRef<HTMLDivElement>(null);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
 
   // Event & Venue Configuration State (Full CRUD for BLL & Admin)
@@ -1187,21 +1233,66 @@ export default function AdminManagementHub({
   // ---------------------------------------------------------------------------
   // HERO BANNER COVER UPLOAD & DRAG REPOSITION HANDLERS
   // ---------------------------------------------------------------------------
-  const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      alert('Kích thước ảnh tối đa là 8MB!');
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Kích thước file ảnh tối đa là 15MB!');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setBannerInput(result);
+
+    setIsUploadingBanner(true);
+    try {
+      // 1. Tự động nén ảnh qua Canvas HTML5 (rộng tối đa 1600px, chất lượng 0.82) -> ~80-120KB
+      const compressedDataUrl = await compressImageToJpeg(file, 1600, 0.82);
+      setBannerInput(compressedDataUrl);
+
+      // 2. Nếu đã kết nối Google Apps Script, tải trực tiếp lên Google Drive để nhận link CDN vĩnh viễn
+      if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
+        try {
+          const res = await fetch(appsScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'upload_banner',
+              fileData: compressedDataUrl,
+              caption: 'Hero_Banner_K8A1'
+            })
+          });
+          const result = await res.json();
+          if (result && result.status === 'success' && result.data && result.data.url) {
+            const driveUrl = result.data.url;
+            setBannerInput(driveUrl);
+            setEventConfigForm(prev => ({
+              ...prev,
+              heroBannerUrl: driveUrl,
+              heroBannerPosition: bannerPositionY
+            }));
+            if (onUpdateHeroBannerUrl) {
+              onUpdateHeroBannerUrl(driveUrl, bannerPositionY);
+            }
+            setSettingsSuccessMsg('Đã lưu ảnh bìa lên Google Drive và cập nhật thành công!');
+            setTimeout(() => setSettingsSuccessMsg(''), 4000);
+            return;
+          }
+        } catch (uploadErr) {
+          console.warn('Không tải được lên Drive, sử dụng ảnh nén cục bộ:', uploadErr);
+        }
       }
-    };
-    reader.readAsDataURL(file);
+
+      // Cập nhật cả eventConfigForm với ảnh nén
+      setEventConfigForm(prev => ({
+        ...prev,
+        heroBannerUrl: compressedDataUrl,
+        heroBannerPosition: bannerPositionY
+      }));
+    } catch (err: any) {
+      console.error('Lỗi xử lý nén ảnh banner:', err);
+      alert('Không thể đọc file ảnh: ' + (err?.message || err));
+    } finally {
+      setIsUploadingBanner(false);
+      e.target.value = '';
+    }
   };
 
   const handleMouseDownBanner = (e: React.MouseEvent) => {
@@ -1249,21 +1340,34 @@ export default function AdminManagementHub({
 
   const handleSaveBanner = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bannerInput.trim()) {
+    const cleanUrl = normalizeImageUrl(bannerInput.trim());
+    if (!cleanUrl) {
       alert('Vui lòng nhập link ảnh hoặc chọn file tải lên!');
       return;
     }
+    setBannerInput(cleanUrl);
+    // Đồng bộ vào form cấu hình chung để tránh bị ghi đè khi lưu settings
+    setEventConfigForm(prev => ({
+      ...prev,
+      heroBannerUrl: cleanUrl,
+      heroBannerPosition: bannerPositionY
+    }));
     if (onUpdateHeroBannerUrl) {
-      onUpdateHeroBannerUrl(bannerInput.trim(), bannerPositionY);
+      onUpdateHeroBannerUrl(cleanUrl, bannerPositionY);
       setSettingsSuccessMsg('Đã lưu ảnh bìa và vị trí hiển thị thành công!');
       setTimeout(() => setSettingsSuccessMsg(''), 4000);
     }
   };
 
   const handleResetBanner = () => {
-    const defaultUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+    const defaultUrl = DEFAULT_EVENT_CONFIG.heroBannerUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
     setBannerInput(defaultUrl);
     setBannerPositionY(50);
+    setEventConfigForm(prev => ({
+      ...prev,
+      heroBannerUrl: defaultUrl,
+      heroBannerPosition: 50
+    }));
     if (onUpdateHeroBannerUrl) {
       onUpdateHeroBannerUrl(defaultUrl, 50);
       setSettingsSuccessMsg('Đã khôi phục ảnh bìa banner và vị trí về mặc định!');
@@ -1445,11 +1549,17 @@ export default function AdminManagementHub({
     }
 
     // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Thời gian, Thư ngỏ, Quỹ) cho BLL & Admin
+    const mergedConfig: EventConfig = {
+      ...eventConfigForm,
+      heroBannerUrl: normalizeImageUrl(bannerInput.trim() || eventConfigForm.heroBannerUrl || heroBannerUrl || DEFAULT_EVENT_CONFIG.heroBannerUrl),
+      heroBannerPosition: bannerPositionY !== undefined ? bannerPositionY : (eventConfigForm.heroBannerPosition ?? 50)
+    };
+
     if (onUpdateEventConfig) {
-      onUpdateEventConfig(eventConfigForm);
+      onUpdateEventConfig(mergedConfig);
     }
     try {
-      localStorage.setItem('k8a1_event_config', JSON.stringify(eventConfigForm));
+      localStorage.setItem('k8a1_event_config', JSON.stringify(mergedConfig));
     } catch (err) {
       console.error('Lỗi lưu event config:', err);
     }
@@ -3224,6 +3334,12 @@ export default function AdminManagementHub({
                         src={bannerInput}
                         alt="Preview Banner"
                         style={{ objectPosition: `center ${bannerPositionY}%` }}
+                        onError={(e) => {
+                          const fallback = DEFAULT_EVENT_CONFIG.heroBannerUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+                          if ((e.target as HTMLImageElement).src !== fallback) {
+                            (e.target as HTMLImageElement).src = fallback;
+                          }
+                        }}
                         className="w-full h-full object-cover select-none pointer-events-none transition-[object-position] duration-75 filter contrast-105"
                       />
                       {/* Hiệu ứng mờ dần cạnh dưới như trên trang chủ */}
@@ -3321,17 +3437,30 @@ export default function AdminManagementHub({
                           className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
                         />
                         
-                        <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-amber-200 font-bold rounded-lg cursor-pointer transition whitespace-nowrap shadow-xs">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Tải Ảnh Từ Máy</span>
+                        <label className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 ${isUploadingBanner ? 'bg-amber-700 text-white cursor-wait opacity-80' : 'bg-slate-800 hover:bg-slate-900 text-amber-200 cursor-pointer'} font-bold rounded-lg transition whitespace-nowrap shadow-xs`}>
+                          {isUploadingBanner ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-300" />
+                              <span>Đang nén & tải lên...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Tải Ảnh Từ Máy</span>
+                            </>
+                          )}
                           <input
                             type="file"
                             accept="image/*"
+                            disabled={isUploadingBanner}
                             onChange={handleBannerFileUpload}
                             className="hidden"
                           />
                         </label>
                       </div>
+                      <p className="text-[11px] text-slate-500 italic">
+                        💡 Hỗ trợ: Link ảnh trực tiếp JPG/PNG, link chia sẻ Google Drive (tự động chuyển thành CDN trực tiếp), hoặc chọn file từ máy (tự động nén &amp; lưu trữ Drive).
+                      </p>
                     </div>
 
                     <div className="pt-2 flex items-center justify-between">
