@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import confetti from 'canvas-confetti';
 import {
   Shield,
   Crown,
@@ -71,8 +72,7 @@ import {
   Landmark,
   QrCode,
   ShieldCheck,
-  Loader2,
-  Lock
+  Loader2
 } from 'lucide-react';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from '../types';
 import { 
@@ -90,7 +90,8 @@ import {
   formatDateTimeVi,
   EXPENSE_CATEGORIES,
   INITIAL_EXPENSES_LIST,
-  updatePinsViaBackend
+  updatePinsViaBackend,
+  initSecuritySheetViaBackend
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
@@ -267,6 +268,7 @@ export default function AdminManagementHub({
   const [copiedScriptCode, setCopiedScriptCode] = useState(false);
   const [showScriptCodeModal, setShowScriptCodeModal] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [isCheckingSecuritySheet, setIsCheckingSecuritySheet] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [bannerInput, setBannerInput] = useState(heroBannerUrl);
@@ -2091,7 +2093,7 @@ export default function AdminManagementHub({
       }, appsScriptUrl);
 
       if (res.success) {
-        confetti({ particleCount: 35, spread: 65, origin: { y: 0.6 } });
+        try { confetti({ particleCount: 35, spread: 65, origin: { y: 0.6 } }); } catch (e) {}
         alert(res.message);
         setCurrentAdminPinConfirm('');
         setNewAdminPin('');
@@ -2104,6 +2106,23 @@ export default function AdminManagementHub({
       alert('Lỗi khi cập nhật mã PIN: ' + (e?.message || e));
     } finally {
       setIsUpdatingPins(false);
+    }
+  };
+
+  const handleInitSecuritySheet = async () => {
+    setIsCheckingSecuritySheet(true);
+    try {
+      const res = await initSecuritySheetViaBackend(appsScriptUrl);
+      if (res.success) {
+        try { confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } }); } catch (e) {}
+        alert('✅ ' + res.message + '\n\n💡 Mẹo: Trên trang Google Sheet của lớp, bạn hãy nhìn thanh danh sách sheet ở mép dưới cùng màn hình (nằm ở góc cuối cùng bên phải) để thấy sheet "Bao_Mat_PIN".');
+      } else {
+        alert('Không thể khởi tạo: ' + res.message);
+      }
+    } catch (e: any) {
+      alert('Lỗi kết nối: ' + (e?.message || e));
+    } finally {
+      setIsCheckingSecuritySheet(false);
     }
   };
 
@@ -5616,18 +5635,39 @@ export default function AdminManagementHub({
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={handleCopyScriptCode}
-                              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm shrink-0 ${
-                                copiedScriptCode
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white'
-                              }`}
-                            >
-                              {copiedScriptCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                              <span>{copiedScriptCode ? 'Đã Sao Chép Code.gs!' : '📋 Sao Chép Mã Code.gs Mới'}</span>
-                            </button>
+                            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                disabled={isCheckingSecuritySheet}
+                                onClick={handleInitSecuritySheet}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm bg-slate-900 hover:bg-slate-800 text-amber-300 disabled:opacity-50"
+                              >
+                                {isCheckingSecuritySheet ? (
+                                  <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Đang tạo sheet...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>Tạo / Mở Sheet PIN</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={handleCopyScriptCode}
+                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm shrink-0 ${
+                                  copiedScriptCode
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white'
+                                }`}
+                              >
+                                {copiedScriptCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                <span>{copiedScriptCode ? 'Đã Sao Chép Code.gs!' : '📋 Sao Chép Mã Code.gs Mới'}</span>
+                              </button>
+                            </div>
                           </div>
 
                           {/* Quick Deployment Guide */}

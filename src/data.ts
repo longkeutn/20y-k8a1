@@ -821,11 +821,45 @@ function handleResponse(data) {
 }
 
 /**
+ * 0. TỰ ĐỘNG CHẠY KHI MỞ TRANG TÍNH GOOGLE SHEETS
+ */
+function onOpen(e) {
+  try {
+    getSecuritySheet();
+  } catch (err) {}
+  try {
+    SpreadsheetApp.getUi()
+      .createMenu('⚙️ Quản Trị K8A1')
+      .addItem('🛡️ Khởi Tạo / Mở Sheet Bảo Mật PIN', 'openSecuritySheet')
+      .addItem('🔄 Kiểm Tra Cơ Sở Dữ Liệu', 'getAllData')
+      .addToUi();
+  } catch (err) {}
+}
+
+function openSecuritySheet() {
+  const sheet = getSecuritySheet();
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sheet);
+  } catch (e) {}
+  return sheet;
+}
+
+/**
  * Xử lý yêu cầu GET: Đọc dữ liệu từ Google Sheet
  */
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'get_all_data';
+
+    // Khởi tạo / kiểm tra sheet bảo mật
+    if (action === 'init_security' || action === 'init_pins') {
+      const secSheet = getSecuritySheet();
+      return handleResponse({
+        status: 'success',
+        message: 'Đã đảm bảo sheet ' + CONFIG.SECURITY_SHEET_NAME + ' sẵn sàng trên Google Sheets!',
+        sheetName: CONFIG.SECURITY_SHEET_NAME
+      });
+    }
 
     // 1. Đồng bộ toàn bộ dữ liệu chỉ trong 1 request duy nhất (Single Source of Truth)
     if (action === 'get_all_data' || action === 'all' || action === 'sync') {
@@ -910,6 +944,16 @@ function doPost(e) {
     }
 
     const action = postData.action || 'rsvp';
+
+    // Khởi tạo / kiểm tra sheet bảo mật
+    if (action === 'init_security' || action === 'init_pins') {
+      const secSheet = getSecuritySheet();
+      return handleResponse({
+        status: 'success',
+        message: 'Đã đảm bảo sheet ' + CONFIG.SECURITY_SHEET_NAME + ' sẵn sàng trên Google Sheets!',
+        sheetName: CONFIG.SECURITY_SHEET_NAME
+      });
+    }
 
     // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Quỹ, Thư ngỏ, Banner)
     if (action === 'save_config' || action === 'update_config') {
@@ -1756,6 +1800,15 @@ function formatDate(date) {
   return \`\${pad(date.getDate())}/\${pad(date.getMonth() + 1)}/\${date.getFullYear()} \${pad(date.getHours())}:\${pad(date.getMinutes())}\`;
 }
 
+function formatDateTimeVi(date) {
+  if (!date) return '';
+  if (date instanceof Date) {
+    const pad = (n) => (n < 10 ? '0' + n : n);
+    return \`\${pad(date.getHours())}:\${pad(date.getMinutes())} ngày \${pad(date.getDate())}/\${pad(date.getMonth() + 1)}/\${date.getFullYear()}\`;
+  }
+  return String(date);
+}
+
 /**
  * -------------------------------------------------------------
  * 1. ĐỒNG BỘ CẤU HÌNH SỰ KIỆN (SHEET: "Cau_Hinh")
@@ -2460,6 +2513,9 @@ function updateSecurityPins(data) {
  */
 function getAllData() {
   try {
+    // Tự động đảm bảo Sheet Bao_Mat_PIN luôn tồn tại
+    try { getSecuritySheet(); } catch (secErr) {}
+
     const rsvp = (getRSVPList() || {}).data || [];
     const wishes = (getWishesList() || {}).data || [];
     const config = (getEventConfig() || {}).data || {};
@@ -2626,5 +2682,31 @@ export async function updatePinsViaBackend(
     return { success: false, message: json.message || 'Không thể cập nhật mã PIN trên máy chủ!' };
   } catch (err: any) {
     return { success: false, message: 'Lỗi kết nối máy chủ Google Apps Script: ' + (err?.message || err) };
+  }
+}
+
+/**
+ * Chủ động gửi yêu cầu khởi tạo hoặc kiểm tra Sheet Bao_Mat_PIN lên Google Sheets
+ */
+export async function initSecuritySheetViaBackend(
+  appsScriptUrl?: string
+): Promise<{ success: boolean; message: string }> {
+  const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
+    ? appsScriptUrl.trim()
+    : DEFAULT_APPS_SCRIPT_URL;
+
+  if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
+  }
+
+  try {
+    const res = await fetch(`${targetUrl}?action=init_security&t=${Date.now()}`);
+    const json = await res.json();
+    if (json.status === 'success') {
+      return { success: true, message: json.message || 'Đã khởi tạo sheet Bao_Mat_PIN thành công!' };
+    }
+    return { success: false, message: json.message || 'Không thể khởi tạo sheet!' };
+  } catch (err: any) {
+    return { success: false, message: 'Lỗi kết nối máy chủ: ' + (err?.message || err) };
   }
 }
