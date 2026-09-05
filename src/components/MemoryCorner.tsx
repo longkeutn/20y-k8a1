@@ -479,7 +479,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       {/* ======================================================== */}
       {/* 🎬 KHỐI 1: THƯỚC PHIM NGÀY ẤY (CINEMATIC THEATER SHOWCASE) */}
       {/* ======================================================== */}
-      <div className="bg-[#141821] text-white rounded-2xl p-5 sm:p-8 shadow-2xl border-2 border-amber-500/30 relative overflow-hidden space-y-6">
+      <div className="bg-[#141821] text-white rounded-2xl p-4 sm:p-8 shadow-2xl border-2 border-amber-500/30 relative overflow-hidden space-y-4 sm:space-y-6">
         
         {/* Ambient Warm Cinema Glow */}
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -509,7 +509,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         </div>
 
         {/* MÀN HÌNH CHIẾU RẠP CHÍNH */}
-        <div className="space-y-3 relative z-10">
+        <div className="space-y-2.5 sm:space-y-3 relative z-10">
           <div className="relative overflow-hidden rounded-xl bg-black border-2 border-amber-400/40 shadow-2xl aspect-video">
             {activeVideo && activeVideo.embedUrl ? (
               <iframe
@@ -530,7 +530,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 gap-2 text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900/80 p-3 sm:p-3.5 rounded-xl border border-slate-800 gap-2 text-left">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest block">
                 ● ĐANG CHIẾU TRÊN MÀN ẢNH
@@ -555,7 +555,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <span className="text-[10px] italic">Bấm vào video để chuyển màn ảnh</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
               {videoList.map((vid, idx) => {
                 const isActive = idx === activeVideoIndex;
                 const { type } = parseVideoEmbedUrl(vid.embedUrl);
@@ -564,21 +564,21 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   <div
                     key={vid.id || idx}
                     onClick={() => setActiveVideoIndex(idx)}
-                    className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all duration-200 ${
+                    className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-xl border cursor-pointer transition-all duration-200 ${
                       isActive
                         ? 'bg-amber-950/60 border-amber-400 shadow-md ring-1 ring-amber-400/50'
                         : 'bg-slate-900/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
                     }`}
                   >
-                    <div className="w-16 h-11 rounded-lg bg-black shrink-0 relative overflow-hidden flex items-center justify-center border border-slate-700">
-                      <Play className={`w-4 h-4 ${isActive ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
-                      <span className="absolute bottom-0.5 right-0.5 text-[8px] font-mono px-1 rounded bg-black/80 text-amber-300">
+                    <div className="w-full sm:w-16 h-20 sm:h-11 rounded-lg bg-black shrink-0 relative overflow-hidden flex items-center justify-center border border-slate-700">
+                      <Play className={`w-5 h-5 sm:w-4 sm:h-4 ${isActive ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+                      <span className="absolute bottom-1 right-1 sm:bottom-0.5 sm:right-0.5 text-[9px] sm:text-[8px] font-mono px-1 rounded bg-black/80 text-amber-300">
                         {type === 'youtube' ? 'YT' : 'VIDEO'}
                       </span>
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-xs font-serif line-clamp-2 ${isActive ? 'text-amber-200 font-bold' : 'text-slate-300'}`}>
+                    <div className="min-w-0 flex-1 w-full">
+                      <p className={`text-[11px] sm:text-xs font-serif line-clamp-2 ${isActive ? 'text-amber-200 font-bold' : 'text-slate-300'}`}>
                         {vid.title}
                       </p>
                     </div>
@@ -594,7 +594,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       {/* ======================================================== */}
       {/* 📸 KHỐI 2: KHO KỶ YẾU & ẢNH LỚP K8A1 (CLEAN BENTO MOSAIC) */}
       {/* ======================================================== */}
-      <div id="bento-gallery-anchor" className="bg-[#FAF7F2] rounded-3xl p-5 sm:p-9 shadow-lg border border-amber-200/90 relative overflow-hidden space-y-7 text-left">
+      <div id="bento-gallery-anchor" className="bg-[#FAF7F2] rounded-2xl sm:rounded-3xl p-3.5 sm:p-9 shadow-lg border border-amber-200/90 relative overflow-hidden space-y-4 sm:space-y-7 text-left">
         
         {/* Nền hoa văn vân gỗ / trang trí hoài niệm */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-200/20 via-orange-100/10 to-transparent rounded-full blur-3xl pointer-events-none" />
@@ -710,14 +710,14 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               </span>
             </div>
 
-            {/* Lưới Bento Mosaic bất đối xứng */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {/* Lưới Bento Mosaic bất đối xứng (2 cột trên di động, 3 cột trên máy tính) */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5 lg:gap-6">
               
               {displayedImages.map((img, index) => {
                 const isLiked = isPhotoLiked(img.id);
                 const likes = getPhotoLikes(img.id, index);
 
-                // Ảnh đầu tiên phóng to dạng Hero Spotlight 2x2 trên màn hình lớn
+                // Ảnh đầu tiên phóng to dạng Hero Spotlight trên màn hình lớn
                 const isHeroSpotlight = index === 0 && displayedImages.length >= 3;
                 const isTiltLeft = index % 3 === 1;
                 const isTiltRight = index % 3 === 2;
@@ -726,8 +726,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   <div
                     key={img.id || index}
                     onClick={() => openFullscreen(index)}
-                    className={`group relative bg-white p-3 sm:p-4 pb-4 rounded-2xl shadow-md border border-slate-200/90 hover:shadow-2xl hover:border-amber-400 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
-                      isHeroSpotlight ? 'sm:col-span-2 sm:row-span-2 p-4 sm:p-6 bg-gradient-to-br from-[#FFFDF9] via-white to-amber-50/40 border-amber-400/80 shadow-xl' : ''
+                    className={`group relative bg-white p-2 sm:p-4 pb-2.5 sm:pb-4 rounded-xl sm:rounded-2xl shadow-xs sm:shadow-md border border-slate-200/90 hover:shadow-2xl hover:border-amber-400 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
+                      isHeroSpotlight ? 'col-span-2 sm:col-span-2 sm:row-span-2 p-2.5 sm:p-6 bg-gradient-to-br from-[#FFFDF9] via-white to-amber-50/40 border-amber-400/80 shadow-sm sm:shadow-xl' : 'col-span-1'
                     } ${
                       isTiltLeft ? 'sm:transform sm:-rotate-1 hover:rotate-0' : ''
                     } ${
@@ -735,10 +735,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     }`}
                   >
                     {/* Băng dính washi hoài niệm dán trên ảnh */}
-                    <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 ${isHeroSpotlight ? 'w-28 h-6' : 'w-20 h-5'} bg-amber-100/90 border border-amber-300/50 transform rotate-1 z-20 shadow-2xs pointer-events-none`} />
+                    <div className={`hidden sm:block absolute -top-2.5 left-1/2 -translate-x-1/2 ${isHeroSpotlight ? 'w-28 h-6' : 'w-20 h-5'} bg-amber-100/90 border border-amber-300/50 transform rotate-1 z-20 shadow-2xs pointer-events-none`} />
 
                     {/* Vùng Khung Ảnh */}
-                    <div className={`relative rounded-xl overflow-hidden bg-slate-900 shadow-inner ${
+                    <div className={`relative rounded-lg sm:rounded-xl overflow-hidden bg-slate-900 shadow-inner ${
                       isHeroSpotlight ? 'aspect-video sm:aspect-[16/10]' : 'aspect-square sm:aspect-[4/3]'
                     }`}>
                       <img
@@ -757,45 +757,45 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                      {/* Nút Thả Tim Tương Tác (Bấm để bật/tắt tim, giảm 1 khi bỏ thích) */}
+                      {/* Nút Thả Tim Tương Tác */}
                       <button
                         type="button"
                         onClick={(e) => handleLikeToggle(img.id, index, e)}
-                        className={`absolute top-3 right-3 z-20 backdrop-blur-md text-xs px-2.5 py-1 rounded-full border transition-all shadow cursor-pointer flex items-center gap-1.5 ${
+                        className={`absolute top-1.5 right-1.5 sm:top-3 sm:right-3 z-20 backdrop-blur-md text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border transition-all shadow cursor-pointer flex items-center gap-1 sm:gap-1.5 ${
                           isLiked
                             ? 'bg-black/60 hover:bg-rose-600/90 text-rose-300 border-rose-400/40 hover:text-white'
                             : 'bg-black/50 hover:bg-black/75 text-slate-300 border-white/20'
                         }`}
                         title={isLiked ? "Bỏ yêu thích (Giảm 1)" : "Thả tim yêu thích"}
                       >
-                        <Heart className={`w-3.5 h-3.5 transition-colors ${
+                        <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-colors ${
                           isLiked ? 'text-rose-400 fill-rose-400 group-hover:text-white' : 'text-slate-300'
                         }`} />
-                        <span className="font-mono font-bold">{likes}</span>
+                        <span className="font-mono font-bold text-[10px] sm:text-xs">{likes}</span>
                       </button>
 
                       {/* Date Badge kiểu tem máy film */}
                       {img.date && (
-                        <span className="absolute top-3 left-3 z-20 bg-amber-950/80 backdrop-blur-md text-amber-200 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/30">
+                        <span className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 z-20 bg-amber-950/80 backdrop-blur-md text-amber-200 text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded border border-amber-500/30">
                           {img.date}
                         </span>
                       )}
 
                       {/* Nút Xem HD xuất hiện khi rê chuột */}
-                      <div className="absolute bottom-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold flex items-center gap-1 border border-white/20 shadow">
+                      <div className="hidden sm:flex absolute bottom-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold items-center gap-1 border border-white/20 shadow">
                         <Maximize2 className="w-3 h-3 text-amber-300" />
                         <span>Phóng to</span>
                       </div>
                     </div>
 
-                    {/* Chân thẻ phong cách Polaroid tinh tế (Đã ẩn tên ảnh để layout cực kỳ sạch đẹp) */}
-                    <div className="pt-2.5 px-1 flex items-center justify-between text-xs text-slate-500 font-serif">
-                      <span className="text-[11px] text-slate-400 font-sans italic">
-                        {img.date || 'Niên khóa 2003 – 2006'}
+                    {/* Chân thẻ phong cách Polaroid */}
+                    <div className="pt-1.5 sm:pt-2.5 px-0.5 sm:px-1 flex items-center justify-between text-[10px] sm:text-xs text-slate-500 font-serif">
+                      <span className="text-[10px] sm:text-[11px] text-slate-400 font-sans italic truncate">
+                        {img.date || 'K8A1 (03–06)'}
                       </span>
-                      <span className="text-[10px] font-sans font-bold text-amber-800 uppercase tracking-wider bg-amber-100/70 px-2 py-0.5 rounded shrink-0 flex items-center gap-1">
-                        <Maximize2 className="w-3 h-3" />
-                        <span>Xem HD</span>
+                      <span className="text-[9px] sm:text-[10px] font-sans font-bold text-amber-800 uppercase tracking-wider bg-amber-100/70 px-1.5 py-0.5 sm:px-2 rounded shrink-0 flex items-center gap-0.5 sm:gap-1">
+                        <Maximize2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                        <span className="hidden xs:inline">Xem HD</span>
                       </span>
                     </div>
                   </div>
@@ -805,21 +805,21 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               {/* Ô Thẻ Góp Thêm Ảnh Kỷ Niệm Ở Cuối Grid */}
               <div 
                 onClick={() => setIsPhotoUploadModalOpen(true)}
-                className="bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/60 p-6 rounded-2xl border-2 border-dashed border-amber-400/80 hover:border-amber-600 flex flex-col items-center justify-center text-center space-y-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer group min-h-[260px]"
+                className="col-span-2 sm:col-span-1 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/60 p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 border-dashed border-amber-400/80 hover:border-amber-600 flex flex-col items-center justify-center text-center space-y-2 sm:space-y-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer group min-h-[140px] sm:min-h-[260px]"
               >
-                <div className="w-13 h-13 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-                  <Upload className="w-6 h-6 text-amber-800" />
+                <div className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                  <Upload className="w-4 h-4 sm:w-6 sm:h-6 text-amber-800" />
                 </div>
-                <div className="space-y-1">
-                  <h4 className="font-serif font-bold text-base text-amber-950 group-hover:text-amber-800 transition-colors">
+                <div className="space-y-0.5 sm:space-y-1">
+                  <h4 className="font-serif font-bold text-xs sm:text-base text-amber-950 group-hover:text-amber-800 transition-colors">
                     Bạn Còn Giữ Ảnh Kỷ Niệm Xưa?
                   </h4>
-                  <p className="text-xs text-slate-600 font-serif italic max-w-xs leading-relaxed">
-                    Góp thêm những tấm ảnh cũ thời học trò để làm dày thêm cuốn kỷ yếu 20 năm của lớp K8A1!
+                  <p className="text-[10px] sm:text-xs text-slate-600 font-serif italic max-w-xs leading-tight sm:leading-relaxed">
+                    Góp thêm những tấm ảnh cũ thời học trò vào cuốn kỷ yếu 20 năm của lớp K8A1!
                   </p>
                 </div>
-                <span className="px-4 py-2 bg-amber-600 group-hover:bg-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-xl shadow-xs transition inline-flex items-center gap-1.5">
-                  <PlusCircle className="w-3.5 h-3.5" />
+                <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-amber-600 group-hover:bg-amber-700 text-white text-[10px] sm:text-xs font-sans font-bold uppercase tracking-wider rounded-xl shadow-xs transition inline-flex items-center gap-1.5">
+                  <PlusCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Tải Thêm Ảnh Lên</span>
                 </span>
               </div>
