@@ -1242,45 +1242,69 @@ export default function AdminManagementHub({
     }
 
     setIsUploadingBanner(true);
+    const targetScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL;
+
     try {
       // 1. Tự động nén ảnh qua Canvas HTML5 (rộng tối đa 1600px, chất lượng 0.82) -> ~80-120KB
       const compressedDataUrl = await compressImageToJpeg(file, 1600, 0.82);
       setBannerInput(compressedDataUrl);
 
-      // 2. Nếu đã kết nối Google Apps Script, tải trực tiếp lên Google Drive để nhận link CDN vĩnh viễn
-      if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
+      // 2. Tải trực tiếp lên Google Drive qua action 'upload_photo' để nhận link CDN vĩnh viễn
+      if (targetScriptUrl && targetScriptUrl.startsWith('http')) {
         try {
-          const res = await fetch(appsScriptUrl, {
+          const res = await fetch(targetScriptUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
-              action: 'upload_banner',
+              action: 'upload_photo',
               fileData: compressedDataUrl,
               caption: 'Hero_Banner_K8A1'
             })
           });
           const result = await res.json();
-          if (result && result.status === 'success' && result.data && result.data.url) {
-            const driveUrl = result.data.url;
+          if (result && result.status === 'success' && result.data && (result.data.url || result.data.driveUrl)) {
+            const driveUrl = result.data.url || result.data.driveUrl;
             setBannerInput(driveUrl);
             setEventConfigForm(prev => ({
               ...prev,
               heroBannerUrl: driveUrl,
               heroBannerPosition: bannerPositionY
             }));
+
+            // Lưu vào state và localStorage của App
             if (onUpdateHeroBannerUrl) {
               onUpdateHeroBannerUrl(driveUrl, bannerPositionY);
             }
-            setSettingsSuccessMsg('Đã lưu ảnh bìa lên Google Drive và cập nhật thành công!');
-            setTimeout(() => setSettingsSuccessMsg(''), 4000);
+
+            // Ghi trực tiếp vào Google Sheet tab "Cau_Hinh" để đảm bảo lưu vĩnh viễn
+            try {
+              await fetch(targetScriptUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                  action: 'save_config',
+                  config: {
+                    heroBannerUrl: driveUrl,
+                    heroBannerPosition: bannerPositionY
+                  }
+                })
+              });
+            } catch (errSheet) {
+              console.warn('Lỗi ghi save_config từ handleBannerFileUpload:', errSheet);
+            }
+
+            setSettingsSuccessMsg('Đã tải ảnh lên Google Drive và cập nhật link vào Google Sheet thành công!');
+            setTimeout(() => setSettingsSuccessMsg(''), 5000);
             return;
+          } else {
+            console.warn('Kết quả upload_photo không mong đợi:', result);
           }
         } catch (uploadErr) {
           console.warn('Không tải được lên Drive, sử dụng ảnh nén cục bộ:', uploadErr);
         }
       }
 
-      // Cập nhật cả eventConfigForm với ảnh nén
+      // Cập nhật eventConfigForm với ảnh nén nếu chưa kết nối Script
       setEventConfigForm(prev => ({
         ...prev,
         heroBannerUrl: compressedDataUrl,
@@ -1338,13 +1362,40 @@ export default function AdminManagementHub({
     setIsDraggingBanner(false);
   };
 
-  const handleSaveBanner = (e: React.FormEvent) => {
+  const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanUrl = normalizeImageUrl(bannerInput.trim());
+    let cleanUrl = normalizeImageUrl(bannerInput.trim());
     if (!cleanUrl) {
       alert('Vui lòng nhập link ảnh hoặc chọn file tải lên!');
       return;
     }
+
+    const targetScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL;
+
+    // Nếu ảnh vẫn là dạng Base64 và có kết nối Apps Script, tự động đẩy lên Google Drive trước khi lưu Sheet
+    if (cleanUrl.startsWith('data:image/') && targetScriptUrl && targetScriptUrl.startsWith('http')) {
+      try {
+        setIsUploadingBanner(true);
+        const res = await fetch(targetScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'upload_photo',
+            fileData: cleanUrl,
+            caption: 'Hero_Banner_K8A1'
+          })
+        });
+        const result = await res.json();
+        if (result && result.status === 'success' && result.data && (result.data.url || result.data.driveUrl)) {
+          cleanUrl = result.data.url || result.data.driveUrl;
+        }
+      } catch (err) {
+        console.warn('Lỗi tải ảnh base64 lên Drive khi bấm lưu banner:', err);
+      } finally {
+        setIsUploadingBanner(false);
+      }
+    }
+
     setBannerInput(cleanUrl);
     // Đồng bộ vào form cấu hình chung để tránh bị ghi đè khi lưu settings
     setEventConfigForm(prev => ({
@@ -1354,12 +1405,32 @@ export default function AdminManagementHub({
     }));
     if (onUpdateHeroBannerUrl) {
       onUpdateHeroBannerUrl(cleanUrl, bannerPositionY);
-      setSettingsSuccessMsg('Đã lưu ảnh bìa và vị trí hiển thị thành công!');
-      setTimeout(() => setSettingsSuccessMsg(''), 4000);
     }
+
+    // Ghi trực tiếp vào Google Sheet tab "Cau_Hinh"
+    if (targetScriptUrl && targetScriptUrl.startsWith('http')) {
+      try {
+        await fetch(targetScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'save_config',
+            config: {
+              heroBannerUrl: cleanUrl,
+              heroBannerPosition: bannerPositionY
+            }
+          })
+        });
+      } catch (eSync) {
+        console.warn('Lỗi ghi save_config từ handleSaveBanner:', eSync);
+      }
+    }
+
+    setSettingsSuccessMsg('Đã lưu ảnh bìa và cập nhật vào Google Sheet thành công!');
+    setTimeout(() => setSettingsSuccessMsg(''), 4000);
   };
 
-  const handleResetBanner = () => {
+  const handleResetBanner = async () => {
     const defaultUrl = DEFAULT_EVENT_CONFIG.heroBannerUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
     setBannerInput(defaultUrl);
     setBannerPositionY(50);
@@ -1370,9 +1441,25 @@ export default function AdminManagementHub({
     }));
     if (onUpdateHeroBannerUrl) {
       onUpdateHeroBannerUrl(defaultUrl, 50);
-      setSettingsSuccessMsg('Đã khôi phục ảnh bìa banner và vị trí về mặc định!');
-      setTimeout(() => setSettingsSuccessMsg(''), 4000);
     }
+    const targetScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL;
+    if (targetScriptUrl && targetScriptUrl.startsWith('http')) {
+      try {
+        await fetch(targetScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'save_config',
+            config: {
+              heroBannerUrl: defaultUrl,
+              heroBannerPosition: 50
+            }
+          })
+        });
+      } catch (eSync) {}
+    }
+    setSettingsSuccessMsg('Đã khôi phục ảnh bìa banner và vị trí về mặc định!');
+    setTimeout(() => setSettingsSuccessMsg(''), 4000);
   };
 
   // ---------------------------------------------------------------------------

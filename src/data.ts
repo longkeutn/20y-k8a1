@@ -604,7 +604,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
 
 // URL Google Apps Script WebApp mặc định toàn hệ thống
 // BLL có thể dán URL triển khai (/exec) vào đây để mọi thiết bị/ẩn danh tự động đồng bộ cùng 1 Sheet
-export const DEFAULT_APPS_SCRIPT_URL = "";
+export const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_hm9akENv_GmNpF8s9ALVReDd_8ORPS_RqpUZ9FS6GB_Qdnmjhh5XZ5iKZhnE_9S0/exec";
 
 export const K8A1_DRIVE_FOLDER_ID = "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
 export const K8A1_DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1Skmip1HQhmXan-58kwbY_msamP-bWokq";
@@ -1396,8 +1396,12 @@ function uploadPhotoToDrive(data) {
     const blob = Utilities.newBlob(decoded, 'image/jpeg', fileName);
     const file = folder.createFile(blob);
     
-    // Cấp quyền xem cho bất kỳ ai có link
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    // Cấp quyền xem cho bất kỳ ai có link (bọc try/catch phòng trường hợp tài khoản tổ chức bị khóa sharing)
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (eShare) {
+      console.warn("Lỗi setSharing: " + eShare.toString());
+    }
 
     const fileId = file.getId();
     const photoItem = {

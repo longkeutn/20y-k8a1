@@ -45,9 +45,13 @@ export default function App() {
   // Config state (Google Apps Script WebApp URL)
   const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => {
     try {
-      return localStorage.getItem('apps_script_url') || DEFAULT_APPS_SCRIPT_URL || '';
+      const saved = localStorage.getItem('apps_script_url');
+      if (saved && saved.startsWith('https://script.google.com/macros/s/')) {
+        return saved;
+      }
+      return DEFAULT_APPS_SCRIPT_URL;
     } catch {
-      return DEFAULT_APPS_SCRIPT_URL || '';
+      return DEFAULT_APPS_SCRIPT_URL;
     }
   });
 
