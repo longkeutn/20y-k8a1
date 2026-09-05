@@ -90,7 +90,6 @@ import {
   formatDateTimeVi,
   formatDateOnlyVi,
   EXPENSE_CATEGORIES,
-  INITIAL_EXPENSES_LIST,
   updatePinsViaBackend,
   initSecuritySheetViaBackend
 } from '../data';
@@ -651,7 +650,7 @@ export default function AdminManagementHub({
   // SỔ QUỸ THU - CHI LỚP K8A1 COMPUTATIONS & HANDLERS (QUY CHẾ ĐIỀU 3 & 4)
   // ---------------------------------------------------------------------------
   const effectiveExpenses = useMemo(() => {
-    return Array.isArray(expenses) && expenses.length > 0 ? expenses : INITIAL_EXPENSES_LIST;
+    return Array.isArray(expenses) ? expenses : [];
   }, [expenses]);
 
   const totalExpense = useMemo(() => {

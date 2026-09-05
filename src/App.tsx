@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, INITIAL_EXPENSES_LIST, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -382,12 +382,22 @@ export default function App() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>(() => {
     try {
       const local = localStorage.getItem('k8a1_expenses_list');
-      if (!local) return INITIAL_EXPENSES_LIST;
-      const parsed = JSON.parse(local);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed.map(sanitizeExpense) : INITIAL_EXPENSES_LIST;
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) {
+          // Xóa bỏ dữ liệu mẫu ban đầu nếu có để đồng bộ chính xác với Google Sheet
+          const isInitialMock = parsed.length === 4 && parsed.some((p: any) => String(p.title || '').includes('Đặt may & In ấn 45 áo polo'));
+          if (isInitialMock) {
+            localStorage.removeItem('k8a1_expenses_list');
+            return [];
+          }
+          return parsed.map(sanitizeExpense);
+        }
+      }
     } catch {
-      return INITIAL_EXPENSES_LIST;
+      return [];
     }
+    return [];
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -711,7 +721,7 @@ export default function App() {
             }
 
             // G. Đồng bộ Sổ Chi Tiêu Quỹ Lớp từ Google Sheet (tab "Khoan_Chi")
-            if (Array.isArray(result.data.expenses) && result.data.expenses.length > 0) {
+            if (Array.isArray(result.data.expenses)) {
               const cleanExp = result.data.expenses.map((item: any, idx: number) => sanitizeExpense(item, idx));
               setExpenses(cleanExp);
               try { localStorage.setItem('k8a1_expenses_list', JSON.stringify(cleanExp)); } catch (e) {}

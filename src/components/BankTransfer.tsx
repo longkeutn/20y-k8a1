@@ -26,7 +26,7 @@ import {
   Filter
 } from 'lucide-react';
 import { RsvpData, ClassMember, ExpenseItem } from '../types';
-import { generateVietQrUrl, INITIAL_EXPENSES_LIST, EXPENSE_CATEGORIES, formatDateOnlyVi } from '../data';
+import { generateVietQrUrl, EXPENSE_CATEGORIES, formatDateOnlyVi } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
@@ -130,10 +130,8 @@ export default function BankTransfer({
     return true;
   };
 
-  // Danh sách các khoản chi (ưu tiên prop expenses, fallback INITIAL_EXPENSES_LIST)
-  const effectiveExpenses: ExpenseItem[] = Array.isArray(expenses) && expenses.length > 0
-    ? expenses
-    : INITIAL_EXPENSES_LIST;
+  // Danh sách các khoản chi (lấy từ prop expenses, mặc định là mảng rỗng nếu chưa có)
+  const effectiveExpenses: ExpenseItem[] = Array.isArray(expenses) ? expenses : [];
 
   // Tính tổng thu từ rsvpList
   const paidAttendees = (rsvpList || []).filter(r => r.fundStatus === 'paid' || (r as any).paid);
