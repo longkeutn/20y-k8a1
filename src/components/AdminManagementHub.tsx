@@ -1791,7 +1791,7 @@ export default function AdminManagementHub({
 
   const handleResetToDefault = () => {
     if (currentUserRole !== 'admin') return;
-    if (confirm('CẢNH BÁO: Bạn có chắc muốn khôi phục toàn bộ cài đặt mã PIN về mặc định (Admin: 8888, BLL: 2006)?')) {
+    if (confirm('CẢNH BÁO: Bạn có chắc muốn khôi phục toàn bộ cài đặt mã PIN về mặc định của hệ thống?')) {
       setAdminPin('8888');
       setBllPin('2006');
       localStorage.removeItem('k8a1_admin_pin');
@@ -2021,16 +2021,10 @@ export default function AdminManagementHub({
             </button>
           </div>
 
-          {/* Hint info */}
-          <div className="bg-white/5 border border-amber-400/20 rounded-xl p-3 text-[11px] text-slate-300 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-amber-300 font-bold">👑 Admin (Toàn quyền):</span>
-              <span className="font-mono text-white bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40">PIN: 8888</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-emerald-300 font-bold">🛡️ Ban Liên Lạc (Trực lễ tân):</span>
-              <span className="font-mono text-white bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">PIN: 2006</span>
-            </div>
+          {/* Security Notice (Hidden PIN) */}
+          <div className="bg-white/5 border border-slate-700/60 rounded-xl p-2.5 text-center text-[11px] text-slate-400 font-sans flex items-center justify-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-amber-400/80 shrink-0" />
+            <span>Vui lòng nhập mã PIN bảo mật do Ban Quản Trị cấp</span>
           </div>
         </motion.div>
       </div>
@@ -4571,7 +4565,7 @@ export default function AdminManagementHub({
                           <div className="space-y-1.5">
                             <label className="font-bold text-slate-700 flex items-center justify-between">
                               <span>👑 Mã PIN Admin (Toàn quyền):</span>
-                              <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">Hiện tại: {adminPin}</span>
+                              <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">Đã kích hoạt: ••••</span>
                             </label>
                             <input
                               type="password"
@@ -4586,7 +4580,7 @@ export default function AdminManagementHub({
                           <div className="space-y-1.5">
                             <label className="font-bold text-slate-700 flex items-center justify-between">
                               <span>🛡️ Mã PIN Ban Liên Lạc:</span>
-                              <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">Hiện tại: {bllPin}</span>
+                              <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">Đã kích hoạt: ••••</span>
                             </label>
                             <input
                               type="password"
@@ -4731,7 +4725,7 @@ export default function AdminManagementHub({
                             onClick={handleResetToDefault}
                             className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer"
                           >
-                            Khôi Phục PIN Mặc Định (8888/2006)
+                            Khôi Phục PIN Mặc Định
                           </button>
                         </div>
                       </div>
