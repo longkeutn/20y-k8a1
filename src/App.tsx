@@ -5,7 +5,6 @@ import {
   Calendar, 
   MapPin, 
   Sparkles, 
-  Settings, 
   Camera,
   PenTool,
   Clock,
@@ -17,7 +16,8 @@ import {
   Award,
   Lock,
   Crown,
-  Shield
+  Shield,
+  Music
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast } from './types';
@@ -241,109 +241,101 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#334155] flex flex-col items-center pb-20 selection:bg-amber-200 selection:text-amber-900 relative overflow-x-hidden font-sans">
       
-      {/* Background Audio Player */}
-      <AudioPlayer customAudioUrl="" />
-
-      {/* 📌 THANH ĐIỀU HƯỚNG CỐ ĐỊNH (STICKY NAVBAR) */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#1E293B]/95 border-b border-amber-500/30 text-white shadow-lg">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <a href="#hero" className="flex items-center space-x-2 group">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center font-serif font-bold text-white shadow">
+      {/* 📌 THANH ĐIỀU HƯỚNG CỐ ĐỊNH (ELEGANT GLASS NAVBAR) */}
+      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#161B26]/95 border-b border-amber-500/30 text-white shadow-md transition-all">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 sm:h-15 flex items-center justify-between">
+          
+          {/* Brand Logo & Class Name */}
+          <a href="#hero" className="flex items-center space-x-2.5 group">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-300 flex items-center justify-center font-serif font-bold text-[#1A1613] shadow-md group-hover:scale-105 transition">
               20
             </div>
             <div>
-              <span className="font-serif font-bold text-base tracking-wide text-amber-200 group-hover:text-amber-300 transition">K8A1</span>
-              <span className="text-[10px] block text-slate-300 -mt-1 font-mono">THPT Thái Nguyên</span>
+              <span className="font-serif font-bold text-sm sm:text-base tracking-wide text-amber-200 group-hover:text-amber-300 transition">
+                K8A1
+              </span>
+              <span className="text-[10px] block text-slate-300 -mt-1 font-mono">
+                THPT Thái Nguyên
+              </span>
             </div>
           </a>
 
-          <nav className="flex items-center space-x-1.5 sm:space-x-3 text-xs sm:text-sm font-medium">
-            <a href="#ky-uc" className="hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+          {/* Navigation Links & Action Buttons */}
+          <nav className="flex items-center space-x-1 sm:space-x-2.5 text-xs font-medium">
+            <a href="#ky-uc" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <Camera className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xs:inline">Ký Ức</span>
+              <span className="hidden sm:inline">Ký Ức</span>
             </a>
-            <a href="#tu-hoi" className="hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+            <a href="#tu-hoi" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <Compass className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xs:inline">Tụ Hội</span>
+              <span className="hidden sm:inline">Tụ Hội</span>
             </a>
-            <a href="#luu-but" className="hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+            <a href="#luu-but" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <PenTool className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xs:inline">Lưu Bút</span>
+              <span className="hidden sm:inline">Lưu Bút</span>
             </a>
+
+            {/* Background Audio Player integrated into navbar */}
+            <AudioPlayer variant="navbar" customAudioUrl="" />
+
+            {/* Primary RSVP CTA */}
             <a 
               href="#diem-danh" 
-              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs"
+              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs"
             >
               <CheckCircle className="w-3.5 h-3.5 text-amber-200" />
               <span>Điểm Danh</span>
             </a>
 
-            {/* Quick Admin Access Pill in Header */}
+            {/* Discrete Mini Admin Button in Navbar (Subtle icon with tooltip) */}
             <button
               onClick={() => setIsAdminHubOpen(true)}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-full transition-all duration-200 cursor-pointer ${
                 currentUserRole === 'admin'
-                  ? 'bg-amber-400 text-amber-950 hover:bg-amber-300 shadow-sm'
+                  ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/50 shadow-xs'
                   : currentUserRole === 'bll'
-                  ? 'bg-emerald-400 text-emerald-950 hover:bg-emerald-300 shadow-sm'
-                  : 'bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-400/30'
+                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-400/50 shadow-xs'
+                  : 'text-slate-400 hover:text-amber-300 hover:bg-white/10'
               }`}
-              title="Mở bảng điều khiển Quản trị & Đối soát K8A1"
+              title={currentUserRole === 'admin' ? "Quản trị viên (Admin)" : currentUserRole === 'bll' ? "Ban liên lạc (BLL)" : "Dành cho Ban Tổ Chức"}
             >
               {currentUserRole === 'admin' ? (
-                <>
-                  <Crown className="w-3.5 h-3.5" />
-                  <span>Admin</span>
-                </>
+                <Crown className="w-3.5 h-3.5 text-amber-300" />
               ) : currentUserRole === 'bll' ? (
-                <>
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>BLL</span>
-                </>
+                <Shield className="w-3.5 h-3.5 text-emerald-300" />
               ) : (
-                <>
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Quản Trị (PIN)</span>
-                </>
+                <Lock className="w-3.5 h-3.5" />
               )}
             </button>
           </nav>
         </div>
       </header>
 
-      {/* 📌 NÚT BẬT TRUNG TÂM QUẢN TRỊ & ĐỐI SOÁT (FLOATING ACTION BUTTON) */}
-      <div className="fixed bottom-4 right-4 z-40">
+      {/* 📌 NÚT TRUY CẬP QUẢN TRỊ ẨN GỌN GÀNG GÓC DƯỚI (TINY DISCRETE FAB) */}
+      <div className="fixed bottom-3 right-3 z-40">
         <button
           onClick={() => setIsAdminHubOpen(true)}
-          className={`flex items-center gap-2 px-4 py-2.5 font-sans font-bold text-xs rounded-full shadow-2xl transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95 ${
+          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center backdrop-blur-md shadow-lg transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 ${
             currentUserRole === 'admin'
-              ? 'bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-white border-2 border-amber-300 ring-2 ring-amber-400/50 shadow-amber-900/50'
+              ? 'bg-[#1E293B] text-amber-300 border border-amber-400/60 shadow-amber-950/40 ring-1 ring-amber-400/30'
               : currentUserRole === 'bll'
-              ? 'bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white border-2 border-emerald-300 ring-2 ring-emerald-400/50 shadow-emerald-900/50'
-              : 'bg-[#1E293B] text-amber-300 border border-amber-500/40 hover:bg-[#0F172A]'
+              ? 'bg-[#1E293B] text-emerald-300 border border-emerald-400/60 shadow-emerald-950/40'
+              : 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-slate-400 hover:text-amber-300 border border-slate-700/60'
           }`}
+          title={currentUserRole === 'admin' ? "Quản trị viên" : currentUserRole === 'bll' ? "Ban liên lạc" : "Dành cho Ban Tổ Chức"}
         >
           {currentUserRole === 'admin' ? (
-            <>
-              <Crown className="w-4 h-4 text-amber-200 animate-pulse" />
-              <span>👑 Quản Trị Viên (Admin)</span>
-            </>
+            <Crown className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
           ) : currentUserRole === 'bll' ? (
-            <>
-              <Shield className="w-4 h-4 text-emerald-200" />
-              <span>🛡️ Ban Liên Lạc (Trực Lễ Tân)</span>
-            </>
+            <Shield className="w-3.5 h-3.5 text-emerald-300" />
           ) : (
-            <>
-              <Lock className="w-4 h-4 text-amber-400" />
-              <span>Quản Trị & Đối Soát (PIN)</span>
-            </>
+            <Lock className="w-3.5 h-3.5" />
           )}
         </button>
       </div>
 
       {/* Main Container */}
-      <main className="w-full max-w-4xl px-4 pt-6 md:pt-8 space-y-12">
+      <main className="w-full max-w-4xl px-3 sm:px-4 pt-5 md:pt-7 space-y-12">
         
         {showLegacyAdminPanel ? (
           <motion.div
@@ -375,22 +367,28 @@ export default function App() {
             {/* ======================================================== */}
             <motion.section 
               id="hero"
-              initial={{ opacity: 0, y: 25 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
+              transition={{ duration: 0.6 }}
               className="text-left space-y-6 scroll-mt-20"
             >
-              {/* 🌟 CINEMATIC HERO POSTER BANNER (ĐỈNH CAO SANG TRỌNG) */}
-              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#1A1613] via-[#26201A] to-[#14110F] border-2 border-amber-400/50 p-6 sm:p-10 md:p-12 shadow-2xl text-white space-y-6">
+              {/* 🌟 CINEMATIC HERO POSTER BANNER (HOÀNG KIM SANG TRỌNG) */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1C1613] via-[#2A1E1A] to-[#140F0D] border-2 border-amber-400/50 p-6 sm:p-10 md:p-12 shadow-2xl text-white space-y-6">
                 
                 {/* Ambient Golden Glows */}
                 <div className="absolute -top-24 -left-24 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-amber-600/20 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute inset-0 bg-[radial-gradient(#C5A059_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
 
+                {/* Classical Corner Accents */}
+                <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-amber-400/60 pointer-events-none" />
+                <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-amber-400/60 pointer-events-none" />
+                <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-amber-400/60 pointer-events-none" />
+                <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-amber-400/60 pointer-events-none" />
+
                 {/* Top Badge: 20th Anniversary Emblem */}
                 <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-amber-400/20 pb-5">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-400/40 bg-amber-950/60 backdrop-blur-md text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.22em] shadow-inner">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-400/40 bg-amber-950/70 backdrop-blur-md text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.22em] shadow-inner">
                     <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                     <span>Hội Khóa 20 Năm • Niên Khóa 2003 — 2006</span>
                   </div>
@@ -411,7 +409,7 @@ export default function App() {
                 </div>
 
                 {/* Quick Event Summary Strip inside Poster */}
-                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 sm:p-4 rounded-lg bg-white/10 border border-amber-400/30 backdrop-blur-xs text-xs">
+                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 sm:p-4 rounded-xl bg-white/10 border border-amber-400/30 backdrop-blur-xs text-xs">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
                       <Calendar className="w-4 h-4" />
