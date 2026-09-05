@@ -26,12 +26,12 @@ interface WishesGuestbookProps {
 }
 
 const EMOTION_TAGS = [
-  '❤️ Hoài niệm',
-  '🎓 Tri ân Thầy Cô',
-  '🎉 Hân hoan hội ngộ',
-  '🌸 Tuổi học trò 18',
-  '☕ Kỷ niệm xưa',
-  '✨ Mãi là K8A1'
+  'Hoài niệm',
+  'Tri ân Thầy Cô',
+  'Hân hoan hội ngộ',
+  'Tuổi học trò 18',
+  'Kỷ niệm xưa',
+  'Mãi là K8A1'
 ];
 
 export default function WishesGuestbook({ 
@@ -202,20 +202,15 @@ export default function WishesGuestbook({
   return (
     <div id="luu-but-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-5 shadow-md space-y-3.5 text-left relative overflow-hidden">
       
-      {/* 🌟 HEADER NHỎ GỌN & TINH TẾ */}
+      {/* HEADER GỌN GÀNG, TINH TẾ */}
       <div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-300/70">
-            <MessageSquareHeart className="w-4 h-4 text-amber-700" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-base sm:text-lg font-serif font-bold text-[#1E293B] truncate leading-tight">
-              Gửi Gắm Kỷ Niệm 20 Năm
-            </h3>
-            <p className="text-[11px] text-slate-500 font-serif italic truncate">
-              Lưu bút & lời chúc gửi tặng thầy cô, bạn bè Lớp K8A1
-            </p>
-          </div>
+        <div className="min-w-0">
+          <h3 className="text-base sm:text-lg font-serif font-bold text-[#1E293B] truncate leading-tight">
+            Gửi Gắm Kỷ Niệm 20 Năm
+          </h3>
+          <p className="text-[11px] text-slate-500 font-serif italic truncate">
+            Lưu bút & lời chúc gửi tặng thầy cô, bạn bè Lớp K8A1
+          </p>
         </div>
 
         <span className="text-xs font-sans font-bold text-amber-900 bg-amber-100/90 px-2.5 py-1 rounded-lg border border-amber-300/60 shrink-0">
@@ -223,7 +218,7 @@ export default function WishesGuestbook({
         </span>
       </div>
 
-      {/* 👤 KHỐI NHẬN DIỆN THÀNH VIÊN SIÊU GỌN */}
+      {/* KHỐI NHẬN DIỆN THÀNH VIÊN ĐỒNG BỘ */}
       <div className="bg-[#FAF8F5] border border-amber-200/90 rounded-xl px-3 py-2 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
         {activeMember ? (
           <div className="flex items-center justify-between w-full">
@@ -249,7 +244,6 @@ export default function WishesGuestbook({
           </div>
         ) : (
           <div className="flex items-center gap-2 w-full">
-            <Users className="w-4 h-4 text-amber-700 shrink-0" />
             <select
               value={isCustomMode ? 'custom' : ''}
               onChange={(e) => handleSelectMember(e.target.value)}
@@ -261,7 +255,7 @@ export default function WishesGuestbook({
                   {m.fullName} {m.nickname ? `(${m.nickname})` : ''} {m.role && m.role !== 'Thành viên' ? `— [${m.role}]` : ''}
                 </option>
               ))}
-              <option value="custom">✍️ Tự nhập họ tên khác</option>
+              <option value="custom">Tự nhập họ tên khác</option>
             </select>
           </div>
         )}
