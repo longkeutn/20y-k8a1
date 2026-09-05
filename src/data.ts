@@ -501,12 +501,36 @@ function deleteWish(data) {
  */
 function getDrivePhotos() {
   const folderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
-  if (!folderId) {
-    return { status: 'success', data: [] };
+  let folder = null;
+
+  // 1. Thử mở thư mục theo ID cấu hình
+  if (folderId) {
+    try {
+      folder = DriveApp.getFolderById(folderId);
+    } catch (e) {
+      console.warn("Không thể truy cập Folder ID: " + folderId + ". Nguyên nhân: Chưa cấp quyền hoặc ID không tồn tại.");
+    }
+  }
+
+  // 2. Nếu không tìm thấy theo ID, thử tìm theo tên thư mục "K8A1_KyNiem_20Nam"
+  if (!folder) {
+    try {
+      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
+      if (folders.hasNext()) {
+        folder = folders.next();
+      }
+    } catch (e) {}
+  }
+
+  if (!folder) {
+    return { 
+      status: 'success', 
+      data: [], 
+      warning: 'Chưa thể mở thư mục Drive ' + folderId + '. Vui lòng kiểm tra quyền chia sẻ thư mục trên Google Drive!' 
+    };
   }
 
   try {
-    const folder = DriveApp.getFolderById(folderId);
     const files = folder.getFiles();
     const photos = [];
 
@@ -521,14 +545,14 @@ function getDrivePhotos() {
           url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
           thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
           driveUrl: file.getUrl(),
-          caption: file.getName().replace(/\.[^/.]+$/, ''),
+          caption: file.getName().replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
           date: formatDate(file.getDateCreated())
         });
       }
     }
     return { status: 'success', data: photos };
   } catch (e) {
-    return { status: 'error', message: e.toString(), data: [] };
+    return { status: 'success', data: [], error: e.toString() };
   }
 }
 
@@ -537,12 +561,33 @@ function getDrivePhotos() {
  */
 function uploadPhotoToDrive(data) {
   const folderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
-  if (!folderId) {
-    return { status: 'error', message: 'Chưa cấu hình DRIVE_FOLDER_ID trong Google Apps Script!' };
+  let folder = null;
+
+  // 1. Thử mở thư mục theo ID cấu hình
+  if (folderId) {
+    try {
+      folder = DriveApp.getFolderById(folderId);
+    } catch (e) {
+      console.warn("Không mở được folder ID " + folderId + ", tiến hành tìm/tạo thư mục dự phòng...");
+    }
+  }
+
+  // 2. Nếu không mở được, tự động tìm hoặc tạo thư mục "K8A1_KyNiem_20Nam"
+  if (!folder) {
+    try {
+      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
+      if (folders.hasNext()) {
+        folder = folders.next();
+      } else {
+        folder = DriveApp.createFolder("K8A1_KyNiem_20Nam");
+        folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+    } catch (e) {
+      folder = DriveApp.getRootFolder();
+    }
   }
 
   try {
-    const folder = DriveApp.getFolderById(folderId);
     let rawBase64 = data.fileData || '';
     if (rawBase64.indexOf(',') > -1) {
       rawBase64 = rawBase64.split(',')[1];
