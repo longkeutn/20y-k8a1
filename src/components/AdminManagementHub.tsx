@@ -75,7 +75,8 @@ import {
   GOOGLE_APPS_SCRIPT_CODE,
   CLASS_ROSTER_K8A1,
   normalizeImageUrl,
-  SHIRT_SIZE_OPTIONS
+  SHIRT_SIZE_OPTIONS,
+  formatDateTimeVi
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 
@@ -986,7 +987,7 @@ export default function AdminManagementHub({
     setFundAdjustNote(attendee.fundNote || '');
     setFundAdjustPaymentMethod(attendee.fundPaymentMethod || 'bank_transfer');
     setFundAdjustReceiptUrl(attendee.fundReceiptUrl || '');
-    setFundAdjustPaidAt(attendee.fundPaidAt || (isPaid ? '01/09/2026' : new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })));
+    setFundAdjustPaidAt(attendee.fundPaidAt ? formatDateTimeVi(attendee.fundPaidAt) : (isPaid ? '01/09/2026' : new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })));
     setFundAdjustAuditedBy(attendee.fundAuditedBy || (currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc'));
     setReceiptUploadErrorMsg('');
     setReceiptUploadSuccessMsg('');
@@ -1141,7 +1142,7 @@ export default function AdminManagementHub({
         amount,
         extra,
         `"${a.fundReceiptUrl || ''}"`,
-        `"${a.fundPaidAt || ''}"`,
+        `"${formatDateTimeVi(a.fundPaidAt) || ''}"`,
         `"${a.fundAuditedBy || ''}"`,
         `"${String(a.fundNote || '').replace(/"/g, '""')}"`
       ];
@@ -3050,8 +3051,8 @@ export default function AdminManagementHub({
                                     {item.fundPaymentMethod === 'cash' ? '💵 Tiền mặt' : '🏦 Chuyển khoản'}
                                   </span>
                                   {item.fundPaidAt && (
-                                    <span className="text-[10px] text-slate-400 block font-mono">
-                                      {item.fundPaidAt}
+                                    <span className="text-[11px] text-slate-500 block font-mono font-medium whitespace-nowrap pt-0.5">
+                                      {formatDateTimeVi(item.fundPaidAt)}
                                     </span>
                                   )}
                                 </div>
@@ -5432,7 +5433,7 @@ export default function AdminManagementHub({
                     </span>
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    SĐT: {viewReceiptModal.phone || 'N/A'} • {viewReceiptModal.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'} • {viewReceiptModal.paidAt || 'Đã xác nhận'}
+                    SĐT: {viewReceiptModal.phone || 'N/A'} • {viewReceiptModal.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'} • {formatDateTimeVi(viewReceiptModal.paidAt) || 'Đã xác nhận'}
                   </p>
                 </div>
               </div>
@@ -5516,7 +5517,7 @@ export default function AdminManagementHub({
                 {viewReceiptModal.status === 'paid' ? (
                   <p className="text-emerald-300 text-[11px] flex items-center gap-1 font-sans">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Đã đối soát khớp lệnh bởi <strong>{viewReceiptModal.auditedBy || 'Ban Liên Lạc'}</strong> ({viewReceiptModal.paidAt || 'Vừa xong'})</span>
+                    <span>Đã đối soát khớp lệnh bởi <strong>{viewReceiptModal.auditedBy || 'Ban Liên Lạc'}</strong> ({formatDateTimeVi(viewReceiptModal.paidAt) || 'Vừa xong'})</span>
                   </p>
                 ) : (
                   <p className="text-amber-300 text-[11px] flex items-center gap-1 font-sans animate-pulse">

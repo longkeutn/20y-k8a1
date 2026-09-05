@@ -590,6 +590,58 @@ export function normalizeImageUrl(rawUrl?: string): string {
   return trimmed;
 }
 
+/**
+ * Định dạng thời gian chuẩn tiếng Việt cho giao diện:
+ * - Chuyển đổi các chuỗi Date rườm rà (ví dụ: "Sat Sep 05 2026 16:24:00 GMT+0700 (Indochina Time)", ISO, Timestamp)
+ *   thành dạng gọn gàng, trang trọng: "16:24 • 05/09/2026"
+ * - Chuẩn hóa các dạng DD/MM/YYYY HH:mm
+ */
+export function formatDateTimeVi(rawDate?: any): string {
+  if (!rawDate) return '';
+  const str = String(rawDate).trim();
+  if (!str) return '';
+
+  const dmyHms = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (dmyHms) {
+    const [, d, m, y, h, min] = dmyHms;
+    const pad = (n: string) => n.length === 1 ? '0' + n : n;
+    return `${pad(h)}:${pad(min)} • ${pad(d)}/${pad(m)}/${y}`;
+  }
+
+  if (/^\d{2}:\d{2}\s*•\s*\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    return str;
+  }
+
+  // Dạng chỉ có ngày VN: "05/09/2026" hoặc "5/9/2026"
+  const dmy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) {
+    const [, d, m, y] = dmy;
+    const pad = (n: string) => n.length === 1 ? '0' + n : n;
+    return `${pad(d)}/${pad(m)}/${y}`;
+  }
+
+  // Dạng chỉ có ngày ISO: "2026-09-05"
+  const ymd = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (ymd) {
+    const [, y, m, d] = ymd;
+    const pad = (n: string) => n.length === 1 ? '0' + n : n;
+    return `${pad(d)}/${pad(m)}/${y}`;
+  }
+
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const pad = (n: number) => n < 10 ? '0' + n : String(n);
+    const day = pad(d.getDate());
+    const month = pad(d.getMonth() + 1);
+    const year = d.getFullYear();
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    return `${hours}:${minutes} • ${day}/${month}/${year}`;
+  }
+
+  return str;
+}
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
@@ -883,7 +935,7 @@ function getRSVPList() {
       fundAmount: Number(row[10]) || (row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 500000 : 0),
       fundNote: String(row[11] || ''),
       fundReceiptUrl: String(row[12] || ''),
-      fundPaidAt: String(row[13] || ''),
+      fundPaidAt: formatDateTimeVi(row[13] || ''),
       fundPaymentMethod: String(row[14] || 'bank_transfer'),
       fundAuditedBy: String(row[15] || '')
     };
