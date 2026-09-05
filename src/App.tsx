@@ -39,6 +39,7 @@ import QuickShare from './components/QuickShare';
 import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
 import AdminManagementHub from './components/AdminManagementHub';
+import PinAuthModal from './components/PinAuthModal';
 import ReceiptUploadModal from './components/ReceiptUploadModal';
 import ClassCharterModal from './components/ClassCharterModal';
 
@@ -1224,64 +1225,78 @@ export default function App() {
 
       </main>
 
+      {/* 👑 XÁC THỰC MÃ PIN QUẢN TRỊ (SIÊU TỐC CHO GUEST - TÁCH BIỆT KHÔNG GÂY LAG) */}
+      {isAdminHubOpen && currentUserRole === 'guest' && (
+        <PinAuthModal
+          isOpen={isAdminHubOpen}
+          onClose={() => setIsAdminHubOpen(false)}
+          onSuccess={(role) => {
+            setCurrentUserRole(role);
+            sessionStorage.setItem('user_role', role);
+          }}
+        />
+      )}
+
       {/* 👑 BẢNG ĐIỀU KHIỂN QUẢN TRỊ & ĐỐI SOÁT TOÀN DIỆN (ADMIN & BAN LIÊN LẠC) */}
-      <AdminManagementHub
-        isOpen={isAdminHubOpen}
-        onClose={() => setIsAdminHubOpen(false)}
-        currentUserRole={currentUserRole}
-        initialTab={adminHubInitialTab}
-        initialMediaSubTab={adminHubInitialMediaSubTab}
-        onLoginSuccess={(role) => {
-          setCurrentUserRole(role);
-          sessionStorage.setItem('user_role', role);
-        }}
-        onLogout={() => {
-          setCurrentUserRole('guest');
-          sessionStorage.removeItem('user_role');
-        }}
-        rsvpList={rsvpList}
-        onUpdateRsvpList={(updated) => {
-          setRsvpList(updated);
-          localStorage.setItem('rsvp_list', JSON.stringify(updated));
-        }}
-        classRoster={classRoster}
-        onUpdateClassRoster={handleUpdateClassRoster}
-        wishesList={wishesList}
-        onUpdateWishesList={(updated) => {
-          setWishesList(updated);
-          localStorage.setItem('wishes_list', JSON.stringify(updated));
-        }}
-        images={images}
-        onUpdateImages={(updated) => {
-          const userOnly = updated.filter(i => i.isUserUploaded);
-          setImages(updated);
-          try {
-            localStorage.setItem('uploaded_images', JSON.stringify(userOnly));
-          } catch (e) {}
-          syncToBackend('save_media', { photos: userOnly, videos, venueMedia: venueMediaList });
-        }}
-        videos={videos}
-        onUpdateVideos={handleUpdateVideos}
-        venueMediaList={venueMediaList}
-        onUpdateVenueMediaList={handleUpdateVenueMedia}
-        heroBannerUrl={heroBannerUrl}
-        heroBannerPosition={heroBannerPosition}
-        onUpdateHeroBannerUrl={handleUpdateHeroBanner}
-        eventConfig={eventConfig}
-        onUpdateEventConfig={handleUpdateEventConfig}
-        appsScriptUrl={activeAppsScriptUrl}
-        onSaveAppsScriptUrl={(url) => {
-          setAppsScriptUrl(url);
-          if (url) {
-            localStorage.setItem('apps_script_url', url);
-            hydrateAllData(url);
-          } else {
-            localStorage.removeItem('apps_script_url');
-          }
-        }}
-        onRefreshData={handleRefreshData}
-        onOpenPassModal={handleOpenPass}
-      />
+      {isAdminHubOpen && currentUserRole !== 'guest' && (
+        <AdminManagementHub
+          isOpen={isAdminHubOpen}
+          onClose={() => setIsAdminHubOpen(false)}
+          currentUserRole={currentUserRole}
+          initialTab={adminHubInitialTab}
+          initialMediaSubTab={adminHubInitialMediaSubTab}
+          onLoginSuccess={(role) => {
+            setCurrentUserRole(role);
+            sessionStorage.setItem('user_role', role);
+          }}
+          onLogout={() => {
+            setCurrentUserRole('guest');
+            sessionStorage.removeItem('user_role');
+          }}
+          rsvpList={rsvpList}
+          onUpdateRsvpList={(updated) => {
+            setRsvpList(updated);
+            localStorage.setItem('rsvp_list', JSON.stringify(updated));
+          }}
+          classRoster={classRoster}
+          onUpdateClassRoster={handleUpdateClassRoster}
+          wishesList={wishesList}
+          onUpdateWishesList={(updated) => {
+            setWishesList(updated);
+            localStorage.setItem('wishes_list', JSON.stringify(updated));
+          }}
+          images={images}
+          onUpdateImages={(updated) => {
+            const userOnly = updated.filter(i => i.isUserUploaded);
+            setImages(updated);
+            try {
+              localStorage.setItem('uploaded_images', JSON.stringify(userOnly));
+            } catch (e) {}
+            syncToBackend('save_media', { photos: userOnly, videos, venueMedia: venueMediaList });
+          }}
+          videos={videos}
+          onUpdateVideos={handleUpdateVideos}
+          venueMediaList={venueMediaList}
+          onUpdateVenueMediaList={handleUpdateVenueMedia}
+          heroBannerUrl={heroBannerUrl}
+          heroBannerPosition={heroBannerPosition}
+          onUpdateHeroBannerUrl={handleUpdateHeroBanner}
+          eventConfig={eventConfig}
+          onUpdateEventConfig={handleUpdateEventConfig}
+          appsScriptUrl={activeAppsScriptUrl}
+          onSaveAppsScriptUrl={(url) => {
+            setAppsScriptUrl(url);
+            if (url) {
+              localStorage.setItem('apps_script_url', url);
+              hydrateAllData(url);
+            } else {
+              localStorage.removeItem('apps_script_url');
+            }
+          }}
+          onRefreshData={handleRefreshData}
+          onOpenPassModal={handleOpenPass}
+        />
+      )}
 
       {/* Thẻ Học Sinh Kỷ Niệm (Digital Souvenir Pass) */}
       <StudentPassModal

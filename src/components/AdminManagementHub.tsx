@@ -79,6 +79,7 @@ import {
   formatDateTimeVi
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
+import PinAuthModal from './PinAuthModal';
 
 /**
  * Nén ảnh bằng Canvas HTML5 trước khi lưu trữ hoặc đẩy lên Google Drive / Sheet:
@@ -214,11 +215,6 @@ export default function AdminManagementHub({
       if (initialMediaSubTab && (initialMediaSubTab as string) !== 'venue') setMediaSubTab(initialMediaSubTab as any);
     }
   }, [isOpen, initialTab, initialMediaSubTab]);
-
-  // PIN Authentication state
-  const [enteredPin, setEnteredPin] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [isPinSubmitting, setIsPinSubmitting] = useState(false);
 
   // Stored PINs (default Admin 8888, BLL 2006)
   const [adminPin, setAdminPin] = useState(() => {
@@ -469,64 +465,6 @@ export default function AdminManagementHub({
       setBannerPositionY(heroBannerPosition);
     }
   }, [heroBannerPosition]);
-
-  // Handle PIN input button click
-  const handlePinDigit = (digit: string) => {
-    if (enteredPin.length < 4) {
-      const nextPin = enteredPin + digit;
-      setEnteredPin(nextPin);
-      setPinError('');
-      if (nextPin.length === 4) {
-        verifyPin(nextPin);
-      }
-    }
-  };
-
-  const handlePinDelete = () => {
-    setEnteredPin(prev => prev.slice(0, -1));
-    setPinError('');
-  };
-
-  const handlePinClear = () => {
-    setEnteredPin('');
-    setPinError('');
-  };
-
-  // Verify PIN
-  const verifyPin = (pinToTest: string) => {
-    setIsPinSubmitting(true);
-    setTimeout(() => {
-      if (pinToTest === adminPin) {
-        onLoginSuccess('admin');
-        setEnteredPin('');
-        confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 } });
-      } else if (pinToTest === bllPin) {
-        onLoginSuccess('bll');
-        setEnteredPin('');
-        confetti({ particleCount: 40, spread: 50, origin: { y: 0.5 } });
-      } else {
-        setPinError('Mã PIN không đúng! Vui lòng thử lại.');
-        setEnteredPin('');
-      }
-      setIsPinSubmitting(false);
-    }, 250);
-  };
-
-  // Keyboard handler for PIN
-  useEffect(() => {
-    if (!isOpen || currentUserRole !== 'guest') return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (/^[0-9]$/.test(e.key)) {
-        handlePinDigit(e.key);
-      } else if (e.key === 'Backspace') {
-        handlePinDelete();
-      } else if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentUserRole, enteredPin, adminPin, bllPin]);
 
   // ---------------------------------------------------------------------------
   // KPI COMPUTATIONS
@@ -1927,108 +1865,17 @@ export default function AdminManagementHub({
   if (!isOpen) return null;
 
   // ===========================================================================
-  // SCREEN 1: 4-DIGIT PIN AUTHENTICATION MODAL (FOR GUEST ROLE)
+  // SCREEN 1: 4-DIGIT PIN AUTHENTICATION MODAL (FOR GUEST ROLE FALLBACK)
   // ===========================================================================
   if (currentUserRole === 'guest') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-gradient-to-b from-[#1E293B] via-[#0F172A] to-[#020617] text-white w-full max-w-sm rounded-2xl border-2 border-amber-500/40 shadow-2xl p-6 sm:p-7 space-y-6 relative overflow-hidden"
-        >
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-amber-500 to-amber-700 p-0.5 shadow-lg flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center">
-                <KeyRound className="w-6 h-6 text-amber-400" />
-              </div>
-            </div>
-            <h3 className="text-lg font-serif font-bold text-amber-200">
-              Xác Thực Mã PIN Quản Trị
-            </h3>
-            <p className="text-xs text-slate-300 font-sans">
-              Dành riêng cho <strong className="text-amber-300">Admin</strong> và <strong className="text-amber-300">Ban Liên Lạc K8A1</strong>
-            </p>
-          </div>
-
-          {/* PIN Indicators (4 dots) */}
-          <div className="flex justify-center items-center gap-3 py-2">
-            {[0, 1, 2, 3].map((idx) => {
-              const isFilled = enteredPin.length > idx;
-              return (
-                <div
-                  key={idx}
-                  className={`w-4 h-4 rounded-full border-2 transition-all duration-200 ${
-                    isFilled
-                      ? 'bg-amber-400 border-amber-300 scale-110 shadow-md shadow-amber-400/50'
-                      : 'border-slate-600 bg-slate-800/80'
-                  }`}
-                />
-              );
-            })}
-          </div>
-
-          {/* Error Message */}
-          {pinError && (
-            <motion.p
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-xs text-rose-400 text-center font-medium bg-rose-950/50 py-1.5 px-3 rounded-lg border border-rose-800/40"
-            >
-              {pinError}
-            </motion.p>
-          )}
-
-          {/* Numeric Keypad */}
-          <div className="grid grid-cols-3 gap-2.5 max-w-[240px] mx-auto">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-              <button
-                key={num}
-                onClick={() => handlePinDigit(num)}
-                disabled={isPinSubmitting}
-                className="h-12 rounded-xl bg-slate-800/80 hover:bg-amber-500/20 active:bg-amber-500/30 border border-slate-700 hover:border-amber-400/50 text-base font-bold font-mono text-amber-100 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-xs"
-              >
-                {num}
-              </button>
-            ))}
-            <button
-              onClick={handlePinClear}
-              className="h-12 rounded-xl bg-slate-900/80 hover:bg-rose-950/40 border border-slate-800 text-xs font-sans font-bold text-rose-300 transition-all active:scale-95 cursor-pointer flex items-center justify-center"
-            >
-              Xóa
-            </button>
-            <button
-              onClick={() => handlePinDigit('0')}
-              disabled={isPinSubmitting}
-              className="h-12 rounded-xl bg-slate-800/80 hover:bg-amber-500/20 active:bg-amber-500/30 border border-slate-700 hover:border-amber-400/50 text-base font-bold font-mono text-amber-100 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-xs"
-            >
-              0
-            </button>
-            <button
-              onClick={handlePinDelete}
-              className="h-12 rounded-xl bg-slate-900/80 hover:bg-amber-950/40 border border-slate-800 text-sm font-sans font-bold text-amber-300 transition-all active:scale-95 cursor-pointer flex items-center justify-center"
-            >
-              ⌫
-            </button>
-          </div>
-
-          {/* Security Notice (Hidden PIN) */}
-          <div className="bg-white/5 border border-slate-700/60 rounded-xl p-2.5 text-center text-[11px] text-slate-400 font-sans flex items-center justify-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-amber-400/80 shrink-0" />
-            <span>Vui lòng nhập mã PIN bảo mật do Ban Quản Trị cấp</span>
-          </div>
-        </motion.div>
-      </div>
+      <PinAuthModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSuccess={onLoginSuccess}
+        adminPin={adminPin}
+        bllPin={bllPin}
+      />
     );
   }
 
