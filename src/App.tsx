@@ -54,13 +54,37 @@ export default function App() {
   // URL kết nối thực tế: ưu tiên cấu hình máy này, nếu trống thì dùng URL mặc định của hệ thống
   const activeAppsScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL || '';
 
+  // Helper chuẩn hóa cấu hình sự kiện, chống crash do dữ liệu số từ Google Sheets hoặc localStorage
+  const sanitizeEventConfig = (cfg: any): EventConfig => ({
+    ...DEFAULT_EVENT_CONFIG,
+    ...cfg,
+    bankAccount: String(cfg?.bankAccount || DEFAULT_EVENT_CONFIG.bankAccount),
+    bankName: String(cfg?.bankName || DEFAULT_EVENT_CONFIG.bankName),
+    bankHolder: String(cfg?.bankHolder || DEFAULT_EVENT_CONFIG.bankHolder),
+    transferSyntax: String(cfg?.transferSyntax || DEFAULT_EVENT_CONFIG.transferSyntax),
+    venueName: String(cfg?.venueName || DEFAULT_EVENT_CONFIG.venueName),
+    venueAddress: String(cfg?.venueAddress || DEFAULT_EVENT_CONFIG.venueAddress),
+    shortAddress: String(cfg?.shortAddress || DEFAULT_EVENT_CONFIG.shortAddress),
+    eventDateText: String(cfg?.eventDateText || DEFAULT_EVENT_CONFIG.eventDateText),
+    eventTimeText: String(cfg?.eventTimeText || DEFAULT_EVENT_CONFIG.eventTimeText),
+    letterTitle: String(cfg?.letterTitle || DEFAULT_EVENT_CONFIG.letterTitle),
+    letterSubtitle: String(cfg?.letterSubtitle || DEFAULT_EVENT_CONFIG.letterSubtitle),
+    letterParagraph1: String(cfg?.letterParagraph1 || DEFAULT_EVENT_CONFIG.letterParagraph1),
+    letterParagraph2: String(cfg?.letterParagraph2 || DEFAULT_EVENT_CONFIG.letterParagraph2),
+    letterSignatureTitle: String(cfg?.letterSignatureTitle || DEFAULT_EVENT_CONFIG.letterSignatureTitle),
+    fundAmountPerPerson: Number(cfg?.fundAmountPerPerson) || DEFAULT_EVENT_CONFIG.fundAmountPerPerson,
+    customQrUrl: cfg?.customQrUrl ? String(cfg.customQrUrl) : '',
+    bankCode: cfg?.bankCode ? String(cfg.bankCode) : DEFAULT_EVENT_CONFIG.bankCode,
+    qrTemplate: cfg?.qrTemplate || DEFAULT_EVENT_CONFIG.qrTemplate
+  });
+
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
   const [eventConfig, setEventConfig] = useState<EventConfig>(() => {
     try {
       const saved = localStorage.getItem('k8a1_event_config');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return { ...DEFAULT_EVENT_CONFIG, ...parsed };
+        return sanitizeEventConfig(parsed);
       }
     } catch {}
     return DEFAULT_EVENT_CONFIG;
@@ -84,14 +108,15 @@ export default function App() {
   };
 
   const handleUpdateEventConfig = (newConfig: EventConfig) => {
-    setEventConfig(newConfig);
+    const cleanConfig = sanitizeEventConfig(newConfig);
+    setEventConfig(cleanConfig);
     try {
-      localStorage.setItem('k8a1_event_config', JSON.stringify(newConfig));
+      localStorage.setItem('k8a1_event_config', JSON.stringify(cleanConfig));
     } catch (err) {
       console.error('Lỗi lưu event config vào localStorage:', err);
     }
     // Ghi trực tiếp và vĩnh viễn vào Google Sheet tab "Cau_Hinh"
-    syncToBackend('save_config', { config: newConfig });
+    syncToBackend('save_config', { config: cleanConfig });
   };
 
   // User Role (RBAC): 'guest' | 'bll' | 'admin'
@@ -468,7 +493,7 @@ export default function App() {
         // 3. Đồng bộ Cấu hình sự kiện (Địa điểm, Quỹ, Thư ngỏ, Banner) từ Google Sheet
         if (config && Object.keys(config).length > 0) {
           setEventConfig((prev) => {
-            const updated = { ...prev, ...config };
+            const updated = sanitizeEventConfig({ ...prev, ...config });
             localStorage.setItem('k8a1_event_config', JSON.stringify(updated));
             return updated;
           });

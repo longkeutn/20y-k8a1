@@ -471,9 +471,9 @@ export const VIETNAM_BANKS: BankItem[] = [
 /**
  * Tìm mã ngân hàng VietQR theo tên hoặc alias
  */
-export function resolveBankCode(bankInput?: string): string {
-  if (!bankInput) return 'vietcombank';
-  const clean = bankInput.toLowerCase().trim();
+export function resolveBankCode(bankInput?: any): string {
+  if (bankInput === null || bankInput === undefined) return 'vietcombank';
+  const clean = String(bankInput).toLowerCase().trim();
   
   // 1. Khớp mã định danh hoặc BIN
   const direct = VIETNAM_BANKS.find(b => b.code.toLowerCase() === clean || b.bin === clean);
@@ -502,9 +502,9 @@ export function resolveBankCode(bankInput?: string): string {
  * - Chuyển sang chữ IN HOA
  * - Giới hạn tối đa 50 ký tự để không tràn buffer Napas
  */
-export function sanitizeVietQrText(text?: string): string {
-  if (!text) return '';
-  return text
+export function sanitizeVietQrText(text?: any): string {
+  if (text === null || text === undefined) return '';
+  return String(text)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[đĐ]/g, 'D')
@@ -518,19 +518,20 @@ export function sanitizeVietQrText(text?: string): string {
 /**
  * Sinh URL tạo ảnh mã VietQR chuẩn xác, tương thích 100% App Ngân hàng Việt Nam
  */
-export function generateVietQrUrl(opts: {
-  bankCode?: string;
-  bankName?: string;
-  bankAccount: string;
-  bankHolder?: string;
-  fundAmount?: number;
-  transferSyntax?: string;
+export function generateVietQrUrl(opts?: {
+  bankCode?: any;
+  bankName?: any;
+  bankAccount?: any;
+  bankHolder?: any;
+  fundAmount?: any;
+  transferSyntax?: any;
   template?: 'compact' | 'compact2' | 'qr_only';
 }): string {
-  const bankId = opts.bankCode ? opts.bankCode.toLowerCase() : resolveBankCode(opts.bankName);
-  const cleanAcc = (opts.bankAccount || '').replace(/[^0-9a-zA-Z]/g, '');
+  if (!opts) return '';
+  const bankId = opts.bankCode ? String(opts.bankCode).toLowerCase() : resolveBankCode(opts.bankName);
+  const cleanAcc = String(opts.bankAccount || '').replace(/[^0-9a-zA-Z]/g, '');
   const template = opts.template || 'compact';
-  const amount = opts.fundAmount && opts.fundAmount > 0 ? opts.fundAmount : 0;
+  const amount = opts.fundAmount && Number(opts.fundAmount) > 0 ? Number(opts.fundAmount) : 0;
   const cleanMemo = sanitizeVietQrText(opts.transferSyntax || 'DONG QUY K8A1');
   const cleanName = sanitizeVietQrText(opts.bankHolder || '');
 
@@ -1336,7 +1337,7 @@ function uploadPhotoToDrive(data) {
       rawBase64 = rawBase64.split(',')[1];
     }
     const decoded = Utilities.base64Decode(rawBase64);
-    const cleanCaption = (data.caption || 'K8A1_KyNiem').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_');
+    const cleanCaption = String(data.caption || 'K8A1_KyNiem').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_');
     const fileName = cleanCaption + '_' + Date.now() + '.jpg';
     const blob = Utilities.newBlob(decoded, 'image/jpeg', fileName);
     const file = folder.createFile(blob);

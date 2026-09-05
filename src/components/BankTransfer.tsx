@@ -52,21 +52,29 @@ export default function BankTransfer({
   const [isLocalModalOpen, setIsLocalModalOpen] = useState(false);
   const [isZoomQrOpen, setIsZoomQrOpen] = useState(false);
 
+  // Chuẩn hóa an toàn tuyệt đối các biến cấu hình tài khoản (kể cả khi Google Sheet trả về dạng Number)
+  const accountStr = String(bankAccount || '10123456789');
+  const bankNameStr = String(bankName || 'Vietcombank (VCB)');
+  const bankHolderStr = String(bankHolder || 'NGUYEN VAN BAN TO CHUC');
+  const transferSyntaxStr = String(transferSyntax || 'KY NIEM 20 NAM K8A1');
+  const fundAmountNum = Number(fundAmount) || 500000;
+  const bankCodeStr = String(bankCode || 'vietcombank');
+
   // Sinh mã VietQR chuẩn xác, tương thích 100% Napas và app ngân hàng
   const dynamicQrUrl = generateVietQrUrl({
-    bankCode,
-    bankName,
-    bankAccount,
-    bankHolder,
-    fundAmount,
-    transferSyntax,
+    bankCode: bankCodeStr,
+    bankName: bankNameStr,
+    bankAccount: accountStr,
+    bankHolder: bankHolderStr,
+    fundAmount: fundAmountNum,
+    transferSyntax: transferSyntaxStr,
     template: selectedTemplate
   });
 
-  const qrUrl = customQrUrl && customQrUrl.trim() !== '' ? customQrUrl : dynamicQrUrl;
+  const qrUrl = customQrUrl && String(customQrUrl).trim() !== '' ? String(customQrUrl) : dynamicQrUrl;
 
-  const copyToClipboard = (text: string, type: 'account' | 'syntax') => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = (text: any, type: 'account' | 'syntax') => {
+    navigator.clipboard.writeText(String(text || ''));
     if (type === 'account') {
       setCopiedAccount(true);
       setTimeout(() => setCopiedAccount(false), 2000);
@@ -87,7 +95,7 @@ export default function BankTransfer({
   const handleDownloadQr = () => {
     const link = document.createElement('a');
     link.href = qrUrl;
-    link.download = `VietQR_DongQuy_K8A1_${bankAccount}.png`;
+    link.download = `VietQR_DongQuy_K8A1_${accountStr}.png`;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     document.body.appendChild(link);

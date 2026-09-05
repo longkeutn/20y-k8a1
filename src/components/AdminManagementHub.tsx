@@ -642,7 +642,7 @@ export default function AdminManagementHub({
       a.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : 'CHƯA ĐÓNG',
       a.fundAmount || (a.fundStatus === 'paid' ? 500000 : 0),
       `"${a.fundNote || ''}"`,
-      `"${(a.message || '').replace(/"/g, '""')}"`
+      `"${String(a.message || '').replace(/"/g, '""')}"`
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
@@ -944,7 +944,7 @@ export default function AdminManagementHub({
         `"${a.fundReceiptUrl || ''}"`,
         `"${a.fundPaidAt || ''}"`,
         `"${a.fundAuditedBy || ''}"`,
-        `"${(a.fundNote || '').replace(/"/g, '""')}"`
+        `"${String(a.fundNote || '').replace(/"/g, '""')}"`
       ];
     });
 
@@ -3776,8 +3776,8 @@ export default function AdminManagementHub({
                             <input
                               type="text"
                               required
-                              value={eventConfigForm.bankAccount}
-                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankAccount: e.target.value.replace(/\s+/g, '') })}
+                              value={String(eventConfigForm.bankAccount || '')}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankAccount: String(e.target.value).replace(/\s+/g, '') })}
                               placeholder="VD: 10123456789"
                               className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono font-bold text-emerald-700 text-sm focus:outline-none focus:border-amber-500"
                             />
@@ -3968,7 +3968,7 @@ export default function AdminManagementHub({
                             : generateVietQrUrl({
                                 bankCode: eventConfigForm.bankCode,
                                 bankName: eventConfigForm.bankName,
-                                bankAccount: eventConfigForm.bankAccount,
+                                bankAccount: String(eventConfigForm.bankAccount || ''),
                                 bankHolder: eventConfigForm.bankHolder,
                                 fundAmount: eventConfigForm.fundAmountPerPerson,
                                 transferSyntax: eventConfigForm.transferSyntax,
