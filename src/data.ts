@@ -2516,14 +2516,29 @@ function getAllData() {
     // Tự động đảm bảo Sheet Bao_Mat_PIN luôn tồn tại
     try { getSecuritySheet(); } catch (secErr) {}
 
-    const rsvp = (getRSVPList() || {}).data || [];
-    const wishes = (getWishesList() || {}).data || [];
-    const config = (getEventConfig() || {}).data || {};
-    const media = (getMediaSettings() || {}).data || { videos: [], venueMedia: [], photos: [] };
-    const roster = (getClassRoster() || {}).data || [];
-    const viewCount = (getViewCount() || {}).count || 1258;
-    const drivePhotos = (getDrivePhotos() || {}).data || [];
-    const expenses = (getExpensesList() || {}).data || [];
+    let rsvp = [];
+    try { rsvp = (getRSVPList() || {}).data || []; } catch (e) { console.warn('rsvp err', e); }
+
+    let wishes = [];
+    try { wishes = (getWishesList() || {}).data || []; } catch (e) { console.warn('wishes err', e); }
+
+    let config = {};
+    try { config = (getEventConfig() || {}).data || {}; } catch (e) { console.warn('config err', e); }
+
+    let media = { videos: [], venueMedia: [], photos: [] };
+    try { media = (getMediaSettings() || {}).data || media; } catch (e) { console.warn('media err', e); }
+
+    let roster = [];
+    try { roster = (getClassRoster() || {}).data || []; } catch (e) { console.warn('roster err', e); }
+
+    let viewCount = 1258;
+    try { viewCount = (getViewCount() || {}).count || 1258; } catch (e) {}
+
+    let drivePhotos = [];
+    try { drivePhotos = (getDrivePhotos() || {}).data || []; } catch (e) {}
+
+    let expenses = [];
+    try { expenses = (getExpensesList() || {}).data || []; } catch (e) {}
 
     return {
       status: 'success',

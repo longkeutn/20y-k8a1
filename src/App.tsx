@@ -93,6 +93,11 @@ export default function App() {
       const saved = localStorage.getItem('k8a1_event_config');
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Tự động làm mới nếu thiết bị còn lưu địa điểm cũ (Crown Palace)
+        if (parsed.venueName && parsed.venueName.includes('Crown Palace')) {
+          localStorage.removeItem('k8a1_event_config');
+          return DEFAULT_EVENT_CONFIG;
+        }
         return sanitizeEventConfig(parsed);
       }
     } catch {}
@@ -711,9 +716,38 @@ export default function App() {
               setExpenses(cleanExp);
               try { localStorage.setItem('k8a1_expenses_list', JSON.stringify(cleanExp)); } catch (e) {}
             }
+          } else {
+            // Dự phòng: Nếu get_all_data trả về lỗi hoặc chưa sẵn sàng, tải riêng cấu hình sự kiện
+            try {
+              const cfgRes = await fetch(`${targetUrl}?action=get_config&t=${Date.now()}`);
+              const cfgResult = await cfgRes.json();
+              if (cfgResult?.status === 'success' && cfgResult.data && Object.keys(cfgResult.data).length > 0) {
+                setEventConfig((prev) => {
+                  const updated = sanitizeEventConfig({ ...prev, ...cfgResult.data });
+                  try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
+                  return updated;
+                });
+                if (cfgResult.data.heroBannerUrl) {
+                  const cleanBanner = normalizeImageUrl(cfgResult.data.heroBannerUrl);
+                  setHeroBannerUrl(cleanBanner);
+                  try { localStorage.setItem('k8a1_hero_banner_url', cleanBanner); } catch (e) {}
+                }
+              }
+            } catch (errCfg) {}
           }
         } catch (err) {
           console.warn('Lỗi nạp Master Data từ Google Sheet:', err);
+          try {
+            const cfgRes = await fetch(`${targetUrl}?action=get_config&t=${Date.now()}`);
+            const cfgResult = await cfgRes.json();
+            if (cfgResult?.status === 'success' && cfgResult.data && Object.keys(cfgResult.data).length > 0) {
+              setEventConfig((prev) => {
+                const updated = sanitizeEventConfig({ ...prev, ...cfgResult.data });
+                try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
+                return updated;
+              });
+            }
+          } catch (e) {}
         }
       })();
 
