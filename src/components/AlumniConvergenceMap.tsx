@@ -4,8 +4,10 @@ import {
   Navigation,
   Copy,
   Check,
-  Compass,
+  Clock,
   Sparkles,
+  Building2,
+  Car,
   Play,
   Video,
   Image as ImageIcon,
@@ -315,207 +317,201 @@ export default function AlumniConvergenceMap({
   };
 
   return (
-    <section id="tu-hoi" className={`space-y-6 scroll-mt-20 ${className}`}>
-      
+    <section id="dia-diem" className={`space-y-6 scroll-mt-20 ${className}`}>
+      {/* Anchor hỗ trợ liên kết cũ #tu-hoi */}
+      <span id="tu-hoi" className="block -mt-20 pt-20" aria-hidden="true" />
+
       {/* ======================================================== */}
-      {/* 🌟 CONTAINER CHÍNH: BẢN ĐỒ TỤ HỘI & ĐỊA ĐIỂM HỌP LỚP */}
+      {/* 🌟 CONTAINER CHÍNH: ĐỊA ĐIỂM TỔ CHỨC HỌP LỚP K8A1 */}
       {/* ======================================================== */}
       <div className="bg-[#FAF7F2] border border-amber-200/90 rounded-3xl p-5 sm:p-7 shadow-lg relative overflow-hidden space-y-6 text-left">
         
-        {/* Nền hoa văn vân sáng */}
+        {/* Nền hoa văn vân sáng ấm áp */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-200/20 via-orange-100/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-amber-300/15 via-transparent to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        {/* 🌟 HEADER TINH TẾ */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-300/60 pb-4 gap-3 relative z-10">
-          <div className="space-y-1.5 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-100 text-amber-950 text-[10px] font-bold tracking-wider font-sans uppercase border border-amber-300/60">
-              <Compass className="w-3.5 h-3.5 text-amber-700 animate-spin-slow" />
-              <span>Hội Ngộ 20 Năm • K8A1 (2003 — 2006)</span>
+        {/* 🌟 HEADER TINH TẾ & SANG TRỌNG */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-300/60 pb-4 sm:pb-5 gap-4 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-950 text-xs font-bold tracking-wider font-sans uppercase border border-amber-300/80 shadow-2xs">
+              <MapPin className="w-3.5 h-3.5 text-amber-700" />
+              <span>Điểm Hẹn Hội Ngộ • Kỷ Niệm 20 Năm K8A1 (2006 — 2026)</span>
             </div>
 
-            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-[#1E293B] tracking-tight">
-              Bản Đồ Tụ Hội & Địa Điểm Họp Lớp
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-[#1E293B] tracking-tight">
+              Địa Điểm Tổ Chức Họp Lớp
             </h3>
 
-            <p className="text-xs text-slate-600 font-serif italic leading-relaxed">
-              “Hai mươi năm ngày trở về — dù ở bất cứ nơi đâu, ngày 27/09/2026 mọi ngả đường đều dẫn về Thái Nguyên gặp lại bạn bè.”
+            <p className="text-xs sm:text-sm text-slate-600 font-serif italic leading-relaxed">
+              “Hai mươi năm ngày trở về — mọi ngả đường đều dẫn về Crown Palace Thái Nguyên để đại gia đình K8A1 tề tựu, nâng ly hội ngộ thuở học trò.”
             </p>
           </div>
 
-          {/* Action Buttons: Chỉ Đường & Sao Chép */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Action Buttons: Chỉ Đường & Sao Chép & Cấu Hình */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 flex-wrap">
             <a
-              href={VENUE_DETAILS.directionsUrl}
+              href={directionsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-0.5"
             >
-              <Navigation className="w-3.5 h-3.5 text-amber-200" />
+              <Navigation className="w-4 h-4 text-amber-200" />
               <span>Chỉ Đường</span>
             </a>
 
             <button
               type="button"
               onClick={handleCopyAddress}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300/90 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300/90 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
               title="Sao chép địa chỉ chính xác"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
               <span>{copied ? 'Đã Sao Chép' : 'Sao Chép'}</span>
             </button>
+
+            {isAuthorized && (
+              <button
+                type="button"
+                onClick={() => onOpenAdminHub ? onOpenAdminHub('media', 'venue') : setIsEditMediaModalOpen(true)}
+                className="inline-flex items-center gap-1 px-3 py-2 sm:py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition shadow-2xs cursor-pointer"
+                title="Dành cho BLL / Admin: Đổi video hoặc ảnh không gian nhà hàng"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                <span className="hidden sm:inline">Cấu Hình</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 🌟 THẺ TIỆN ÍCH & THÔNG TIN HỘI NGỘ (4 THẺ BENTO) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative z-10">
+          {/* Thẻ 1: Thời gian */}
+          <div className="bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-amber-200/80 shadow-xs hover:border-amber-400 hover:shadow-md transition-all group">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Clock className="w-4.5 h-4.5 text-amber-700" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block font-sans">
+                  Thời Gian Bắt Đầu
+                </span>
+                <span className="text-xs sm:text-sm font-serif font-bold text-[#1E293B] block truncate">
+                  {eventDateText}
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 font-serif mt-2 border-t border-slate-100 pt-1.5 line-clamp-1">
+              Đón tiếp, check-in chụp ảnh & tiệc trưa
+            </p>
+          </div>
+
+          {/* Thẻ 2: Trung tâm sự kiện */}
+          <div className="bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-amber-200/80 shadow-xs hover:border-amber-400 hover:shadow-md transition-all group">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Building2 className="w-4.5 h-4.5 text-amber-700" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block font-sans">
+                  Trung Tâm Sự Kiện
+                </span>
+                <span className="text-xs sm:text-sm font-serif font-bold text-[#1E293B] block truncate" title={venueName}>
+                  {venueName}
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 font-serif mt-2 border-t border-slate-100 pt-1.5 line-clamp-1">
+              {VENUE_DETAILS.shortAddress}
+            </p>
+          </div>
+
+          {/* Thẻ 3: Không gian sảnh tiệc */}
+          <div className="bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-amber-200/80 shadow-xs hover:border-amber-400 hover:shadow-md transition-all group">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Sparkles className="w-4.5 h-4.5 text-amber-700" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block font-sans">
+                  Không Gian Tiệc
+                </span>
+                <span className="text-xs sm:text-sm font-serif font-bold text-[#1E293B] block truncate">
+                  Sảnh VIP Máy Lạnh
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 font-serif mt-2 border-t border-slate-100 pt-1.5 line-clamp-1">
+              Sân khấu LED, âm thanh ánh sáng hiện đại
+            </p>
+          </div>
+
+          {/* Thẻ 4: Bãi đỗ xe */}
+          <div className="bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-amber-200/80 shadow-xs hover:border-amber-400 hover:shadow-md transition-all group">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Car className="w-4.5 h-4.5 text-emerald-700" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block font-sans">
+                  Bãi Đỗ Xe Tiện Lợi
+                </span>
+                <span className="text-xs sm:text-sm font-serif font-bold text-[#1E293B] block truncate">
+                  Miễn Phí Ô Tô & Xe Máy
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 font-serif mt-2 border-t border-slate-100 pt-1.5 line-clamp-1">
+              Khuôn viên rộng, bảo vệ hướng dẫn an toàn
+            </p>
           </div>
         </div>
 
         {/* ======================================================== */}
-        {/* 🗺️ KHỐI 1: BẢN ĐỒ VECTOR HÀNH TRÌNH TỤ HỘI K8A1 */}
-        {/* ======================================================== */}
-        <div className="bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white rounded-2xl p-4 sm:p-5 shadow-md border border-slate-700/80 relative z-10 space-y-3.5">
-          
-          <div className="flex items-center justify-between border-b border-slate-700/80 pb-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-amber-400 text-sm">✈️</span>
-              <span className="font-serif font-bold text-xs sm:text-sm text-amber-200">
-                Hành Trình Trở Về Của Tập Thể Lớp K8A1
-              </span>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400 italic">
-              Chủ Nhật, ngày 27/09/2026
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-center">
-            
-            {/* Vector Sơ đồ luồng hội tụ */}
-            <div className="md:col-span-6 relative flex items-center justify-center bg-slate-950/80 rounded-xl p-2.5 border border-slate-800 h-36 shadow-inner overflow-hidden">
-              <svg viewBox="0 0 220 115" className="w-full h-full select-none">
-                <defs>
-                  <linearGradient id="roleGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="#e11d48" stopOpacity="0.9" />
-                  </linearGradient>
-                </defs>
-
-                {/* Đường bay cong hội tụ về Thái Nguyên (130, 28) */}
-                <path d="M 35,95 Q 80,68 130,28" fill="none" stroke="url(#roleGlowGrad)" strokeWidth="1.6" strokeDasharray="4 2" className="opacity-80" />
-                <path d="M 70,102 Q 105,72 130,28" fill="none" stroke="#f59e0b" strokeWidth="1.6" strokeDasharray="4 2" className="opacity-75" />
-                <path d="M 185,70 Q 160,48 130,28" fill="none" stroke="#f59e0b" strokeWidth="1.6" strokeDasharray="4 2" className="opacity-75" />
-                
-                {/* Điểm xuất phát TP.HCM */}
-                <circle cx="35" cy="95" r="3" fill="#94a3b8" />
-                <text x="14" y="108" fill="#cbd5e1" fontSize="7.5" fontFamily="sans-serif">TP.HCM</text>
-                
-                {/* Điểm xuất phát Đà Nẵng */}
-                <circle cx="70" cy="102" r="3" fill="#94a3b8" />
-                <text x="60" y="112" fill="#cbd5e1" fontSize="7.5" fontFamily="sans-serif">Đà Nẵng</text>
-
-                {/* Điểm xuất phát Hà Nội */}
-                <circle cx="185" cy="70" r="3" fill="#94a3b8" />
-                <text x="175" y="82" fill="#cbd5e1" fontSize="7.5" fontFamily="sans-serif">Hà Nội</text>
-
-                {/* Đích đến: THÁI NGUYÊN (K8A1 HỘI NGỘ) */}
-                <circle cx="130" cy="28" r="8" fill="#e11d48" className="animate-ping opacity-60" />
-                <circle cx="130" cy="28" r="4.5" fill="#fbbf24" />
-                <circle cx="130" cy="28" r="2" fill="#ffffff" />
-                <text x="75" y="17" fill="#fef08a" fontSize="8.5" fontWeight="bold" fontFamily="serif">
-                  ★ K8A1 HỘI NGỘ (THÁI NGUYÊN)
-                </text>
-              </svg>
-            </div>
-
-            {/* Thống kê các trạm bạn bè xuất phát */}
-            <div className="md:col-span-6 grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-slate-800/90 p-2.5 rounded-lg border border-slate-700">
-                <div className="text-amber-300 font-bold flex items-center space-x-1">
-                  <span>🏡</span> <span>Thái Nguyên</span>
-                </div>
-                <div className="text-slate-100 font-semibold mt-0.5 text-xs">~25 bạn bè</div>
-                <div className="text-[10px] text-emerald-400 mt-0.5 flex items-center gap-1 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                  Sẵn sàng đón bạn
-                </div>
-              </div>
-
-              <div className="bg-slate-800/90 p-2.5 rounded-lg border border-slate-700">
-                <div className="text-amber-300 font-bold flex items-center space-x-1">
-                  <span>🚗</span> <span>Hà Nội & Lân Cận</span>
-                </div>
-                <div className="text-slate-100 font-semibold mt-0.5 text-xs">~12 bạn bè</div>
-                <div className="text-[10px] text-sky-400 mt-0.5 flex items-center gap-1 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" />
-                  Đoàn xe 80km
-                </div>
-              </div>
-
-              <div className="bg-slate-800/90 p-2.5 rounded-lg border border-slate-700">
-                <div className="text-amber-300 font-bold flex items-center space-x-1">
-                  <span>✈️</span> <span>Miền Trung / Nam</span>
-                </div>
-                <div className="text-slate-100 font-semibold mt-0.5 text-xs">~4 bạn bè</div>
-                <div className="text-[10px] text-amber-300 mt-0.5 flex items-center gap-1 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-300 inline-block" />
-                  Bay về họp khóa
-                </div>
-              </div>
-
-              <div className="bg-slate-800/90 p-2.5 rounded-lg border border-slate-700">
-                <div className="text-amber-300 font-bold flex items-center space-x-1">
-                  <span>🌏</span> <span>Phương Xa</span>
-                </div>
-                <div className="text-slate-100 font-semibold mt-0.5 text-xs">~2 bạn bè</div>
-                <div className="text-[10px] text-purple-300 mt-0.5 flex items-center gap-1 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-300 inline-block" />
-                  Hướng về K8A1
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* ======================================================== */}
-        {/* 🌟 KHỐI 2: DUAL COLUMN BENTO (VIDEO/ẢNH MINH HỌA + GOOGLE MAPS) */}
+        {/* 🌟 DUAL COLUMN BENTO: VIDEO/ẢNH KHÔNG GIAN + GOOGLE MAPS */}
         {/* ======================================================== */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 relative z-10 items-stretch">
           
           {/* ========================================== */}
           {/* 🎬 CỘT A: VIDEO & ẢNH MINH HỌA NHÀ HÀNG */}
           {/* ========================================== */}
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-4 shadow-sm flex flex-col justify-between space-y-3.5">
+          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm flex flex-col justify-between space-y-3.5">
             
             {/* Media Header */}
-            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold shrink-0">
                   {parsedCurrentMedia.type === 'image' ? (
-                    <ImageIcon className="w-3.5 h-3.5" />
+                    <ImageIcon className="w-4 h-4 text-amber-700" />
                   ) : (
-                    <Video className="w-3.5 h-3.5" />
+                    <Video className="w-4 h-4 text-amber-700" />
                   )}
                 </div>
-                <div>
-                  <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono text-slate-400 block leading-tight">
+                    Không Gian Sự Kiện • Góc nhìn {activeMediaIndex + 1}/{mediaList.length}
+                  </span>
+                  <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 truncate" title={currentMedia.title}>
                     {currentMedia.title}
                   </h4>
                 </div>
               </div>
 
-              {/* Nút cấu hình theo vai trò BLL / Admin */}
-              {isAuthorized ? (
+              {/* Nút cấu hình BLL / Admin */}
+              {isAuthorized && (
                 <button
                   type="button"
                   onClick={() => onOpenAdminHub ? onOpenAdminHub('media', 'venue') : setIsEditMediaModalOpen(true)}
-                  className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300/80 cursor-pointer shadow-2xs transition"
+                  className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300/80 cursor-pointer shadow-2xs transition shrink-0"
                   title="Dành cho Ban Liên Lạc & Admin: Đổi video hoặc ảnh không gian nhà hàng"
                 >
                   <Edit3 className="w-3 h-3 text-amber-700" />
-                  <span>Cấu Hình BLL</span>
+                  <span>Đổi Media</span>
                 </button>
-              ) : null}
+              )}
             </div>
 
-            {/* 🌟 TRÌNH PHÁT ĐA ĐỊNH DẠNG (FACEBOOK REEL/VIDEO, YOUTUBE, DRIVE, MP4, ẢNH) */}
+            {/* Khung Player 16:9 sắc nét */}
             <div className="relative rounded-xl overflow-hidden bg-slate-950 border-2 border-amber-300/40 shadow-inner aspect-video flex items-center justify-center">
-              
               {/* 1. Facebook Reel / Video Embed */}
               {parsedCurrentMedia.type === 'facebook' && (
                 <div className="w-full h-full relative flex items-center justify-center bg-black">
@@ -527,24 +523,22 @@ export default function AlumniConvergenceMap({
                     allowFullScreen
                     loading="lazy"
                   />
-
-                  {/* Nút hành động mở trực tiếp trên Facebook */}
                   <div className="absolute top-2.5 right-2.5 z-20">
                     <a
                       href={parsedCurrentMedia.rawUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white text-xs font-sans font-bold rounded-lg shadow-lg transition transform hover:scale-105 border border-white/20"
-                      title="Mở xem video trực tiếp trên ứng dụng hoặc trang Facebook"
+                      title="Mở xem video trực tiếp trên Facebook"
                     >
-                      <span>{parsedCurrentMedia.isReel ? 'Mở Reel Facebook' : 'Mở Facebook'}</span>
+                      <span>{parsedCurrentMedia.isReel ? 'Mở Reel' : 'Mở Facebook'}</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
                 </div>
               )}
 
-              {/* 2. YouTube Video Embed */}
+              {/* 2. YouTube Video */}
               {parsedCurrentMedia.type === 'youtube' && (
                 <iframe
                   title={currentMedia.title}
@@ -556,7 +550,7 @@ export default function AlumniConvergenceMap({
                 />
               )}
 
-              {/* 3. Google Drive Video Embed */}
+              {/* 3. Google Drive Video */}
               {parsedCurrentMedia.type === 'drive' && (
                 <iframe
                   title={currentMedia.title}
@@ -568,7 +562,7 @@ export default function AlumniConvergenceMap({
                 />
               )}
 
-              {/* 4. Direct HTML5 Video (.mp4 / .webm) */}
+              {/* 4. Direct HTML5 Video */}
               {parsedCurrentMedia.type === 'direct_video' && (
                 <video
                   src={parsedCurrentMedia.embedUrl}
@@ -576,7 +570,7 @@ export default function AlumniConvergenceMap({
                   className="w-full h-full object-cover"
                   poster={currentMedia.thumbnail}
                 >
-                  Trình duyệt của bạn không hỗ trợ thẻ video.
+                  Trình duyệt không hỗ trợ xem video.
                 </video>
               )}
 
@@ -593,8 +587,8 @@ export default function AlumniConvergenceMap({
                       target.src = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80';
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
-                    <p className="text-white text-xs font-serif italic">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-90 transition-opacity flex items-end p-3">
+                    <p className="text-white text-xs font-serif leading-snug">
                       {currentMedia.desc || 'Không gian sảnh tiệc họp lớp Crown Palace'}
                     </p>
                   </div>
@@ -610,7 +604,7 @@ export default function AlumniConvergenceMap({
               )}
             </div>
 
-            {/* Banner hỗ trợ mở Facebook trực tiếp khi gặp giới hạn nhúng */}
+            {/* Banner hỗ trợ Facebook khi bị chặn nhúng */}
             {parsedCurrentMedia.type === 'facebook' && (
               <div className="bg-blue-50 border border-blue-200/90 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2">
@@ -618,7 +612,7 @@ export default function AlumniConvergenceMap({
                     f
                   </span>
                   <p className="text-[11px] text-blue-950 font-serif leading-tight">
-                    Nếu khung video hiển thị <em>"Video không khả dụng"</em> do Facebook giới hạn quyền riêng tư/bản quyền, bạn chỉ cần bấm nút để xem ngay trên Facebook.
+                    Nếu khung video hiển thị <em>"Video không khả dụng"</em> do Facebook giới hạn, bạn chỉ cần bấm nút để xem ngay trên ứng dụng Facebook.
                   </p>
                 </div>
                 <a
@@ -647,7 +641,7 @@ export default function AlumniConvergenceMap({
                       onClick={() => setActiveMediaIndex(idx)}
                       className={`relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all aspect-[4/3] bg-slate-900 ${
                         isActive
-                          ? 'border-amber-500 ring-2 ring-amber-400/40 shadow-xs scale-102'
+                          ? 'border-amber-500 ring-2 ring-amber-400/40 shadow-sm scale-102'
                           : 'border-slate-200 hover:border-amber-400 opacity-75 hover:opacity-100'
                       }`}
                       title={item.title}
@@ -659,9 +653,9 @@ export default function AlumniConvergenceMap({
                       />
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                         {isVid ? (
-                          <Play className={`w-3 h-3 ${isActive ? 'text-amber-300 fill-amber-300' : 'text-white'}`} />
+                          <Play className={`w-3.5 h-3.5 ${isActive ? 'text-amber-300 fill-amber-300' : 'text-white'}`} />
                         ) : (
-                          <ImageIcon className={`w-3 h-3 ${isActive ? 'text-amber-300' : 'text-white'}`} />
+                          <ImageIcon className={`w-3.5 h-3.5 ${isActive ? 'text-amber-300' : 'text-white'}`} />
                         )}
                       </div>
                     </div>
@@ -669,46 +663,48 @@ export default function AlumniConvergenceMap({
                 })}
               </div>
             )}
-
           </div>
 
           {/* ========================================== */}
-          {/* 🗺️ CỘT B: BẢN ĐỒ GOOGLE MAPS */}
+          {/* 🗺️ CỘT B: BẢN ĐỒ GOOGLE MAPS & CHỈ DẪN */}
           {/* ========================================== */}
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-4 shadow-sm flex flex-col justify-between space-y-3.5">
+          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-sm flex flex-col justify-between space-y-3.5">
             
             {/* Map Header */}
-            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-                  <MapPin className="w-3.5 h-3.5 text-amber-700" />
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold shrink-0">
+                  <MapPin className="w-4 h-4 text-amber-700" />
                 </div>
-                <div>
-                  <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono text-slate-400 block leading-tight">
+                    Bản Đồ Số Google Maps
+                  </span>
+                  <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 truncate" title={venueName}>
                     {venueName}
                   </h4>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {isAuthorized && (
                   <button
                     type="button"
                     onClick={() => onOpenAdminHub ? onOpenAdminHub('settings') : null}
-                    className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300/80 cursor-pointer shadow-2xs transition"
+                    className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-lg border border-amber-300/80 cursor-pointer shadow-2xs transition"
                     title="Dành cho Ban Liên Lạc & Admin: Chỉnh sửa địa điểm & link bản đồ Google Maps"
                   >
                     <Edit3 className="w-3 h-3 text-amber-700" />
-                    <span>Sửa Địa Điểm</span>
+                    <span>Sửa Vị Trí</span>
                   </button>
                 )}
-                <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
                   {eventDateText}
                 </span>
               </div>
             </div>
 
-            {/* 🌟 GOOGLE MAPS EMBED */}
+            {/* Khung Google Maps Embed (16:9 đồng bộ hoàn hảo) */}
             <div className="relative rounded-xl overflow-hidden border-2 border-amber-300/40 shadow-inner aspect-video bg-[#E5E3DF]">
               <iframe
                 title={`Bản đồ Google Maps ${venueName}`}
@@ -720,22 +716,44 @@ export default function AlumniConvergenceMap({
               />
             </div>
 
-            {/* Thông tin địa chỉ & Nút Chỉ Đường */}
-            <div className="space-y-2 text-xs text-slate-700 font-sans">
-              <div className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-                <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                <span className="text-slate-600 font-serif leading-snug">{venueAddress}</span>
+            {/* Thông tin địa chỉ, Nút Chỉ Đường & Lộ trình di chuyển */}
+            <div className="space-y-2.5 text-xs text-slate-700 font-sans">
+              <div className="flex items-start justify-between gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <span className="text-slate-600 font-serif leading-snug text-xs">{venueAddress}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyAddress}
+                  className="px-2 py-1 bg-white hover:bg-amber-50 border border-slate-200 text-slate-600 rounded-md text-[11px] font-semibold shrink-0 cursor-pointer transition"
+                  title="Sao chép địa chỉ"
+                >
+                  {copied ? 'Đã chép' : 'Sao chép'}
+                </button>
               </div>
 
               <a
                 href={directionsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#1E293B] hover:bg-slate-800 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[#1E293B] hover:bg-slate-800 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all transform hover:-translate-y-0.5 cursor-pointer"
               >
-                <Navigation className="w-3.5 h-3.5 text-amber-300" />
+                <Navigation className="w-4 h-4 text-amber-300" />
                 <span>Mở Lộ Trình Chỉ Đường (Google Maps)</span>
               </a>
+
+              {/* Gợi ý lộ trình di chuyển */}
+              <div className="bg-amber-50/70 border border-amber-200/70 rounded-xl p-2.5 space-y-1.5 text-[11px] text-slate-700">
+                <div className="font-bold text-amber-900 flex items-center gap-1 font-sans">
+                  <span>🚗</span>
+                  <span>Gợi ý lộ trình di chuyển:</span>
+                </div>
+                <div className="space-y-1 font-serif text-slate-600 leading-relaxed">
+                  <p>• <strong>Từ Hà Nội & các tỉnh:</strong> Cao tốc Hà Nội — Thái Nguyên (CT07), qua vòng xuyến trung tâm rẽ thẳng đường Dương Tự Minh (~80km, 1h15p).</p>
+                  <p>• <strong>Nội thành Thái Nguyên:</strong> Crown Palace nằm trên trục đường lớn Dương Tự Minh (gần cầu Gia Bảy), bãi đỗ xe ô tô và xe máy rộng rãi ngay trong khuôn viên.</p>
+                </div>
+              </div>
             </div>
 
           </div>

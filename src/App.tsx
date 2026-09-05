@@ -715,9 +715,9 @@ export default function App() {
               <Camera className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden sm:inline">Ký Ức</span>
             </a>
-            <a href="#tu-hoi" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
-              <Compass className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Tụ Hội</span>
+            <a href="#dia-diem" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Địa Điểm</span>
             </a>
             <a href="#luu-but" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <PenTool className="w-3.5 h-3.5 text-amber-400" />
@@ -1104,7 +1104,7 @@ export default function App() {
             </section>
 
             {/* ======================================================== */}
-            {/* 🗺️ PHÂN VÙNG 3: BẢN ĐỒ TỤ HỘI & ĐỊA ĐIỂM HỌP LỚP K8A1 */}
+            {/* 📍 PHÂN VÙNG 3: ĐỊA ĐIỂM TỔ CHỨC HỌP LỚP K8A1 */}
             {/* ======================================================== */}
             <AlumniConvergenceMap
               eventConfig={eventConfig}

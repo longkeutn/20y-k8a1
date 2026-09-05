@@ -8,6 +8,7 @@ export interface ClassMember {
   role?: string;           // 'Lớp trưởng' | 'Lớp phó' | 'Bí thư' | 'Thủ quỹ' | 'Thành viên' | 'Thầy cô'
   gender?: 'male' | 'female';
   shirtSize?: string;
+  province?: string;       // Tỉnh / Thành phố sinh sống hiện tại (VD: Thái Nguyên, Hà Nội, TP.HCM...)
   note?: string;
 }
 
@@ -19,6 +20,7 @@ export interface RsvpData {
   status: 'yes' | 'no';
   className?: string;
   shirtSize?: string;
+  province?: string;           // Tỉnh / Thành phố xuất phát về họp lớp
   message?: string;
   submittedAt?: string;
   checkedIn?: boolean;
