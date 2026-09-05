@@ -183,6 +183,7 @@ export default function AdminManagementHub({
   const [showScriptCodeModal, setShowScriptCodeModal] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [bannerInput, setBannerInput] = useState(heroBannerUrl);
   const [bannerPositionY, setBannerPositionY] = useState<number>(heroBannerPosition ?? 50);
   const [isDraggingBanner, setIsDraggingBanner] = useState(false);
@@ -1331,6 +1332,33 @@ export default function AdminManagementHub({
     }
   };
 
+  const handleCleanDuplicates = async () => {
+    const target = (scriptUrlInput || appsScriptUrl || '').trim();
+    if (!target || !target.startsWith('http')) {
+      alert('Vui lòng nhập URL Google Apps Script Web App trong tab Cấu Hình trước!');
+      return;
+    }
+    if (!confirm('Hệ thống sẽ quét Google Sheet, tự động gộp các bản ghi cùng SĐT / Họ Tên thành 1 bản ghi chính xác nhất và xóa các dòng thừa. Bạn có muốn tiếp tục?')) {
+      return;
+    }
+
+    setIsCleaningDuplicates(true);
+    try {
+      const res = await fetch(`${target}?action=deduplicate_rsvp&t=${Date.now()}`);
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        alert(data.message || 'Đã dọn dẹp các bản ghi trùng lặp thành công!');
+        if (onRefreshData) onRefreshData();
+      } else {
+        alert(data.message || 'Không thể dọn dẹp trùng lặp lúc này.');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối khi dọn dẹp trùng lặp: ' + (err.message || 'Vui lòng kiểm tra lại'));
+    } finally {
+      setIsCleaningDuplicates(false);
+    }
+  };
+
   // Filtered members list
   const filteredMemberList = useMemo(() => {
     const q = (memberSearch || '').toLowerCase().trim();
@@ -1748,6 +1776,17 @@ export default function AdminManagementHub({
                   >
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>+ Thêm Bạn Học</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCleanDuplicates}
+                    disabled={isCleaningDuplicates}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                    title="Quét và xóa tự động các dòng trùng lặp trong Google Sheet"
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isCleaningDuplicates ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">{isCleaningDuplicates ? 'Đang lọc...' : '🧹 Dọn Trùng Lặp'}</span>
                   </button>
 
                   <button

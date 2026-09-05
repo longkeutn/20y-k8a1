@@ -608,6 +608,11 @@ function doGet(e) {
       return handleResponse(getRSVPList());
     }
 
+    // Dọn dẹp bản ghi trùng lặp
+    if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
+      return handleResponse(deduplicateRSVP());
+    }
+
     // 7. Lấy số lượt xem trang
     if (action === 'get_view_count') {
       return handleResponse(getViewCount());
@@ -680,6 +685,10 @@ function doPost(e) {
       return handleResponse(deleteRSVP(postData));
     }
 
+    if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
+      return handleResponse(deduplicateRSVP());
+    }
+
     if (action === 'rsvp' || (postData.fullName && postData.phone)) {
       return handleResponse(saveRSVP(postData));
     }
@@ -691,30 +700,61 @@ function doPost(e) {
 }
 
 /**
- * Lấy danh sách RSVP từ Google Sheet
+ * Chuẩn hóa số điện thoại để so khớp chống trùng lặp (loại bỏ khoảng trắng, dấu cộng, số 84...)
+ */
+function normalizePhone(phone) {
+  if (!phone) return '';
+  var p = String(phone).replace(/[^0-9]/g, '');
+  if (p.indexOf('84') === 0 && p.length > 9) {
+    p = '0' + p.substring(2);
+  } else if (p.indexOf('0') !== 0 && p.length === 9) {
+    p = '0' + p;
+  }
+  return p;
+}
+
+/**
+ * Chuẩn hóa họ tên thành chữ thường, bỏ dấu cách thừa để so khớp
+ */
+function normalizeName(name) {
+  if (!name) return '';
+  return String(name).trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Lấy danh sách RSVP từ Google Sheet (tự động hợp nhất bản ghi trùng lặp)
  */
 function getRSVPList() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.getSheets()[0];
   }
 
-  const rows = sheet.getDataRange().getValues();
+  var rows = sheet.getDataRange().getValues();
   if (rows.length <= 1) {
     return { status: 'success', data: [] };
   }
 
-  const list = [];
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
+  var list = [];
+  var seenMap = {};
+
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
     if (!row[0] && !row[1] && !row[2]) continue;
 
-    const item = {
+    var rawName = String(row[0] || '').trim();
+    var rawPhone = String(row[2] || '').trim();
+    var normPhone = normalizePhone(rawPhone);
+    var normName = normalizeName(rawName);
+    var uniqueKey = normPhone || normName;
+
+    var item = {
       id: String(i),
-      fullName: String(row[0] || ''),
+      rowId: String(i + 1),
+      fullName: rawName,
       nickname: String(row[1] || ''),
-      phone: String(row[2] || ''),
+      phone: normPhone || rawPhone,
       status: row[3] === 'Có tham gia' || row[3] === 'yes' ? 'yes' : 'no',
       shirtSize: String(row[4] || 'L'),
       message: String(row[5] || ''),
@@ -729,18 +769,47 @@ function getRSVPList() {
       fundPaymentMethod: String(row[14] || 'bank_transfer'),
       fundAuditedBy: String(row[15] || '')
     };
-    list.push(item);
+
+    if (uniqueKey && seenMap[uniqueKey] !== undefined) {
+      // Đã có bản ghi trước đó của người này -> Hợp nhất thông tin tối ưu nhất
+      var existingIdx = seenMap[uniqueKey];
+      var existing = list[existingIdx];
+      list[existingIdx] = {
+        id: existing.id,
+        rowId: existing.rowId,
+        fullName: item.fullName || existing.fullName,
+        nickname: item.nickname || existing.nickname,
+        phone: item.phone || existing.phone,
+        status: item.status,
+        shirtSize: item.shirtSize || existing.shirtSize,
+        message: item.message || existing.message,
+        submittedAt: item.submittedAt || existing.submittedAt,
+        checkedIn: existing.checkedIn || item.checkedIn,
+        checkedInAt: item.checkedInAt || existing.checkedInAt,
+        fundStatus: (existing.fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus === 'pending' || existing.fundStatus === 'pending' ? 'pending' : item.fundStatus),
+        fundAmount: Math.max(existing.fundAmount || 0, item.fundAmount || 0),
+        fundNote: item.fundNote || existing.fundNote,
+        fundReceiptUrl: item.fundReceiptUrl || existing.fundReceiptUrl,
+        fundPaidAt: item.fundPaidAt || existing.fundPaidAt,
+        fundPaymentMethod: item.fundPaymentMethod || existing.fundPaymentMethod,
+        fundAuditedBy: item.fundAuditedBy || existing.fundAuditedBy
+      };
+    } else {
+      if (uniqueKey) seenMap[uniqueKey] = list.length;
+      list.push(item);
+    }
   }
 
   return { status: 'success', data: list };
 }
 
 /**
- * Lưu lượt đăng ký RSVP mới vào Google Sheet
+ * Lưu lượt đăng ký RSVP (Tự động chống trùng lặp - UPSERT thông minh)
+ * Nếu người dùng đã từng đăng ký (theo SĐT hoặc Họ Tên): Cập nhật thông tin vào dòng cũ, không tạo dòng mới.
  */
 function saveRSVP(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
   if (!sheet) {
     sheet = ss.getSheets()[0];
   }
@@ -771,7 +840,7 @@ function saveRSVP(data) {
   // Nếu có kèm ảnh bill trong form RSVP, tự động upload lên Drive folder ChungTu_QuyLop_K8A1
   if ((data.fileData || data.fundReceiptBase64) && !data.fundReceiptUrl) {
     try {
-      const uploadRes = uploadFundReceiptToDrive({
+      var uploadRes = uploadFundReceiptToDrive({
         fileData: data.fileData || data.fundReceiptBase64,
         mimeType: data.mimeType || 'image/jpeg',
         fullName: data.fullName,
@@ -793,46 +862,138 @@ function saveRSVP(data) {
     }
   }
 
-  const row = [
-    data.fullName || '',
-    data.nickname || '',
-    data.phone || '',
-    data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
-    data.shirtSize || 'L',
-    data.message || '',
-    new Date(),
-    data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
-    data.checkedInAt || '',
-    data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : (data.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : 'CHƯA ĐÓNG'),
-    data.fundAmount || (data.fundStatus === 'paid' ? 500000 : 0),
-    data.fundNote || '',
-    data.fundReceiptUrl || '',
-    data.fundPaidAt || '',
-    data.fundPaymentMethod || 'bank_transfer',
-    data.fundAuditedBy || ''
-  ];
+  var normNewPhone = normalizePhone(data.phone);
+  var normNewName = normalizeName(data.fullName);
 
-  sheet.appendRow(row);
-  return { status: 'success', message: 'Điểm danh thành công!' };
+  // Đọc các dòng hiện tại để tìm kiếm bản ghi trùng lặp
+  var rows = sheet.getDataRange().getValues();
+  var matchedRowIndex = -1;
+  var duplicateRowIndices = [];
+
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var rowPhone = normalizePhone(row[2]);
+    var rowName = normalizeName(row[0]);
+
+    var isMatch = false;
+    if (normNewPhone && rowPhone && normNewPhone === rowPhone) {
+      isMatch = true;
+    } else if (!normNewPhone && normNewName && rowName && normNewName === rowName) {
+      isMatch = true;
+    } else if (normNewName && rowName && normNewName === rowName && (!rowPhone || !normNewPhone || rowPhone === normNewPhone)) {
+      isMatch = true;
+    }
+
+    if (isMatch) {
+      if (matchedRowIndex === -1) {
+        matchedRowIndex = i + 1; // dòng đầu tiên (1-indexed)
+      } else {
+        duplicateRowIndices.push(i + 1); // các dòng trùng thừa phía sau
+      }
+    }
+  }
+
+  var phoneValue = normNewPhone ? ("'" + normNewPhone) : (data.phone ? ("'" + String(data.phone).trim()) : '');
+
+  if (matchedRowIndex !== -1) {
+    // === CẬP NHẬT DÒNG HIỆN TẠI (UPSERT) ===
+    var existingRow = rows[matchedRowIndex - 1];
+
+    var isAlreadyCheckedIn = existingRow[7] === 'ĐÃ ĐẾN';
+    var isAlreadyPaid = existingRow[9] === 'ĐÃ ĐÓNG';
+
+    var updatedFundStatus = isAlreadyPaid 
+      ? 'ĐÃ ĐÓNG' 
+      : (data.fundStatus === 'paid' 
+          ? 'ĐÃ ĐÓNG' 
+          : (data.fundReceiptUrl || data.fundStatus === 'pending' 
+              ? 'CHỜ ĐỐI SOÁT' 
+              : (existingRow[9] || 'CHƯA ĐÓNG')));
+
+    var updatedRow = [
+      data.fullName || existingRow[0] || '',
+      (data.nickname !== undefined && data.nickname !== '') ? data.nickname : (existingRow[1] || ''),
+      phoneValue || existingRow[2] || '',
+      data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
+      data.shirtSize || existingRow[4] || 'L',
+      (data.message !== undefined && data.message !== '') ? data.message : (existingRow[5] || ''),
+      new Date(), // Cập nhật thời gian gửi mới nhất
+      isAlreadyCheckedIn ? 'ĐÃ ĐẾN' : (data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN'),
+      data.checkedInAt || existingRow[8] || '',
+      updatedFundStatus,
+      data.fundAmount || existingRow[10] || (isAlreadyPaid ? 500000 : 0),
+      data.fundNote || existingRow[11] || '',
+      data.fundReceiptUrl || existingRow[12] || '',
+      data.fundPaidAt || existingRow[13] || '',
+      data.fundPaymentMethod || existingRow[14] || 'bank_transfer',
+      existingRow[15] || ''
+    ];
+
+    sheet.getRange(matchedRowIndex, 1, 1, 16).setValues([updatedRow]);
+
+    // Xóa sạch các dòng trùng lặp thừa nếu trước đó đã bị sinh ra (xóa từ dưới lên trên)
+    if (duplicateRowIndices.length > 0) {
+      duplicateRowIndices.sort(function(a, b) { return b - a; });
+      for (var d = 0; d < duplicateRowIndices.length; d++) {
+        sheet.deleteRow(duplicateRowIndices[d]);
+      }
+    }
+
+    return { status: 'success', message: 'Đã cập nhật thông tin thành công (không tạo bản ghi trùng lặp)!' };
+  } else {
+    // === THÊM MỚI BẢN GHI (CHƯA TỪNG ĐĂNG KÝ) ===
+    var newRow = [
+      data.fullName || '',
+      data.nickname || '',
+      phoneValue,
+      data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
+      data.shirtSize || 'L',
+      data.message || '',
+      new Date(),
+      data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
+      data.checkedInAt || '',
+      data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : (data.fundReceiptUrl || data.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : 'CHƯA ĐÓNG'),
+      data.fundAmount || (data.fundStatus === 'paid' ? 500000 : 0),
+      data.fundNote || '',
+      data.fundReceiptUrl || '',
+      data.fundPaidAt || '',
+      data.fundPaymentMethod || 'bank_transfer',
+      data.fundAuditedBy || ''
+    ];
+
+    sheet.appendRow(newRow);
+    return { status: 'success', message: 'Điểm danh thành công!' };
+  }
 }
 
 /**
- * Cập nhật thông tin RSVP / Đối soát quỹ
+ * Cập nhật thông tin RSVP / Đối soát quỹ (so khớp SĐT chuẩn hóa)
  */
 function updateRSVP(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
   if (!sheet) sheet = ss.getSheets()[0];
 
-  const rows = sheet.getDataRange().getValues();
-  const phone = String(data.phone || '').trim();
-  let updated = false;
+  var rows = sheet.getDataRange().getValues();
+  var targetPhone = normalizePhone(data.phone);
+  var targetName = normalizeName(data.fullName);
+  var updated = false;
 
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][2]).trim() === phone || (data.rowId && i === Number(data.rowId))) {
-      const rowIndex = i + 1;
+  for (var i = 1; i < rows.length; i++) {
+    var rowPhone = normalizePhone(rows[i][2]);
+    var rowName = normalizeName(rows[i][0]);
+    var isMatch = (targetPhone && rowPhone && targetPhone === rowPhone) ||
+                  (!targetPhone && targetName && rowName && targetName === rowName) ||
+                  (data.rowId && (i + 1) === Number(data.rowId));
+
+    if (isMatch) {
+      var rowIndex = i + 1;
       if (data.fullName) sheet.getRange(rowIndex, 1).setValue(data.fullName);
       if (data.nickname !== undefined) sheet.getRange(rowIndex, 2).setValue(data.nickname);
+      if (data.phone) {
+        var normP = normalizePhone(data.phone);
+        sheet.getRange(rowIndex, 3).setValue(normP ? "'" + normP : data.phone);
+      }
       if (data.status) sheet.getRange(rowIndex, 4).setValue(data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt');
       if (data.shirtSize) sheet.getRange(rowIndex, 5).setValue(data.shirtSize);
       if (data.message !== undefined) sheet.getRange(rowIndex, 6).setValue(data.message);
@@ -854,24 +1015,114 @@ function updateRSVP(data) {
 }
 
 /**
- * Xóa dòng RSVP (Admin Only)
+ * Xóa dòng RSVP (Admin Only - so khớp SĐT hoặc dòng)
  */
 function deleteRSVP(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
   if (!sheet) sheet = ss.getSheets()[0];
 
-  const rows = sheet.getDataRange().getValues();
-  const phone = String(data.phone || '').trim();
+  var rows = sheet.getDataRange().getValues();
+  var targetPhone = normalizePhone(data.phone);
+  var targetName = normalizeName(data.fullName);
 
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][2]).trim() === phone || (data.rowId && i === Number(data.rowId))) {
+  for (var i = 1; i < rows.length; i++) {
+    var rowPhone = normalizePhone(rows[i][2]);
+    var rowName = normalizeName(rows[i][0]);
+    var isMatch = (targetPhone && rowPhone && targetPhone === rowPhone) ||
+                  (!targetPhone && targetName && rowName && targetName === rowName) ||
+                  (data.rowId && (i + 1) === Number(data.rowId));
+
+    if (isMatch) {
       sheet.deleteRow(i + 1);
       return { status: 'success', message: 'Đã xóa thành viên thành công' };
     }
   }
 
   return { status: 'not_found', message: 'Không tìm thấy dòng để xóa' };
+}
+
+/**
+ * Dọn dẹp và hợp nhất toàn bộ bản ghi trùng lặp trong Google Sheet
+ */
+function deduplicateRSVP() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
+  if (!sheet) sheet = ss.getSheets()[0];
+
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length <= 2) {
+    return { status: 'success', message: 'Bảng tính chưa có bản ghi nào để dọn dẹp.' };
+  }
+
+  var uniqueMap = {};
+  var rowsToDelete = [];
+  var mergedCount = 0;
+
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var rawName = String(row[0] || '').trim();
+    var rawPhone = String(row[2] || '').trim();
+    if (!rawName && !rawPhone) continue;
+
+    var normP = normalizePhone(rawPhone);
+    var normN = normalizeName(rawName);
+    var key = normP || normN;
+
+    if (!uniqueMap[key]) {
+      uniqueMap[key] = {
+        rowIndex: i + 1,
+        data: row.slice(0, 16)
+      };
+    } else {
+      var master = uniqueMap[key];
+      var masterData = master.data;
+
+      if (!masterData[1] && row[1]) masterData[1] = row[1];
+      if (!masterData[2] && row[2]) masterData[2] = row[2];
+      if (row[3]) masterData[3] = row[3];
+      if (row[4] && row[4] !== 'L') masterData[4] = row[4];
+      if (row[5]) masterData[5] = row[5];
+      if (row[6]) masterData[6] = row[6];
+      if (row[7] === 'ĐÃ ĐẾN' || masterData[7] === 'ĐÃ ĐẾN') masterData[7] = 'ĐÃ ĐẾN';
+      if (row[8]) masterData[8] = row[8];
+      if (row[9] === 'ĐÃ ĐÓNG' || masterData[9] === 'ĐÃ ĐÓNG') {
+        masterData[9] = 'ĐÃ ĐÓNG';
+      } else if (row[9] === 'CHỜ ĐỐI SOÁT' || masterData[9] === 'CHỜ ĐỐI SOÁT') {
+        masterData[9] = 'CHỜ ĐỐI SOÁT';
+      }
+      if (Number(row[10]) > 0) masterData[10] = row[10];
+      if (row[11]) masterData[11] = row[11];
+      if (row[12]) masterData[12] = row[12];
+      if (row[13]) masterData[13] = row[13];
+      if (row[14]) masterData[14] = row[14];
+      if (row[15]) masterData[15] = row[15];
+
+      rowsToDelete.push(i + 1);
+      mergedCount++;
+    }
+  }
+
+  for (var k in uniqueMap) {
+    var item = uniqueMap[k];
+    if (item.data[2]) {
+      var p = normalizePhone(item.data[2]);
+      item.data[2] = "'" + (p || item.data[2]);
+    }
+    sheet.getRange(item.rowIndex, 1, 1, 16).setValues([item.data]);
+  }
+
+  rowsToDelete.sort(function(a, b) { return b - a; });
+  for (var r = 0; r < rowsToDelete.length; r++) {
+    sheet.deleteRow(rowsToDelete[r]);
+  }
+
+  return {
+    status: 'success',
+    message: mergedCount > 0 
+      ? ('Đã hợp nhất và dọn dẹp thành công ' + mergedCount + ' bản ghi trùng lặp trên Google Sheet!') 
+      : 'Bảng tính sạch sẽ, không có bản ghi nào bị trùng lặp!'
+  };
 }
 
 /**

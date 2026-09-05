@@ -25,6 +25,43 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastSubmittedAttendee, setLastSubmittedAttendee] = useState<RsvpData | null>(null);
 
+  // Normalize helpers for phone and name to detect existing registrations
+  const normalizePhone = (p?: string) => {
+    if (!p) return '';
+    let clean = p.replace(/[^0-9]/g, '');
+    if (clean.startsWith('84') && clean.length > 9) clean = '0' + clean.slice(2);
+    else if (!clean.startsWith('0') && clean.length === 9) clean = '0' + clean;
+    return clean;
+  };
+
+  const normalizeName = (n?: string) => (n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+  const matchedExistingAttendee = React.useMemo(() => {
+    const p = normalizePhone(phone);
+    const n = normalizeName(fullName);
+    if (!p && !n) return null;
+    return (rsvpList || []).find((item) => {
+      const itemP = normalizePhone(item.phone);
+      const itemN = normalizeName(item.fullName);
+      if (p && itemP && p === itemP) return true;
+      if (!p && n && itemN && n === itemN) return true;
+      if (n && itemN && n === itemN && (!itemP || !p || p === itemP)) return true;
+      return false;
+    });
+  }, [phone, fullName, rsvpList]);
+
+  // Tự động điền biệt danh hoặc gợi ý size áo nếu tìm thấy thành viên đã đăng ký
+  React.useEffect(() => {
+    if (matchedExistingAttendee) {
+      if (!nickname && matchedExistingAttendee.nickname) {
+        setNickname(matchedExistingAttendee.nickname);
+      }
+      if (matchedExistingAttendee.shirtSize && matchedExistingAttendee.shirtSize !== 'L') {
+        setShirtSize(matchedExistingAttendee.shirtSize);
+      }
+    }
+  }, [matchedExistingAttendee]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !phone.trim()) {
@@ -37,7 +74,7 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
     setSubmitSuccess(null);
 
     const rsvpPayload: RsvpData = {
-      id: `rsvp-${Date.now()}`,
+      id: matchedExistingAttendee ? matchedExistingAttendee.id : `rsvp-${Date.now()}`,
       fullName: fullName.trim(),
       nickname: nickname.trim() || undefined,
       phone: phone.trim(),
@@ -65,9 +102,14 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
           })
         });
 
-        const successMessage = status === 'yes'
-          ? 'Chúc mừng! Bạn đã xác nhận tham dự thành công. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
-          : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn lưu giữ những kỷ niệm đẹp về bạn.';
+        const isUpdate = !!matchedExistingAttendee;
+        const successMessage = isUpdate
+          ? (status === 'yes'
+              ? 'Đã cập nhật thông tin tham dự thành công! Hệ thống đã ghi nhận phản hồi mới nhất của bạn. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
+              : 'Đã cập nhật phản hồi: Rất tiếc bạn không thể tham gia. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
+          : (status === 'yes'
+              ? 'Chúc mừng! Bạn đã xác nhận tham dự thành công. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
+              : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn lưu giữ những kỷ niệm đẹp về bạn.');
         
         setSubmitSuccess(successMessage);
         onAddRsvp(rsvpPayload);
@@ -94,9 +136,14 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
       // Simulation mode
       setTimeout(() => {
         onAddRsvp(rsvpPayload);
-        const successMessage = status === 'yes'
-          ? 'Chúc mừng! Bạn đã xác nhận tham dự thành công. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
-          : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn nhớ về bạn.';
+        const isUpdate = !!matchedExistingAttendee;
+        const successMessage = isUpdate
+          ? (status === 'yes'
+              ? 'Đã cập nhật thông tin tham dự thành công! Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
+              : 'Đã cập nhật phản hồi: Rất tiếc bạn không thể tham gia. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
+          : (status === 'yes'
+              ? 'Chúc mừng! Bạn đã xác nhận tham dự thành công. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
+              : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn nhớ về bạn.');
         
         setSubmitSuccess(successMessage);
         setIsSubmitting(false);
@@ -372,6 +419,21 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
             </div>
           )}
 
+          {/* Thông báo nếu tìm thấy thông tin đã từng đăng ký trước đó */}
+          {matchedExistingAttendee && (
+            <div className="p-3 bg-amber-50/90 border border-amber-300 rounded-lg text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
+              <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div className="space-y-0.5 text-left">
+                <p className="font-bold text-amber-900">
+                  Chào {matchedExistingAttendee.fullName}! Bạn đã xác nhận tham dự trước đó ({matchedExistingAttendee.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt'}).
+                </p>
+                <p className="text-[11px] text-amber-800">
+                  Khi gửi biểu mẫu này, hệ thống sẽ tự động <strong>cập nhật thông tin mới nhất</strong> của bạn vào Google Sheet mà không tạo bản ghi trùng lặp.
+                </p>
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isSubmitting}
@@ -380,12 +442,12 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Đang gửi đăng ký...
+                {matchedExistingAttendee ? 'Đang cập nhật...' : 'Đang gửi đăng ký...'}
               </>
             ) : (
               <>
                 <Send className="w-3.5 h-3.5" />
-                Gửi Xác Nhận Tham Dự
+                {matchedExistingAttendee ? 'Cập Nhật Thông Tin Tham Dự' : 'Gửi Xác Nhận Tham Dự'}
               </>
             )}
           </button>

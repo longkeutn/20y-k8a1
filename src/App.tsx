@@ -235,20 +235,75 @@ export default function App() {
     setIsPassModalOpen(true);
   };
 
-  // Synchronize new RSVP entries
+  // Normalize helper for phone and name
+  const normalizePhoneForMatch = (p?: string) => {
+    if (!p) return '';
+    let clean = p.replace(/[^0-9]/g, '');
+    if (clean.startsWith('84') && clean.length > 9) clean = '0' + clean.slice(2);
+    else if (!clean.startsWith('0') && clean.length === 9) clean = '0' + clean;
+    return clean;
+  };
+
+  const normalizeNameForMatch = (n?: string) => {
+    if (!n) return '';
+    return n.trim().toLowerCase().replace(/\s+/g, ' ');
+  };
+
+  // Synchronize new RSVP entries (Upsert thông minh chống trùng lặp)
   const handleAddRsvp = (newRsvp: RsvpData) => {
-    const updated = [newRsvp, ...rsvpList];
-    setRsvpList(updated);
-    localStorage.setItem('rsvp_list', JSON.stringify(updated));
+    let wasExisting = false;
+    setRsvpList((prev) => {
+      const normNewPhone = normalizePhoneForMatch(newRsvp.phone);
+      const normNewName = normalizeNameForMatch(newRsvp.fullName);
+
+      const existingIndex = prev.findIndex((item) => {
+        const itemPhone = normalizePhoneForMatch(item.phone);
+        const itemName = normalizeNameForMatch(item.fullName);
+        if (normNewPhone && itemPhone && normNewPhone === itemPhone) return true;
+        if (!normNewPhone && normNewName && itemName && normNewName === itemName) return true;
+        if (normNewName && itemName && normNewName === itemName && (!itemPhone || !normNewPhone || normNewPhone === itemPhone)) return true;
+        return false;
+      });
+
+      let updated: RsvpData[];
+      if (existingIndex >= 0) {
+        wasExisting = true;
+        updated = [...prev];
+        const prevItem = updated[existingIndex];
+        const isAlreadyPaid = prevItem.fundStatus === 'paid';
+        const isAlreadyCheckedIn = prevItem.checkedIn;
+        updated[existingIndex] = {
+          ...prevItem,
+          ...newRsvp,
+          id: prevItem.id,
+          phone: normNewPhone || newRsvp.phone || prevItem.phone,
+          checkedIn: isAlreadyCheckedIn || newRsvp.checkedIn,
+          fundStatus: isAlreadyPaid 
+            ? 'paid' 
+            : (newRsvp.fundStatus === 'paid' ? 'paid' : (newRsvp.fundStatus || prevItem.fundStatus)),
+          fundAmount: Math.max(prevItem.fundAmount || 0, newRsvp.fundAmount || 0),
+          fundReceiptUrl: newRsvp.fundReceiptUrl || prevItem.fundReceiptUrl
+        };
+      } else {
+        updated = [newRsvp, ...prev];
+      }
+
+      try {
+        localStorage.setItem('rsvp_list', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
     setLatestAction({
       id: `toast-rsvp-${Date.now()}`,
       type: 'rsvp',
       author: newRsvp.fullName,
       className: newRsvp.className || 'K8A1',
-      text: newRsvp.status === 'yes'
-        ? (newRsvp.message ? `vừa xác nhận về lớp: "${newRsvp.message.slice(0, 50)}"` : 'vừa xác nhận chắc chắn có mặt tại Ngày hội ngộ 20 năm!')
-        : 'vừa gửi phản hồi về ngày hội khóa.',
+      text: wasExisting
+        ? 'vừa cập nhật thông tin phản hồi tham dự.'
+        : (newRsvp.status === 'yes'
+            ? (newRsvp.message ? `vừa xác nhận về lớp: "${newRsvp.message.slice(0, 50)}"` : 'vừa xác nhận chắc chắn có mặt tại Ngày hội ngộ 20 năm!')
+            : 'vừa gửi phản hồi về ngày hội khóa.'),
       timeAgo: 'Vừa xong',
       isNew: true
     });
@@ -324,10 +379,36 @@ export default function App() {
       if (result && result.status === 'success' && result.data) {
         const { rsvp, wishes, config, media } = result.data;
 
-        // 1. Đồng bộ RSVP từ Google Sheet
+        // 1. Đồng bộ RSVP từ Google Sheet (lọc trùng lặp thông minh)
         if (Array.isArray(rsvp) && rsvp.length > 0) {
-          setRsvpList(rsvp);
-          localStorage.setItem('rsvp_list', JSON.stringify(rsvp));
+          const uniqueRsvp: RsvpData[] = [];
+          const seen = new Set<string>();
+
+          for (const item of rsvp) {
+            const key = normalizePhoneForMatch(item.phone) || normalizeNameForMatch(item.fullName);
+            if (key && seen.has(key)) {
+              // Hợp nhất vào bản ghi đã có trước đó
+              const idx = uniqueRsvp.findIndex(x => (normalizePhoneForMatch(x.phone) || normalizeNameForMatch(x.fullName)) === key);
+              if (idx >= 0) {
+                uniqueRsvp[idx] = {
+                  ...uniqueRsvp[idx],
+                  ...item,
+                  checkedIn: uniqueRsvp[idx].checkedIn || item.checkedIn,
+                  fundStatus: (uniqueRsvp[idx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[idx].fundStatus),
+                  fundAmount: Math.max(uniqueRsvp[idx].fundAmount || 0, item.fundAmount || 0),
+                  fundReceiptUrl: item.fundReceiptUrl || uniqueRsvp[idx].fundReceiptUrl
+                };
+              }
+            } else {
+              if (key) seen.add(key);
+              uniqueRsvp.push(item);
+            }
+          }
+
+          setRsvpList(uniqueRsvp);
+          try {
+            localStorage.setItem('rsvp_list', JSON.stringify(uniqueRsvp));
+          } catch (e) {}
         }
 
         // 2. Đồng bộ Lời chúc từ Google Sheet
