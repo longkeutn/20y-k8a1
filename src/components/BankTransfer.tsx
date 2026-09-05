@@ -128,28 +128,36 @@ export default function BankTransfer({
   };
 
   return (
-    <div id="bank-transfer-card" className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-md border border-amber-200/90 space-y-6">
-      {/* Header */}
-      <div className="text-left space-y-1.5 border-b border-amber-200/80 pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold tracking-[0.2em] font-sans text-amber-800 uppercase bg-amber-100/70 px-2 py-0.5 rounded">
-            GÓP GIÓ THÀNH BÃO
+    <div id="bank-transfer-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
+      {/* HEADER QUỸ LỚP */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/80 pb-3.5 gap-3">
+        <div className="space-y-1 min-w-0">
+          <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
+            Đóng Quỹ Sự Kiện Hội Khóa
           </span>
-          <span className="text-xs text-slate-400">• Quỹ Tổ Chức Hội Khóa 20 Năm K8A1</span>
-        </div>
-        <h3 className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
-          Đóng Quỹ Sự Kiện (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'} VNĐ / Bạn)
-        </h3>
-        <p className="text-xs text-slate-600 font-sans leading-relaxed">
-          Kinh phí bao gồm: Tiệc trưa Crown Palace Thái Nguyên, Áo polo đồng phục kỷ niệm 20 năm, Thẻ học sinh, Backdrop & quà lưu niệm.
-        </p>
+          <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
+            Thông Tin Quỹ Lớp (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'}đ / Bạn)
+          </h3>
+          <p className="text-xs text-slate-500 font-serif italic">
+            Kinh phí bao gồm: Tiệc trưa Crown Palace, Áo polo đồng phục 20 năm, Thẻ học sinh & quà lưu niệm
+          </p>
 
-        {activeMember && (
-          <div className="pt-1 flex items-center gap-1.5 text-xs text-emerald-800 font-sans font-medium">
-            <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Đã tự động điền cú pháp cho <strong>{activeMember.fullName}</strong> {activeMember.nickname ? `(“${activeMember.nickname}”)` : ''}</span>
-          </div>
-        )}
+          {activeMember && (
+            <div className="pt-1 flex items-center gap-1.5 text-xs text-emerald-800 font-sans font-medium">
+              <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Đã tự động điền cú pháp cho <strong>{activeMember.fullName}</strong> {activeMember.nickname ? `(“${activeMember.nickname}”)` : ''}</span>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleOpenUpload}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition cursor-pointer shrink-0 self-start sm:self-auto"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          <span>Gửi Biên Lai</span>
+        </button>
       </div>
 
       {/* Grid: Bank Details & QR Code */}

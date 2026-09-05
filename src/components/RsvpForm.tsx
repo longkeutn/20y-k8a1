@@ -256,21 +256,24 @@ export default function RsvpForm({
   }, [rsvpList]);
 
   return (
-    <div id="rsvp-form-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-5 shadow-md space-y-3.5 text-left relative overflow-hidden">
+    <div id="rsvp-form-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
       
-      {/* HEADER GỌN GÀNG, ĐỒNG BỘ VỚI CÁC KHỐI KHÁC */}
-      <div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5 gap-2">
-        <div className="min-w-0">
-          <h3 className="text-base sm:text-lg font-serif font-bold text-[#1E293B] truncate leading-tight">
+      {/* HEADER ĐIỂM DANH & SIZE ÁO */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/80 pb-3.5 gap-3">
+        <div className="space-y-1 min-w-0">
+          <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
+            Điểm Danh & Size Áo Đồng Phục
+          </span>
+          <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
             Xác Nhận Tham Dự Lớp K8A1
           </h3>
-          <p className="text-[11px] text-slate-500 font-serif italic truncate">
+          <p className="text-xs text-slate-500 font-serif italic">
             Hạn chốt ngày 20/09/2026 để may đo áo đồng phục & đặt tiệc
           </p>
         </div>
 
-        <span className="text-xs font-sans font-bold text-amber-900 bg-amber-100/90 px-2.5 py-1 rounded-lg border border-amber-300/60 shrink-0">
-          {confirmedCount} Đã Xác Nhận
+        <span className="text-xs font-sans font-bold text-amber-900 bg-amber-100/90 px-3 py-1.5 rounded-xl border border-amber-300/60 shrink-0 self-start sm:self-auto">
+          {confirmedCount} Bạn Đã Xác Nhận
         </span>
       </div>
 

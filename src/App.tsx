@@ -1030,18 +1030,17 @@ export default function App() {
               </div>
 
               {/* Letter Header */}
-              <div className="space-y-2 border-b border-amber-400/40 pb-5 relative z-10 max-w-xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-300/70 rounded-full text-amber-900 text-[10px] font-sans font-bold uppercase tracking-[0.2em]">
-                    <MailOpen className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Thư Ngỏ Kỷ Niệm 20 Năm • Lớp K8A1 (2006 — 2026)</span>
-                  </div>
+              <div className="space-y-1.5 border-b border-amber-300/60 pb-4 relative z-10">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
+                    Thư Ngỏ Hội Khóa 20 Năm (2003 — 2006)
+                  </span>
 
                   {(currentUserRole === 'admin' || currentUserRole === 'bll') && (
                     <button
                       type="button"
                       onClick={() => handleOpenAdminHub('settings')}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-100/70 hover:bg-amber-200/80 text-amber-900 text-[10px] font-sans font-bold rounded-full border border-amber-300 transition cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-100/70 hover:bg-amber-200/80 text-amber-900 text-[10px] font-sans font-bold rounded-full border border-amber-300 transition cursor-pointer shrink-0"
                       title="Dành cho Ban Liên Lạc & Admin: Chỉnh sửa lời ngỏ thiệp mời"
                     >
                       <Edit3 className="w-3 h-3 text-amber-700" />
@@ -1050,10 +1049,10 @@ export default function App() {
                   )}
                 </div>
                 
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#1E293B] font-bold tracking-tight leading-snug">
+                <h2 className="text-xl sm:text-2xl font-serif text-[#1E293B] font-bold tracking-tight">
                   {eventConfig.letterTitle || "Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1"}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 font-serif italic">
+                <p className="text-xs text-slate-500 font-serif italic">
                   {eventConfig.letterSubtitle || "Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên"}
                 </p>
               </div>

@@ -129,33 +129,32 @@ export default function ConfirmedAttendees({
   };
 
   return (
-    <div id="confirmed-attendees-module" className="bg-white border border-brand-border rounded-sm p-5 md:p-8 shadow-xs space-y-6">
+    <div id="confirmed-attendees-module" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
       
-      {/* Module Header */}
-      <div className="border-b border-brand-border pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <span className="text-[10px] uppercase tracking-[0.2em] font-sans font-bold text-brand-gold flex items-center gap-1.5">
-            <UserCheck className="w-4 h-4" />
-            <span>BẢNG VÀNG ĐIỂM DANH</span>
+      {/* HEADER BẢNG VÀNG ĐIỂM DANH */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/80 pb-3.5 gap-3">
+        <div className="space-y-1 min-w-0">
+          <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
+            Bảng Vàng Điểm Danh Thành Viên
           </span>
-          <h2 className="text-xl sm:text-2xl font-serif font-bold text-brand-text mt-1">
-            Danh Sách Điểm Danh Thành Viên Lớp K8A1
+          <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
+            Danh Sách Điểm Danh Lớp K8A1
           </h2>
-          <p className="text-xs text-brand-text-muted font-serif italic mt-0.5">
+          <p className="text-xs text-slate-500 font-serif italic">
             Tự động đồng bộ từ Google Sheets • Hội ngộ Chủ Nhật, 27/09/2026 tại Crown Palace
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           {onRefresh && (
             <button
               type="button"
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-brand-border bg-[#FAF9F6] text-[10px] uppercase tracking-wider font-sans font-bold text-brand-text hover:bg-brand-gold-light transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300/90 bg-white text-xs font-sans font-bold uppercase tracking-wider text-slate-700 hover:bg-amber-50 transition cursor-pointer disabled:opacity-50 shadow-2xs"
               title="Làm mới từ Google Sheets"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-brand-gold ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? 'Đang tải...' : 'Làm mới'}</span>
             </button>
           )}
@@ -163,20 +162,11 @@ export default function ConfirmedAttendees({
           <button
             type="button"
             onClick={handleCopyZaloSummary}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-brand-gold-light text-brand-text text-[10px] uppercase tracking-wider font-sans font-bold hover:bg-brand-gold/30 transition-colors cursor-pointer border border-brand-gold/40"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition cursor-pointer"
             title="Sao chép nhanh danh sách để dán vào nhóm Zalo lớp"
           >
-            {copiedZalo ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-green-700" />
-                <span className="text-green-700">Đã chép danh sách!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-brand-gold" />
-                <span>Chép vào Zalo</span>
-              </>
-            )}
+            {copiedZalo ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedZalo ? 'Đã chép!' : 'Chép vào Zalo'}</span>
           </button>
         </div>
       </div>

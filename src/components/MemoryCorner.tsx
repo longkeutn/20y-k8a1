@@ -486,31 +486,25 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Video Header & Add Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-700/80 pb-4 gap-3 relative z-10 text-left">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-inner">
-              <Film className="w-4 h-4 text-amber-400 animate-pulse" />
-            </div>
-            <div>
-              <h3 className="font-serif text-lg sm:text-xl font-bold text-amber-100 flex items-center gap-2">
-                <span>Thước Phim Ngày Ấy</span>
-                <span className="text-[10px] font-sans font-bold bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  {videoList.length} Thước Phim
-                </span>
-              </h3>
-              <p className="text-xs text-slate-400 font-serif italic">
-                Xem lại những khoảnh khắc sống động của K8A1 qua YouTube & Video kỷ niệm
-              </p>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-700/80 pb-3.5 gap-3 relative z-10 text-left">
+          <div className="space-y-1 min-w-0">
+            <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-400 block">
+              Thước Phim Thanh Xuân K8A1
+            </span>
+            <h3 className="text-xl sm:text-2xl font-serif font-bold text-white tracking-tight">
+              Video Kỷ Niệm 20 Năm Ngày Trở Về
+            </h3>
+            <p className="text-xs text-slate-400 font-serif italic">
+              Xem lại những khoảnh khắc sống động của K8A1 qua YouTube & Video kỷ niệm ({videoList.length} video)
+            </p>
           </div>
 
           <button
             type="button"
             onClick={() => setIsVideoModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer self-start sm:self-auto"
           >
-            <PlusCircle className="w-3.5 h-3.5 text-amber-200" />
-            <span>Chèn Link Video</span>
+            <span>+ Thêm Video</span>
           </button>
         </div>
 
@@ -606,19 +600,19 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-200/20 via-orange-100/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
         {/* 🌟 HEADER KHO KỶ YẾU & ẢNH LỚP K8A1 */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-amber-300/60 pb-6 gap-4 relative z-10">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 to-amber-200/80 text-amber-950 text-[10px] font-bold tracking-wider font-sans uppercase border border-amber-300/60 shadow-2xs">
-              <Camera className="w-3.5 h-3.5 text-amber-700" />
-              <span>Niên Khóa 2003 — 2006 • {images.length} Bức Ảnh Kỷ Niệm</span>
-            </div>
+        {/* HEADER KHO KỶ YẾU & ẢNH LỚP K8A1 */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-300/60 pb-3.5 gap-3 relative z-10 text-left">
+          <div className="space-y-1 min-w-0">
+            <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
+              Kho Kỷ Yếu & Ảnh Lớp (2003 — 2006)
+            </span>
             
-            <h3 className="text-2xl sm:text-4xl font-serif font-bold text-[#1E293B] tracking-tight">
-              Kho Kỷ Yếu & Ảnh Lớp K8A1
+            <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
+              Kho Ảnh Kỷ Niệm Lớp K8A1
             </h3>
             
-            <p className="text-xs sm:text-sm text-slate-600 font-serif italic leading-relaxed">
-              Những nụ cười áo trắng, tiếng ve râm ran mùa hạ và ngọn lửa trại thanh xuân 20 năm trước. Nhấp vào ảnh để phóng to HD và thả tim ❤️.
+            <p className="text-xs text-slate-600 font-serif italic">
+              Những nụ cười áo trắng và ngọn lửa trại thanh xuân 20 năm trước • {images.length} bức ảnh
             </p>
           </div>
 
@@ -626,22 +620,22 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           <button
             type="button"
             onClick={() => setIsPhotoUploadModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-md hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-0.5 self-start md:self-auto"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer self-start sm:self-auto"
           >
-            <Upload className="w-4 h-4 text-amber-200 animate-bounce" />
-            <span>Góp Thêm Ảnh Kỷ Niệm</span>
+            <Upload className="w-3.5 h-3.5" />
+            <span>Góp Thêm Ảnh</span>
           </button>
         </div>
 
-        {/* 🌟 BỘ LỌC CHỦ ĐỀ HOÀI NIỆM & THANH TÌM KIẾM */}
+        {/* BỘ LỌC CHỦ ĐỀ HOÀI NIỆM & THANH TÌM KIẾM */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
             {[
               { id: 'all', label: 'Tất Cả', count: countsByCategory.all },
-              { id: 'class', label: '🏫 Góc Lớp', count: countsByCategory.class },
-              { id: 'activity', label: '🔥 Hội Trại', count: countsByCategory.activity },
-              { id: 'graduation', label: '🌸 Bế Giảng', count: countsByCategory.graduation },
-              { id: 'uploads', label: '📸 Bạn Bè Gửi', count: countsByCategory.uploads },
+              { id: 'class', label: 'Góc Lớp', count: countsByCategory.class },
+              { id: 'activity', label: 'Hội Trại', count: countsByCategory.activity },
+              { id: 'graduation', label: 'Bế Giảng', count: countsByCategory.graduation },
+              { id: 'uploads', label: 'Bạn Bè Gửi', count: countsByCategory.uploads },
             ].map((tab) => {
               const isActive = activeFilter === tab.id;
               return (
