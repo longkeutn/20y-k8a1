@@ -39,7 +39,9 @@ import {
   X,
   Link,
   Save,
-  CheckCircle
+  CheckCircle,
+  Upload,
+  RotateCcw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo } from '../types';
@@ -64,6 +66,9 @@ interface AdminManagementHubProps {
   videos: MemoryVideo[];
   onUpdateVideos: (list: MemoryVideo[]) => void;
   
+  heroBannerUrl?: string;
+  onUpdateHeroBannerUrl?: (url: string) => void;
+  
   appsScriptUrl: string;
   onSaveAppsScriptUrl: (url: string) => void;
   onRefreshData?: () => void;
@@ -84,6 +89,8 @@ export default function AdminManagementHub({
   onUpdateImages,
   videos,
   onUpdateVideos,
+  heroBannerUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80',
+  onUpdateHeroBannerUrl,
   appsScriptUrl,
   onSaveAppsScriptUrl,
   onRefreshData,
@@ -110,9 +117,10 @@ export default function AdminManagementHub({
   const [newAdminPin, setNewAdminPin] = useState('');
   const [newBllPin, setNewBllPin] = useState('');
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
+  const [bannerInput, setBannerInput] = useState(heroBannerUrl);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
 
-  // Search & Filters for Member RSVP Tab
+  // Search & Filters for Member Tab
   const [memberSearch, setMemberSearch] = useState('');
   const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'yes' | 'no' | 'checkedIn' | 'notCheckedIn'>('all');
   const [memberShirtFilter, setMemberShirtFilter] = useState<string>('all');
@@ -153,7 +161,7 @@ export default function AdminManagementHub({
   });
 
   // Media Tab state
-  const [mediaSubTab, setMediaSubTab] = useState<'videos' | 'photos'>('videos');
+  const [mediaSubTab, setMediaSubTab] = useState<'banner' | 'videos' | 'photos'>('banner');
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [videoFormData, setVideoFormData] = useState({ title: '', url: '' });
   const [isAddPhotoModalOpen, setIsAddPhotoModalOpen] = useState(false);
@@ -163,6 +171,10 @@ export default function AdminManagementHub({
   useEffect(() => {
     setScriptUrlInput(appsScriptUrl);
   }, [appsScriptUrl]);
+
+  useEffect(() => {
+    setBannerInput(heroBannerUrl);
+  }, [heroBannerUrl]);
 
   // Handle PIN input button click
   const handlePinDigit = (digit: string) => {
@@ -244,7 +256,7 @@ export default function AdminManagementHub({
   const paidMembersCount = useMemo(() => rsvpList.filter(a => a.fundStatus === 'paid').length, [rsvpList]);
 
   // ---------------------------------------------------------------------------
-  // MEMBER (RSVP) CRUD HANDLERS
+  // MEMBER CRUD HANDLERS
   // ---------------------------------------------------------------------------
   const handleToggleCheckIn = (attendee: RsvpData) => {
     const updated = rsvpList.map(item => {
@@ -302,7 +314,6 @@ export default function AdminManagementHub({
     }
 
     if (editingMember) {
-      // Edit existing member
       const updated = rsvpList.map(item => {
         if ((editingMember.id && item.id === editingMember.id) || item.phone === editingMember.phone) {
           return {
@@ -317,7 +328,6 @@ export default function AdminManagementHub({
       onUpdateRsvpList(updated);
       localStorage.setItem('rsvp_list', JSON.stringify(updated));
     } else {
-      // Add new member
       const newMember: RsvpData = {
         id: 'user-' + Date.now(),
         fullName: memberFormData.fullName!.trim(),
@@ -357,7 +367,7 @@ export default function AdminManagementHub({
     }
   };
 
-  // Export CSV for RSVP
+  // Export CSV
   const handleExportRsvpCsv = () => {
     const headers = ['STT', 'Họ và Tên', 'Biệt Danh', 'Số Điện Thoại', 'Lớp', 'Tham Gia', 'Size Áo', 'Điểm Danh Đến', 'Thời Gian Đến', 'Trạng Thái Quỹ 500k', 'Số Tiền Đóng', 'Ghi Chú Quỹ', 'Lời Nhắn'];
     const rows = rsvpList.map((a, idx) => [
@@ -545,16 +555,57 @@ export default function AdminManagementHub({
   };
 
   // ---------------------------------------------------------------------------
+  // HERO BANNER COVER UPLOAD HANDLER
+  // ---------------------------------------------------------------------------
+  const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Kích thước ảnh tối đa là 8MB!');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setBannerInput(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBanner = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bannerInput.trim()) {
+      alert('Vui lòng nhập link ảnh hoặc chọn file tải lên!');
+      return;
+    }
+    if (onUpdateHeroBannerUrl) {
+      onUpdateHeroBannerUrl(bannerInput.trim());
+      setSettingsSuccessMsg('Đã cập nhật ảnh bìa banner đầu trang thành công!');
+      setTimeout(() => setSettingsSuccessMsg(''), 4000);
+    }
+  };
+
+  const handleResetBanner = () => {
+    const defaultUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+    setBannerInput(defaultUrl);
+    if (onUpdateHeroBannerUrl) {
+      onUpdateHeroBannerUrl(defaultUrl);
+      setSettingsSuccessMsg('Đã khôi phục ảnh bìa banner về mặc định!');
+      setTimeout(() => setSettingsSuccessMsg(''), 4000);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
   // MEDIA (VIDEOS / PHOTOS) CRUD HANDLERS
   // ---------------------------------------------------------------------------
   const convertToEmbedUrl = (rawUrl: string): string => {
     const trimmed = rawUrl.trim();
-    // YouTube watch or short
     const ytMatch = trimmed.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
     if (ytMatch && ytMatch[1]) {
       return `https://www.youtube.com/embed/${ytMatch[1]}`;
     }
-    // Google Drive
     const driveMatch = trimmed.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (driveMatch && driveMatch[1]) {
       return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
@@ -871,7 +922,7 @@ export default function AdminManagementHub({
               </div>
               <p className="text-[11px] text-slate-300 font-sans">
                 {isAdmin 
-                  ? 'Quản lý toàn diện thành viên, đối soát quỹ 500k, lưu bút, video & cấu hình' 
+                  ? 'Quản lý thành viên, đối soát quỹ 500k, đổi ảnh bìa, video & cấu hình' 
                   : 'Tiếp đón thành viên, check-in tại bàn lễ tân và đối soát quỹ lớp'}
               </p>
             </div>
@@ -1004,7 +1055,7 @@ export default function AdminManagementHub({
             }`}
           >
             <Video className="w-3.5 h-3.5" />
-            <span>4. Video & Ảnh Kỷ Niệm</span>
+            <span>4. Ảnh Bìa, Video & Gallery</span>
           </button>
 
           {isAdmin && (
@@ -1028,7 +1079,7 @@ export default function AdminManagementHub({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
 
           {/* --------------------------------------------------------------- */}
-          {/* TAB 1: MEMBER / RSVP MANAGEMENT */}
+          {/* TAB 1: MEMBER MANAGEMENT */}
           {/* --------------------------------------------------------------- */}
           {activeTab === 'members' && (
             <div className="space-y-4">
@@ -1239,11 +1290,10 @@ export default function AdminManagementHub({
           )}
 
           {/* --------------------------------------------------------------- */}
-          {/* TAB 2: FUND RECONCILIATION (ĐỐI SOÁT QUỸ 500K) */}
+          {/* TAB 2: FUND RECONCILIATION */}
           {/* --------------------------------------------------------------- */}
           {activeTab === 'fund' && (
             <div className="space-y-4">
-              {/* Fund Summary Card */}
               <div className="bg-gradient-to-r from-[#1A1613] via-[#26201A] to-[#14110F] text-white p-5 rounded-xl border border-amber-400/40 shadow-lg relative overflow-hidden">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
                   <div className="space-y-1">
@@ -1267,7 +1317,6 @@ export default function AdminManagementHub({
                   </button>
                 </div>
 
-                {/* Progress bar */}
                 <div className="mt-4 pt-3 border-t border-amber-400/20 space-y-1.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-amber-200">
@@ -1286,7 +1335,7 @@ export default function AdminManagementHub({
                 </div>
               </div>
 
-              {/* Fund Search & Filter Toolbar */}
+              {/* Fund Search Toolbar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-amber-200">
                 <div className="relative flex-1">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1501,12 +1550,22 @@ export default function AdminManagementHub({
           )}
 
           {/* --------------------------------------------------------------- */}
-          {/* TAB 4: MEDIA (VIDEOS & PHOTOS) CRUD */}
+          {/* TAB 4: MEDIA, HERO BANNER & GALLERY */}
           {/* --------------------------------------------------------------- */}
           {activeTab === 'media' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-amber-200">
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setMediaSubTab('banner')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      mediaSubTab === 'banner' ? 'bg-[#1E293B] text-amber-300' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Ảnh Bìa Hero Banner</span>
+                  </button>
+
                   <button
                     onClick={() => setMediaSubTab('videos')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
@@ -1528,7 +1587,7 @@ export default function AdminManagementHub({
                   </button>
                 </div>
 
-                {mediaSubTab === 'videos' ? (
+                {mediaSubTab === 'videos' && (
                   <button
                     onClick={() => setIsAddVideoModalOpen(true)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer"
@@ -1536,7 +1595,9 @@ export default function AdminManagementHub({
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Chèn Link Video</span>
                   </button>
-                ) : (
+                )}
+
+                {mediaSubTab === 'photos' && (
                   <button
                     onClick={() => setIsAddPhotoModalOpen(true)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer"
@@ -1546,6 +1607,91 @@ export default function AdminManagementHub({
                   </button>
                 )}
               </div>
+
+              {/* Sub-tab: HERO BANNER COVER MANAGEMENT */}
+              {mediaSubTab === 'banner' && (
+                <div className="bg-white p-5 rounded-xl border border-amber-300 shadow-sm space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-slate-900 font-serif flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-amber-600" />
+                      <span>Tùy Chỉnh & Tải Lên Ảnh Bìa Đầu Trang (Hero Banner)</span>
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Ảnh bìa hiển thị tràn ngang toàn màn hình trên desktop và mờ dần xuống nền trang. Bạn có thể dán đường link ảnh hoặc bấm "Tải ảnh từ máy" lên.
+                    </p>
+                  </div>
+
+                  {settingsSuccessMsg && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg text-xs font-bold flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      <span>{settingsSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  {/* Banner Preview */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 block">Xem trước ảnh bìa hiện tại:</label>
+                    <div className="w-full h-48 sm:h-56 rounded-xl overflow-hidden relative border-2 border-dashed border-amber-300 bg-slate-900 shadow-inner">
+                      <img
+                        src={bannerInput}
+                        alt="Preview Banner"
+                        className="w-full h-full object-cover object-center"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#FDFBF7] to-transparent pointer-events-none" />
+                      <span className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[10px] text-amber-200 font-mono">
+                        Ảnh xem trước (Hiệu ứng mờ dần cạnh dưới)
+                      </span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSaveBanner} className="space-y-3 text-xs">
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-700 block">
+                        Đường dẫn ảnh (URL) hoặc tải file từ máy tính/điện thoại:
+                      </label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="text"
+                          value={bannerInput}
+                          onChange={(e) => setBannerInput(e.target.value)}
+                          placeholder="https://... dán link ảnh JPG/PNG/Unsplash/Google Drive"
+                          className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                        />
+                        
+                        <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-amber-200 font-bold rounded-lg cursor-pointer transition whitespace-nowrap shadow-xs">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Tải Ảnh Từ Máy</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleBannerFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={handleResetBanner}
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Khôi Phục Mặc Định</span>
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 text-white font-bold rounded-lg shadow-sm transition cursor-pointer"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Lưu Ảnh Bìa Hero</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
 
               {/* Sub-tab: Videos */}
               {mediaSubTab === 'videos' && (
@@ -1681,7 +1827,7 @@ export default function AdminManagementHub({
                       className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
                     />
                     <p className="text-[11px] text-slate-400">
-                      URL này kết nối trực tiếp với Google Sheets và Google Drive để đồng bộ RSVP, Lưu bút và Đếm lượt xem.
+                      URL này kết nối trực tiếp với Google Sheets và Google Drive để đồng bộ Điểm danh, Lưu bút và Đếm lượt xem.
                     </p>
                   </div>
 

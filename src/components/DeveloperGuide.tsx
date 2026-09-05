@@ -279,7 +279,7 @@ export default function DeveloperGuide({
         </div>
 
         <p className="text-xs text-brand-text-muted leading-relaxed font-serif italic">
-          Sau khi tạo và Deploy ứng dụng web từ Google Sheets theo các bước bên dưới, hãy <strong>dán liên kết Web App (có đuôi <code>/exec</code>)</strong> vào ô này và nhấn "Lưu cấu hình". Dữ liệu đăng ký RSVP, lời chúc và điểm danh sẽ lập tức đổ về Google Sheet của bạn!
+          Sau khi tạo và Deploy ứng dụng web từ Google Sheets theo các bước bên dưới, hãy <strong>dán liên kết Web App (có đuôi <code>/exec</code>)</strong> vào ô này và nhấn "Lưu cấu hình". Dữ liệu đăng ký tham dự, lời chúc và điểm danh sẽ lập tức đổ về Google Sheet của bạn!
         </p>
 
         <div className="space-y-2">
@@ -374,7 +374,7 @@ export default function DeveloperGuide({
               Thiết Lập Cơ Sở Dữ Liệu Miễn Phí (Google Sheets + Google Drive)
             </h4>
             <p className="text-xs text-brand-text-muted font-serif italic">
-              Google Sheets đóng vai trò là cơ sở dữ liệu lưu danh sách đăng ký RSVP, điểm danh và sổ lưu bút. Google Drive dùng để lưu hình ảnh bạn bè tải lên. Hoàn toàn miễn phí, an toàn và bạn làm chủ 100% dữ liệu.
+              Google Sheets đóng vai trò là cơ sở dữ liệu lưu danh sách đăng ký tham dự, điểm danh và sổ lưu bút. Google Drive dùng để lưu hình ảnh bạn bè tải lên. Hoàn toàn miễn phí, an toàn và bạn làm chủ 100% dữ liệu.
             </p>
           </div>
 
@@ -707,7 +707,7 @@ export default function DeveloperGuide({
                 Mã Nguồn Google Apps Script (Code.gs)
               </h4>
               <p className="text-xs text-brand-text-muted font-serif italic">
-                Bao gồm API tiếp nhận đăng ký tham dự (RSVP), Sổ lưu bút, Tải ảnh lên Google Drive và Đếm số lượt truy cập.
+                Bao gồm API tiếp nhận đăng ký tham dự, Sổ lưu bút, Tải ảnh lên Google Drive và Đếm số lượt truy cập.
               </p>
             </div>
             <button
@@ -797,7 +797,7 @@ export default function DeveloperGuide({
                 <span>4. Có cần tạo trước các cột trong Google Sheets không?</span>
               </h5>
               <p className="text-brand-text-muted font-serif italic leading-relaxed pl-6">
-                <strong>Không cần!</strong> Mã nguồn Apps Script đã được lập trình để tự động kiểm tra: nếu Sheet còn trống, script sẽ tự động tạo dòng tiêu đề gồm <code>Mã RSVP, Họ và Tên, Số Điện Thoại, Lớp / Tổ, Cỡ Áo, Tham Dự, Lời Nhắn, Thời Gian Gửi, Điểm Danh</code>. Đồng thời tự động tạo thêm tab <code>Loi_Chuc</code> và <code>Luot_Truy_Cap</code> một cách hoàn toàn tự động.
+                <strong>Không cần!</strong> Mã nguồn Apps Script đã được lập trình để tự động kiểm tra: nếu Sheet còn trống, script sẽ tự động tạo dòng tiêu đề gồm <code>Mã Đăng Ký, Họ và Tên, Số Điện Thoại, Lớp / Tổ, Cỡ Áo, Tham Dự, Lời Nhắn, Thời Gian Gửi, Điểm Danh</code>. Đồng thời tự động tạo thêm tab <code>Loi_Chuc</code> và <code>Luot_Truy_Cap</code> một cách hoàn toàn tự động.
               </p>
             </div>
           </div>
