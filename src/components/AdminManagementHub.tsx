@@ -52,11 +52,18 @@ import {
   ZoomOut,
   Camera,
   CheckCheck,
-  FileText
+  FileText,
+  MapPin,
+  MailOpen,
+  Landmark,
+  QrCode,
+  HelpCircle,
+  Info,
+  Navigation
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem } from '../types';
-import { K8A1_DRIVE_FOLDER_ID, K8A1_DRIVE_FOLDER_URL } from '../data';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig } from '../types';
+import { K8A1_DRIVE_FOLDER_ID, K8A1_DRIVE_FOLDER_URL, DEFAULT_EVENT_CONFIG } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 
 interface AdminManagementHubProps {
@@ -88,6 +95,9 @@ interface AdminManagementHubProps {
   heroBannerPosition?: number;
   onUpdateHeroBannerUrl?: (url: string, positionY?: number) => void;
   
+  eventConfig?: EventConfig;
+  onUpdateEventConfig?: (config: EventConfig) => void;
+
   appsScriptUrl: string;
   onSaveAppsScriptUrl: (url: string) => void;
   onRefreshData?: () => void;
@@ -115,6 +125,8 @@ export default function AdminManagementHub({
   heroBannerUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80',
   heroBannerPosition = 50,
   onUpdateHeroBannerUrl,
+  eventConfig,
+  onUpdateEventConfig,
   appsScriptUrl,
   onSaveAppsScriptUrl,
   onRefreshData,
@@ -159,6 +171,19 @@ export default function AdminManagementHub({
   const [dragStartPos, setDragStartPos] = useState(50);
   const bannerPreviewRef = React.useRef<HTMLDivElement>(null);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
+
+  // Event & Venue Configuration State (Full CRUD for BLL & Admin)
+  const [eventConfigForm, setEventConfigForm] = useState<EventConfig>(() => {
+    return eventConfig || DEFAULT_EVENT_CONFIG;
+  });
+
+  useEffect(() => {
+    if (eventConfig) {
+      setEventConfigForm(eventConfig);
+    }
+  }, [eventConfig]);
+
+  const [settingsSection, setSettingsSection] = useState<'all' | 'venue' | 'date' | 'letter' | 'bank' | 'security'>('all');
 
   // Search & Filters for Member Tab
   const [memberSearch, setMemberSearch] = useState('');
@@ -1162,45 +1187,74 @@ export default function AdminManagementHub({
   };
 
   // ---------------------------------------------------------------------------
-  // SETTINGS & PIN CHANGE (ADMIN ONLY)
+  // SETTINGS & EVENT CONFIGURATION SAVE (BLL & ADMIN FULL CRUD)
   // ---------------------------------------------------------------------------
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentUserRole !== 'admin') {
-      alert('Chỉ Quản trị viên (Admin) mới có quyền chỉnh sửa cấu hình hệ thống!');
+    if (!isAuthorized) {
+      alert('Bạn không có quyền chỉnh sửa cấu hình!');
       return;
     }
 
-    let msg = '';
-    if (newAdminPin) {
-      if (!/^\d{4}$/.test(newAdminPin)) {
-        alert('Mã PIN Admin phải đúng 4 chữ số!');
-        return;
+    // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Thời gian, Thư ngỏ, Quỹ) cho BLL & Admin
+    if (onUpdateEventConfig) {
+      onUpdateEventConfig(eventConfigForm);
+    }
+    try {
+      localStorage.setItem('k8a1_event_config', JSON.stringify(eventConfigForm));
+    } catch (err) {
+      console.error('Lỗi lưu event config:', err);
+    }
+
+    let msg = 'Đã lưu cấu hình sự kiện thành công! ';
+
+    // 2. Lưu Cài đặt bảo mật (PIN & Google Apps Script URL) nếu là Admin
+    if (currentUserRole === 'admin') {
+      if (newAdminPin) {
+        if (!/^\d{4}$/.test(newAdminPin)) {
+          alert('Mã PIN Admin phải đúng 4 chữ số!');
+          return;
+        }
+        setAdminPin(newAdminPin);
+        localStorage.setItem('k8a1_admin_pin', newAdminPin);
+        msg += 'Đã đổi mã PIN Admin mới. ';
+        setNewAdminPin('');
       }
-      setAdminPin(newAdminPin);
-      localStorage.setItem('k8a1_admin_pin', newAdminPin);
-      msg += 'Đã cập nhật mã PIN Admin mới. ';
-      setNewAdminPin('');
-    }
 
-    if (newBllPin) {
-      if (!/^\d{4}$/.test(newBllPin)) {
-        alert('Mã PIN Ban Liên Lạc phải đúng 4 chữ số!');
-        return;
+      if (newBllPin) {
+        if (!/^\d{4}$/.test(newBllPin)) {
+          alert('Mã PIN Ban Liên Lạc phải đúng 4 chữ số!');
+          return;
+        }
+        setBllPin(newBllPin);
+        localStorage.setItem('k8a1_bll_pin', newBllPin);
+        msg += 'Đã đổi mã PIN Ban Liên Lạc mới. ';
+        setNewBllPin('');
       }
-      setBllPin(newBllPin);
-      localStorage.setItem('k8a1_bll_pin', newBllPin);
-      msg += 'Đã cập nhật mã PIN Ban Liên Lạc mới. ';
-      setNewBllPin('');
+
+      if (scriptUrlInput !== appsScriptUrl) {
+        onSaveAppsScriptUrl(scriptUrlInput.trim());
+        msg += 'Đã lưu URL Google Apps Script. ';
+      }
     }
 
-    if (scriptUrlInput !== appsScriptUrl) {
-      onSaveAppsScriptUrl(scriptUrlInput.trim());
-      msg += 'Đã lưu URL Google Apps Script. ';
-    }
-
-    setSettingsSuccessMsg(msg || 'Đã lưu cài đặt thành công!');
+    setSettingsSuccessMsg(msg);
+    confetti({ particleCount: 25, spread: 60, origin: { y: 0.7 } });
     setTimeout(() => setSettingsSuccessMsg(''), 4000);
+  };
+
+  const handleResetEventConfigDefault = () => {
+    if (confirm('Bạn có chắc muốn khôi phục toàn bộ thông tin sự kiện (Crown Palace Thái Nguyên, 27/09/2026, Quỹ 500k) về mặc định ban đầu?')) {
+      setEventConfigForm(DEFAULT_EVENT_CONFIG);
+      if (onUpdateEventConfig) {
+        onUpdateEventConfig(DEFAULT_EVENT_CONFIG);
+      }
+      try {
+        localStorage.setItem('k8a1_event_config', JSON.stringify(DEFAULT_EVENT_CONFIG));
+      } catch {}
+      setSettingsSuccessMsg('Đã khôi phục thông tin sự kiện về mặc định ban đầu!');
+      setTimeout(() => setSettingsSuccessMsg(''), 3000);
+    }
   };
 
   const handleResetToDefault = () => {
@@ -1556,19 +1610,22 @@ export default function AdminManagementHub({
             <span>4. Ảnh Bìa, Video & Gallery</span>
           </button>
 
-          {isAdmin && (
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
-                activeTab === 'settings'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'text-amber-800 hover:bg-amber-50'
-              }`}
-            >
-              <Settings className="w-3.5 h-3.5" />
-              <span>5. Cài Đặt Hệ Thống 👑</span>
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'settings'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-amber-900 hover:bg-amber-100/70 bg-amber-50/50'
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span>5. Cấu Hình Sự Kiện & Hệ Thống</span>
+            {isAdmin ? (
+              <span className="text-[9px] bg-amber-800 text-amber-200 px-1.5 py-0.2 rounded font-mono">Admin 👑</span>
+            ) : (
+              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">BLL 🛡️</span>
+            )}
+          </button>
         </div>
 
         {/* =================================================================== */}
@@ -2728,98 +2785,707 @@ export default function AdminManagementHub({
           )}
 
           {/* --------------------------------------------------------------- */}
-          {/* TAB 5: SYSTEM SETTINGS & PIN MANAGEMENT (ADMIN ONLY) */}
+          {/* TAB 5: EVENT CONFIGURATION & SYSTEM SETTINGS (FULL CRUD) */}
           {/* --------------------------------------------------------------- */}
-          {activeTab === 'settings' && isAdmin && (
-            <div className="space-y-5 max-w-2xl mx-auto">
-              <div className="bg-white p-5 rounded-xl border border-amber-300 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 pb-3 border-b border-amber-200">
-                  <Shield className="w-5 h-5 text-amber-600" />
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 font-serif">
-                      Cấu Hình Mã PIN & Bảo Mật Hệ Thống
+          {activeTab === 'settings' && isAuthorized && (
+            <div className="space-y-6 max-w-4xl mx-auto pb-8 text-left">
+              
+              {/* Header Info */}
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-100/50 to-amber-50 rounded-2xl p-5 border border-amber-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 bg-amber-600 text-white rounded-lg shadow-xs">
+                      <Settings className="w-4 h-4" />
+                    </span>
+                    <h3 className="text-base sm:text-lg font-serif font-bold text-slate-900">
+                      Cấu Hình Thông Tin Sự Kiện & Hệ Thống
                     </h3>
-                    <p className="text-xs text-slate-500">
-                      Mã PIN 4 số giúp Trưởng Ban & Ban Liên Lạc truy cập nhanh các quyền quản trị.
-                    </p>
                   </div>
+                  <p className="text-xs text-slate-600 font-sans">
+                    Dành cho <strong>Ban Liên Lạc 🛡️</strong> và <strong>Quản Trị Viên 👑</strong>. Mọi chỉnh sửa về Địa điểm, Thời gian, Thư ngỏ, Tài khoản quỹ sẽ cập nhật trực tiếp lên trang chủ.
+                  </p>
                 </div>
 
-                <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
-                  {settingsSuccessMsg && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-lg font-bold flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                      <span>{settingsSuccessMsg}</span>
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleResetEventConfigDefault}
+                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-sans font-bold rounded-lg border border-slate-300 shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                    title="Khôi phục thông tin địa điểm và sự kiện mặc định"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Mặc Định</span>
+                  </button>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700 flex items-center justify-between">
-                        <span>👑 Mã PIN Admin (Toàn quyền):</span>
-                        <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Hiện tại: {adminPin}</span>
-                      </label>
-                      <input
-                        type="password"
-                        maxLength={4}
-                        value={newAdminPin}
-                        onChange={(e) => setNewAdminPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="Nhập 4 số PIN Admin mới..."
-                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-amber-500"
-                      />
+                  <button
+                    type="button"
+                    onClick={handleSaveSettings}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-md transition cursor-pointer flex items-center gap-1.5 uppercase tracking-wider"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Lưu Cấu Hình</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Alert Feedback */}
+              {settingsSuccessMsg && (
+                <div className="p-4 bg-emerald-50 border-2 border-emerald-400 text-emerald-900 rounded-xl font-bold text-xs flex items-center gap-2.5 shadow-sm animate-bounce">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>{settingsSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Quick Navigation Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-sans font-bold">
+                <button
+                  type="button"
+                  onClick={() => setSettingsSection('all')}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition ${
+                    settingsSection === 'all'
+                      ? 'bg-slate-900 text-amber-300 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  🌟 Xem Tất Cả
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSection('venue')}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition ${
+                    settingsSection === 'venue'
+                      ? 'bg-slate-900 text-amber-300 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  📍 1. Địa Điểm & Bản Đồ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSection('date')}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition ${
+                    settingsSection === 'date'
+                      ? 'bg-slate-900 text-amber-300 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  📅 2. Thời Gian & Đếm Ngược
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSection('letter')}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition ${
+                    settingsSection === 'letter'
+                      ? 'bg-slate-900 text-amber-300 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  📜 3. Thư Ngỏ & Lời Tựa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSection('bank')}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition ${
+                    settingsSection === 'bank'
+                      ? 'bg-slate-900 text-amber-300 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  🏦 4. Tài Khoản Quỹ & Mã QR
+                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSection('security')}
+                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition ${
+                      settingsSection === 'security'
+                        ? 'bg-slate-900 text-amber-300 shadow-xs'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    🔒 5. Mã PIN & Apps Script
+                  </button>
+                )}
+              </div>
+
+              <form onSubmit={handleSaveSettings} className="space-y-6">
+
+                {/* ============================================================= */}
+                {/* SECTION 1: 📍 ĐỊA ĐIỂM TỔ CHỨC & BẢN ĐỒ GOOGLE MAPS */}
+                {/* ============================================================= */}
+                {(settingsSection === 'all' || settingsSection === 'venue') && (
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
+                          <MapPin className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
+                            1. Địa Điểm Tổ Chức & Bản Đồ Google Maps
+                          </h4>
+                          <p className="text-[11px] text-slate-500 font-sans">
+                            Hiển thị tại mục Hội Ngộ, Thư Ngỏ thiệp mời và Thẻ học sinh
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+                        BLL & Admin
+                      </span>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700 flex items-center justify-between">
-                        <span>🛡️ Mã PIN Ban Liên Lạc:</span>
-                        <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Hiện tại: {bllPin}</span>
-                      </label>
-                      <input
-                        type="password"
-                        maxLength={4}
-                        value={newBllPin}
-                        onChange={(e) => setNewBllPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="Nhập 4 số PIN BLL mới..."
-                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-amber-500"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-bold text-slate-700 flex items-center justify-between">
+                          <span>Tên Trung Tâm / Nhà Hàng (*):</span>
+                          <span className="text-[11px] font-normal text-slate-400">VD: Crown Palace Thái Nguyên</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={eventConfigForm.venueName}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueName: e.target.value })}
+                          placeholder="VD: Trung Tâm Tiệc Cưới & Sự Kiện Crown Palace"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-bold text-slate-700">
+                          Phụ Đề Sự Kiện Tại Địa Điểm:
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.venueSubtitle || ''}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueSubtitle: e.target.value })}
+                          placeholder="VD: Địa điểm tổ chức Họp Lớp 20 Năm Ngày Trở Về — Lớp K8A1"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-bold text-slate-700">
+                          Địa Chỉ Đầy Đủ (*):
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={eventConfigForm.venueAddress}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueAddress: e.target.value })}
+                          placeholder="VD: Số 779 đường Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên, Tỉnh Thái Nguyên"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Địa Chỉ Rút Gọn (Hiển thị thiệp):
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.shortAddress}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, shortAddress: e.target.value })}
+                          placeholder="VD: 779 Dương Tự Minh, TP. Thái Nguyên"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 flex items-center justify-between">
+                          <span>Link Google Maps Trực Tiếp / Chỉ Đường:</span>
+                          {eventConfigForm.mapDirectUrl && (
+                            <a
+                              href={eventConfigForm.mapDirectUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-amber-700 hover:text-amber-900 inline-flex items-center gap-1 font-bold"
+                            >
+                              <span>Mở Thử</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </label>
+                        <input
+                          type="url"
+                          value={eventConfigForm.mapDirectUrl}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, mapDirectUrl: e.target.value })}
+                          placeholder="https://maps.google.com/?q=..."
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-bold text-slate-700 flex items-center justify-between">
+                          <span>Link Nhúng Bản Đồ Google Maps (iframe embed):</span>
+                          <span className="text-[11px] text-slate-400 font-normal">URL trong thẻ iframe src</span>
+                        </label>
+                        <input
+                          type="url"
+                          value={eventConfigForm.mapEmbedUrl}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, mapEmbedUrl: e.target.value })}
+                          placeholder="https://maps.google.com/maps?q=...&output=embed"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                        />
+                        <p className="text-[11px] text-slate-400">
+                          💡 <strong>Cách lấy link nhúng:</strong> Mở Google Maps → Tìm địa điểm → Bấm <em>Chia sẻ</em> → Chọn tab <em>Nhúng bản đồ</em> → Sao chép URL nằm trong thuộc tính <code>src="..."</code> dán vào đây.
+                        </p>
+                      </div>
+
+                      {/* Live Embed Preview */}
+                      {eventConfigForm.mapEmbedUrl && (
+                        <div className="sm:col-span-2 space-y-1.5">
+                          <label className="font-bold text-slate-600 text-[11px]">Xem trước bản đồ Google Maps:</label>
+                          <div className="rounded-xl overflow-hidden border border-amber-300/60 aspect-video max-h-56 bg-slate-100">
+                            <iframe
+                              title="Xem trước Google Maps"
+                              src={eventConfigForm.mapEmbedUrl}
+                              className="w-full h-full border-0"
+                              loading="lazy"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
+                )}
 
-                  <div className="space-y-1.5 pt-2">
-                    <label className="font-bold text-slate-700 block">
-                      🔗 URL Google Apps Script WebApp (Backend Sheet):
-                    </label>
-                    <input
-                      type="url"
-                      value={scriptUrlInput}
-                      onChange={(e) => setScriptUrlInput(e.target.value)}
-                      placeholder="https://script.google.com/macros/s/.../exec"
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
-                    />
-                    <p className="text-[11px] text-slate-400">
-                      URL này kết nối trực tiếp với Google Sheets và Google Drive để đồng bộ Điểm danh, Lưu bút và Đếm lượt xem.
-                    </p>
+                {/* ============================================================= */}
+                {/* SECTION 2: 📅 THỜI GIAN TỔ CHỨC & ĐẾM NGƯỢC */}
+                {/* ============================================================= */}
+                {(settingsSection === 'all' || settingsSection === 'date') && (
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
+                          <Calendar className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
+                            2. Thời Gian Tổ Chức & Đồng Hồ Đếm Ngược
+                          </h4>
+                          <p className="text-[11px] text-slate-500 font-sans">
+                            Cấu hình ngày giờ hiển thị trên Banner, Đồng hồ đếm ngược và Lịch nhắc Google Calendar
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+                        BLL & Admin
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Tiêu Đề Sự Kiện:
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.eventTitle}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, eventTitle: e.target.value })}
+                          placeholder="VD: 20 Năm Ngày Trở Về"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Phụ Đề Khóa / Lớp:
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.eventSubtitle}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, eventSubtitle: e.target.value })}
+                          placeholder="VD: Lớp K8A1 — Trường THPT Thái Nguyên"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Dòng Hiển Thị Ngày Tổ Chức (*):
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={eventConfigForm.eventDateText}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, eventDateText: e.target.value })}
+                          placeholder="VD: Chủ Nhật, 27/09/2026 (08:30 — 15:30)"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Dòng Hiển Thị Giờ Đón Tiếp:
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.eventTimeText}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, eventTimeText: e.target.value })}
+                          placeholder="VD: Từ 08:30 Sáng — Chủ Nhật, ngày 27/09/2026"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-bold text-slate-700 flex items-center justify-between">
+                          <span>Mốc Thời Gian Đích Cho Đồng Hồ Đếm Ngược (Chuẩn ISO):</span>
+                          <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            {eventConfigForm.countdownTarget}
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={eventConfigForm.countdownTarget}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, countdownTarget: e.target.value })}
+                          placeholder="2026-09-27T08:30:00+07:00"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                        />
+                        <p className="text-[11px] text-slate-400">
+                          Định dạng chuẩn: <code>YYYY-MM-DDTHH:mm:ss+07:00</code> (VD: <code>2026-09-27T08:30:00+07:00</code> cho 8h30 sáng ngày 27/09/2026).
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  <div className="pt-3 flex items-center justify-between">
+                {/* ============================================================= */}
+                {/* SECTION 3: 📜 THƯ NGỎ & THIỆP MỜI DẠ TIỆC */}
+                {/* ============================================================= */}
+                {(settingsSection === 'all' || settingsSection === 'letter') && (
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
+                          <MailOpen className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
+                            3. Thư Ngỏ & Lời Tựa Kỷ Niệm 20 Năm
+                          </h4>
+                          <p className="text-[11px] text-slate-500 font-sans">
+                            Nội dung bức thư trang trọng gửi gắm tới các bạn học sinh Lớp K8A1
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+                        BLL & Admin
+                      </span>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Tiêu Đề Thư Ngỏ:
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.letterTitle}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, letterTitle: e.target.value })}
+                          placeholder="VD: Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-serif font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Lời Tựa Dưới Tiêu Đề:
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.letterSubtitle}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, letterSubtitle: e.target.value })}
+                          placeholder="VD: Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-serif italic text-slate-700 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Nội Dung Đoạn 1 (Mở đầu tâm thư):
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={eventConfigForm.letterParagraph1}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, letterParagraph1: e.target.value })}
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-serif text-slate-800 leading-relaxed focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Nội Dung Đoạn 2 (Lời hẹn ngày hội ngộ):
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={eventConfigForm.letterParagraph2}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, letterParagraph2: e.target.value })}
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-serif text-slate-800 leading-relaxed focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-slate-700">
+                            Đơn Vị / Đại Diện Ký Tên:
+                          </label>
+                          <input
+                            type="text"
+                            value={eventConfigForm.letterSignatureTitle}
+                            onChange={(e) => setEventConfigForm({ ...eventConfigForm, letterSignatureTitle: e.target.value })}
+                            placeholder="VD: Ban Liên Lạc Lớp K8A1 (Khóa 8)"
+                            className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-slate-700">
+                            Phụ Chú Chữ Ký:
+                          </label>
+                          <input
+                            type="text"
+                            value={eventConfigForm.letterSignatureSubtitle}
+                            onChange={(e) => setEventConfigForm({ ...eventConfigForm, letterSignatureSubtitle: e.target.value })}
+                            placeholder="VD: Trường THPT Thái Nguyên (2003 — 2006)"
+                            className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ============================================================= */}
+                {/* SECTION 4: 🏦 TÀI KHOẢN ĐÓNG QUỸ & MÃ QR TẠM ỨNG */}
+                {/* ============================================================= */}
+                {(settingsSection === 'all' || settingsSection === 'bank') && (
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
+                          <Landmark className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
+                            4. Tài Khoản Quỹ Lớp & Mã QR Đóng Tiền
+                          </h4>
+                          <p className="text-[11px] text-slate-500 font-sans">
+                            Hiển thị tại Thẻ Chuyển Khoản Đóng Quỹ (Tạm Ứng 500k) và sinh mã VietQR tự động
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+                        BLL & Admin
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Tên Ngân Hàng (*):
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={eventConfigForm.bankName}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankName: e.target.value })}
+                          placeholder="VD: Vietcombank (VCB)"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Số Tài Khoản Nhận Quỹ (*):
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={eventConfigForm.bankAccount}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankAccount: e.target.value })}
+                          placeholder="VD: 10123456789"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono font-bold text-emerald-700 text-sm focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Tên Chủ Tài Khoản (In Hoa) (*):
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={eventConfigForm.bankHolder}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankHolder: e.target.value.toUpperCase() })}
+                          placeholder="VD: NGUYEN VAN BAN TO CHUC"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold uppercase focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700">
+                          Mức Đóng Quỹ Tạm Ứng / Người (VNĐ):
+                        </label>
+                        <input
+                          type="number"
+                          step={50000}
+                          value={eventConfigForm.fundAmountPerPerson}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, fundAmountPerPerson: Number(e.target.value) || 500000 })}
+                          placeholder="500000"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-amber-800 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-bold text-slate-700">
+                          Cú Pháp Chuyển Khoản Mẫu:
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.transferSyntax}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, transferSyntax: e.target.value })}
+                          placeholder="VD: KY NIEM 20 NAM [HO TEN] [SDT]"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-bold text-slate-700 flex items-center justify-between">
+                          <span>Link Ảnh Mã QR Code Tùy Chỉnh (Tùy chọn):</span>
+                          <span className="text-[11px] text-slate-400 font-normal">Nếu để trống, hệ thống tự tạo VietQR theo STK và mức quỹ</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={eventConfigForm.customQrUrl || ''}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, customQrUrl: e.target.value })}
+                          placeholder="https://img.vietqr.io/image/... hoặc để trống"
+                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ============================================================= */}
+                {/* SECTION 5: 🔒 CẤU HÌNH MÃ PIN & GOOGLE APPS SCRIPT (ADMIN ONLY) */}
+                {/* ============================================================= */}
+                {(settingsSection === 'all' || settingsSection === 'security') && (
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
+                          <Shield className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
+                            5. Cấu Hình Mã PIN & Backend Google Apps Script
+                          </h4>
+                          <p className="text-[11px] text-slate-500 font-sans">
+                            Quản lý quyền đăng nhập Admin/BLL và liên kết cơ sở dữ liệu Google Sheet
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 font-bold">
+                        👑 Admin Only
+                      </span>
+                    </div>
+
+                    {isAdmin ? (
+                      <div className="space-y-4 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>👑 Mã PIN Admin (Toàn quyền):</span>
+                              <span className="font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">Hiện tại: {adminPin}</span>
+                            </label>
+                            <input
+                              type="password"
+                              maxLength={4}
+                              value={newAdminPin}
+                              onChange={(e) => setNewAdminPin(e.target.value.replace(/\D/g, ''))}
+                              placeholder="Nhập 4 số PIN Admin mới..."
+                              className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>🛡️ Mã PIN Ban Liên Lạc:</span>
+                              <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">Hiện tại: {bllPin}</span>
+                            </label>
+                            <input
+                              type="password"
+                              maxLength={4}
+                              value={newBllPin}
+                              onChange={(e) => setNewBllPin(e.target.value.replace(/\D/g, ''))}
+                              placeholder="Nhập 4 số PIN BLL mới..."
+                              className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-slate-700 block">
+                            🔗 URL Google Apps Script WebApp (Backend Sheet):
+                          </label>
+                          <input
+                            type="url"
+                            value={scriptUrlInput}
+                            onChange={(e) => setScriptUrlInput(e.target.value)}
+                            placeholder="https://script.google.com/macros/s/.../exec"
+                            className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                          />
+                          <p className="text-[11px] text-slate-400">
+                            URL này kết nối trực tiếp với Google Sheets và Google Drive để đồng bộ Điểm danh, Lưu bút và Đếm lượt xem.
+                          </p>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={handleResetToDefault}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer"
+                          >
+                            Khôi Phục PIN Mặc Định (8888/2006)
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+                        <span>Chỉ Quản trị viên (Admin 👑) mới có quyền đổi mã PIN và cấu hình URL Google Apps Script.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* BOTTOM SAVE ACTION BAR */}
+                <div className="pt-4 border-t border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-xs text-slate-500 italic">
+                    💡 Nhấn "Lưu Cấu Hình" để áp dụng ngay lập tức cho toàn bộ giao diện WebApp.
+                  </p>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
                       type="button"
-                      onClick={handleResetToDefault}
-                      className="px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer"
+                      onClick={handleResetEventConfigDefault}
+                      className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-sans font-bold transition cursor-pointer"
                     >
-                      Khôi Phục PIN Mặc Định (8888/2006)
+                      Khôi Phục Mặc Định
                     </button>
 
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-md transition cursor-pointer flex items-center gap-1.5"
+                      className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-lg transition cursor-pointer flex items-center justify-center gap-2"
                     >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Lưu Cấu Hình</span>
+                      <Save className="w-4 h-4" />
+                      <span>Lưu Cấu Hình Sự Kiện</span>
                     </button>
                   </div>
-                </form>
-              </div>
+                </div>
+
+              </form>
             </div>
           )}
 

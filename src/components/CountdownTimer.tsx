@@ -4,10 +4,18 @@ import { Clock, Calendar, Bell, Sparkles, MapPin, CheckCircle2 } from 'lucide-re
 
 interface CountdownTimerProps {
   targetDate?: string; // ISO format or date string
+  eventDateText?: string;
+  venueName?: string;
+  eventTimeText?: string;
+  eventTitle?: string;
 }
 
 export default function CountdownTimer({ 
-  targetDate = '2026-09-27T08:30:00+07:00' 
+  targetDate = '2026-09-27T08:30:00+07:00',
+  eventDateText = '27/09/2026',
+  venueName = 'Crown Palace Thái Nguyên',
+  eventTimeText = 'Đón tiếp từ 08:30 sáng',
+  eventTitle = 'Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên'
 }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -58,9 +66,9 @@ export default function CountdownTimer({
 
   // Google Calendar Link generator
   const createGoogleCalendarUrl = () => {
-    const title = encodeURIComponent("Hội Ngộ 20 Năm Lớp K8A1 - THPT Thái Nguyên (2006 - 2026)");
-    const details = encodeURIComponent("Kỷ niệm 20 năm ngày ra trường Lớp K8A1 (Khóa 8), Trường THPT Thái Nguyên. Gặp lại bạn bè thân yêu thời áo trắng, ôn lại ký ức thanh xuân tại Crown Palace Thái Nguyên.");
-    const location = encodeURIComponent("Trung tâm tổ chức sự kiện - tiệc cưới Crown Palace (779 Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên)");
+    const title = encodeURIComponent(`${eventTitle} (2006 - 2026)`);
+    const details = encodeURIComponent(`Kỷ niệm 20 năm ngày ra trường Lớp K8A1 (Khóa 8), Trường THPT Thái Nguyên. Gặp lại bạn bè thân yêu thời áo trắng, ôn lại ký ức thanh xuân tại ${venueName}.`);
+    const location = encodeURIComponent(venueName);
     // 2026-09-27T08:30:00 to 2026-09-27T15:30:00 in UTC format (VN is UTC+7 -> 08:30 is 01:30 UTC)
     const dates = "20260927T013000Z/20260927T083000Z";
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`;
@@ -88,11 +96,11 @@ export default function CountdownTimer({
             </span>
             <span className="text-[10px] text-brand-text-muted">•</span>
             <span className="text-[11px] font-sans font-semibold text-brand-text">
-              27/09/2026
+              {eventDateText}
             </span>
           </div>
           <p className="text-xs text-brand-text-muted font-serif italic">
-            Crown Palace Thái Nguyên • Đón tiếp từ 08:30 sáng
+            {venueName} • {eventTimeText}
           </p>
         </div>
 

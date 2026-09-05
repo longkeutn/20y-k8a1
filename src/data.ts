@@ -1,4 +1,4 @@
-import { RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem } from './types';
+import { RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig } from './types';
 
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
@@ -194,6 +194,32 @@ export const DEFAULT_VIDEOS: MemoryVideo[] = [
     embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
   }
 ];
+
+export const DEFAULT_EVENT_CONFIG: EventConfig = {
+  eventTitle: "20 Năm Ngày Trở Về",
+  eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
+  eventDateText: "Chủ Nhật, 27/09/2026 (08:30 — 15:30)",
+  eventTimeText: "Từ 08:30 Sáng — Chủ Nhật, ngày 27/09/2026",
+  countdownTarget: "2026-09-27T08:30:00+07:00",
+  venueName: "Crown Palace Thái Nguyên",
+  venueSubtitle: "Địa điểm tổ chức Họp Lớp 20 Năm Ngày Trở Về — Lớp K8A1",
+  venueAddress: "Số 779 đường Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên, Tỉnh Thái Nguyên",
+  shortAddress: "779 Dương Tự Minh, TP. Thái Nguyên",
+  mapEmbedUrl: "https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=&z=15&ie=UTF8&iwloc=&output=embed",
+  mapDirectUrl: "https://maps.google.com/?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&ll=21.6041,105.8286&z=16",
+  letterTitle: "Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1",
+  letterSubtitle: "Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên",
+  letterParagraph1: "Hai mươi năm — một chặng đường đủ dài để mỗi thành viên Lớp K8A1 (Khóa 8) chúng ta trưởng thành, gây dựng sự nghiệp và vun vén cho những tổ ấm riêng. Dù hôm nay mỗi người mỗi ngả, bộn bề với những lo toan cuộc sống, nhưng sâu thẳm trong tim mỗi chúng ta vẫn luôn vẹn nguyên một ngăn ký ức thiêng liêng dành cho những năm tháng cấp 3 rực rỡ dưới mái trường THPT Thái Nguyên thân thương.",
+  letterParagraph2: "Hãy tạm gác lại những bộn bề âu lo, cùng trở về Crown Palace Thái Nguyên để gặp lại những gương mặt thanh xuân năm nào, cùng viết tiếp câu chuyện tình bạn đẹp đẽ của Lớp K8A1 chúng mình!",
+  letterSignatureTitle: "Ban Liên Lạc Lớp K8A1 (Khóa 8)",
+  letterSignatureSubtitle: "Trường THPT Thái Nguyên (2003 — 2006)",
+  bankName: "Vietcombank (VCB)",
+  bankAccount: "10123456789",
+  bankHolder: "NGUYEN VAN BAN TO CHUC",
+  transferSyntax: "KY NIEM 20 NAM [HO TEN] [SDT]",
+  fundAmountPerPerson: 500000,
+  customQrUrl: ""
+};
 
 export const K8A1_DRIVE_FOLDER_ID = "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
 export const K8A1_DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1Skmip1HQhmXan-58kwbY_msamP-bWokq";

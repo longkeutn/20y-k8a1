@@ -148,3 +148,30 @@ export interface VenueMediaItem {
   thumbnail?: string;
   desc?: string;
 }
+
+export interface EventConfig {
+  eventTitle: string;
+  eventSubtitle: string;
+  eventDateText: string;
+  eventTimeText: string;
+  countdownTarget: string;
+  venueName: string;
+  venueSubtitle?: string;
+  venueAddress: string;
+  shortAddress: string;
+  mapEmbedUrl: string;
+  mapDirectUrl: string;
+  letterTitle: string;
+  letterSubtitle: string;
+  letterParagraph1: string;
+  letterParagraph2: string;
+  letterSignatureTitle: string;
+  letterSignatureSubtitle: string;
+  bankName: string;
+  bankAccount: string;
+  bankHolder: string;
+  transferSyntax: string;
+  fundAmountPerPerson: number;
+  customQrUrl?: string;
+}
+

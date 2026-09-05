@@ -17,11 +17,12 @@ import {
   Lock,
   Crown,
   Shield,
-  Music
+  Music,
+  Edit3
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS } from './data';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig } from './types';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -49,6 +50,27 @@ export default function App() {
       return '';
     }
   });
+
+  // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
+  const [eventConfig, setEventConfig] = useState<EventConfig>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_event_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_EVENT_CONFIG, ...parsed };
+      }
+    } catch {}
+    return DEFAULT_EVENT_CONFIG;
+  });
+
+  const handleUpdateEventConfig = (newConfig: EventConfig) => {
+    setEventConfig(newConfig);
+    try {
+      localStorage.setItem('k8a1_event_config', JSON.stringify(newConfig));
+    } catch (err) {
+      console.error('Lỗi lưu event config:', err);
+    }
+  };
 
   // User Role (RBAC): 'guest' | 'bll' | 'admin'
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
@@ -463,9 +485,9 @@ export default function App() {
           {/* Main Title & Subtitle */}
           <div className="space-y-2 max-w-2xl text-left">
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-serif text-white font-black tracking-tight leading-[1.1] drop-shadow-lg">
-              20 Năm Ngày Trở Về
+              {eventConfig.eventTitle || "20 Năm Ngày Trở Về"}
               <span className="block text-xl sm:text-2xl md:text-3xl font-serif font-medium italic text-amber-300 mt-1.5 drop-shadow-md">
-                Lớp K8A1 — Trường THPT Thái Nguyên
+                {eventConfig.eventSubtitle || "Lớp K8A1 — Trường THPT Thái Nguyên"}
               </span>
             </h1>
             <p className="text-xs sm:text-sm md:text-base text-slate-100 font-serif italic leading-relaxed pt-1 drop-shadow-md max-w-xl">
@@ -481,7 +503,7 @@ export default function App() {
               </div>
               <div>
                 <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/90 font-bold">Thời gian hội ngộ</p>
-                <p className="font-serif font-bold text-white text-xs sm:text-sm">Chủ Nhật, 27/09/2026 (08:30 — 15:30)</p>
+                <p className="font-serif font-bold text-white text-xs sm:text-sm">{eventConfig.eventDateText}</p>
               </div>
             </div>
 
@@ -491,7 +513,9 @@ export default function App() {
               </div>
               <div>
                 <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/90 font-bold">Địa điểm gặp mặt</p>
-                <p className="font-serif font-bold text-white text-xs sm:text-sm">Crown Palace Thái Nguyên (779 Dương Tự Minh)</p>
+                <p className="font-serif font-bold text-white text-xs sm:text-sm">
+                  {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
+                </p>
               </div>
             </div>
           </div>
@@ -541,7 +565,13 @@ export default function App() {
 
             {/* MODULE ĐẾM NGƯỢC THỜI GIAN */}
             <div className="pt-0.5">
-              <CountdownTimer targetDate="2026-09-27T08:30:00+07:00" />
+              <CountdownTimer 
+                targetDate={eventConfig.countdownTarget} 
+                eventDateText={eventConfig.eventDateText}
+                venueName={eventConfig.venueName}
+                eventTimeText={eventConfig.eventTimeText}
+                eventTitle={eventConfig.eventTitle}
+              />
             </div>
 
             {/* LIVE CLASSMATES GATHERING STRIP (SOCIAL PROOF) */}
@@ -614,50 +644,67 @@ export default function App() {
 
               {/* Letter Header */}
               <div className="space-y-2 border-b border-amber-400/40 pb-5 relative z-10 max-w-xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-300/70 rounded-full text-amber-900 text-[10px] font-sans font-bold uppercase tracking-[0.2em]">
-                  <MailOpen className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Thư Ngỏ Kỷ Niệm 20 Năm • Lớp K8A1 (2006 — 2026)</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-300/70 rounded-full text-amber-900 text-[10px] font-sans font-bold uppercase tracking-[0.2em]">
+                    <MailOpen className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Thư Ngỏ Kỷ Niệm 20 Năm • Lớp K8A1 (2006 — 2026)</span>
+                  </div>
+
+                  {(currentUserRole === 'admin' || currentUserRole === 'bll') && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAdminHub('settings')}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-100/70 hover:bg-amber-200/80 text-amber-900 text-[10px] font-sans font-bold rounded-full border border-amber-300 transition cursor-pointer"
+                      title="Dành cho Ban Liên Lạc & Admin: Chỉnh sửa lời ngỏ thiệp mời"
+                    >
+                      <Edit3 className="w-3 h-3 text-amber-700" />
+                      <span>Sửa Lời Ngỏ & Địa Điểm</span>
+                    </button>
+                  )}
                 </div>
+                
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#1E293B] font-bold tracking-tight leading-snug">
-                  Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1
+                  {eventConfig.letterTitle || "Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1"}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 font-serif italic">
-                  Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên
+                  {eventConfig.letterSubtitle || "Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên"}
                 </p>
               </div>
 
               {/* Letter Body */}
               <div className="text-sm sm:text-base md:text-lg text-slate-700 leading-relaxed space-y-4 font-serif relative z-10">
-                <p className="italic text-slate-800 first-letter:text-4xl sm:first-letter:text-5xl first-letter:font-bold first-letter:text-amber-600 first-letter:mr-2.5 first-letter:float-left first-letter:leading-none">
-                  Hai mươi năm — một chặng đường đủ dài để mỗi thành viên Lớp K8A1 (Khóa 8) chúng ta trưởng thành, gây dựng sự nghiệp và vun vén cho những tổ ấm riêng. Dù hôm nay mỗi người mỗi ngả, bộn bề với những lo toan cuộc sống, nhưng sâu thẳm trong tim mỗi chúng ta vẫn luôn vẹn nguyên một ngăn ký ức thiêng liêng dành cho những năm tháng cấp 3 rực rỡ dưới mái trường THPT Thái Nguyên thân thương.
+                <p className="italic text-slate-800 first-letter:text-4xl sm:first-letter:text-5xl first-letter:font-bold first-letter:text-amber-600 first-letter:mr-2.5 first-letter:float-left first-letter:leading-none whitespace-pre-line">
+                  {eventConfig.letterParagraph1}
                 </p>
 
                 {/* Golden Ticket Style Callout */}
                 <div className="my-4 p-4 sm:p-6 bg-gradient-to-r from-[#FAF3E0] via-[#FFFDF5] to-[#FAF3E0] border-2 border-dashed border-amber-500/70 rounded-xl shadow-xs font-sans relative">
                   <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider mb-2">
                     <Sparkles className="w-4 h-4 text-amber-600" />
-                    <span>Hẹn Ngày Trở Về: Chủ Nhật, 27 Tháng 09 Năm 2026</span>
+                    <span>Hẹn Ngày Trở Về: {eventConfig.eventDateText}</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs text-slate-800">
                     <div className="flex items-start gap-2">
                       <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                       <div>
                         <p className="font-bold text-slate-900">Thời gian đón tiếp:</p>
-                        <p className="text-slate-600">Từ 08:30 sáng đến 15:30 chiều</p>
+                        <p className="text-slate-600">{eventConfig.eventTimeText || 'Từ 08:30 sáng đến 15:30 chiều'}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <MapPin className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                       <div>
                         <p className="font-bold text-slate-900">Địa điểm họp mặt:</p>
-                        <p className="text-slate-600">Crown Palace Thái Nguyên (779 Dương Tự Minh)</p>
+                        <p className="text-slate-600">
+                          {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <p className="italic text-slate-800">
-                  Hãy tạm gác lại những bộn bề âu lo, cùng trở về Crown Palace Thái Nguyên để gặp lại những gương mặt thanh xuân năm nào, cùng viết tiếp câu chuyện tình bạn đẹp đẽ của Lớp K8A1 chúng mình!
+                <p className="italic text-slate-800 whitespace-pre-line">
+                  {eventConfig.letterParagraph2}
                 </p>
               </div>
 
@@ -677,10 +724,10 @@ export default function App() {
 
                 <div className="text-left sm:text-right space-y-0.5">
                   <p className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-800">
-                    Ban Liên Lạc Lớp K8A1 (Khóa 8)
+                    {eventConfig.letterSignatureTitle || "Ban Liên Lạc Lớp K8A1 (Khóa 8)"}
                   </p>
                   <p className="text-xs font-serif italic text-slate-500">
-                    Trường THPT Thái Nguyên (2003 — 2006)
+                    {eventConfig.letterSignatureSubtitle || "Trường THPT Thái Nguyên (2003 — 2006)"}
                   </p>
                 </div>
               </div>
@@ -702,6 +749,7 @@ export default function App() {
             {/* 🗺️ PHÂN VÙNG 3: BẢN ĐỒ TỤ HỘI & ĐỊA ĐIỂM HỌP LỚP K8A1 */}
             {/* ======================================================== */}
             <AlumniConvergenceMap
+              eventConfig={eventConfig}
               venueMediaList={venueMediaList}
               onUpdateVenueMediaList={(updated) => {
                 setVenueMediaList(updated);
@@ -748,6 +796,12 @@ export default function App() {
 
               {/* Thông Tin Quỹ Lớp Minh Bạch */}
               <BankTransfer 
+                bankName={eventConfig.bankName}
+                bankAccount={eventConfig.bankAccount}
+                bankHolder={eventConfig.bankHolder}
+                transferSyntax={eventConfig.transferSyntax}
+                fundAmount={eventConfig.fundAmountPerPerson}
+                customQrUrl={eventConfig.customQrUrl}
                 appsScriptUrl={appsScriptUrl}
                 rsvpList={rsvpList}
                 onOpenReceiptModal={handleOpenReceiptModal}
@@ -828,6 +882,8 @@ export default function App() {
         heroBannerUrl={heroBannerUrl}
         heroBannerPosition={heroBannerPosition}
         onUpdateHeroBannerUrl={handleUpdateHeroBanner}
+        eventConfig={eventConfig}
+        onUpdateEventConfig={handleUpdateEventConfig}
         appsScriptUrl={appsScriptUrl}
         onSaveAppsScriptUrl={(url) => {
           setAppsScriptUrl(url);

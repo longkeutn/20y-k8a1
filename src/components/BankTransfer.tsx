@@ -18,6 +18,7 @@ interface BankTransferProps {
   bankAccount?: string;
   bankHolder?: string;
   transferSyntax?: string;
+  fundAmount?: number;
   appsScriptUrl?: string;
   rsvpList?: RsvpData[];
   onUpdateRsvpList?: (list: RsvpData[]) => void;
@@ -30,14 +31,30 @@ export default function BankTransfer({
   bankAccount = "10123456789",
   bankHolder = "NGUYEN VAN BAN TO CHUC",
   transferSyntax = "KY NIEM 20 NAM [HO TEN] [SDT]",
+  fundAmount = 500000,
   appsScriptUrl = "",
   rsvpList = [],
   onUpdateRsvpList,
   onOpenReceiptModal
 }: BankTransferProps) {
-  // Use a beautifully generated QR Code or template as default
-  const defaultQrUrl = "https://img.vietqr.io/image/vietcombank-10123456789-compact2.jpg?amount=500000&addInfo=KY%20NIEM%2020%20NAM%20[HO%20TEN]%20[SDT]";
-  const qrUrl = customQrUrl || defaultQrUrl;
+  // Helper to get bank code for VietQR
+  const getBankCode = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.includes('vietcombank') || lower.includes('vcb')) return 'vietcombank';
+    if (lower.includes('techcombank') || lower.includes('tcb')) return 'techcombank';
+    if (lower.includes('mb') || lower.includes('mbbank')) return 'mbbank';
+    if (lower.includes('bidv')) return 'bidv';
+    if (lower.includes('vietinbank') || lower.includes('ctg') || lower.includes('vietin')) return 'vietinbank';
+    if (lower.includes('acb')) return 'acb';
+    if (lower.includes('vpbank') || lower.includes('vpb')) return 'vpbank';
+    if (lower.includes('tpbank') || lower.includes('tpb')) return 'tpbank';
+    if (lower.includes('sacombank') || lower.includes('stb')) return 'sacombank';
+    return 'vietcombank';
+  };
+
+  const cleanAcc = bankAccount.replace(/\s+/g, '');
+  const dynamicQrUrl = `https://img.vietqr.io/image/${getBankCode(bankName)}-${cleanAcc}-compact2.jpg?amount=${fundAmount}&addInfo=${encodeURIComponent(transferSyntax)}`;
+  const qrUrl = customQrUrl || dynamicQrUrl;
 
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [copiedSyntax, setCopiedSyntax] = useState(false);

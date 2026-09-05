@@ -17,7 +17,7 @@ import {
   Plus
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { UserRole, VenueMediaItem } from '../types';
+import { UserRole, VenueMediaItem, EventConfig } from '../types';
 
 // ============================================================================
 // CONSTANTS & VENUE METADATA (CROWN PALACE THÁI NGUYÊN)
@@ -121,21 +121,20 @@ export function parseVenueMedia(url: string): {
     };
   }
 
-  // 3. Google Drive Video or File
+  // 3. Google Drive Video / Image Preview
   const driveMatch = cleanUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/i);
   if (driveMatch && driveMatch[1]) {
-    const fileId = driveMatch[1];
     return {
       type: 'drive',
-      embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+      embedUrl: `https://drive.google.com/file/d/${driveMatch[1]}/preview`,
       rawUrl: cleanUrl,
       canonicalUrl: cleanUrl,
-      driveId: fileId,
+      driveId: driveMatch[1],
       label: 'Google Drive'
     };
   }
 
-  // 4. Direct video file (.mp4, .webm, .ogg, .mov)
+  // 4. Direct Video file (.mp4 / .webm / .mov)
   if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(cleanUrl)) {
     return {
       type: 'direct_video',
@@ -146,13 +145,29 @@ export function parseVenueMedia(url: string): {
     };
   }
 
-  // 5. Image link (JPG, PNG, WebP, etc.)
+  // 5. Image URLs (jpg, jpeg, png, webp, svg, data:image, unsplash)
+  if (
+    cleanUrl.startsWith('data:image/') ||
+    /\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i.test(cleanUrl) ||
+    cleanUrl.includes('images.unsplash.com') ||
+    cleanUrl.includes('googleusercontent.com')
+  ) {
+    return {
+      type: 'image',
+      embedUrl: cleanUrl,
+      rawUrl: cleanUrl,
+      canonicalUrl: cleanUrl,
+      label: 'Ảnh Kỷ Niệm'
+    };
+  }
+
+  // Default fallback: Try Facebook Reel/Video if URL pattern looks like social media or treat as image
   return {
     type: 'image',
     embedUrl: cleanUrl,
     rawUrl: cleanUrl,
     canonicalUrl: cleanUrl,
-    label: 'Hình Ảnh'
+    label: 'Liên Kết'
   };
 }
 
@@ -161,6 +176,7 @@ export function parseVenueMedia(url: string): {
 // ============================================================================
 interface Props {
   className?: string;
+  eventConfig?: EventConfig;
   venueMediaList?: VenueMediaItem[];
   onUpdateVenueMediaList?: (list: VenueMediaItem[]) => void;
   currentUserRole?: UserRole;
@@ -169,6 +185,7 @@ interface Props {
 
 export default function AlumniConvergenceMap({
   className = '',
+  eventConfig,
   venueMediaList,
   onUpdateVenueMediaList,
   currentUserRole = 'guest',
@@ -176,6 +193,13 @@ export default function AlumniConvergenceMap({
 }: Props) {
   const [copied, setCopied] = useState(false);
   const isAuthorized = currentUserRole === 'admin' || currentUserRole === 'bll';
+
+  // Dynamic venue values from eventConfig
+  const venueName = eventConfig?.venueName || VENUE_DETAILS.name;
+  const venueAddress = eventConfig?.venueAddress || VENUE_DETAILS.address;
+  const mapEmbedUrl = eventConfig?.mapEmbedUrl || VENUE_DETAILS.embedMapUrl;
+  const directionsUrl = eventConfig?.mapDirectUrl || VENUE_DETAILS.directionsUrl;
+  const eventDateText = eventConfig?.eventDateText || "08:30 Sáng 27/09";
 
   // Danh sách video & ảnh không gian nhà hàng
   const [mediaList, setMediaList] = useState<VenueMediaItem[]>(() => {
@@ -213,7 +237,7 @@ export default function AlumniConvergenceMap({
   const handleCopyAddress = () => {
     try {
       if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(VENUE_DETAILS.address);
+        navigator.clipboard.writeText(venueAddress);
       }
     } catch {}
     setCopied(true);
@@ -661,21 +685,34 @@ export default function AlumniConvergenceMap({
                 </div>
                 <div>
                   <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 line-clamp-1">
-                    {VENUE_DETAILS.name}
+                    {venueName}
                   </h4>
                 </div>
               </div>
 
-              <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                08:30 Sáng 27/09
-              </span>
+              <div className="flex items-center gap-1.5">
+                {isAuthorized && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenAdminHub ? onOpenAdminHub('settings') : null}
+                    className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300/80 cursor-pointer shadow-2xs transition"
+                    title="Dành cho Ban Liên Lạc & Admin: Chỉnh sửa địa điểm & link bản đồ Google Maps"
+                  >
+                    <Edit3 className="w-3 h-3 text-amber-700" />
+                    <span>Sửa Địa Điểm</span>
+                  </button>
+                )}
+                <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  {eventDateText}
+                </span>
+              </div>
             </div>
 
             {/* 🌟 GOOGLE MAPS EMBED */}
             <div className="relative rounded-xl overflow-hidden border-2 border-amber-300/40 shadow-inner aspect-video bg-[#E5E3DF]">
               <iframe
-                title="Bản đồ Google Maps Crown Palace Thái Nguyên"
-                src={VENUE_DETAILS.embedMapUrl}
+                title={`Bản đồ Google Maps ${venueName}`}
+                src={mapEmbedUrl}
                 className="w-full h-full border-0"
                 allowFullScreen
                 loading="lazy"
@@ -687,11 +724,11 @@ export default function AlumniConvergenceMap({
             <div className="space-y-2 text-xs text-slate-700 font-sans">
               <div className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
                 <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                <span className="text-slate-600 font-serif leading-snug">{VENUE_DETAILS.address}</span>
+                <span className="text-slate-600 font-serif leading-snug">{venueAddress}</span>
               </div>
 
               <a
-                href={VENUE_DETAILS.directionsUrl}
+                href={directionsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 bg-[#1E293B] hover:bg-slate-800 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition cursor-pointer"
