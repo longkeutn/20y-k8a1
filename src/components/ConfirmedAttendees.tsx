@@ -26,6 +26,7 @@ interface ConfirmedAttendeesProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onOpenPassModal?: (attendee: RsvpData) => void;
+  onOpenReceiptModal?: (attendee: RsvpData) => void;
 }
 
 export default function ConfirmedAttendees({ 
@@ -33,7 +34,8 @@ export default function ConfirmedAttendees({
   rsvpList, 
   onRefresh, 
   isRefreshing = false,
-  onOpenPassModal
+  onOpenPassModal,
+  onOpenReceiptModal
 }: ConfirmedAttendeesProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'yes' | 'all' | 'no'>('yes');
@@ -422,6 +424,15 @@ export default function ConfirmedAttendees({
                           <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-300 whitespace-nowrap animate-pulse" title="Đã gửi biên lai, chờ BLL đối soát">
                             <span>⏳ Chờ duyệt bill</span>
                           </span>
+                        ) : onOpenReceiptModal ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenReceiptModal(attendee)}
+                            className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap transition cursor-pointer"
+                            title="Bấm để tải ảnh biên lai gửi Ban Liên Lạc đối soát"
+                          >
+                            <span>+ Gửi bill</span>
+                          </button>
                         ) : (
                           <a 
                             href="#bank-transfer-card" 
@@ -527,6 +538,15 @@ export default function ConfirmedAttendees({
                       <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-300 animate-pulse">
                         <span>⏳ Chờ duyệt bill</span>
                       </span>
+                    ) : onOpenReceiptModal ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenReceiptModal(attendee)}
+                        className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition cursor-pointer"
+                        title="Bấm để tải ảnh biên lai gửi Ban Liên Lạc"
+                      >
+                        <span>+ Gửi bill</span>
+                      </button>
                     ) : (
                       <a
                         href="#bank-transfer-card"

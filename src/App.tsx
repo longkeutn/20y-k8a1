@@ -38,6 +38,7 @@ import QuickShare from './components/QuickShare';
 import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
 import AdminManagementHub from './components/AdminManagementHub';
+import ReceiptUploadModal from './components/ReceiptUploadModal';
 
 export default function App() {
   // Config state (Google Apps Script WebApp URL)
@@ -77,6 +78,15 @@ export default function App() {
   // Student Souvenir Pass modal state
   const [selectedPassAttendee, setSelectedPassAttendee] = useState<RsvpData | null>(null);
   const [isPassModalOpen, setIsPassModalOpen] = useState(false);
+
+  // Self-service Receipt Upload Modal state
+  const [selectedReceiptAttendee, setSelectedReceiptAttendee] = useState<RsvpData | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  const handleOpenReceiptModal = (attendee?: RsvpData | null) => {
+    setSelectedReceiptAttendee(attendee || null);
+    setIsReceiptModalOpen(true);
+  };
 
   // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
   const [heroBannerUrl, setHeroBannerUrl] = useState<string>(() => {
@@ -723,6 +733,7 @@ export default function App() {
                 rsvpList={rsvpList} 
                 onAddRsvp={handleAddRsvp} 
                 onOpenPassModal={handleOpenPass}
+                onOpenReceiptModal={handleOpenReceiptModal}
               />
 
               {/* Danh Sách Thành Viên Đã Xác Nhận */}
@@ -732,12 +743,14 @@ export default function App() {
                 onRefresh={handleRefreshData}
                 isRefreshing={isRefreshing}
                 onOpenPassModal={handleOpenPass}
+                onOpenReceiptModal={handleOpenReceiptModal}
               />
 
               {/* Thông Tin Quỹ Lớp Minh Bạch */}
               <BankTransfer 
                 appsScriptUrl={appsScriptUrl}
                 rsvpList={rsvpList}
+                onOpenReceiptModal={handleOpenReceiptModal}
                 onUpdateRsvpList={(updated) => {
                   setRsvpList(updated);
                   localStorage.setItem('rsvp_list', JSON.stringify(updated));
@@ -830,6 +843,19 @@ export default function App() {
         onClose={() => setIsPassModalOpen(false)}
         defaultAttendee={selectedPassAttendee}
         allAttendees={rsvpList}
+      />
+
+      {/* Modal Tải Lên Biên Lai Đóng Quỹ (Self-Service Receipt Uploader) */}
+      <ReceiptUploadModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        appsScriptUrl={appsScriptUrl}
+        rsvpList={rsvpList}
+        defaultAttendee={selectedReceiptAttendee}
+        onUpdateRsvpList={(updated) => {
+          setRsvpList(updated);
+          localStorage.setItem('rsvp_list', JSON.stringify(updated));
+        }}
       />
 
       {/* Toast thông báo realtime */}

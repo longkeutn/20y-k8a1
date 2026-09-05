@@ -9,9 +9,10 @@ interface RsvpFormProps {
   rsvpList: RsvpData[];
   onAddRsvp: (newRsvp: RsvpData) => void;
   onOpenPassModal?: (attendee: RsvpData) => void;
+  onOpenReceiptModal?: (attendee?: RsvpData) => void;
 }
 
-export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPassModal }: RsvpFormProps) {
+export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPassModal, onOpenReceiptModal }: RsvpFormProps) {
   const [fullName, setFullName] = useState('');
   const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
@@ -323,12 +324,22 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
                       <strong>Đóng quỹ sự kiện (500.000đ):</strong> Bạn có thể chuyển khoản và tự tải ảnh biên lai lên để Ban Liên Lạc đối soát ngay.
                     </span>
                   </div>
-                  <a
-                    href="#bank-transfer-card"
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded transition whitespace-nowrap self-stretch sm:self-auto text-center"
-                  >
-                    Tải Ảnh Biên Lai ➔
-                  </a>
+                  {onOpenReceiptModal ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenReceiptModal(lastSubmittedAttendee)}
+                      className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded-lg transition whitespace-nowrap self-stretch sm:self-auto text-center cursor-pointer shadow-xs"
+                    >
+                      Tải Ảnh Biên Lai ➔
+                    </button>
+                  ) : (
+                    <a
+                      href="#bank-transfer-card"
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded transition whitespace-nowrap self-stretch sm:self-auto text-center"
+                    >
+                      Tải Ảnh Biên Lai ➔
+                    </a>
+                  )}
                 </div>
               )}
 
