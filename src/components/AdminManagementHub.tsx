@@ -63,16 +63,17 @@ import {
   Info,
   Navigation
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember } from '../types';
 import { 
   K8A1_DRIVE_FOLDER_ID, 
   K8A1_DRIVE_FOLDER_URL, 
-  DEFAULT_EVENT_CONFIG,
-  VIETNAM_BANKS,
-  resolveBankCode,
-  generateVietQrUrl,
-  sanitizeVietQrText,
-  GOOGLE_APPS_SCRIPT_CODE
+  DEFAULT_EVENT_CONFIG, 
+  VIETNAM_BANKS, 
+  resolveBankCode, 
+  generateVietQrUrl, 
+  sanitizeVietQrText, 
+  GOOGLE_APPS_SCRIPT_CODE,
+  CLASS_ROSTER_K8A1 
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 
@@ -88,6 +89,9 @@ interface AdminManagementHubProps {
   // Data props
   rsvpList: RsvpData[];
   onUpdateRsvpList: (list: RsvpData[]) => void;
+  
+  classRoster?: ClassMember[];
+  onUpdateClassRoster?: (list: ClassMember[]) => void;
   
   wishesList: WishData[];
   onUpdateWishesList: (list: WishData[]) => void;
@@ -124,6 +128,8 @@ export default function AdminManagementHub({
   initialMediaSubTab,
   rsvpList,
   onUpdateRsvpList,
+  classRoster,
+  onUpdateClassRoster,
   wishesList,
   onUpdateWishesList,
   images,
@@ -206,9 +212,96 @@ export default function AdminManagementHub({
   const [settingsSection, setSettingsSection] = useState<'all' | 'venue' | 'date' | 'letter' | 'bank' | 'security'>('all');
 
   // Search & Filters for Member Tab
+  const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+  const [memberTabSubView, setMemberTabSubView] = useState<'roster' | 'rsvp'>('roster');
   const [memberSearch, setMemberSearch] = useState('');
   const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'yes' | 'no' | 'checkedIn' | 'notCheckedIn'>('all');
   const [memberShirtFilter, setMemberShirtFilter] = useState<string>('all');
+  const [rosterStatusFilter, setRosterStatusFilter] = useState<'all' | 'confirmed' | 'declined' | 'pending'>('all');
+
+  // Helper chuẩn hóa so khớp danh bạ
+  const normPhoneRoster = (p?: any) => {
+    if (p === null || p === undefined) return '';
+    let clean = String(p).replace(/[^0-9]/g, '');
+    if (clean.startsWith('84') && clean.length > 9) clean = '0' + clean.slice(2);
+    else if (!clean.startsWith('0') && clean.length === 9) clean = '0' + clean;
+    return clean;
+  };
+
+  const normNameRoster = (n?: any) => {
+    if (n === null || n === undefined) return '';
+    return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
+  };
+
+  // Đồng bộ mỗi thành viên trong danh bạ với dữ liệu RSVP thực tế
+  const enrichedRoster = useMemo(() => {
+    return rosterList.map((m, idx) => {
+      const matchedRsvp = rsvpList.find((r) => {
+        if (!r) return false;
+        const rP = normPhoneRoster(r.phone);
+        const rN = normNameRoster(r.fullName);
+        const mP = normPhoneRoster(m.phone);
+        const mN = normNameRoster(m.fullName);
+        if (mP && rP && mP === rP) return true;
+        if (mN && rN && mN === rN) return true;
+        return false;
+      });
+
+      let rosterStatus: 'confirmed' | 'declined' | 'pending' = 'pending';
+      if (matchedRsvp) {
+        rosterStatus = matchedRsvp.status === 'yes' ? 'confirmed' : 'declined';
+      }
+
+      return {
+        ...m,
+        index: idx + 1,
+        matchedRsvp,
+        rosterStatus
+      };
+    });
+  }, [rosterList, rsvpList]);
+
+  const rosterConfirmedCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'confirmed').length, [enrichedRoster]);
+  const rosterDeclinedCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'declined').length, [enrichedRoster]);
+  const rosterPendingCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'pending').length, [enrichedRoster]);
+
+  const filteredRoster = useMemo(() => {
+    const q = (memberSearch || '').toLowerCase().trim();
+    return enrichedRoster.filter(m => {
+      const matchQuery = !q ||
+        String(m.fullName || '').toLowerCase().includes(q) ||
+        String(m.nickname || '').toLowerCase().includes(q) ||
+        String(m.phone || '').includes(q) ||
+        String(m.role || '').toLowerCase().includes(q);
+
+      const matchFilter =
+        rosterStatusFilter === 'all' ||
+        m.rosterStatus === rosterStatusFilter;
+
+      return matchQuery && matchFilter;
+    });
+  }, [enrichedRoster, memberSearch, rosterStatusFilter]);
+
+  const handleQuickRegisterMember = (m: (typeof enrichedRoster)[0]) => {
+    if (m.matchedRsvp) {
+      handleOpenEditMember(m.matchedRsvp);
+    } else {
+      setEditingMember(null);
+      setMemberFormData({
+        fullName: m.fullName,
+        nickname: m.nickname || '',
+        phone: m.phone || '',
+        className: 'K8A1',
+        status: 'yes',
+        shirtSize: m.shirtSize || 'L',
+        message: 'Ban Liên Lạc ghi nhận thông tin tham dự',
+        fundStatus: 'unpaid',
+        fundAmount: 500000,
+        fundNote: ''
+      });
+      setIsAddMemberModalOpen(true);
+    }
+  };
 
   // Search & Filters for Fund Reconciliation Tab
   const [fundSearch, setFundSearch] = useState('');
@@ -461,6 +554,9 @@ export default function AdminManagementHub({
     setEditingMember(attendee);
     setMemberFormData({
       ...attendee,
+      fullName: String(attendee.fullName || ''),
+      nickname: String(attendee.nickname || ''),
+      phone: String(attendee.phone || ''),
       fundAmount: attendee.fundAmount || 500000,
       fundStatus: attendee.fundStatus || 'unpaid'
     });
@@ -469,19 +565,21 @@ export default function AdminManagementHub({
 
   const handleSaveMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberFormData.fullName?.trim() || !memberFormData.phone?.trim()) {
+    const cleanFullName = String(memberFormData.fullName || '').trim();
+    const cleanPhone = String(memberFormData.phone || '').trim();
+    if (!cleanFullName || !cleanPhone) {
       alert('Vui lòng điền Họ tên và Số điện thoại!');
       return;
     }
 
     if (editingMember) {
       const updated = rsvpList.map(item => {
-        if ((editingMember.id && item.id === editingMember.id) || item.phone === editingMember.phone) {
+        if ((editingMember.id && item.id === editingMember.id) || String(item.phone || '') === String(editingMember.phone || '')) {
           return {
             ...item,
             ...memberFormData,
-            fullName: memberFormData.fullName!.trim(),
-            phone: memberFormData.phone!.trim()
+            fullName: cleanFullName,
+            phone: cleanPhone
           } as RsvpData;
         }
         return item;
@@ -1364,10 +1462,10 @@ export default function AdminManagementHub({
     const q = (memberSearch || '').toLowerCase().trim();
     return rsvpList.filter(item => {
       const matchQuery = !q ||
-        (item.fullName || '').toLowerCase().includes(q) ||
-        (item.nickname || '').toLowerCase().includes(q) ||
-        (item.phone || '').includes(q) ||
-        (item.className || '').toLowerCase().includes(q);
+        String(item.fullName || '').toLowerCase().includes(q) ||
+        String(item.nickname || '').toLowerCase().includes(q) ||
+        String(item.phone || '').includes(q) ||
+        String(item.className || '').toLowerCase().includes(q);
 
       const matchStatus = 
         memberStatusFilter === 'all' ||
@@ -1387,11 +1485,11 @@ export default function AdminManagementHub({
     const q = (fundSearch || '').toLowerCase().trim();
     return rsvpList.filter(item => {
       const matchQuery = !q ||
-        (item.fullName || '').toLowerCase().includes(q) ||
-        (item.nickname || '').toLowerCase().includes(q) ||
-        (item.phone || '').includes(q) ||
-        (item.fundNote || '').toLowerCase().includes(q) ||
-        (item.fundAuditedBy || '').toLowerCase().includes(q);
+        String(item.fullName || '').toLowerCase().includes(q) ||
+        String(item.nickname || '').toLowerCase().includes(q) ||
+        String(item.phone || '').includes(q) ||
+        String(item.fundNote || '').toLowerCase().includes(q) ||
+        String(item.fundAuditedBy || '').toLowerCase().includes(q);
 
       const isPaid = item.fundStatus === 'paid';
       const hasReceipt = Boolean(item.fundReceiptUrl && item.fundReceiptUrl.trim());
@@ -1728,19 +1826,264 @@ export default function AdminManagementHub({
           {/* --------------------------------------------------------------- */}
           {activeTab === 'members' && (
             <div className="space-y-4">
-              {/* Controls Toolbar */}
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-amber-200 shadow-2xs">
-                <div className="flex flex-1 items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={memberSearch}
-                      onChange={(e) => setMemberSearch(e.target.value)}
-                      placeholder="Tìm theo tên bạn, biệt danh, số điện thoại..."
-                      className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
-                    />
+              {/* Header Sub-navigation: Sĩ Số Toàn Lớp vs Phản Hồi Web */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 p-3 rounded-xl shadow-2xs">
+                <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-200/80 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setMemberTabSubView('roster')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
+                      memberTabSubView === 'roster'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Sĩ Số Lớp K8A1 ({rosterList.length} bạn)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMemberTabSubView('rsvp')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
+                      memberTabSubView === 'rsvp'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Phản Hồi Web ({rsvpList.length})</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-sans text-amber-900">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    Xác nhận có mặt: <strong className="text-emerald-700">{rosterConfirmedCount}</strong> / {rosterList.length} bạn
+                    <span className="text-slate-500 font-mono ml-1">({Math.round((rosterConfirmedCount / (rosterList.length || 1)) * 100)}%)</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* ======================================================== */}
+              {/* SUBVIEW 1: SĨ SỐ TOÀN LỚP (DANH BẠ 40 BẠN HỌC K8A1) */}
+              {/* ======================================================== */}
+              {memberTabSubView === 'roster' && (
+                <div className="space-y-4">
+                  {/* Summary Stat Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                      <div className="text-[10px] font-sans uppercase font-bold text-slate-500">Sĩ Số Chính Thức</div>
+                      <div className="text-xl font-bold font-serif text-slate-800 mt-0.5">{rosterList.length} <span className="text-xs font-normal font-sans">bạn</span></div>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-2xs">
+                      <div className="text-[10px] font-sans uppercase font-bold text-emerald-700">Đã Xác Nhận Đi</div>
+                      <div className="text-xl font-bold font-serif text-emerald-800 mt-0.5">{rosterConfirmedCount} <span className="text-xs font-normal font-sans">bạn</span></div>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-rose-200 bg-rose-50/30 shadow-2xs">
+                      <div className="text-[10px] font-sans uppercase font-bold text-rose-700">Báo Bận / Vắng</div>
+                      <div className="text-xl font-bold font-serif text-rose-800 mt-0.5">{rosterDeclinedCount} <span className="text-xs font-normal font-sans">bạn</span></div>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl border border-amber-300 bg-amber-50/40 shadow-2xs">
+                      <div className="text-[10px] font-sans uppercase font-bold text-amber-800">Chưa Phản Hồi</div>
+                      <div className="text-xl font-bold font-serif text-amber-900 mt-0.5">{rosterPendingCount} <span className="text-xs font-normal font-sans">bạn</span></div>
+                    </div>
                   </div>
+
+                  {/* Roster Controls Toolbar */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-amber-200 shadow-2xs">
+                    <div className="flex flex-1 items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={memberSearch}
+                          onChange={(e) => setMemberSearch(e.target.value)}
+                          placeholder="Tìm trong danh bạ (Tên, Biệt danh, Chức vụ)..."
+                          className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <select
+                        value={rosterStatusFilter}
+                        onChange={(e) => setRosterStatusFilter(e.target.value as any)}
+                        className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                      >
+                        <option value="all">Tất cả ({rosterList.length})</option>
+                        <option value="confirmed">Đã xác nhận ({rosterConfirmedCount})</option>
+                        <option value="declined">Báo vắng ({rosterDeclinedCount})</option>
+                        <option value="pending">Chưa phản hồi ({rosterPendingCount})</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={handleOpenAddMember}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer shrink-0"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>+ Thêm Bạn Mới</span>
+                    </button>
+                  </div>
+
+                  {/* Roster Table */}
+                  <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider border-b border-amber-200">
+                          <tr>
+                            <th className="py-3 px-3 w-10 text-center">STT</th>
+                            <th className="py-3 px-3">Bạn Học K8A1</th>
+                            <th className="py-3 px-3">Số Điện Thoại</th>
+                            <th className="py-3 px-3">Phản Hồi Tham Gia</th>
+                            <th className="py-3 px-3">Size Áo & Quỹ</th>
+                            <th className="py-3 px-3 text-right">Thao Tác BLL</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-sans">
+                          {filteredRoster.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="py-8 text-center text-slate-400 italic font-serif">
+                                Không tìm thấy bạn học nào khớp với bộ lọc.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredRoster.map((m) => (
+                              <tr key={m.id} className="hover:bg-amber-50/40 transition">
+                                <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                                  {m.index}
+                                </td>
+
+                                <td className="py-2.5 px-3">
+                                  <div className="font-bold text-slate-900 text-sm">
+                                    {m.fullName}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                    {m.nickname && (
+                                      <span className="text-amber-800 italic">“{m.nickname}”</span>
+                                    )}
+                                    {m.role && m.role !== 'Thành viên' && (
+                                      <span className="bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                        {m.role}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="py-2.5 px-3 font-mono text-slate-600">
+                                  {m.matchedRsvp?.phone || m.phone || <span className="text-slate-400 italic">Chưa có SĐT</span>}
+                                </td>
+
+                                <td className="py-2.5 px-3">
+                                  {m.rosterStatus === 'confirmed' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                      <span>Có mặt</span>
+                                    </span>
+                                  ) : m.rosterStatus === 'declined' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                                      <XCircle className="w-3 h-3 text-rose-600" />
+                                      <span>Báo bận / Vắng</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                      <Clock className="w-3 h-3 text-amber-600" />
+                                      <span>Chưa phản hồi</span>
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="py-2.5 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                                      <Shirt className="w-3 h-3 text-amber-600" />
+                                      <span>{m.matchedRsvp?.shirtSize || m.shirtSize || 'L'}</span>
+                                    </span>
+                                    {m.matchedRsvp?.fundStatus === 'paid' ? (
+                                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                        ✓ Đã đóng quỹ
+                                      </span>
+                                    ) : m.matchedRsvp?.fundStatus === 'pending' ? (
+                                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                        ⏳ Chờ duyệt bill
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400">Chưa nộp</span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="py-2.5 px-3 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {m.matchedRsvp ? (
+                                      <>
+                                        {onOpenPassModal && (
+                                          <button
+                                            onClick={() => onOpenPassModal(m.matchedRsvp!)}
+                                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100/50 rounded transition cursor-pointer"
+                                            title="Xem Thẻ Học Sinh Kỷ Niệm"
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleOpenEditMember(m.matchedRsvp!)}
+                                          className="inline-flex items-center gap-1 px-2 py-1 text-slate-600 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded transition text-[11px] cursor-pointer"
+                                          title="Sửa thông tin"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                          <span>Sửa</span>
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleQuickRegisterMember(m)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded shadow-2xs transition text-[11px] cursor-pointer"
+                                        title="Điểm danh hộ bạn này khi liên hệ qua điện thoại hoặc Zalo"
+                                      >
+                                        <Sparkles className="w-3 h-3" />
+                                        <span>⚡ Điểm danh hộ</span>
+                                      </button>
+                                    )}
+
+                                    {(m.matchedRsvp?.phone || m.phone) && (
+                                      <a
+                                        href={`tel:${m.matchedRsvp?.phone || m.phone}`}
+                                        className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"
+                                        title={`Gọi cho ${m.fullName}: ${m.matchedRsvp?.phone || m.phone}`}
+                                      >
+                                        <Phone className="w-3.5 h-3.5" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ======================================================== */}
+              {/* SUBVIEW 2: DANH SÁCH PHẢN HỒI WEB (RSVP LIST) */}
+              {/* ======================================================== */}
+              {memberTabSubView === 'rsvp' && (
+                <div className="space-y-4">
+                  {/* Controls Toolbar */}
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-amber-200 shadow-2xs">
+                    <div className="flex flex-1 items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={memberSearch}
+                          onChange={(e) => setMemberSearch(e.target.value)}
+                          placeholder="Tìm theo tên bạn, biệt danh, số điện thoại..."
+                          className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
 
                   <select
                     value={memberStatusFilter}
@@ -1944,6 +2287,8 @@ export default function AdminManagementHub({
               </div>
             </div>
           )}
+        </div>
+      )}
 
           {/* --------------------------------------------------------------- */}
           {/* TAB 2: FUND RECONCILIATION */}

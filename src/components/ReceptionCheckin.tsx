@@ -27,9 +27,9 @@ export default function ReceptionCheckin({
   const filteredList = confirmedAttendees.filter((a) => {
     const matchSearch =
       !query ||
-      (a.fullName || '').toLowerCase().includes(query) ||
-      (a.phone || '').includes(query) ||
-      (a.className && a.className.toLowerCase().includes(query));
+      String(a.fullName || '').toLowerCase().includes(query) ||
+      String(a.phone || '').includes(query) ||
+      (a.className && String(a.className).toLowerCase().includes(query));
 
     const matchClass = filterClass === 'all' || a.className === filterClass;
     const matchStatus =

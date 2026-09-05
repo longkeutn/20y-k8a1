@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Send, Loader2, Sparkles, Shirt, Info, Award, UserCheck } from 'lucide-react';
-import { RsvpData } from '../types';
+import { CheckCircle2, Send, Loader2, Sparkles, Shirt, Info, Award, UserCheck, Users } from 'lucide-react';
+import { RsvpData, ClassMember } from '../types';
+import { CLASS_ROSTER_K8A1 } from '../data';
 import { triggerFullscreenFireworks } from '../utils/confetti';
 import QuickShare from './QuickShare';
 
 interface RsvpFormProps {
   appsScriptUrl: string;
   rsvpList: RsvpData[];
+  classRoster?: ClassMember[];
   onAddRsvp: (newRsvp: RsvpData) => void;
   onOpenPassModal?: (attendee: RsvpData) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
 }
 
-export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPassModal, onOpenReceiptModal }: RsvpFormProps) {
+export default function RsvpForm({ appsScriptUrl, rsvpList, classRoster, onAddRsvp, onOpenPassModal, onOpenReceiptModal }: RsvpFormProps) {
   const [fullName, setFullName] = useState('');
   const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
@@ -25,22 +27,31 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastSubmittedAttendee, setLastSubmittedAttendee] = useState<RsvpData | null>(null);
 
-  // Normalize helpers for phone and name to detect existing registrations
-  const normalizePhone = (p?: string) => {
-    if (!p) return '';
-    let clean = p.replace(/[^0-9]/g, '');
+  // Quản lý chọn thành viên từ danh bạ lớp K8A1 (chống gõ sai và trùng lặp)
+  const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
+  // Normalize helpers for phone and name to detect existing registrations (an toàn tuyệt đối trước kiểu Number)
+  const normalizePhone = (p?: any) => {
+    if (p === null || p === undefined) return '';
+    let clean = String(p).replace(/[^0-9]/g, '');
     if (clean.startsWith('84') && clean.length > 9) clean = '0' + clean.slice(2);
     else if (!clean.startsWith('0') && clean.length === 9) clean = '0' + clean;
     return clean;
   };
 
-  const normalizeName = (n?: string) => (n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizeName = (n?: any) => {
+    if (n === null || n === undefined) return '';
+    return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
+  };
 
   const matchedExistingAttendee = React.useMemo(() => {
     const p = normalizePhone(phone);
     const n = normalizeName(fullName);
     if (!p && !n) return null;
     return (rsvpList || []).find((item) => {
+      if (!item) return false;
       const itemP = normalizePhone(item.phone);
       const itemN = normalizeName(item.fullName);
       if (p && itemP && p === itemP) return true;
@@ -50,14 +61,57 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
     });
   }, [phone, fullName, rsvpList]);
 
+  // Xử lý khi bạn học chọn tên mình từ danh bạ lớp
+  const handleSelectMember = (memberId: string) => {
+    setSelectedMemberId(memberId);
+    if (memberId === 'custom') {
+      setIsCustomMode(true);
+      return;
+    }
+    if (!memberId) {
+      setFullName('');
+      setNickname('');
+      return;
+    }
+    setIsCustomMode(false);
+    const member = rosterList.find((m) => m.id === memberId);
+    if (member) {
+      setFullName(member.fullName);
+      if (member.nickname) setNickname(member.nickname);
+      if (member.shirtSize) setShirtSize(member.shirtSize);
+
+      // Tìm xem bạn này đã từng đăng ký trước đó chưa
+      const existing = (rsvpList || []).find((item) => {
+        if (!item) return false;
+        const itemP = normalizePhone(item.phone);
+        const itemN = normalizeName(item.fullName);
+        const mP = normalizePhone(member.phone);
+        const mN = normalizeName(member.fullName);
+        if (mP && itemP && mP === itemP) return true;
+        if (mN && itemN && mN === itemN) return true;
+        return false;
+      });
+
+      if (existing) {
+        if (existing.phone) setPhone(String(existing.phone));
+        if (existing.shirtSize) setShirtSize(String(existing.shirtSize));
+        if (existing.status) setStatus(existing.status);
+        if (existing.message) setMessage(String(existing.message));
+        if (existing.nickname) setNickname(String(existing.nickname));
+      } else if (member.phone) {
+        setPhone(String(member.phone));
+      }
+    }
+  };
+
   // Tự động điền biệt danh hoặc gợi ý size áo nếu tìm thấy thành viên đã đăng ký
   React.useEffect(() => {
     if (matchedExistingAttendee) {
       if (!nickname && matchedExistingAttendee.nickname) {
-        setNickname(matchedExistingAttendee.nickname);
+        setNickname(String(matchedExistingAttendee.nickname));
       }
       if (matchedExistingAttendee.shirtSize && matchedExistingAttendee.shirtSize !== 'L') {
-        setShirtSize(matchedExistingAttendee.shirtSize);
+        setShirtSize(String(matchedExistingAttendee.shirtSize));
       }
     }
   }, [matchedExistingAttendee]);
@@ -120,8 +174,11 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
 
         // Clear form
         setFullName('');
+        setNickname('');
         setPhone('');
         setMessage('');
+        setSelectedMemberId('');
+        setIsCustomMode(false);
       } catch (error) {
         console.error('Lỗi khi gửi lên Apps Script:', error);
         setSubmitError('Có lỗi xảy ra khi kết nối tới máy chủ Google Sheets. Đăng ký tạm thời lưu cục bộ!');
@@ -157,6 +214,8 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
         setNickname('');
         setPhone('');
         setMessage('');
+        setSelectedMemberId('');
+        setIsCustomMode(false);
       }, 800);
     }
   };
@@ -174,6 +233,83 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Bộ chọn thành viên thông minh từ danh bạ K8A1 */}
+          <div className="bg-[#FAF8F5] border border-amber-300/80 rounded-sm p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-2">
+              <div className="flex items-center gap-1.5 text-amber-900 font-sans font-bold text-xs uppercase tracking-wider">
+                <Users className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Chọn bạn trong Danh Bạ Lớp K8A1</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextMode = !isCustomMode;
+                  setIsCustomMode(nextMode);
+                  if (nextMode) {
+                    setSelectedMemberId('custom');
+                  } else {
+                    setSelectedMemberId('');
+                    setFullName('');
+                    setNickname('');
+                  }
+                }}
+                className="text-[11px] font-sans text-amber-800 hover:text-amber-950 font-bold underline cursor-pointer text-left sm:text-right"
+              >
+                {isCustomMode ? '← Chọn lại từ danh bạ lớp' : '✏️ Nhập tên khác (khách mời / thầy cô)'}
+              </button>
+            </div>
+
+            {!isCustomMode ? (
+              <div className="space-y-2">
+                <p className="text-[11px] text-slate-600 font-sans">
+                  💡 <em>Chọn tên của bạn dưới đây để hệ thống tự động điền và kết nối hồ sơ điểm danh:</em>
+                </p>
+                <select
+                  value={selectedMemberId}
+                  onChange={(e) => handleSelectMember(e.target.value)}
+                  className="w-full bg-white border border-amber-300 rounded-sm py-2 px-3 text-xs sm:text-sm font-sans font-semibold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
+                >
+                  <option value="">-- Bấm vào đây để chọn tên bạn trong lớp K8A1 --</option>
+                  {rosterList.map((m) => {
+                    const isRegistered = rsvpList.some(r => 
+                      normalizeName(r.fullName) === normalizeName(m.fullName) || 
+                      (m.phone && normalizePhone(r.phone) === normalizePhone(m.phone))
+                    );
+                    return (
+                      <option key={m.id} value={m.id}>
+                        {m.fullName} {m.nickname ? `("${m.nickname}")` : ''} {m.role && m.role !== 'Thành viên' ? `[${m.role}]` : ''} {isRegistered ? '✅ (Đã đăng ký)' : ''}
+                      </option>
+                    );
+                  })}
+                  <option value="custom">✏️ Nhập tên khác (Khách mời / Thầy cô / Bạn mới)</option>
+                </select>
+
+                {selectedMemberId && selectedMemberId !== 'custom' && (
+                  <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded-sm text-xs text-amber-900 font-sans flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span>Đã chọn: <strong className="text-amber-900">{fullName}</strong></span>
+                      {nickname && <span className="italic"> (“{nickname}”)</span>}
+                      {matchedExistingAttendee ? (
+                        <p className="text-[11px] text-emerald-800 font-medium mt-0.5">
+                          ✓ Hệ thống nhận diện bạn đã đăng ký trước đó. Bạn có thể thay đổi số điện thoại, size áo hoặc lời nhắn bên dưới rồi bấm "Cập nhật".
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-slate-600 mt-0.5">
+                          Xin vui lòng xác nhận số điện thoại và size áo đồng phục bên dưới.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-slate-600 font-sans italic bg-white p-2.5 rounded border border-slate-200">
+                Chế độ tự nhập: Hãy điền Họ tên và Biệt danh của bạn ở ô bên dưới.
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="fullName" className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text mb-1">

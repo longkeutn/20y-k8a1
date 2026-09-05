@@ -21,8 +21,8 @@ import {
   Edit3
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL } from './data';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember } from './types';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1 } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -154,13 +154,59 @@ export default function App() {
     }
   });
 
+  // Helper chuẩn hóa dữ liệu RSVP chống crash do sai lệch kiểu dữ liệu
+  const sanitizeRsvp = (item: any): RsvpData => ({
+    ...item,
+    id: String(item.id || ''),
+    fullName: String(item.fullName || ''),
+    phone: String(item.phone || ''),
+    nickname: item.nickname ? String(item.nickname) : '',
+    className: item.className ? String(item.className) : 'K8A1',
+    shirtSize: item.shirtSize ? String(item.shirtSize) : 'L',
+    status: item.status === 'no' ? 'no' : 'yes',
+    message: item.message ? String(item.message) : '',
+    submittedAt: item.submittedAt ? String(item.submittedAt) : '',
+    checkedIn: Boolean(item.checkedIn),
+    fundStatus: item.fundStatus || 'unpaid',
+    fundAmount: Number(item.fundAmount) || 0,
+    fundReceiptUrl: item.fundReceiptUrl ? String(item.fundReceiptUrl) : '',
+    fundNote: item.fundNote ? String(item.fundNote) : '',
+    fundAuditedBy: item.fundAuditedBy ? String(item.fundAuditedBy) : '',
+    fundPaidAt: item.fundPaidAt ? String(item.fundPaidAt) : ''
+  });
+
+  // Class Roster Master Directory state (Sĩ số học sinh lớp K8A1)
+  const [classRoster, setClassRoster] = useState<ClassMember[]>(() => {
+    try {
+      const local = localStorage.getItem('k8a1_class_roster');
+      if (!local) return CLASS_ROSTER_K8A1;
+      const parsed = JSON.parse(local);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : CLASS_ROSTER_K8A1;
+    } catch {
+      return CLASS_ROSTER_K8A1;
+    }
+  });
+
+  const handleUpdateClassRoster = (updated: ClassMember[]) => {
+    setClassRoster(updated);
+    try {
+      localStorage.setItem('k8a1_class_roster', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Lỗi lưu danh bạ lớp vào localStorage:', e);
+    }
+    syncToBackend('save_roster', { roster: updated });
+  };
+
   // RSVP list state
   const [rsvpList, setRsvpList] = useState<RsvpData[]>(() => {
     try {
       const local = localStorage.getItem('rsvp_list');
       if (!local) return INITIAL_RSVP_LIST;
       const parsed = JSON.parse(local);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_RSVP_LIST;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(sanitizeRsvp);
+      }
+      return INITIAL_RSVP_LIST;
     } catch (e) {
       console.warn('Lỗi đọc rsvp_list từ localStorage:', e);
       return INITIAL_RSVP_LIST;
@@ -235,18 +281,18 @@ export default function App() {
     setIsPassModalOpen(true);
   };
 
-  // Normalize helper for phone and name
-  const normalizePhoneForMatch = (p?: string) => {
-    if (!p) return '';
-    let clean = p.replace(/[^0-9]/g, '');
+  // Normalize helper for phone and name (chuyển đổi String an toàn chống lỗi TypeError khi SĐT là dạng số)
+  const normalizePhoneForMatch = (p?: any) => {
+    if (p === null || p === undefined) return '';
+    let clean = String(p).replace(/[^0-9]/g, '');
     if (clean.startsWith('84') && clean.length > 9) clean = '0' + clean.slice(2);
     else if (!clean.startsWith('0') && clean.length === 9) clean = '0' + clean;
     return clean;
   };
 
-  const normalizeNameForMatch = (n?: string) => {
-    if (!n) return '';
-    return n.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizeNameForMatch = (n?: any) => {
+    if (n === null || n === undefined) return '';
+    return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
   };
 
   // Synchronize new RSVP entries (Upsert thông minh chống trùng lặp)
@@ -384,7 +430,9 @@ export default function App() {
           const uniqueRsvp: RsvpData[] = [];
           const seen = new Set<string>();
 
-          for (const item of rsvp) {
+          for (const rawItem of rsvp) {
+            if (!rawItem) continue;
+            const item = sanitizeRsvp(rawItem);
             const key = normalizePhoneForMatch(item.phone) || normalizeNameForMatch(item.fullName);
             if (key && seen.has(key)) {
               // Hợp nhất vào bản ghi đã có trước đó
@@ -907,6 +955,7 @@ export default function App() {
               <RsvpForm 
                 appsScriptUrl={activeAppsScriptUrl} 
                 rsvpList={rsvpList} 
+                classRoster={classRoster}
                 onAddRsvp={handleAddRsvp} 
                 onOpenPassModal={handleOpenPass}
                 onOpenReceiptModal={handleOpenReceiptModal}
@@ -988,6 +1037,8 @@ export default function App() {
           setRsvpList(updated);
           localStorage.setItem('rsvp_list', JSON.stringify(updated));
         }}
+        classRoster={classRoster}
+        onUpdateClassRoster={handleUpdateClassRoster}
         wishesList={wishesList}
         onUpdateWishesList={(updated) => {
           setWishesList(updated);

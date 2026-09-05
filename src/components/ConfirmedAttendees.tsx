@@ -71,17 +71,17 @@ export default function ConfirmedAttendees({
 
       // Search term
       if (term) {
-        const matchName = (item.fullName || '').toLowerCase().includes(term);
-        const matchNick = (item.nickname || '').toLowerCase().includes(term);
-        const matchPhone = (item.phone || '').includes(term);
-        const matchMsg = item.message ? item.message.toLowerCase().includes(term) : false;
+        const matchName = String(item.fullName || '').toLowerCase().includes(term);
+        const matchNick = String(item.nickname || '').toLowerCase().includes(term);
+        const matchPhone = String(item.phone || '').includes(term);
+        const matchMsg = item.message ? String(item.message).toLowerCase().includes(term) : false;
         return matchName || matchNick || matchPhone || matchMsg;
       }
       return true;
     });
 
     if (sortBy === 'name') {
-      result = [...result].sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'vi'));
+      result = [...result].sort((a, b) => String(a.fullName || '').localeCompare(String(b.fullName || ''), 'vi'));
     } else {
       result = [...result];
     }
@@ -96,9 +96,10 @@ export default function ConfirmedAttendees({
 
   const hasMore = visibleCount < filteredList.length;
 
-  const maskPhone = (phone: string) => {
-    if (!phone || phone.length < 6) return phone;
-    return phone.slice(0, 3) + '••••' + phone.slice(-3);
+  const maskPhone = (phone?: any) => {
+    const pStr = String(phone || '');
+    if (!pStr || pStr.length < 6) return pStr;
+    return pStr.slice(0, 3) + '••••' + pStr.slice(-3);
   };
 
   // Copy list summary for Zalo group

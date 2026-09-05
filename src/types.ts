@@ -1,5 +1,16 @@
 export type UserRole = 'guest' | 'bll' | 'admin';
 
+export interface ClassMember {
+  id: string;
+  fullName: string;
+  nickname?: string;
+  phone?: string;
+  role?: string;           // 'Lớp trưởng' | 'Lớp phó' | 'Bí thư' | 'Thủ quỹ' | 'Thành viên' | 'Thầy cô'
+  gender?: 'male' | 'female';
+  shirtSize?: string;
+  note?: string;
+}
+
 export interface RsvpData {
   id?: string;
   fullName: string;
