@@ -350,16 +350,6 @@ export default function AlumniConvergenceMap({
               <span>Chỉ Đường</span>
             </a>
 
-            <button
-              type="button"
-              onClick={handleCopyAddress}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300/90 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
-              title="Sao chép địa chỉ"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-              <span>{copied ? 'Đã Chép' : 'Sao Chép'}</span>
-            </button>
-
             {isAuthorized && (
               <button
                 type="button"
