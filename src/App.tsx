@@ -749,13 +749,17 @@ export default function App() {
 
           {/* Navigation Links & Action Buttons */}
           <nav className="flex items-center space-x-1 sm:space-x-2.5 text-xs font-medium">
-            <a href="#ky-uc" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
-              <Camera className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Ký Ức</span>
-            </a>
             <a href="#dia-diem" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
               <MapPin className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden sm:inline">Địa Điểm</span>
+            </a>
+            <a href="#diem-danh" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+              <CheckCircle className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Điểm Danh</span>
+            </a>
+            <a href="#ky-uc" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
+              <Camera className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Ký Ức</span>
             </a>
 
             {/* Background Audio Player integrated into navbar */}
@@ -767,7 +771,7 @@ export default function App() {
               className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs"
             >
               <CheckCircle className="w-3.5 h-3.5 text-amber-200" />
-              <span>Điểm Danh</span>
+              <span>Xác Nhận</span>
             </a>
 
             {/* Discrete Mini Admin Button in Navbar (Subtle icon with tooltip) */}
@@ -1125,19 +1129,7 @@ export default function App() {
             </div>
 
             {/* ======================================================== */}
-            {/* 🎞️ PHÂN VÙNG 2: KHO KÝ ỨC THANH XUÂN K8A1 */}
-            {/* ======================================================== */}
-            <section id="ky-uc" className="space-y-6 scroll-mt-20">
-              <MemoryCorner 
-                appsScriptUrl={activeAppsScriptUrl} 
-                images={images} 
-                videos={videos} 
-                onAddImage={handleAddImage} 
-              />
-            </section>
-
-            {/* ======================================================== */}
-            {/* 📍 PHÂN VÙNG 3: ĐỊA ĐIỂM TỔ CHỨC HỌP LỚP K8A1 */}
+            {/* 📍 PHÂN VÙNG 2: ĐỊA ĐIỂM TỔ CHỨC HỌP LỚP K8A1 */}
             {/* ======================================================== */}
             <AlumniConvergenceMap
               eventConfig={eventConfig}
@@ -1147,12 +1139,10 @@ export default function App() {
               onOpenAdminHub={(tab, subTab) => handleOpenAdminHub(tab || 'media', subTab || 'venue')}
             />
 
-
             {/* ======================================================== */}
-            {/* 🎟️ PHÂN VÙNG 5: ĐIỂM DANH & THÀNH VIÊN VÀ QUỸ LỚP */}
+            {/* 🎟️ PHÂN VÙNG 3: ĐIỂM DANH & THÀNH VIÊN VÀ QUỸ LỚP */}
             {/* ======================================================== */}
             <section id="diem-danh" className="space-y-6 scroll-mt-20">
-              
               {/* Form Điểm Danh */}
               <RsvpForm 
                 appsScriptUrl={activeAppsScriptUrl} 
@@ -1194,6 +1184,18 @@ export default function App() {
                   setRsvpList(updated);
                   localStorage.setItem('rsvp_list', JSON.stringify(updated));
                 }}
+              />
+            </section>
+
+            {/* ======================================================== */}
+            {/* 🎞️ PHÂN VÙNG 4: KHO KÝ ỨC THANH XUÂN K8A1 */}
+            {/* ======================================================== */}
+            <section id="ky-uc" className="space-y-6 scroll-mt-20">
+              <MemoryCorner 
+                appsScriptUrl={activeAppsScriptUrl} 
+                images={images} 
+                videos={videos} 
+                onAddImage={handleAddImage} 
               />
             </section>
 

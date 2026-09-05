@@ -374,13 +374,75 @@ export default function AlumniConvergenceMap({
           </div>
         </div>
 
-        {/* 🌟 BỐ CỤC 2 CỘT GỌN NHẸ (MEDIA KHÔNG GIAN + BẢN ĐỒ GOOGLE MAPS) */}
+        {/* 🌟 BỐ CỤC BẢN ĐỒ NỔI BẬT (BẢN ĐỒ CHIẾM ƯU THẾ + MEDIA THU GỌN) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 relative z-10 items-stretch">
           
           {/* ========================================== */}
-          {/* 🎬 CỘT A: VIDEO & ẢNH KHÔNG GIAN NHÀ HÀNG */}
+          {/* 🗺️ CỘT 1 (CHÍNH - lg:col-span-7): BẢN ĐỒ GOOGLE MAPS NỔI BẬT */}
           {/* ========================================== */}
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs flex flex-col justify-between space-y-2.5">
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-amber-200/90 p-3.5 sm:p-4 shadow-xs flex flex-col justify-between space-y-3 order-1">
+            
+            {/* Header Cột Bản Đồ */}
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold shrink-0">
+                  <MapPin className="w-3.5 h-3.5 text-amber-700" />
+                </div>
+                <div>
+                  <h4 className="font-serif font-bold text-sm text-slate-800">
+                    Bản Đồ Chỉ Đường Trực Tiếp (Google Maps)
+                  </h4>
+                  <p className="text-[11px] text-slate-500 font-sans">
+                    {venueAddress}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                Có chỗ đỗ ô tô
+              </span>
+            </div>
+
+            {/* Khung Google Maps Lớn, Sắc Nét, Dễ Định Vị */}
+            <div className="relative rounded-xl overflow-hidden border border-amber-300/50 shadow-inner h-[280px] sm:h-[340px] lg:h-[360px] w-full bg-[#E5E3DF]">
+              <iframe
+                title={`Bản đồ Google Maps ${venueName}`}
+                src={mapEmbedUrl}
+                className="w-full h-full border-0"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* Thanh Tác Vụ Chỉ Đường & Sao Chép */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <a
+                href={directionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all cursor-pointer"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>Chỉ Đường Google Maps</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={handleCopyAddress}
+                className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300/90 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
+                title="Sao chép địa chỉ"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                <span>{copied ? 'Đã Chép Địa Chỉ' : 'Sao Chép Địa Chỉ'}</span>
+              </button>
+            </div>
+
+          </div>
+
+          {/* ========================================== */}
+          {/* 🎬 CỘT 2 (PHỤ - lg:col-span-5): VIDEO & ẢNH KHÔNG GIAN THU GỌN */}
+          {/* ========================================== */}
+          <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-3.5 shadow-xs flex flex-col justify-between space-y-2.5 order-2">
             
             {/* Header Cột Media */}
             <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
@@ -396,13 +458,25 @@ export default function AlumniConvergenceMap({
                   {currentMedia.title}
                 </h4>
               </div>
-              <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                {activeMediaIndex + 1}/{mediaList.length}
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] font-mono text-slate-400">
+                  {activeMediaIndex + 1}/{mediaList.length}
+                </span>
+                {isAuthorized && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenAdminHub ? onOpenAdminHub('media', 'venue') : setIsEditMediaModalOpen(true)}
+                    className="p-1 text-amber-800 hover:bg-amber-100 rounded-md transition cursor-pointer"
+                    title="Đổi Media"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Khung Player 16:9 sắc nét */}
-            <div className="relative rounded-xl overflow-hidden bg-slate-950 border border-amber-300/40 shadow-inner aspect-video flex items-center justify-center">
+            {/* Khung Player Gọn Nhẹ (Chiều cao vừa vặn, không chiếm nhiều diện tích) */}
+            <div className="relative rounded-xl overflow-hidden bg-slate-950 border border-amber-300/40 shadow-inner h-[180px] sm:h-[220px] lg:h-[240px] w-full flex items-center justify-center">
               {/* 1. Facebook Reel / Video */}
               {parsedCurrentMedia.type === 'facebook' && (
                 <div className="w-full h-full relative flex items-center justify-center bg-black">
@@ -419,11 +493,11 @@ export default function AlumniConvergenceMap({
                       href={parsedCurrentMedia.rawUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1877F2] hover:bg-[#166fe5] text-white text-[11px] font-sans font-bold rounded-lg shadow-md transition"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#1877F2] hover:bg-[#166fe5] text-white text-[10px] font-sans font-bold rounded-md shadow-md transition"
                       title="Mở xem video trên Facebook"
                     >
                       <span>{parsedCurrentMedia.isReel ? 'Reel FB' : 'Xem FB'}</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-2.5 h-2.5" />
                     </a>
                   </div>
                 </div>
@@ -479,8 +553,8 @@ export default function AlumniConvergenceMap({
                     }}
                   />
                   {currentMedia.desc && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-90 transition-opacity flex items-end p-2.5">
-                      <p className="text-white text-[11px] font-serif line-clamp-1">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-90 transition-opacity flex items-end p-2">
+                      <p className="text-white text-[10px] font-serif line-clamp-1">
                         {currentMedia.desc}
                       </p>
                     </div>
@@ -490,14 +564,14 @@ export default function AlumniConvergenceMap({
 
               {/* Fallback khi trống */}
               {parsedCurrentMedia.type === 'empty' && (
-                <div className="text-center p-4 text-slate-400 space-y-1">
-                  <Video className="w-6 h-6 text-slate-500 mx-auto" />
-                  <p className="text-xs font-serif">Chưa có ảnh/video minh họa.</p>
+                <div className="text-center p-3 text-slate-400 space-y-1">
+                  <Video className="w-5 h-5 text-slate-500 mx-auto" />
+                  <p className="text-[11px] font-serif">Chưa có ảnh/video minh họa.</p>
                 </div>
               )}
             </div>
 
-            {/* Playlist Thumbnails gọn nhẹ */}
+            {/* Playlist Thumbnails Mini Gọn Nhẹ */}
             {mediaList.length > 1 && (
               <div className="grid grid-cols-4 gap-1.5 pt-0.5">
                 {mediaList.map((item, idx) => {
@@ -509,7 +583,7 @@ export default function AlumniConvergenceMap({
                     <div
                       key={item.id || idx}
                       onClick={() => setActiveMediaIndex(idx)}
-                      className={`relative rounded-lg overflow-hidden border cursor-pointer transition-all aspect-[4/3] bg-slate-900 ${
+                      className={`relative rounded-lg overflow-hidden border cursor-pointer transition-all h-12 bg-slate-900 ${
                         isActive
                           ? 'border-amber-500 ring-2 ring-amber-400/50 shadow-xs scale-102'
                           : 'border-slate-200 hover:border-amber-400 opacity-70 hover:opacity-100'
@@ -523,9 +597,9 @@ export default function AlumniConvergenceMap({
                       />
                       <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
                         {isVid ? (
-                          <Play className={`w-3 h-3 ${isActive ? 'text-amber-300 fill-amber-300' : 'text-white'}`} />
+                          <Play className={`w-2.5 h-2.5 ${isActive ? 'text-amber-300 fill-amber-300' : 'text-white'}`} />
                         ) : (
-                          <ImageIcon className={`w-3 h-3 ${isActive ? 'text-amber-300' : 'text-white'}`} />
+                          <ImageIcon className={`w-2.5 h-2.5 ${isActive ? 'text-amber-300' : 'text-white'}`} />
                         )}
                       </div>
                     </div>
@@ -533,51 +607,6 @@ export default function AlumniConvergenceMap({
                 })}
               </div>
             )}
-          </div>
-
-          {/* ========================================== */}
-          {/* 🗺️ CỘT B: BẢN ĐỒ GOOGLE MAPS TRỰC TIẾP */}
-          {/* ========================================== */}
-          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs flex flex-col justify-between space-y-2.5">
-            
-            {/* Header Cột Bản Đồ */}
-            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div className="w-5 h-5 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center font-bold shrink-0">
-                  <MapPin className="w-3 h-3 text-amber-700" />
-                </div>
-                <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-800 truncate">
-                  Bản Đồ Google Maps
-                </h4>
-              </div>
-              <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                Chỉ đường trực tiếp
-              </span>
-            </div>
-
-            {/* Khung Google Maps Embed (16:9) */}
-            <div className="relative rounded-xl overflow-hidden border border-amber-300/40 shadow-inner aspect-video bg-[#E5E3DF]">
-              <iframe
-                title={`Bản đồ Google Maps ${venueName}`}
-                src={mapEmbedUrl}
-                className="w-full h-full border-0"
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-
-            {/* Nút Chỉ Đường Google Maps */}
-            <a
-              href={directionsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[#1E293B] hover:bg-slate-800 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
-            >
-              <Navigation className="w-3.5 h-3.5 text-amber-300" />
-              <span>Mở Lộ Trình Chỉ Đường (Google Maps)</span>
-            </a>
-
           </div>
 
         </div>
