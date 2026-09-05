@@ -3398,6 +3398,7 @@ export default function AdminManagementHub({
                         })
                       )}
                     </tbody>
+                  </table>
                 </div>
               </div>
             </div>
