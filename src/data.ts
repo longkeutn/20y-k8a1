@@ -195,6 +195,307 @@ export const DEFAULT_VIDEOS: MemoryVideo[] = [
   }
 ];
 
+export interface BankItem {
+  code: string;       // VietQR identifier / short code
+  bin: string;        // 6-digit Napas BIN
+  shortName: string;  // Display name short (e.g. MB Bank, Vietcombank)
+  name: string;       // Official full name
+  aliases: string[];  // Synonyms for search & matching
+}
+
+export const VIETNAM_BANKS: BankItem[] = [
+  {
+    code: 'vietcombank',
+    bin: '970436',
+    shortName: 'Vietcombank (VCB)',
+    name: 'Ngân hàng Ngoại thương Việt Nam',
+    aliases: ['vcb', 'vietcombank', 'ngoai thuong', '970436']
+  },
+  {
+    code: 'mbbank',
+    bin: '970422',
+    shortName: 'MB Bank (Quân Đội)',
+    name: 'Ngân hàng Quân Đội',
+    aliases: ['mb', 'mbbank', 'quan doi', 'mb bank', '970422']
+  },
+  {
+    code: 'techcombank',
+    bin: '970407',
+    shortName: 'Techcombank (TCB)',
+    name: 'Ngân hàng Kỹ Thương Việt Nam',
+    aliases: ['tcb', 'techcombank', 'ky thuong', 'techcom', '970407']
+  },
+  {
+    code: 'vietinbank',
+    bin: '970415',
+    shortName: 'VietinBank (CTG)',
+    name: 'Ngân hàng Công Thương Việt Nam',
+    aliases: ['icb', 'ctg', 'vietinbank', 'vietin', 'cong thuong', '970415']
+  },
+  {
+    code: 'bidv',
+    bin: '970418',
+    shortName: 'BIDV',
+    name: 'Ngân hàng Đầu tư và Phát triển Việt Nam',
+    aliases: ['bidv', 'dau tu va phat trien', '970418']
+  },
+  {
+    code: 'agribank',
+    bin: '970405',
+    shortName: 'Agribank (VBA)',
+    name: 'Ngân hàng Nông nghiệp & PT Nông thôn Việt Nam',
+    aliases: ['vba', 'agr', 'agribank', 'nong nghiep', '970405']
+  },
+  {
+    code: 'vpbank',
+    bin: '970432',
+    shortName: 'VPBank (VPB)',
+    name: 'Ngân hàng Việt Nam Thịnh Vượng',
+    aliases: ['vpb', 'vpbank', 'thinh vuong', '970432']
+  },
+  {
+    code: 'tpbank',
+    bin: '970423',
+    shortName: 'TPBank (TPB)',
+    name: 'Ngân hàng Tiên Phong',
+    aliases: ['tpb', 'tpbank', 'tien phong', '970423']
+  },
+  {
+    code: 'acb',
+    bin: '970416',
+    shortName: 'ACB (Á Châu)',
+    name: 'Ngân hàng TMCP Á Châu',
+    aliases: ['acb', 'a chau', '970416']
+  },
+  {
+    code: 'sacombank',
+    bin: '970403',
+    shortName: 'Sacombank (STB)',
+    name: 'Ngân hàng Sài Gòn Thương Tín',
+    aliases: ['stb', 'sacombank', 'sai gon thuong tin', 'sacom', '970403']
+  },
+  {
+    code: 'hdbank',
+    bin: '970437',
+    shortName: 'HDBank (HDB)',
+    name: 'Ngân hàng Phát triển TP.HCM',
+    aliases: ['hdb', 'hdbank', '970437']
+  },
+  {
+    code: 'vib',
+    bin: '970441',
+    shortName: 'VIB (Quốc Tế)',
+    name: 'Ngân hàng Quốc Tế Việt Nam',
+    aliases: ['vib', 'quoc te', '970441']
+  },
+  {
+    code: 'shb',
+    bin: '970443',
+    shortName: 'SHB',
+    name: 'Ngân hàng Sài Gòn - Hà Nội',
+    aliases: ['shb', 'sai gon ha noi', '970443']
+  },
+  {
+    code: 'ocb',
+    bin: '970448',
+    shortName: 'OCB (Phương Đông)',
+    name: 'Ngân hàng Phương Đông',
+    aliases: ['ocb', 'phuong dong', '970448']
+  },
+  {
+    code: 'msb',
+    bin: '970426',
+    shortName: 'MSB (Hàng Hải)',
+    name: 'Ngân hàng Hàng Hải Việt Nam',
+    aliases: ['msb', 'hang hai', 'maritime', '970426']
+  },
+  {
+    code: 'lienvietpostbank',
+    bin: '970449',
+    shortName: 'LPBank (Lộc Phát)',
+    name: 'Ngân hàng TMCP Lộc Phát Việt Nam',
+    aliases: ['lpb', 'lpbank', 'loc phat', 'lienvietpostbank', 'lien viet', '970449']
+  },
+  {
+    code: 'seabank',
+    bin: '970440',
+    shortName: 'SeABank (Đông Nam Á)',
+    name: 'Ngân hàng Đông Nam Á',
+    aliases: ['seabank', 'seab', 'dong nam a', '970440']
+  },
+  {
+    code: 'namabank',
+    bin: '970428',
+    shortName: 'Nam A Bank (NAB)',
+    name: 'Ngân hàng Nam Á',
+    aliases: ['nab', 'nam a', 'namabank', '970428']
+  },
+  {
+    code: 'abbank',
+    bin: '970425',
+    shortName: 'ABBANK (An Bình)',
+    name: 'Ngân hàng An Bình',
+    aliases: ['abb', 'abbank', 'an binh', '970425']
+  },
+  {
+    code: 'bacabank',
+    bin: '970409',
+    shortName: 'Bac A Bank (Bắc Á)',
+    name: 'Ngân hàng Bắc Á',
+    aliases: ['bab', 'bac a', 'bacabank', '970409']
+  },
+  {
+    code: 'baovietbank',
+    bin: '970438',
+    shortName: 'BaoViet Bank (Bảo Việt)',
+    name: 'Ngân hàng Bảo Việt',
+    aliases: ['bvb', 'baoviet', 'baovietbank', 'bao viet', '970438']
+  },
+  {
+    code: 'vietabank',
+    bin: '970427',
+    shortName: 'VietABank (Việt Á)',
+    name: 'Ngân hàng Việt Á',
+    aliases: ['vab', 'vieta', 'vietabank', 'viet a', '970427']
+  },
+  {
+    code: 'kienlongbank',
+    bin: '970452',
+    shortName: 'KienlongBank (Kiên Long)',
+    name: 'Ngân hàng Kiên Long',
+    aliases: ['klb', 'kienlong', 'kienlongbank', 'kien long', '970452']
+  },
+  {
+    code: 'pgbank',
+    bin: '970430',
+    shortName: 'PGBank (Xăng Dầu)',
+    name: 'Ngân hàng TMCP Thịnh Vượng và Phát triển',
+    aliases: ['pgb', 'pgbank', 'xang dau', '970430']
+  },
+  {
+    code: 'cake',
+    bin: '546034',
+    shortName: 'Cake by VPBank',
+    name: 'Ngân hàng số Cake by VPBank',
+    aliases: ['cake', 'cake by vpbank', '546034']
+  },
+  {
+    code: 'timo',
+    bin: '963388',
+    shortName: 'Timo by BVBank',
+    name: 'Ngân hàng số Timo',
+    aliases: ['timo', 'timo plus', '963388']
+  },
+  {
+    code: 'viettelmoney',
+    bin: '971005',
+    shortName: 'Viettel Money',
+    name: 'Tổng Công ty Dịch vụ Số Viettel',
+    aliases: ['viettelmoney', 'viettel pay', 'viettel', '971005']
+  },
+  {
+    code: 'vnptmoney',
+    bin: '971011',
+    shortName: 'VNPT Money',
+    name: 'Tập đoàn Bưu chính Viễn thông Việt Nam',
+    aliases: ['vnptmoney', 'vnpt pay', 'vnpt', '971011']
+  },
+  {
+    code: 'shinhan',
+    bin: '970424',
+    shortName: 'Shinhan Bank Việt Nam',
+    name: 'Ngân hàng TNHH MTV Shinhan Việt Nam',
+    aliases: ['shinhan', 'shinhanbank', 'shbvn', '970424']
+  },
+  {
+    code: 'wooribank',
+    bin: '970457',
+    shortName: 'Woori Bank Việt Nam',
+    name: 'Ngân hàng TNHH MTV Woori Việt Nam',
+    aliases: ['woori', 'wooribank', '970457']
+  },
+  {
+    code: 'publicbank',
+    bin: '970439',
+    shortName: 'Public Bank Việt Nam',
+    name: 'Ngân hàng TNHH MTV Public Việt Nam',
+    aliases: ['pbvn', 'publicbank', 'public', '970439']
+  }
+];
+
+/**
+ * Tìm mã ngân hàng VietQR theo tên hoặc alias
+ */
+export function resolveBankCode(bankInput?: string): string {
+  if (!bankInput) return 'vietcombank';
+  const clean = bankInput.toLowerCase().trim();
+  
+  // 1. Khớp mã định danh hoặc BIN
+  const direct = VIETNAM_BANKS.find(b => b.code.toLowerCase() === clean || b.bin === clean);
+  if (direct) return direct.code;
+
+  // 2. Khớp alias
+  const byAlias = VIETNAM_BANKS.find(b => 
+    b.aliases.some(alias => clean.includes(alias) || alias === clean)
+  );
+  if (byAlias) return byAlias.code;
+
+  // 3. Khớp tên ngân hàng
+  const byName = VIETNAM_BANKS.find(b => 
+    clean.includes(b.shortName.toLowerCase()) || clean.includes(b.name.toLowerCase())
+  );
+  if (byName) return byName.code;
+
+  return 'vietcombank';
+}
+
+/**
+ * Chuẩn hóa chuỗi text sang chuẩn Napas / VietQR EMVCo Tag 62:
+ * - Loại bỏ dấu tiếng Việt (NFD)
+ * - Loại bỏ các ký tự đặc biệt [ ] { } < > # % @ $ ^ & * ( ) = + \\ / | ~ ` " ' ; : , . ? !
+ * - Giữ lại chữ cái, số và dấu cách
+ * - Chuyển sang chữ IN HOA
+ * - Giới hạn tối đa 50 ký tự để không tràn buffer Napas
+ */
+export function sanitizeVietQrText(text?: string): string {
+  if (!text) return '';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'D')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+    .slice(0, 50);
+}
+
+/**
+ * Sinh URL tạo ảnh mã VietQR chuẩn xác, tương thích 100% App Ngân hàng Việt Nam
+ */
+export function generateVietQrUrl(opts: {
+  bankCode?: string;
+  bankName?: string;
+  bankAccount: string;
+  bankHolder?: string;
+  fundAmount?: number;
+  transferSyntax?: string;
+  template?: 'compact' | 'compact2' | 'qr_only';
+}): string {
+  const bankId = opts.bankCode ? opts.bankCode.toLowerCase() : resolveBankCode(opts.bankName);
+  const cleanAcc = (opts.bankAccount || '').replace(/[^0-9a-zA-Z]/g, '');
+  const template = opts.template || 'compact';
+  const amount = opts.fundAmount && opts.fundAmount > 0 ? opts.fundAmount : 0;
+  const cleanMemo = sanitizeVietQrText(opts.transferSyntax || 'DONG QUY K8A1');
+  const cleanName = sanitizeVietQrText(opts.bankHolder || '');
+
+  let url = `https://img.vietqr.io/image/${bankId}-${cleanAcc}-${template}.png?amount=${amount}&addInfo=${encodeURIComponent(cleanMemo)}`;
+  if (cleanName) {
+    url += `&accountName=${encodeURIComponent(cleanName)}`;
+  }
+  return url;
+}
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
@@ -216,9 +517,11 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   bankName: "Vietcombank (VCB)",
   bankAccount: "10123456789",
   bankHolder: "NGUYEN VAN BAN TO CHUC",
-  transferSyntax: "KY NIEM 20 NAM [HO TEN] [SDT]",
+  transferSyntax: "KY NIEM 20 NAM K8A1",
   fundAmountPerPerson: 500000,
-  customQrUrl: ""
+  customQrUrl: "",
+  bankCode: "vietcombank",
+  qrTemplate: "compact"
 };
 
 export const K8A1_DRIVE_FOLDER_ID = "1Skmip1HQhmXan-58kwbY_msamP-bWokq";

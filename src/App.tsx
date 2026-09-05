@@ -802,6 +802,8 @@ export default function App() {
                 transferSyntax={eventConfig.transferSyntax}
                 fundAmount={eventConfig.fundAmountPerPerson}
                 customQrUrl={eventConfig.customQrUrl}
+                bankCode={eventConfig.bankCode}
+                qrTemplate={eventConfig.qrTemplate}
                 appsScriptUrl={appsScriptUrl}
                 rsvpList={rsvpList}
                 onOpenReceiptModal={handleOpenReceiptModal}

@@ -61,9 +61,16 @@ import {
   Info,
   Navigation
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig } from '../types';
-import { K8A1_DRIVE_FOLDER_ID, K8A1_DRIVE_FOLDER_URL, DEFAULT_EVENT_CONFIG } from '../data';
+import { 
+  K8A1_DRIVE_FOLDER_ID, 
+  K8A1_DRIVE_FOLDER_URL, 
+  DEFAULT_EVENT_CONFIG,
+  VIETNAM_BANKS,
+  resolveBankCode,
+  generateVietQrUrl,
+  sanitizeVietQrText
+} from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 
 interface AdminManagementHubProps {
@@ -3264,7 +3271,7 @@ export default function AdminManagementHub({
                 {/* SECTION 4: 🏦 TÀI KHOẢN ĐÓNG QUỸ & MÃ QR TẠM ỨNG */}
                 {/* ============================================================= */}
                 {(settingsSection === 'all' || settingsSection === 'bank') && (
-                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-5">
                     <div className="flex items-center justify-between border-b border-amber-200 pb-3">
                       <div className="flex items-center gap-2">
                         <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
@@ -3272,10 +3279,10 @@ export default function AdminManagementHub({
                         </span>
                         <div>
                           <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
-                            4. Tài Khoản Quỹ Lớp & Mã QR Đóng Tiền
+                            4. Tài Khoản Quỹ Lớp & Mã VietQR Đóng Tiền
                           </h4>
                           <p className="text-[11px] text-slate-500 font-sans">
-                            Hiển thị tại Thẻ Chuyển Khoản Đóng Quỹ (Tạm Ứng 500k) và sinh mã VietQR tự động
+                            Cấu hình tài khoản nhận tiền, tự động sinh mã VietQR chuẩn Napas 24/7 quét được trên tất cả App ngân hàng
                           </p>
                         </div>
                       </div>
@@ -3284,88 +3291,296 @@ export default function AdminManagementHub({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700">
-                          Tên Ngân Hàng (*):
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={eventConfigForm.bankName}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankName: e.target.value })}
-                          placeholder="VD: Vietcombank (VCB)"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold focus:outline-none focus:border-amber-500"
-                        />
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      {/* Left: Input Form Controls (7 cols) */}
+                      <div className="lg:col-span-7 space-y-4 text-xs">
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-slate-700 flex items-center justify-between">
+                            <span>Chọn Ngân Hàng Nhận (*):</span>
+                            <span className="text-[10px] text-emerald-700 font-normal">Hỗ trợ 30+ Ngân Hàng Việt Nam</span>
+                          </label>
+                          <select
+                            value={eventConfigForm.bankCode || resolveBankCode(eventConfigForm.bankName)}
+                            onChange={(e) => {
+                              const found = VIETNAM_BANKS.find(b => b.code === e.target.value);
+                              setEventConfigForm({
+                                ...eventConfigForm,
+                                bankCode: e.target.value,
+                                bankName: found ? found.shortName : eventConfigForm.bankName
+                              });
+                            }}
+                            className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-slate-800 text-xs focus:outline-none focus:border-amber-500 cursor-pointer"
+                          >
+                            {VIETNAM_BANKS.map((b) => (
+                              <option key={b.code} value={b.code}>
+                                {b.shortName} — {b.name} (BIN: {b.bin})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Tên Hiển Thị Ngân Hàng:
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={eventConfigForm.bankName}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankName: e.target.value })}
+                              placeholder="VD: Vietcombank (VCB)"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Số Tài Khoản Nhận Quỹ (*):
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={eventConfigForm.bankAccount}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankAccount: e.target.value.replace(/\s+/g, '') })}
+                              placeholder="VD: 10123456789"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono font-bold text-emerald-700 text-sm focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Chủ Tài Khoản (In Hoa Không Dấu) (*):
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={eventConfigForm.bankHolder}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankHolder: sanitizeVietQrText(e.target.value) })}
+                              placeholder="VD: NGUYEN VAN BAN TO CHUC"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold uppercase font-mono focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Mức Quỹ Tạm Ứng (VNĐ):</span>
+                              <span className="text-[10px] text-amber-700 font-bold">
+                                {eventConfigForm.fundAmountPerPerson ? eventConfigForm.fundAmountPerPerson.toLocaleString('vi-VN') + 'đ' : ''}
+                              </span>
+                            </label>
+                            <div className="space-y-1.5">
+                              <input
+                                type="number"
+                                step={50000}
+                                value={eventConfigForm.fundAmountPerPerson}
+                                onChange={(e) => setEventConfigForm({ ...eventConfigForm, fundAmountPerPerson: Number(e.target.value) || 500000 })}
+                                placeholder="500000"
+                                className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-amber-800 focus:outline-none focus:border-amber-500"
+                              />
+                              <div className="flex items-center gap-1.5">
+                                {[300000, 500000, 1000000].map((amt) => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setEventConfigForm({ ...eventConfigForm, fundAmountPerPerson: amt })}
+                                    className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                                      eventConfigForm.fundAmountPerPerson === amt
+                                        ? 'bg-amber-600 text-white border-amber-600 font-bold'
+                                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {(amt / 1000).toLocaleString('vi-VN')}k
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Cú pháp chuyển khoản */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="font-bold text-slate-700">
+                              Cú Pháp Chuyển Khoản Mẫu (*):
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEventConfigForm({
+                                  ...eventConfigForm,
+                                  transferSyntax: sanitizeVietQrText(eventConfigForm.transferSyntax || 'KY NIEM 20 NAM K8A1')
+                                });
+                              }}
+                              className="text-[10px] text-amber-800 hover:text-amber-950 font-bold underline cursor-pointer"
+                            >
+                              Chuẩn hóa Napas không dấu
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={eventConfigForm.transferSyntax}
+                            onChange={(e) => setEventConfigForm({ ...eventConfigForm, transferSyntax: e.target.value })}
+                            placeholder="VD: KY NIEM 20 NAM K8A1"
+                            className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono font-bold text-slate-800 text-xs focus:outline-none focus:border-amber-500"
+                          />
+                          <p className="text-[10px] text-slate-500 font-sans">
+                            💡 Khuyên dùng: Chữ in hoa không dấu, không dùng dấu ngoặc vuông <code>[]</code> hay ký tự đặc biệt để App ngân hàng quét 100% thành công.
+                          </p>
+                        </div>
+
+                        {/* Kiểu hiển thị mã QR */}
+                        <div className="space-y-1.5">
+                          <label className="font-bold text-slate-700">
+                            Kiểu Hiển Thị Khung VietQR:
+                          </label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'compact', label: 'Khung Chuẩn (Gợi ý)', desc: 'Rõ nét, có logo & thông tin' },
+                              { id: 'qr_only', label: 'Mã QR Trơn', desc: 'Toàn màn hình, siêu nét' },
+                              { id: 'compact2', label: 'Khung Đầy Đủ', desc: 'Kèm banner VietQR' }
+                            ].map((tpl) => (
+                              <button
+                                key={tpl.id}
+                                type="button"
+                                onClick={() => setEventConfigForm({ ...eventConfigForm, qrTemplate: tpl.id as any })}
+                                className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                                  (eventConfigForm.qrTemplate || 'compact') === tpl.id
+                                    ? 'bg-amber-50 border-amber-400 text-amber-900 font-bold shadow-xs'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                }`}
+                              >
+                                <p className="text-xs">{tpl.label}</p>
+                                <p className="text-[9px] text-slate-400 font-normal">{tpl.desc}</p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Custom QR URL / Upload file */}
+                        <div className="space-y-2 p-3 bg-amber-50/50 rounded-xl border border-amber-200">
+                          <label className="font-bold text-slate-700 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <QrCode className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Ảnh Mã QR Tùy Chỉnh (Tùy Chọn):</span>
+                            </span>
+                            {eventConfigForm.customQrUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setEventConfigForm({ ...eventConfigForm, customQrUrl: '' })}
+                                className="text-[10px] text-rose-600 hover:text-rose-800 font-bold cursor-pointer"
+                              >
+                                ✕ Xóa để dùng VietQR tự sinh
+                              </button>
+                            )}
+                          </label>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={eventConfigForm.customQrUrl || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, customQrUrl: e.target.value })}
+                              placeholder="Dán link ảnh hoặc tải file QR từ App ngân hàng..."
+                              className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-mono text-[11px] focus:outline-none focus:border-amber-500"
+                            />
+                            
+                            <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 hover:border-amber-400 rounded-lg text-[11px] font-bold text-slate-700 cursor-pointer shrink-0 transition-colors shadow-xs">
+                              <Upload className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Tải file ảnh</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (loadEvt) => {
+                                      const b64 = loadEvt.target?.result as string;
+                                      if (b64) {
+                                        setEventConfigForm({ ...eventConfigForm, customQrUrl: b64 });
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-sans">
+                            Nếu để trống, hệ thống sẽ tự động sinh mã VietQR sắc nét theo đúng STK và Mức quỹ ở trên.
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700">
-                          Số Tài Khoản Nhận Quỹ (*):
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={eventConfigForm.bankAccount}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankAccount: e.target.value })}
-                          placeholder="VD: 10123456789"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono font-bold text-emerald-700 text-sm focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
+                      {/* Right: Live Preview Box (5 cols) */}
+                      <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-gradient-to-b from-[#FAF8F5] to-[#F5EFE6] rounded-xl border border-amber-200/90 space-y-3.5 text-center">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+                            XEM TRƯỚC MÃ QR TRỰC TIẾP
+                          </span>
+                          <h5 className="font-serif font-bold text-slate-900 text-sm">
+                            Mã Quét Sẽ Xuất Hiện Cho Cả Lớp
+                          </h5>
+                        </div>
 
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700">
-                          Tên Chủ Tài Khoản (In Hoa) (*):
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={eventConfigForm.bankHolder}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, bankHolder: e.target.value.toUpperCase() })}
-                          placeholder="VD: NGUYEN VAN BAN TO CHUC"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold uppercase focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
+                        {/* QR Image Frame */}
+                        {(() => {
+                          const previewQrUrl = eventConfigForm.customQrUrl && eventConfigForm.customQrUrl.trim() !== ''
+                            ? eventConfigForm.customQrUrl
+                            : generateVietQrUrl({
+                                bankCode: eventConfigForm.bankCode,
+                                bankName: eventConfigForm.bankName,
+                                bankAccount: eventConfigForm.bankAccount,
+                                bankHolder: eventConfigForm.bankHolder,
+                                fundAmount: eventConfigForm.fundAmountPerPerson,
+                                transferSyntax: eventConfigForm.transferSyntax,
+                                template: eventConfigForm.qrTemplate || 'compact'
+                              });
 
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700">
-                          Mức Đóng Quỹ Tạm Ứng / Người (VNĐ):
-                        </label>
-                        <input
-                          type="number"
-                          step={50000}
-                          value={eventConfigForm.fundAmountPerPerson}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, fundAmountPerPerson: Number(e.target.value) || 500000 })}
-                          placeholder="500000"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-amber-800 focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
+                          return (
+                            <div className="space-y-3 w-full max-w-[240px]">
+                              <div className="p-2.5 bg-white border-2 border-amber-400 rounded-2xl shadow-md flex items-center justify-center aspect-square mx-auto">
+                                <img
+                                  src={previewQrUrl}
+                                  alt="Mã QR xem trước"
+                                  className="w-full h-full object-contain rounded-lg"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
 
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="font-bold text-slate-700">
-                          Cú Pháp Chuyển Khoản Mẫu:
-                        </label>
-                        <input
-                          type="text"
-                          value={eventConfigForm.transferSyntax}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, transferSyntax: e.target.value })}
-                          placeholder="VD: KY NIEM 20 NAM [HO TEN] [SDT]"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
+                              <div className="bg-white p-2.5 rounded-lg border border-amber-200/80 text-[11px] text-left space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500">Ngân hàng:</span>
+                                  <span className="font-bold text-slate-900">{eventConfigForm.bankName}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500">Số TK:</span>
+                                  <span className="font-mono font-bold text-emerald-700">{eventConfigForm.bankAccount}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500">Số tiền:</span>
+                                  <span className="font-bold text-amber-800">
+                                    {eventConfigForm.fundAmountPerPerson ? eventConfigForm.fundAmountPerPerson.toLocaleString('vi-VN') + 'đ' : '0đ'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between pt-0.5 border-t border-slate-100">
+                                  <span className="text-slate-500 shrink-0">Cú pháp:</span>
+                                  <span className="font-mono font-bold text-slate-800 text-right truncate max-w-[130px]" title={eventConfigForm.transferSyntax}>
+                                    {eventConfigForm.transferSyntax}
+                                  </span>
+                                </div>
+                              </div>
 
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="font-bold text-slate-700 flex items-center justify-between">
-                          <span>Link Ảnh Mã QR Code Tùy Chỉnh (Tùy chọn):</span>
-                          <span className="text-[11px] text-slate-400 font-normal">Nếu để trống, hệ thống tự tạo VietQR theo STK và mức quỹ</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={eventConfigForm.customQrUrl || ''}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, customQrUrl: e.target.value })}
-                          placeholder="https://img.vietqr.io/image/... hoặc để trống"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
-                        />
+                              <div className="flex items-center justify-center gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 py-1 px-2.5 rounded-full border border-emerald-200 font-bold">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Tương thích 100% App Ngân hàng</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

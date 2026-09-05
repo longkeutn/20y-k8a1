@@ -173,5 +173,8 @@ export interface EventConfig {
   transferSyntax: string;
   fundAmountPerPerson: number;
   customQrUrl?: string;
+  bankCode?: string;
+  qrTemplate?: 'compact' | 'compact2' | 'qr_only';
 }
+
 

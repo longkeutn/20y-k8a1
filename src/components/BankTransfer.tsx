@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { 
   Copy, 
   Check, 
-  Info, 
   Landmark, 
   HelpCircle, 
   Upload, 
   Receipt, 
-  Sparkles
+  Maximize2,
+  Download,
+  X,
+  QrCode
 } from 'lucide-react';
 import { RsvpData } from '../types';
+import { generateVietQrUrl } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
@@ -19,6 +22,8 @@ interface BankTransferProps {
   bankHolder?: string;
   transferSyntax?: string;
   fundAmount?: number;
+  bankCode?: string;
+  qrTemplate?: 'compact' | 'compact2' | 'qr_only';
   appsScriptUrl?: string;
   rsvpList?: RsvpData[];
   onUpdateRsvpList?: (list: RsvpData[]) => void;
@@ -30,35 +35,35 @@ export default function BankTransfer({
   bankName = "Vietcombank (VCB)",
   bankAccount = "10123456789",
   bankHolder = "NGUYEN VAN BAN TO CHUC",
-  transferSyntax = "KY NIEM 20 NAM [HO TEN] [SDT]",
+  transferSyntax = "KY NIEM 20 NAM K8A1",
   fundAmount = 500000,
+  bankCode = "vietcombank",
+  qrTemplate = "compact",
   appsScriptUrl = "",
   rsvpList = [],
   onUpdateRsvpList,
   onOpenReceiptModal
 }: BankTransferProps) {
-  // Helper to get bank code for VietQR
-  const getBankCode = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('vietcombank') || lower.includes('vcb')) return 'vietcombank';
-    if (lower.includes('techcombank') || lower.includes('tcb')) return 'techcombank';
-    if (lower.includes('mb') || lower.includes('mbbank')) return 'mbbank';
-    if (lower.includes('bidv')) return 'bidv';
-    if (lower.includes('vietinbank') || lower.includes('ctg') || lower.includes('vietin')) return 'vietinbank';
-    if (lower.includes('acb')) return 'acb';
-    if (lower.includes('vpbank') || lower.includes('vpb')) return 'vpbank';
-    if (lower.includes('tpbank') || lower.includes('tpb')) return 'tpbank';
-    if (lower.includes('sacombank') || lower.includes('stb')) return 'sacombank';
-    return 'vietcombank';
-  };
-
-  const cleanAcc = bankAccount.replace(/\s+/g, '');
-  const dynamicQrUrl = `https://img.vietqr.io/image/${getBankCode(bankName)}-${cleanAcc}-compact2.jpg?amount=${fundAmount}&addInfo=${encodeURIComponent(transferSyntax)}`;
-  const qrUrl = customQrUrl || dynamicQrUrl;
-
+  const [selectedTemplate, setSelectedTemplate] = useState<'compact' | 'qr_only'>(
+    qrTemplate === 'qr_only' ? 'qr_only' : 'compact'
+  );
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [copiedSyntax, setCopiedSyntax] = useState(false);
   const [isLocalModalOpen, setIsLocalModalOpen] = useState(false);
+  const [isZoomQrOpen, setIsZoomQrOpen] = useState(false);
+
+  // Sinh mã VietQR chuẩn xác, tương thích 100% Napas và app ngân hàng
+  const dynamicQrUrl = generateVietQrUrl({
+    bankCode,
+    bankName,
+    bankAccount,
+    bankHolder,
+    fundAmount,
+    transferSyntax,
+    template: selectedTemplate
+  });
+
+  const qrUrl = customQrUrl && customQrUrl.trim() !== '' ? customQrUrl : dynamicQrUrl;
 
   const copyToClipboard = (text: string, type: 'account' | 'syntax') => {
     navigator.clipboard.writeText(text);
@@ -79,6 +84,17 @@ export default function BankTransfer({
     }
   };
 
+  const handleDownloadQr = () => {
+    const link = document.createElement('a');
+    link.href = qrUrl;
+    link.download = `VietQR_DongQuy_K8A1_${bankAccount}.png`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div id="bank-transfer-card" className="bg-white rounded-2xl p-6 sm:p-8 shadow-xs border border-amber-200/90 space-y-6">
       {/* Header */}
@@ -90,7 +106,7 @@ export default function BankTransfer({
           <span className="text-xs text-slate-400">• Quỹ Tổ Chức Hội Khóa 20 Năm K8A1</span>
         </div>
         <h3 className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
-          Đóng Quỹ Sự Kiện (Tạm Ứng 500.000 VNĐ / Bạn)
+          Đóng Quỹ Sự Kiện (Tạm Ứng {fundAmount ? fundAmount.toLocaleString('vi-VN') : '500.000'} VNĐ / Bạn)
         </h3>
         <p className="text-xs text-slate-600 font-sans leading-relaxed">
           Kinh phí bao gồm: Tiệc trưa Crown Palace Thái Nguyên, Áo polo đồng phục kỷ niệm 20 năm, Thẻ học sinh, Backdrop & quà lưu niệm.
@@ -111,13 +127,18 @@ export default function BankTransfer({
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Ngân hàng</span>
-              <p className="text-sm font-bold text-slate-900">{bankName}</p>
+              <p className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <span>{bankName}</span>
+                <span className="text-[10px] font-normal text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  Napas 24/7
+                </span>
+              </p>
             </div>
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Số tài khoản</span>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-base font-mono font-bold text-emerald-700 tracking-wider">{bankAccount}</span>
+                <span className="text-base font-mono font-bold text-emerald-700 tracking-wider select-all">{bankAccount}</span>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(bankAccount, 'account')}
@@ -140,11 +161,18 @@ export default function BankTransfer({
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Chủ tài khoản (Thủ Quỹ BLL)</span>
-              <p className="text-sm font-semibold text-slate-900">{bankHolder}</p>
+              <p className="text-sm font-semibold text-slate-900 uppercase font-mono">{bankHolder}</p>
             </div>
 
             <div className="space-y-1 bg-white p-2.5 rounded-lg border border-amber-200/70">
-              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Nội dung chuyển khoản chuẩn</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">
+                  Nội dung chuyển khoản
+                </span>
+                <span className="text-[9px] text-slate-400 font-sans">
+                  (Chuẩn Napas không dấu)
+                </span>
+              </div>
               <div className="flex items-start justify-between gap-2 mt-0.5">
                 <p className="text-xs font-semibold text-slate-800 leading-relaxed break-all select-all font-mono">
                   {transferSyntax}
@@ -173,20 +201,55 @@ export default function BankTransfer({
 
         {/* QR Code */}
         <div className="flex flex-col items-center justify-center space-y-2.5 order-1 md:order-2 self-center">
-          <div className="relative p-2.5 bg-white border-2 border-amber-300 rounded-2xl shadow-md max-w-[200px] w-full aspect-square flex items-center justify-center overflow-hidden">
+          {/* QR Container with Zoom trigger */}
+          <div 
+            onClick={() => setIsZoomQrOpen(true)}
+            className="group relative p-2.5 bg-white border-2 border-amber-300 hover:border-amber-500 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 max-w-[220px] w-full aspect-square flex items-center justify-center overflow-hidden cursor-pointer"
+            title="Bấm để phóng to mã QR"
+          >
             <img
               src={qrUrl}
               alt="Mã QR Chuyển khoản đóng quỹ"
-              className="w-full h-full object-contain rounded-lg"
+              className="w-full h-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute top-1 right-1 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-[9px] uppercase font-sans tracking-widest px-2 py-0.5 rounded-full font-bold shadow-xs">
+            
+            {/* Badges */}
+            <div className="absolute top-1.5 right-1.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-[9px] uppercase font-sans tracking-widest px-2 py-0.5 rounded-full font-bold shadow-xs">
               QUÉT NHANH
             </div>
+
+            {/* Hover overlay hint */}
+            <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white text-xs font-bold rounded-2xl">
+              <Maximize2 className="w-6 h-6 drop-shadow" />
+              <span className="text-[11px] drop-shadow">Phóng to mã QR</span>
+            </div>
           </div>
+
+          {/* Quick controls under QR */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsZoomQrOpen(true)}
+              className="inline-flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-950 font-semibold bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-md border border-amber-200 cursor-pointer transition-colors"
+            >
+              <Maximize2 className="w-3 h-3" />
+              <span>Phóng to</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadQr}
+              className="inline-flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-900 font-semibold bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 cursor-pointer transition-colors"
+            >
+              <Download className="w-3 h-3" />
+              <span>Tải ảnh</span>
+            </button>
+          </div>
+
           <p className="text-[11px] font-sans font-medium text-slate-500 flex items-center gap-1 text-center">
-            <HelpCircle className="w-3.5 h-3.5 text-amber-600" />
-            <span>Mở App Ngân hàng quét mã để tự điền</span>
+            <HelpCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>Mở App Ngân hàng quét mã để tự điền số tiền & nội dung</span>
           </p>
         </div>
       </div>
@@ -217,6 +280,128 @@ export default function BankTransfer({
         </button>
       </div>
 
+      {/* ============================================================ */}
+      {/* FULLSCREEN / ZOOM QR MODAL CHO APP QUÉT CỰC NÉT */}
+      {/* ============================================================ */}
+      {isZoomQrOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsZoomQrOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-amber-200 space-y-5 animate-in zoom-in-95 duration-200 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsZoomQrOpen(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Title */}
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 bg-amber-100/80 text-amber-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                <QrCode className="w-3.5 h-3.5 text-amber-700" />
+                <span>Mã VietQR Chuyển Khoản Đóng Quỹ</span>
+              </div>
+              <h4 className="text-lg font-serif font-bold text-slate-900">
+                Hội Khóa 20 Năm K8A1 THPT Thái Nguyên
+              </h4>
+              <p className="text-xs text-slate-500 font-sans">
+                Mở ứng dụng ngân hàng bất kỳ (VCB, MB, Techcom, BIDV...) để quét
+              </p>
+            </div>
+
+            {/* Template Selector (Compact vs Pure QR) */}
+            <div className="flex items-center justify-center gap-2 p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setSelectedTemplate('compact')}
+                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
+                  selectedTemplate === 'compact'
+                    ? 'bg-white text-amber-900 shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Khung VietQR Chuẩn
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTemplate('qr_only')}
+                className={`flex-1 py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
+                  selectedTemplate === 'qr_only'
+                    ? 'bg-white text-amber-900 shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Mã QR Toàn Màn Hình
+              </button>
+            </div>
+
+            {/* Giant QR Image */}
+            <div className="p-3 bg-white border-2 border-amber-300 rounded-2xl shadow-inner flex items-center justify-center aspect-square max-w-[320px] mx-auto">
+              <img
+                src={qrUrl}
+                alt="Mã VietQR phóng to"
+                className="w-full h-full object-contain rounded-lg"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            {/* Quick Info Summary */}
+            <div className="bg-[#FAF9F6] p-3.5 rounded-xl border border-amber-200 text-xs space-y-1.5">
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Ngân hàng:</span>
+                <span className="font-bold text-slate-900">{bankName}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Số tài khoản:</span>
+                <span className="font-mono font-bold text-emerald-700 select-all">{bankAccount}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Chủ tài khoản:</span>
+                <span className="font-bold text-slate-900 uppercase font-mono">{bankHolder}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Số tiền:</span>
+                <span className="font-bold text-amber-800">
+                  {fundAmount ? fundAmount.toLocaleString('vi-VN') : '500.000'} VNĐ
+                </span>
+              </div>
+              <div className="flex justify-between items-start text-slate-600 pt-1 border-t border-amber-100">
+                <span className="shrink-0">Nội dung:</span>
+                <span className="font-mono font-bold text-slate-800 text-right select-all break-all">
+                  {transferSyntax}
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleDownloadQr}
+                className="flex-1 py-2.5 px-4 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Tải Ảnh QR</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(bankAccount, 'account')}
+                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {copiedAccount ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedAccount ? 'Đã Chép STK' : 'Chép STK'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Self-contained modal when triggered locally */}
       {!onOpenReceiptModal && (
         <ReceiptUploadModal
@@ -230,3 +415,4 @@ export default function BankTransfer({
     </div>
   );
 }
+
