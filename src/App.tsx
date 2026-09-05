@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, INITIAL_EXPENSES_LIST, normalizeImageUrl, formatDateTimeVi } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, INITIAL_EXPENSES_LIST, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -369,7 +369,7 @@ export default function App() {
     title: String(item.title || '').trim(),
     category: (item.category || 'other') as ExpenseCategory,
     amount: Number(item.amount) || 0,
-    date: String(item.date || '').trim(),
+    date: formatDateOnlyVi(item.date),
     spender: String(item.spender || '').trim(),
     recipient: item.recipient ? String(item.recipient).trim() : '',
     receiptUrl: item.receiptUrl ? String(item.receiptUrl).trim() : '',

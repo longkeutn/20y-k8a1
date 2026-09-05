@@ -26,7 +26,7 @@ import {
   Filter
 } from 'lucide-react';
 import { RsvpData, ClassMember, ExpenseItem } from '../types';
-import { generateVietQrUrl, INITIAL_EXPENSES_LIST, EXPENSE_CATEGORIES } from '../data';
+import { generateVietQrUrl, INITIAL_EXPENSES_LIST, EXPENSE_CATEGORIES, formatDateOnlyVi } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
@@ -769,7 +769,7 @@ export default function BankTransfer({
                               </span>
                               <span className="text-xs text-slate-500 font-sans flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                {item.date || '—'}
+                                {formatDateOnlyVi(item.date) || '—'}
                               </span>
                               {item.eventScope && (
                                 <span className="text-[10px] font-sans font-medium bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">

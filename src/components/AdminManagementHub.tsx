@@ -88,6 +88,7 @@ import {
   normalizeImageUrl,
   SHIRT_SIZE_OPTIONS,
   formatDateTimeVi,
+  formatDateOnlyVi,
   EXPENSE_CATEGORIES,
   INITIAL_EXPENSES_LIST,
   updatePinsViaBackend,
@@ -1408,7 +1409,7 @@ export default function AdminManagementHub({
 
     const expenseRows = effectiveExpenses.map((exp, idx) => [
       idx + 1,
-      `"${exp.date || ''}"`,
+      `"${formatDateOnlyVi(exp.date)}"`,
       `"${String(exp.title || '').replace(/"/g, '""')}"`,
       `"${categoryLabels[exp.category] || exp.category || 'Chi khác'}"`,
       Number(exp.amount) || 0,
@@ -4111,8 +4112,8 @@ export default function AdminManagementHub({
                                 {idx + 1}
                               </td>
 
-                              <td className="py-2.5 px-3 font-mono text-slate-600 whitespace-nowrap">
-                                {item.date}
+                              <td className="py-2.5 px-3 font-mono text-slate-700 whitespace-nowrap font-medium">
+                                {formatDateOnlyVi(item.date)}
                               </td>
 
                               <td className="py-2.5 px-3">

@@ -739,6 +739,42 @@ export function formatDateTimeVi(rawDate?: any): string {
   return str;
 }
 
+/**
+ * Định dạng ngày chuẩn tiếng Việt (DD/MM/YYYY):
+ * - Xử lý triệt để các chuỗi Date từ Google Sheets như "Sat Aug 15 2026 00:00:00 GMT+0700 (Indochina Time)"
+ *   hoặc ISO "2026-08-15" thành "15/08/2026"
+ */
+export function formatDateOnlyVi(rawDate?: any): string {
+  if (!rawDate) return '';
+  const str = String(rawDate).trim();
+  if (!str) return '';
+
+  // Đã là chuẩn DD/MM/YYYY
+  const dmy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (dmy) {
+    const [, d, m, y] = dmy;
+    const pad = (n: string) => n.length === 1 ? '0' + n : n;
+    return `${pad(d)}/${pad(m)}/${y}`;
+  }
+
+  // Dạng ISO YYYY-MM-DD
+  const ymd = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (ymd) {
+    const [, y, m, d] = ymd;
+    const pad = (n: string) => n.length === 1 ? '0' + n : n;
+    return `${pad(d)}/${pad(m)}/${y}`;
+  }
+
+  // Chuỗi Date đầy đủ của JavaScript: Sat Aug 15 2026 00:00:00 GMT+0700...
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const pad = (n: number) => n < 10 ? '0' + n : String(n);
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+
+  return str;
+}
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
@@ -2344,12 +2380,29 @@ function getExpensesList() {
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r[0] && !r[1]) continue;
+      let expDate = r[4];
+      if (expDate instanceof Date) {
+        const pad = function(n) { return n < 10 ? '0' + n : String(n); };
+        expDate = pad(expDate.getDate()) + '/' + pad(expDate.getMonth() + 1) + '/' + expDate.getFullYear();
+      } else {
+        expDate = String(expDate || '').trim();
+        if (expDate.includes('GMT') || expDate.length > 20) {
+          try {
+            const d = new Date(expDate);
+            if (!isNaN(d.getTime())) {
+              const pad = function(n) { return n < 10 ? '0' + n : String(n); };
+              expDate = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+            }
+          } catch (e) {}
+        }
+      }
+
       list.push({
         id: String(r[0] || ''),
         title: String(r[1] || ''),
         category: String(r[2] || 'other'),
         amount: Number(r[3]) || 0,
-        date: String(r[4] || ''),
+        date: expDate,
         spender: String(r[5] || ''),
         recipient: String(r[6] || ''),
         receiptUrl: String(r[7] || ''),
