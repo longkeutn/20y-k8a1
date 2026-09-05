@@ -132,6 +132,11 @@ export default function AdminManagementHub({
   onRefreshData,
   onOpenPassModal
 }: AdminManagementHubProps) {
+  // User Role Helpers
+  const isAdmin = currentUserRole === 'admin';
+  const isBll = currentUserRole === 'bll';
+  const isAuthorized = isAdmin || isBll;
+
   // Navigation tabs
   type ActiveTab = 'members' | 'fund' | 'wishes' | 'media' | 'settings';
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
@@ -1437,7 +1442,6 @@ export default function AdminManagementHub({
   // ===========================================================================
   // SCREEN 2: MAIN MANAGEMENT HUB (WHEN AUTHENTICATED AS ADMIN OR BLL)
   // ===========================================================================
-  const isAdmin = currentUserRole === 'admin';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden">
