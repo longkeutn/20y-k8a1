@@ -84,11 +84,15 @@ export function parseVenueMedia(url: string): {
   if (cleanUrl.includes('facebook.com') || cleanUrl.includes('fb.watch') || cleanUrl.includes('fb.com')) {
     const isReel = cleanUrl.includes('/reel/') || cleanUrl.includes('/reels/') || cleanUrl.includes('/share/r/');
     
-    // Normalize URL for Facebook Plugin
-    let canonical = cleanUrl;
+    // Clean query parameters to avoid iframe load errors
+    let canonical = cleanUrl.split('?')[0].replace(/\/+$/, '');
     const reelMatch = cleanUrl.match(/(?:reel|reels)\/(\d+)/i);
+    const videoMatch = cleanUrl.match(/(?:videos|v)\/(\d+)/i) || cleanUrl.match(/[?&]v=(\d+)/i);
+    
     if (reelMatch && reelMatch[1]) {
       canonical = `https://www.facebook.com/reel/${reelMatch[1]}/`;
+    } else if (videoMatch && videoMatch[1]) {
+      canonical = `https://www.facebook.com/watch/?v=${videoMatch[1]}`;
     }
     
     const encoded = encodeURIComponent(canonical);
@@ -160,7 +164,7 @@ interface Props {
   venueMediaList?: VenueMediaItem[];
   onUpdateVenueMediaList?: (list: VenueMediaItem[]) => void;
   currentUserRole?: UserRole;
-  onOpenAdminHub?: () => void;
+  onOpenAdminHub?: (tab?: 'members' | 'fund' | 'wishes' | 'media' | 'settings', subTab?: 'venue' | 'banner' | 'videos' | 'photos') => void;
 }
 
 export default function AlumniConvergenceMap({
@@ -475,8 +479,8 @@ export default function AlumniConvergenceMap({
               {isAuthorized ? (
                 <button
                   type="button"
-                  onClick={() => onOpenAdminHub ? onOpenAdminHub() : setIsEditMediaModalOpen(true)}
-                  className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-300/80 cursor-pointer shadow-2xs"
+                  onClick={() => onOpenAdminHub ? onOpenAdminHub('media', 'venue') : setIsEditMediaModalOpen(true)}
+                  className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300/80 cursor-pointer shadow-2xs transition"
                   title="Dành cho Ban Liên Lạc & Admin: Đổi video hoặc ảnh không gian nhà hàng"
                 >
                   <Edit3 className="w-3 h-3 text-amber-700" />
@@ -500,17 +504,17 @@ export default function AlumniConvergenceMap({
                     loading="lazy"
                   />
 
-                  {/* Nút hành động mở trực tiếp trên Facebook (giải quyết 100% nếu trình duyệt chặn iframe) */}
+                  {/* Nút hành động mở trực tiếp trên Facebook */}
                   <div className="absolute top-2.5 right-2.5 z-20">
                     <a
                       href={parsedCurrentMedia.rawUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1877F2] hover:bg-[#166fe5] text-white text-[10px] font-sans font-bold rounded-lg shadow-md transition transform hover:scale-105"
-                      title="Mở xem video trên ứng dụng / web Facebook"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white text-xs font-sans font-bold rounded-lg shadow-lg transition transform hover:scale-105 border border-white/20"
+                      title="Mở xem video trực tiếp trên ứng dụng hoặc trang Facebook"
                     >
                       <span>{parsedCurrentMedia.isReel ? 'Mở Reel Facebook' : 'Mở Facebook'}</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
                 </div>
@@ -581,6 +585,29 @@ export default function AlumniConvergenceMap({
                 </div>
               )}
             </div>
+
+            {/* Banner hỗ trợ mở Facebook trực tiếp khi gặp giới hạn nhúng */}
+            {parsedCurrentMedia.type === 'facebook' && (
+              <div className="bg-blue-50 border border-blue-200/90 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                    f
+                  </span>
+                  <p className="text-[11px] text-blue-950 font-serif leading-tight">
+                    Nếu khung video hiển thị <em>"Video không khả dụng"</em> do Facebook giới hạn quyền riêng tư/bản quyền, bạn chỉ cần bấm nút để xem ngay trên Facebook.
+                  </p>
+                </div>
+                <a
+                  href={parsedCurrentMedia.rawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-lg text-xs font-sans font-bold shadow-xs transition shrink-0 cursor-pointer"
+                >
+                  <span>Mở Xem Ngay</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
 
             {/* Playlist Thumbnails chuyển đổi góc nhìn */}
             {mediaList.length > 1 && (

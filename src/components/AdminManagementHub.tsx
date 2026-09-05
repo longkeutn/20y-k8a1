@@ -58,6 +58,8 @@ interface AdminManagementHubProps {
   currentUserRole: UserRole;
   onLoginSuccess: (role: UserRole) => void;
   onLogout: () => void;
+  initialTab?: 'members' | 'fund' | 'wishes' | 'media' | 'settings';
+  initialMediaSubTab?: 'venue' | 'banner' | 'videos' | 'photos';
   
   // Data props
   rsvpList: RsvpData[];
@@ -90,6 +92,8 @@ export default function AdminManagementHub({
   currentUserRole,
   onLoginSuccess,
   onLogout,
+  initialTab,
+  initialMediaSubTab,
   rsvpList,
   onUpdateRsvpList,
   wishesList,
@@ -109,7 +113,18 @@ export default function AdminManagementHub({
 }: AdminManagementHubProps) {
   // Navigation tabs
   type ActiveTab = 'members' | 'fund' | 'wishes' | 'media' | 'settings';
-  const [activeTab, setActiveTab] = useState<ActiveTab>('members');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
+
+  // Media Tab subtab state
+  const [mediaSubTab, setMediaSubTab] = useState<'venue' | 'banner' | 'videos' | 'photos'>(initialMediaSubTab || 'venue');
+
+  // Auto-switch to initialTab and initialMediaSubTab when hub is opened
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTab) setActiveTab(initialTab);
+      if (initialMediaSubTab) setMediaSubTab(initialMediaSubTab);
+    }
+  }, [isOpen, initialTab, initialMediaSubTab]);
 
   // PIN Authentication state
   const [enteredPin, setEnteredPin] = useState('');
@@ -172,7 +187,6 @@ export default function AdminManagementHub({
   });
 
   // Media Tab state
-  const [mediaSubTab, setMediaSubTab] = useState<'venue' | 'banner' | 'videos' | 'photos'>('venue');
   const [venueMediaListState, setVenueMediaListState] = useState<VenueMediaItem[]>(() => {
     if (venueMediaList && venueMediaList.length > 0) return venueMediaList;
     try {

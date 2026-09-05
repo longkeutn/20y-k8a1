@@ -62,6 +62,17 @@ export default function App() {
 
   // Admin / BLL Management Hub Modal
   const [isAdminHubOpen, setIsAdminHubOpen] = useState(false);
+  const [adminHubInitialTab, setAdminHubInitialTab] = useState<'members' | 'fund' | 'wishes' | 'media' | 'settings'>('members');
+  const [adminHubInitialMediaSubTab, setAdminHubInitialMediaSubTab] = useState<'venue' | 'banner' | 'videos' | 'photos'>('venue');
+
+  const handleOpenAdminHub = (
+    tab: 'members' | 'fund' | 'wishes' | 'media' | 'settings' = 'members',
+    subTab: 'venue' | 'banner' | 'videos' | 'photos' = 'venue'
+  ) => {
+    setAdminHubInitialTab(tab);
+    setAdminHubInitialMediaSubTab(subTab);
+    setIsAdminHubOpen(true);
+  };
 
   // Student Souvenir Pass modal state
   const [selectedPassAttendee, setSelectedPassAttendee] = useState<RsvpData | null>(null);
@@ -408,6 +419,19 @@ export default function App() {
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
               <span>Hội Khóa 20 Năm • Niên Khóa 2003 — 2006</span>
             </div>
+
+            {/* Quick Button for Admin / BLL to change Hero Cover Banner */}
+            {(currentUserRole === 'admin' || currentUserRole === 'bll') && (
+              <button
+                type="button"
+                onClick={() => handleOpenAdminHub('media', 'banner')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/60 hover:bg-black/80 text-amber-300 border border-amber-400/60 rounded-full text-[10px] font-sans font-bold cursor-pointer transition backdrop-blur-md shadow-md hover:scale-105"
+                title="Đổi ảnh bìa banner đầu trang (Dành cho Ban Liên Lạc & Admin)"
+              >
+                <Camera className="w-3 h-3 text-amber-400" />
+                <span>Đổi Ảnh Bìa</span>
+              </button>
+            )}
           </div>
 
           {/* Main Title & Subtitle */}
@@ -658,7 +682,7 @@ export default function App() {
                 localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
               }}
               currentUserRole={currentUserRole}
-              onOpenAdminHub={() => setIsAdminHubOpen(true)}
+              onOpenAdminHub={(tab, subTab) => handleOpenAdminHub(tab || 'media', subTab || 'venue')}
             />
 
             {/* ======================================================== */}
@@ -729,6 +753,8 @@ export default function App() {
         isOpen={isAdminHubOpen}
         onClose={() => setIsAdminHubOpen(false)}
         currentUserRole={currentUserRole}
+        initialTab={adminHubInitialTab}
+        initialMediaSubTab={adminHubInitialMediaSubTab}
         onLoginSuccess={(role) => {
           setCurrentUserRole(role);
           sessionStorage.setItem('user_role', role);
