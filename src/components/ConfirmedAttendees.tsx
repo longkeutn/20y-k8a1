@@ -350,7 +350,8 @@ export default function ConfirmedAttendees({
                   <th className="py-2.5 px-3 w-12 text-center">STT</th>
                   <th className="py-2.5 px-3">Họ và Tên Thành Viên</th>
                   <th className="py-2.5 px-3 text-center">Size Áo</th>
-                  <th className="py-2.5 px-3 text-center">Trạng Thái</th>
+                  <th className="py-2.5 px-3 text-center">Tham Gia</th>
+                  <th className="py-2.5 px-3 text-center">Quỹ 20 Năm</th>
                   <th className="py-2.5 px-3 text-right">Kỷ Niệm</th>
                 </tr>
               </thead>
@@ -406,6 +407,32 @@ export default function ConfirmedAttendees({
                         <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-gray-50 text-gray-600 border border-gray-200 whitespace-nowrap">
                           <span>Vắng</span>
                         </span>
+                      )}
+                    </td>
+
+                    {/* Fund Status Badge */}
+                    <td className="py-2.5 px-3 text-center">
+                      {attendee.status === 'yes' ? (
+                        attendee.fundStatus === 'paid' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-emerald-50 text-emerald-800 border border-emerald-300/80 whitespace-nowrap" title="Đã nộp quỹ tạm ứng 500k">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                            <span>Đã đóng</span>
+                          </span>
+                        ) : attendee.fundStatus === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-300 whitespace-nowrap animate-pulse" title="Đã gửi biên lai, chờ BLL đối soát">
+                            <span>⏳ Chờ duyệt bill</span>
+                          </span>
+                        ) : (
+                          <a 
+                            href="#bank-transfer-card" 
+                            className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-slate-50 hover:bg-amber-50 text-slate-500 hover:text-amber-900 border border-dashed border-slate-300 hover:border-amber-400 whitespace-nowrap transition cursor-pointer"
+                            title="Bấm để chuyển khoản và tải ảnh biên lai gửi Ban Liên Lạc"
+                          >
+                            <span>+ Nộp quỹ</span>
+                          </a>
+                        )
+                      ) : (
+                        <span className="text-slate-400 text-[10px]">—</span>
                       )}
                     </td>
 
@@ -482,10 +509,32 @@ export default function ConfirmedAttendees({
                   </span>
                 </div>
 
-                {attendee.status === 'yes' && attendee.shirtSize && (
-                  <div className="inline-flex items-center gap-1 text-[10px] font-sans text-brand-text-muted bg-[#FAF9F6] px-2 py-0.5 rounded-xs border border-brand-border/60">
-                    <Shirt className="w-3 h-3 text-brand-gold" />
-                    <span>Áo: <strong>Size {attendee.shirtSize}</strong></span>
+                {attendee.status === 'yes' && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {attendee.shirtSize && (
+                      <div className="inline-flex items-center gap-1 text-[10px] font-sans text-brand-text-muted bg-[#FAF9F6] px-2 py-0.5 rounded-xs border border-brand-border/60">
+                        <Shirt className="w-3 h-3 text-brand-gold" />
+                        <span>Áo: <strong>Size {attendee.shirtSize}</strong></span>
+                      </div>
+                    )}
+
+                    {attendee.fundStatus === 'paid' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                        <span>Đã đóng quỹ</span>
+                      </span>
+                    ) : attendee.fundStatus === 'pending' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-300 animate-pulse">
+                        <span>⏳ Chờ duyệt bill</span>
+                      </span>
+                    ) : (
+                      <a
+                        href="#bank-transfer-card"
+                        className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-900 border border-dashed border-slate-300 hover:border-amber-400 transition"
+                      >
+                        <span>+ Đóng quỹ</span>
+                      </a>
+                    )}
                   </div>
                 )}
 

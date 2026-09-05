@@ -315,6 +315,23 @@ export default function RsvpForm({ appsScriptUrl, rsvpList, onAddRsvp, onOpenPas
                 </div>
               </div>
 
+              {lastSubmittedAttendee && lastSubmittedAttendee.status === 'yes' && (
+                <div className="p-3 bg-amber-50/90 border border-amber-300/80 rounded text-xs text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">💳</span>
+                    <span className="leading-snug font-sans">
+                      <strong>Đóng quỹ sự kiện (500.000đ):</strong> Bạn có thể chuyển khoản và tự tải ảnh biên lai lên để Ban Liên Lạc đối soát ngay.
+                    </span>
+                  </div>
+                  <a
+                    href="#bank-transfer-card"
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded transition whitespace-nowrap self-stretch sm:self-auto text-center"
+                  >
+                    Tải Ảnh Biên Lai ➔
+                  </a>
+                </div>
+              )}
+
               <div className="pt-2 border-t border-brand-border/40 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <button

@@ -90,6 +90,24 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     fundPaidAt: '03/09/2026 08:25',
     fundAuditedBy: 'Thủ Quỹ BLL',
     fundNote: 'Đã chuyển khoản Techcombank'
+  },
+  {
+    id: '6',
+    fullName: 'Đỗ Hoàng Long',
+    nickname: 'Long Keu',
+    phone: '0988123456',
+    status: 'yes',
+    className: 'K8A1',
+    shirtSize: 'XL',
+    message: 'Đã hoàn thành chuyển khoản 500k tạm ứng cho Ban Tổ Chức!',
+    submittedAt: '04/09/2026 15:20',
+    checkedIn: false,
+    fundStatus: 'pending',
+    fundAmount: 500000,
+    fundPaymentMethod: 'bank_transfer',
+    fundPaidAt: '04/09/2026 15:25',
+    fundReceiptUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
+    fundNote: 'Thành viên vừa tải lên bill qua App, chờ Ban Liên Lạc đối soát'
   }
 ];
 
@@ -379,6 +397,31 @@ function saveRSVP(data) {
       'Người đối soát'
     ]);
     sheet.getRange(1, 1, 1, 16).setFontWeight('bold').setBackground('#FAF3E0');
+  }
+
+  // Nếu có kèm ảnh bill trong form RSVP, tự động upload lên Drive folder ChungTu_QuyLop_K8A1
+  if ((data.fileData || data.fundReceiptBase64) && !data.fundReceiptUrl) {
+    try {
+      const uploadRes = uploadFundReceiptToDrive({
+        fileData: data.fileData || data.fundReceiptBase64,
+        mimeType: data.mimeType || 'image/jpeg',
+        fullName: data.fullName,
+        phone: data.phone,
+        fundAmount: data.fundAmount || 500000,
+        fundStatus: 'pending',
+        fundPaymentMethod: 'bank_transfer',
+        fundPaidAt: formatDate(new Date()),
+        fundNote: data.fundNote || 'Đính kèm khi đăng ký tham dự'
+      });
+      if (uploadRes && uploadRes.status === 'success' && uploadRes.url) {
+        data.fundReceiptUrl = uploadRes.url;
+        data.fundStatus = 'pending';
+        data.fundPaymentMethod = 'bank_transfer';
+        data.fundPaidAt = formatDate(new Date());
+      }
+    } catch (eUp) {
+      console.warn("Lỗi upload ảnh bill khi RSVP: " + eUp);
+    }
   }
 
   const row = [
@@ -724,17 +767,18 @@ function uploadFundReceiptToDrive(data) {
 
     // 4. Nếu có phone hoặc fullName, tự động đồng bộ vào Sheet RSVP (Cột 13: fundReceiptUrl)
     if (data.phone || data.fullName) {
+      const targetStatus = data.fundStatus || (data.fundAuditedBy ? 'paid' : 'pending');
       try {
         updateRSVP({
           phone: data.phone,
           fullName: data.fullName,
           fundReceiptUrl: cdnUrl,
-          fundStatus: 'paid',
+          fundStatus: targetStatus,
           fundAmount: data.fundAmount || 500000,
           fundPaymentMethod: data.fundPaymentMethod || 'bank_transfer',
           fundPaidAt: data.fundPaidAt || formatDate(new Date()),
-          fundAuditedBy: data.fundAuditedBy || 'Ban Liên Lạc',
-          fundNote: data.fundNote || ('Đã lưu ảnh chứng từ giao dịch')
+          fundAuditedBy: data.fundAuditedBy || '',
+          fundNote: data.fundNote || ('Thành viên tự tải lên bill ' + (data.fundAmount || 500000).toLocaleString('vi-VN') + 'đ')
         });
       } catch (errSync) {
         console.warn("Lỗi sync sheet: " + errSync);
@@ -747,7 +791,6 @@ function uploadFundReceiptToDrive(data) {
       fileId: fileId,
       url: cdnUrl,
       driveUrl: driveUrl,
-      folderUrl: receiptFolder.getUrl(),
       fileName: fileName
     };
   } catch (e) {

@@ -209,6 +209,8 @@ export default function AdminManagementHub({
     note?: string;
     phone?: string;
     auditedBy?: string;
+    status?: string;
+    attendee?: RsvpData;
   } | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState<number>(1);
 
@@ -558,6 +560,71 @@ export default function AdminManagementHub({
     if (nextStatus === 'paid') {
       confetti({ particleCount: 35, spread: 50, origin: { y: 0.6 } });
     }
+  };
+
+  const handleApproveFundDirect = (attendee: RsvpData, customAmount: number = 500000, note?: string) => {
+    const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const auditor = currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc';
+    const finalAmount = customAmount || 500000;
+    const finalNote = note || (attendee.fundNote ? `${attendee.fundNote} (BLL đã khớp lệnh)` : 'BLL đã đối soát khớp bill');
+
+    const updated = rsvpList.map(item => {
+      if ((item.id && item.id === attendee.id) || item.phone === attendee.phone) {
+        return {
+          ...item,
+          fundStatus: 'paid' as const,
+          fundAmount: finalAmount,
+          fundPaidAt: nowStr,
+          fundAuditedBy: auditor,
+          fundPaymentMethod: item.fundPaymentMethod || 'bank_transfer',
+          fundNote: finalNote
+        };
+      }
+      return item;
+    });
+
+    onUpdateRsvpList(updated);
+    localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+    if (appsScriptUrl && appsScriptUrl.trim()) {
+      fetch(appsScriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update_fund',
+          phone: attendee.phone,
+          fullName: attendee.fullName,
+          fundStatus: 'paid',
+          fundAmount: finalAmount,
+          fundPaidAt: nowStr,
+          fundAuditedBy: auditor,
+          fundPaymentMethod: attendee.fundPaymentMethod || 'bank_transfer',
+          fundNote: finalNote
+        })
+      }).catch(err => console.warn('Approve fund sync failed:', err));
+    }
+
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+  };
+
+  const handleApproveFundFromModal = () => {
+    if (!viewReceiptModal) return;
+    const targetPhone = viewReceiptModal.phone;
+    const foundAttendee = viewReceiptModal.attendee || rsvpList.find(r => r.phone === targetPhone || r.fullName === viewReceiptModal.memberName);
+    
+    if (foundAttendee) {
+      handleApproveFundDirect(foundAttendee, viewReceiptModal.amount || 500000);
+    }
+
+    const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const auditor = currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc';
+
+    setViewReceiptModal(prev => prev ? {
+      ...prev,
+      status: 'paid',
+      auditedBy: auditor,
+      paidAt: nowStr,
+      note: prev.note ? `${prev.note} (BLL đã khớp lệnh)` : 'BLL đã đối soát khớp bill'
+    } : null);
   };
 
   const handleOpenAdjustFund = (attendee: RsvpData) => {
@@ -1744,21 +1811,9 @@ export default function AdminManagementHub({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <a
-                      href={K8A1_DRIVE_FOLDER_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-200 hover:text-amber-100 border border-amber-400/30 text-xs font-sans font-bold rounded-lg shadow-md transition"
-                      title="Mở thư mục Google Drive lưu toàn bộ ảnh chứng từ"
-                    >
-                      <Folder className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Thư Mục Drive Chứng Từ</span>
-                      <ExternalLink className="w-3 h-3 text-slate-400" />
-                    </a>
-
                     <button
                       onClick={handleExportFundCsv}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
                       <span>Xuất Sổ Quỹ (CSV)</span>
@@ -1885,6 +1940,20 @@ export default function AdminManagementHub({
                     }`}
                   >
                     Đã đóng ({paidMembersCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFundStatusFilter('pending')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                      fundStatusFilter === 'pending'
+                        ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                    }`}
+                  >
+                    <span>⏳ Chờ đối soát ({pendingMembersCount})</span>
+                    {pendingMembersCount > 0 && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping inline-block" />
+                    )}
                   </button>
                   <button
                     type="button"
@@ -2034,7 +2103,9 @@ export default function AdminManagementHub({
                                       paidAt: item.fundPaidAt,
                                       note: item.fundNote,
                                       phone: item.phone,
-                                      auditedBy: item.fundAuditedBy
+                                      auditedBy: item.fundAuditedBy,
+                                      status: item.fundStatus,
+                                      attendee: item
                                     })}
                                     className="group relative inline-block rounded-lg overflow-hidden border-2 border-emerald-400/80 shadow-2xs hover:shadow-md transition cursor-pointer"
                                     title="Bấm để xem phóng to ảnh Bill/UNC"
@@ -2067,28 +2138,43 @@ export default function AdminManagementHub({
 
                               {/* 1-Touch Status Toggle */}
                               <td className="py-2.5 px-3 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleFundPaid(item)}
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1.2 rounded-full text-[11px] font-bold transition cursor-pointer ${
-                                    isPaid
-                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs'
-                                      : 'bg-rose-50 hover:bg-emerald-50 text-rose-700 hover:text-emerald-700 border border-rose-200'
-                                  }`}
-                                  title="Bấm để đổi nhanh trạng thái Đã Thu / Chưa Thu"
-                                >
-                                  {isPaid ? (
-                                    <>
-                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                      <span>Đã Thu Tiền</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Clock className="w-3.5 h-3.5 text-rose-500" />
-                                      <span>Chưa Nộp</span>
-                                    </>
-                                  )}
-                                </button>
+                                {item.fundStatus === 'pending' ? (
+                                  <div className="inline-flex flex-col items-center gap-1">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                                      <Clock className="w-3 h-3 text-amber-600" />
+                                      <span>Chờ duyệt</span>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveFundDirect(item, 500000)}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold shadow-2xs transition cursor-pointer"
+                                      title="Khớp lệnh duyệt nhanh 500k cho bạn này"
+                                    >
+                                      <Check className="w-3 h-3" />
+                                      <span>Duyệt 500k</span>
+                                    </button>
+                                  </div>
+                                ) : isPaid ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleFundPaid(item)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.2 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs transition cursor-pointer"
+                                    title="Bấm để chuyển về Chưa Thu"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>Đã Thu Tiền</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleFundPaid(item)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.2 rounded-full text-[11px] font-bold bg-rose-50 hover:bg-emerald-50 text-rose-700 hover:text-emerald-700 border border-rose-200 transition cursor-pointer"
+                                    title="Bấm để đánh dấu Đã Thu Tiền 500k"
+                                  >
+                                    <Clock className="w-3.5 h-3.5 text-rose-500" />
+                                    <span>Chưa Nộp</span>
+                                  </button>
+                                )}
                               </td>
 
                               {/* Audit Trail & Notes */}
@@ -3315,29 +3401,88 @@ export default function AdminManagementHub({
               </motion.div>
             </div>
 
-            {/* Bottom Info Footer */}
-            <div className="px-4 py-3 bg-black/70 border-t border-white/10 text-xs text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
-              <div className="space-y-0.5">
-                <p className="text-white">
-                  <strong>Ghi chú kế toán:</strong> {viewReceiptModal.note || 'Đã đối soát khớp lệnh'}
+            {/* Bottom Info & Quick Audit Action Footer */}
+            <div className="px-5 py-3.5 bg-black/85 border-t border-white/10 text-xs text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
+              <div className="space-y-1 max-w-md">
+                <p className="text-white text-xs">
+                  <strong className="text-amber-200">Ghi chú giao dịch:</strong> {viewReceiptModal.note || 'Biên lai giao dịch chuyển khoản'}
                 </p>
-                {viewReceiptModal.auditedBy && (
-                  <p className="text-amber-300 text-[11px]">
-                    <strong>Người đối soát:</strong> {viewReceiptModal.auditedBy}
+                {viewReceiptModal.status === 'paid' ? (
+                  <p className="text-emerald-300 text-[11px] flex items-center gap-1 font-sans">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Đã đối soát khớp lệnh bởi <strong>{viewReceiptModal.auditedBy || 'Ban Liên Lạc'}</strong> ({viewReceiptModal.paidAt || 'Vừa xong'})</span>
+                  </p>
+                ) : (
+                  <p className="text-amber-300 text-[11px] flex items-center gap-1 font-sans animate-pulse">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Trạng thái: <strong>Chờ Ban Liên Lạc đối soát & duyệt quỹ</strong></span>
                   </p>
                 )}
               </div>
 
-              <a
-                href={K8A1_DRIVE_FOLDER_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 rounded-lg font-bold text-[11px] transition"
-              >
-                <Folder className="w-3.5 h-3.5 text-amber-400" />
-                <span>Mở Thư Mục Drive ChungTu_QuyLop_K8A1</span>
-                <ExternalLink className="w-3 h-3 text-slate-400" />
-              </a>
+              {/* BLL Quick Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                {viewReceiptModal.status !== 'paid' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleApproveFundFromModal}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition cursor-pointer hover:scale-105 active:scale-95"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>✅ Duyệt Khớp Lệnh (500.000đ)</span>
+                    </button>
+
+                    {viewReceiptModal.attendee && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const att = viewReceiptModal.attendee!;
+                          setViewReceiptModal(null);
+                          handleOpenAdjustFund(att);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-400/40 rounded-xl font-sans font-bold text-xs transition cursor-pointer"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Sửa Số Tiền / Ghi Chú</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 rounded-xl text-xs font-bold font-sans">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      <span>Đã Duyệt ({viewReceiptModal.amount.toLocaleString('vi-VN')} đ)</span>
+                    </span>
+
+                    {viewReceiptModal.attendee && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const att = viewReceiptModal.attendee!;
+                          setViewReceiptModal(null);
+                          handleOpenAdjustFund(att);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-slate-200 border border-white/20 rounded-xl font-sans text-xs transition cursor-pointer"
+                      >
+                        <Edit className="w-3 h-3 text-slate-300" />
+                        <span>Sửa Lại</span>
+                      </button>
+                    )}
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewReceiptModal(null);
+                    setLightboxZoom(1);
+                  }}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-sans text-xs font-medium transition cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         )}

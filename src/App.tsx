@@ -735,7 +735,14 @@ export default function App() {
               />
 
               {/* Thông Tin Quỹ Lớp Minh Bạch */}
-              <BankTransfer />
+              <BankTransfer 
+                appsScriptUrl={appsScriptUrl}
+                rsvpList={rsvpList}
+                onUpdateRsvpList={(updated) => {
+                  setRsvpList(updated);
+                  localStorage.setItem('rsvp_list', JSON.stringify(updated));
+                }}
+              />
             </section>
 
             {/* ======================================================== */}
