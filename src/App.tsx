@@ -18,7 +18,8 @@ import {
   Crown,
   Shield,
   Music,
-  Edit3
+  Edit3,
+  ScrollText
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember } from './types';
@@ -39,6 +40,7 @@ import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
 import AdminManagementHub from './components/AdminManagementHub';
 import ReceiptUploadModal from './components/ReceiptUploadModal';
+import ClassCharterModal from './components/ClassCharterModal';
 
 export default function App() {
   // Config state (Google Apps Script WebApp URL)
@@ -173,6 +175,9 @@ export default function App() {
     setSelectedReceiptAttendee(attendee || null);
     setIsReceiptModalOpen(true);
   };
+
+  // Class Charter / Quy Chế Modal state
+  const [isCharterModalOpen, setIsCharterModalOpen] = useState(false);
 
   // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
   const [heroBannerUrl, setHeroBannerUrl] = useState<string>(() => {
@@ -1184,6 +1189,7 @@ export default function App() {
                 rsvpList={rsvpList}
                 activeMember={activeMember}
                 onOpenReceiptModal={handleOpenReceiptModal}
+                onOpenCharterModal={() => setIsCharterModalOpen(true)}
                 onUpdateRsvpList={(updated) => {
                   setRsvpList(updated);
                   localStorage.setItem('rsvp_list', JSON.stringify(updated));
@@ -1257,6 +1263,14 @@ export default function App() {
                       <MapPin className="w-3 h-3 text-amber-700" />
                       Chỉ đường Google Maps
                     </a>
+                    <button
+                      type="button"
+                      onClick={() => setIsCharterModalOpen(true)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-900 hover:bg-amber-50 hover:border-amber-300 transition-colors font-medium shadow-2xs cursor-pointer"
+                    >
+                      <ScrollText className="w-3 h-3 text-amber-700" />
+                      Quy chế & Điều lệ lớp
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1355,6 +1369,12 @@ export default function App() {
           setRsvpList(updated);
           localStorage.setItem('rsvp_list', JSON.stringify(updated));
         }}
+      />
+
+      {/* Sổ Tay Quy Chế Tổ Chức & Hoạt Động Lớp K8A1 */}
+      <ClassCharterModal
+        isOpen={isCharterModalOpen}
+        onClose={() => setIsCharterModalOpen(false)}
       />
 
       {/* Toast thông báo realtime */}

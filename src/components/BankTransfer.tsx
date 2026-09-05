@@ -11,7 +11,8 @@ import {
   X,
   QrCode,
   Sparkles,
-  UserCheck
+  UserCheck,
+  ScrollText
 } from 'lucide-react';
 import { RsvpData, ClassMember } from '../types';
 import { generateVietQrUrl } from '../data';
@@ -31,6 +32,7 @@ interface BankTransferProps {
   activeMember?: ClassMember | null;
   onUpdateRsvpList?: (list: RsvpData[]) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
+  onOpenCharterModal?: () => void;
 }
 
 export default function BankTransfer({
@@ -46,7 +48,8 @@ export default function BankTransfer({
   rsvpList = [],
   activeMember,
   onUpdateRsvpList,
-  onOpenReceiptModal
+  onOpenReceiptModal,
+  onOpenCharterModal
 }: BankTransferProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<'compact' | 'qr_only'>(
     qrTemplate === 'qr_only' ? 'qr_only' : 'compact'
@@ -150,14 +153,28 @@ export default function BankTransfer({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenUpload}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition cursor-pointer shrink-0 self-start sm:self-auto"
-        >
-          <Upload className="w-3.5 h-3.5" />
-          <span>Gửi Biên Lai</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+          {onOpenCharterModal && (
+            <button
+              type="button"
+              onClick={onOpenCharterModal}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-amber-50 border border-amber-300/80 text-amber-950 text-xs font-sans font-semibold tracking-wide shadow-2xs transition cursor-pointer"
+              title="Xem Quy chế Tổ chức & Hoạt động lớp K8A1"
+            >
+              <ScrollText className="w-3.5 h-3.5 text-amber-800" />
+              <span>Quy Chế Lớp</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleOpenUpload}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition cursor-pointer"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Gửi Biên Lai</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid: Bank Details & QR Code */}
