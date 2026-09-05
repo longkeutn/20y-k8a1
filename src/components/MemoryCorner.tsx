@@ -23,7 +23,6 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Calendar,
   Sparkle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -126,15 +125,76 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const lightboxRef = useRef<HTMLDivElement | null>(null);
 
-  // Likes Counter State
-  const [likesMap, setLikesMap] = useState<Record<string, number>>(() => {
+  // ---------------------------------------------------------------------------
+  // LOGIC THẢ TIM TƯƠNG TÁC (TÍNH TOÁN BASELINE & GIẢM 1 KHI BỎ THÍCH)
+  // ---------------------------------------------------------------------------
+  const getBaseLikes = (id: string, index: number): number => {
+    let hash = 0;
+    const str = id || `img-${index}`;
+    for (let i = 0; i < str.length; i++) hash += str.charCodeAt(i);
+    return 24 + (hash % 25);
+  };
+
+  // Trạng thái đã thả tim của user (mặc định là true cho số tim có sẵn)
+  const [userLikedMap, setUserLikedMap] = useState<Record<string, boolean>>(() => {
     try {
-      const local = localStorage.getItem('k8a1_photo_likes');
+      const local = localStorage.getItem('k8a1_user_liked_status');
       return local ? JSON.parse(local) : {};
     } catch {
       return {};
     }
   });
+
+  // Lưu số lượng tim đã điều chỉnh
+  const [likesCountMap, setLikesCountMap] = useState<Record<string, number>>(() => {
+    try {
+      const local = localStorage.getItem('k8a1_photo_likes_count');
+      return local ? JSON.parse(local) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const getPhotoLikes = (imgId: string, index: number): number => {
+    if (likesCountMap[imgId] !== undefined) {
+      return likesCountMap[imgId];
+    }
+    return getBaseLikes(imgId, index);
+  };
+
+  const isPhotoLiked = (imgId: string): boolean => {
+    if (userLikedMap[imgId] !== undefined) {
+      return userLikedMap[imgId];
+    }
+    return true; // Ban đầu mặc định hiển thị trạng thái có sẵn
+  };
+
+  const handleLikeToggle = (imgId: string, index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentLikes = getPhotoLikes(imgId, index);
+    const currentlyLiked = isPhotoLiked(imgId);
+
+    if (currentlyLiked) {
+      // Đang có tim -> Nhấp vào để hủy tim (Giảm 1)
+      const nextLikes = Math.max(0, currentLikes - 1);
+      const nextUserLiked = { ...userLikedMap, [imgId]: false };
+      const nextLikesCount = { ...likesCountMap, [imgId]: nextLikes };
+      setUserLikedMap(nextUserLiked);
+      setLikesCountMap(nextLikesCount);
+      localStorage.setItem('k8a1_user_liked_status', JSON.stringify(nextUserLiked));
+      localStorage.setItem('k8a1_photo_likes_count', JSON.stringify(nextLikesCount));
+    } else {
+      // Chưa tim -> Thả tim (Tăng 1)
+      const nextLikes = currentLikes + 1;
+      const nextUserLiked = { ...userLikedMap, [imgId]: true };
+      const nextLikesCount = { ...likesCountMap, [imgId]: nextLikes };
+      setUserLikedMap(nextUserLiked);
+      setLikesCountMap(nextLikesCount);
+      localStorage.setItem('k8a1_user_liked_status', JSON.stringify(nextUserLiked));
+      localStorage.setItem('k8a1_photo_likes_count', JSON.stringify(nextLikesCount));
+      confetti({ particleCount: 25, spread: 45, origin: { y: 0.6 } });
+    }
+  };
 
   // Nén ảnh trình duyệt trước khi upload
   const compressImage = (file: File): Promise<string> => {
@@ -176,10 +236,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     });
   };
 
-  // Lọc danh sách ảnh theo danh mục & từ khóa tìm kiếm
+  // Lọc danh sách ảnh
   const filteredImages = useMemo(() => {
     return images.filter(img => {
-      // 1. Keyword search
       if (searchKeyword.trim()) {
         const kw = searchKeyword.toLowerCase();
         const matchCap = img.caption?.toLowerCase().includes(kw);
@@ -187,7 +246,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         if (!matchCap && !matchDate) return false;
       }
 
-      // 2. Category filter
       if (activeFilter === 'all') return true;
       if (activeFilter === 'uploads') return !!img.isUserUploaded;
 
@@ -224,17 +282,14 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
   const hasMore = visibleCount < filteredImages.length;
 
-  // Reset pagination khi filter thay đổi
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE_COUNT);
   }, [activeFilter, searchKeyword]);
 
-  // Xử lý nạp thêm ảnh
   const handleLoadMore = () => {
     setVisibleCount(prev => Math.min(prev + 8, filteredImages.length));
   };
 
-  // Thu gọn lại số lượng ảnh
   const handleCollapse = () => {
     setVisibleCount(INITIAL_VISIBLE_COUNT);
     const galleryEl = document.getElementById('bento-gallery-anchor');
@@ -367,15 +422,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     setNewVideoUrl('');
     setNewVideoTitle('');
     setIsVideoModalOpen(false);
-  };
-
-  // Thả tim ảnh
-  const handleLikePhoto = (imgId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const currentLikes = likesMap[imgId] || 25;
-    const updated = { ...likesMap, [imgId]: currentLikes + 1 };
-    setLikesMap(updated);
-    localStorage.setItem('k8a1_photo_likes', JSON.stringify(updated));
   };
 
   // Lightbox Handlers
@@ -552,7 +598,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       </div>
 
       {/* ======================================================== */}
-      {/* 📸 KHỐI 2: KHO KỶ YẾU & ẢNH LỚP K8A1 (STANDOUT BENTO MOSAIC) */}
+      {/* 📸 KHỐI 2: KHO KỶ YẾU & ẢNH LỚP K8A1 (CLEAN BENTO MOSAIC) */}
       {/* ======================================================== */}
       <div id="bento-gallery-anchor" className="bg-[#FAF7F2] rounded-3xl p-5 sm:p-9 shadow-lg border border-amber-200/90 relative overflow-hidden space-y-7 text-left">
         
@@ -572,7 +618,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </h3>
             
             <p className="text-xs sm:text-sm text-slate-600 font-serif italic leading-relaxed">
-              Những nụ cười áo trắng, tiếng ve râm ran mùa hạ và ngọn lửa trại thanh xuân 20 năm trước. Nhấp vào ảnh để xem chi tiết toàn màn hình HD và thả tim ❤️.
+              Những nụ cười áo trắng, tiếng ve râm ran mùa hạ và ngọn lửa trại thanh xuân 20 năm trước. Nhấp vào ảnh để phóng to HD và thả tim ❤️.
             </p>
           </div>
 
@@ -625,7 +671,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="Tìm theo chú thích, năm..."
+              placeholder="Tìm theo năm, kỷ niệm..."
               className="w-full pl-9 pr-7 py-1.5 bg-white border border-slate-200 rounded-full text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-700 font-serif"
             />
             {searchKeyword && (
@@ -654,7 +700,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         )}
 
         {/* =================================================================== */}
-        {/* 🌟 BỐ CỤC BENTO MOSAIC BẤT ĐỐI XỨNG TUYỆT ĐẸP (EDITORIAL BENTO WALL) */}
+        {/* 🌟 BỐ CỤC BENTO MOSAIC BẤT ĐỐI XỨNG TUYỆT ĐẸP (CLEAN NO-CAPTION CARDS) */}
         {/* =================================================================== */}
         {filteredImages.length > 0 && (
           <div className="space-y-6 relative z-10">
@@ -674,7 +720,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
               
               {displayedImages.map((img, index) => {
-                const likes = likesMap[img.id] || 28 + (index * 7) % 32;
+                const isLiked = isPhotoLiked(img.id);
+                const likes = getPhotoLikes(img.id, index);
+
                 // Ảnh đầu tiên phóng to dạng Hero Spotlight 2x2 trên màn hình lớn
                 const isHeroSpotlight = index === 0 && displayedImages.length >= 3;
                 const isTiltLeft = index % 3 === 1;
@@ -684,7 +732,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   <div
                     key={img.id || index}
                     onClick={() => openFullscreen(index)}
-                    className={`group relative bg-white p-3 sm:p-4 pb-5 rounded-2xl shadow-md border border-slate-200/90 hover:shadow-2xl hover:border-amber-400 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
+                    className={`group relative bg-white p-3 sm:p-4 pb-4 rounded-2xl shadow-md border border-slate-200/90 hover:shadow-2xl hover:border-amber-400 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between ${
                       isHeroSpotlight ? 'sm:col-span-2 sm:row-span-2 p-4 sm:p-6 bg-gradient-to-br from-[#FFFDF9] via-white to-amber-50/40 border-amber-400/80 shadow-xl' : ''
                     } ${
                       isTiltLeft ? 'sm:transform sm:-rotate-1 hover:rotate-0' : ''
@@ -701,7 +749,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     }`}>
                       <img
                         src={img.url}
-                        alt={img.caption}
+                        alt="Ảnh kỷ niệm K8A1"
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter sepia-[0.06] group-hover:sepia-0"
                         loading="lazy"
@@ -713,15 +761,22 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                         }}
                       />
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                      {/* Nút Thả Tim */}
+                      {/* Nút Thả Tim Tương Tác (Bấm để bật/tắt tim, giảm 1 khi bỏ thích) */}
                       <button
                         type="button"
-                        onClick={(e) => handleLikePhoto(img.id, e)}
-                        className="absolute top-3 right-3 z-20 bg-black/50 hover:bg-rose-600 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 transition-colors shadow"
+                        onClick={(e) => handleLikeToggle(img.id, index, e)}
+                        className={`absolute top-3 right-3 z-20 backdrop-blur-md text-xs px-2.5 py-1 rounded-full border transition-all shadow cursor-pointer flex items-center gap-1.5 ${
+                          isLiked
+                            ? 'bg-black/60 hover:bg-rose-600/90 text-rose-300 border-rose-400/40 hover:text-white'
+                            : 'bg-black/50 hover:bg-black/75 text-slate-300 border-white/20'
+                        }`}
+                        title={isLiked ? "Bỏ yêu thích (Giảm 1)" : "Thả tim yêu thích"}
                       >
-                        <Heart className="w-3.5 h-3.5 text-rose-400 group-hover:text-white fill-rose-400 group-hover:fill-white" />
+                        <Heart className={`w-3.5 h-3.5 transition-colors ${
+                          isLiked ? 'text-rose-400 fill-rose-400 group-hover:text-white' : 'text-slate-300'
+                        }`} />
                         <span className="font-mono font-bold">{likes}</span>
                       </button>
 
@@ -732,25 +787,19 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                         </span>
                       )}
 
-                      {/* Chú thích lớn đè trên ảnh Hero */}
-                      {isHeroSpotlight && (
-                        <div className="absolute bottom-3.5 left-4 right-4 z-20 text-white">
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-amber-300 font-bold block mb-1">
-                            ★ KHOẢNH KHẮC TIÊU ĐIỂM K8A1
-                          </span>
-                          <h4 className="font-serif font-bold text-base sm:text-xl line-clamp-2 drop-shadow-md">
-                            “{img.caption}”
-                          </h4>
-                        </div>
-                      )}
+                      {/* Nút Xem HD xuất hiện khi rê chuột */}
+                      <div className="absolute bottom-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold flex items-center gap-1 border border-white/20 shadow">
+                        <Maximize2 className="w-3 h-3 text-amber-300" />
+                        <span>Phóng to</span>
+                      </div>
                     </div>
 
-                    {/* Chú thích phong cách ảnh chụp Polaroid bên dưới */}
-                    <div className="pt-3 px-1 flex items-center justify-between text-xs text-slate-600 font-serif">
-                      <span className={`italic truncate ${isHeroSpotlight ? 'max-w-md font-semibold text-slate-800' : 'max-w-[200px]'}`}>
-                        “{img.caption}”
+                    {/* Chân thẻ phong cách Polaroid tinh tế (Đã ẩn tên ảnh để layout cực kỳ sạch đẹp) */}
+                    <div className="pt-2.5 px-1 flex items-center justify-between text-xs text-slate-500 font-serif">
+                      <span className="text-[11px] text-slate-400 font-sans italic">
+                        {img.date || 'Niên khóa 2003 – 2006'}
                       </span>
-                      <span className="text-[10px] font-sans font-bold text-amber-800 uppercase tracking-wider bg-amber-100/70 px-2.5 py-0.5 rounded shrink-0 flex items-center gap-1">
+                      <span className="text-[10px] font-sans font-bold text-amber-800 uppercase tracking-wider bg-amber-100/70 px-2 py-0.5 rounded shrink-0 flex items-center gap-1">
                         <Maximize2 className="w-3 h-3" />
                         <span>Xem HD</span>
                       </span>
