@@ -13,9 +13,13 @@ export interface RsvpData {
   checkedIn?: boolean;
   checkedInAt?: string;
   avatarUrl?: string;
-  fundStatus?: 'paid' | 'unpaid' | 'pending';
+  fundStatus?: 'paid' | 'unpaid' | 'pending' | 'exempt';
   fundAmount?: number;
   fundNote?: string;
+  fundReceiptUrl?: string;     // URL ảnh biên lai / UNC / Bill chuyển khoản trên Google Drive
+  fundPaidAt?: string;         // Thời gian xác nhận đóng quỹ
+  fundPaymentMethod?: 'bank_transfer' | 'cash' | 'other'; // Hình thức đóng
+  fundAuditedBy?: string;      // Tên thủ quỹ / Admin đối soát
 }
 
 export interface WishData {

@@ -47,7 +47,12 @@ import {
   Building2,
   Play,
   MoveVertical,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ZoomIn,
+  ZoomOut,
+  Camera,
+  CheckCheck,
+  FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem } from '../types';
@@ -162,7 +167,7 @@ export default function AdminManagementHub({
 
   // Search & Filters for Fund Reconciliation Tab
   const [fundSearch, setFundSearch] = useState('');
-  const [fundStatusFilter, setFundStatusFilter] = useState<'all' | 'paid' | 'unpaid' | 'extra'>('all');
+  const [fundStatusFilter, setFundStatusFilter] = useState<'all' | 'paid' | 'unpaid' | 'pending' | 'extra' | 'has_receipt' | 'no_receipt' | 'bank_transfer' | 'cash'>('all');
 
   // Modals for CRUD operations
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -180,10 +185,32 @@ export default function AdminManagementHub({
     fundNote: ''
   });
 
-  // Quick Fund Adjust Modal
+  // Comprehensive Fund Reconciliation & Proof Modal States
   const [adjustFundMember, setAdjustFundMember] = useState<RsvpData | null>(null);
   const [fundAdjustAmount, setFundAdjustAmount] = useState<number>(500000);
+  const [fundAdjustStatus, setFundAdjustStatus] = useState<'paid' | 'unpaid' | 'pending' | 'exempt'>('paid');
+  const [fundAdjustPaymentMethod, setFundAdjustPaymentMethod] = useState<'bank_transfer' | 'cash' | 'other'>('bank_transfer');
+  const [fundAdjustReceiptUrl, setFundAdjustReceiptUrl] = useState<string>('');
+  const [fundAdjustPaidAt, setFundAdjustPaidAt] = useState<string>('');
+  const [fundAdjustAuditedBy, setFundAdjustAuditedBy] = useState<string>('');
   const [fundAdjustNote, setFundAdjustNote] = useState<string>('');
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState<boolean>(false);
+  const [receiptUploadSuccessMsg, setReceiptUploadSuccessMsg] = useState<string>('');
+  const [receiptUploadErrorMsg, setReceiptUploadErrorMsg] = useState<string>('');
+
+  // Fullscreen Receipt Lightbox Viewer
+  const [viewReceiptModal, setViewReceiptModal] = useState<{
+    isOpen: boolean;
+    receiptUrl: string;
+    memberName: string;
+    amount: number;
+    paymentMethod?: string;
+    paidAt?: string;
+    note?: string;
+    phone?: string;
+    auditedBy?: string;
+  } | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState<number>(1);
 
   // Modals for Wishes
   const [isAddWishModalOpen, setIsAddWishModalOpen] = useState(false);
@@ -315,6 +342,32 @@ export default function AdminManagementHub({
   }, [rsvpList]);
 
   const paidMembersCount = useMemo(() => rsvpList.filter(a => a.fundStatus === 'paid').length, [rsvpList]);
+
+  // Extra sponsorship fund (> 500,000đ)
+  const totalExtraFund = useMemo(() => {
+    return rsvpList.reduce((acc, curr) => {
+      if (curr.fundStatus === 'paid' && (curr.fundAmount || 0) > 500000) {
+        return acc + ((curr.fundAmount || 0) - 500000);
+      }
+      return acc;
+    }, 0);
+  }, [rsvpList]);
+
+  const extraMembersCount = useMemo(() => {
+    return rsvpList.filter(a => a.fundStatus === 'paid' && (a.fundAmount || 0) > 500000).length;
+  }, [rsvpList]);
+
+  const hasReceiptCount = useMemo(() => {
+    return rsvpList.filter(a => Boolean(a.fundReceiptUrl && a.fundReceiptUrl.trim())).length;
+  }, [rsvpList]);
+
+  const unpaidMembersCount = useMemo(() => {
+    return rsvpList.filter(a => a.fundStatus !== 'paid').length;
+  }, [rsvpList]);
+
+  const pendingMembersCount = useMemo(() => {
+    return rsvpList.filter(a => a.fundStatus === 'pending').length;
+  }, [rsvpList]);
 
   // ---------------------------------------------------------------------------
   // MEMBER CRUD HANDLERS
@@ -461,14 +514,22 @@ export default function AdminManagementHub({
   // FUND RECONCILIATION CRUD HANDLERS
   // ---------------------------------------------------------------------------
   const handleToggleFundPaid = (attendee: RsvpData) => {
-    const nextStatus = attendee.fundStatus === 'paid' ? 'unpaid' : 'paid';
+    const isCurrentlyPaid = attendee.fundStatus === 'paid';
+    const nextStatus = isCurrentlyPaid ? 'unpaid' : 'paid';
+    const nextAmount = nextStatus === 'paid' ? (attendee.fundAmount || 500000) : 0;
+    const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const auditor = currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc';
+
     const updated = rsvpList.map(item => {
       if ((item.id && item.id === attendee.id) || item.phone === attendee.phone) {
         return {
           ...item,
           fundStatus: nextStatus,
-          fundAmount: nextStatus === 'paid' ? (item.fundAmount || 500000) : 0,
-          fundNote: nextStatus === 'paid' ? (item.fundNote || 'Đã đóng 500k') : ''
+          fundAmount: nextAmount,
+          fundPaidAt: nextStatus === 'paid' ? (item.fundPaidAt || nowStr) : undefined,
+          fundAuditedBy: nextStatus === 'paid' ? (item.fundAuditedBy || auditor) : undefined,
+          fundPaymentMethod: nextStatus === 'paid' ? (item.fundPaymentMethod || 'bank_transfer') : item.fundPaymentMethod,
+          fundNote: nextStatus === 'paid' ? (item.fundNote || 'Đã nộp 500.000đ') : ''
         };
       }
       return item;
@@ -477,6 +538,23 @@ export default function AdminManagementHub({
     onUpdateRsvpList(updated);
     localStorage.setItem('rsvp_list', JSON.stringify(updated));
 
+    if (appsScriptUrl && appsScriptUrl.trim()) {
+      fetch(appsScriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update_fund',
+          phone: attendee.phone,
+          fullName: attendee.fullName,
+          fundStatus: nextStatus,
+          fundAmount: nextAmount,
+          fundPaidAt: nextStatus === 'paid' ? nowStr : '',
+          fundAuditedBy: nextStatus === 'paid' ? auditor : '',
+          fundPaymentMethod: attendee.fundPaymentMethod || 'bank_transfer',
+          fundNote: nextStatus === 'paid' ? (attendee.fundNote || 'Đã nộp 500.000đ') : ''
+        })
+      }).catch(err => console.warn('Toggle fund sync failed:', err));
+    }
+
     if (nextStatus === 'paid') {
       confetti({ particleCount: 35, spread: 50, origin: { y: 0.6 } });
     }
@@ -484,20 +562,104 @@ export default function AdminManagementHub({
 
   const handleOpenAdjustFund = (attendee: RsvpData) => {
     setAdjustFundMember(attendee);
-    setFundAdjustAmount(attendee.fundAmount || 500000);
+    const isPaid = attendee.fundStatus === 'paid';
+    setFundAdjustAmount(attendee.fundAmount !== undefined ? attendee.fundAmount : (isPaid ? 500000 : 0));
+    setFundAdjustStatus(attendee.fundStatus || (isPaid ? 'paid' : 'unpaid'));
     setFundAdjustNote(attendee.fundNote || '');
+    setFundAdjustPaymentMethod(attendee.fundPaymentMethod || 'bank_transfer');
+    setFundAdjustReceiptUrl(attendee.fundReceiptUrl || '');
+    setFundAdjustPaidAt(attendee.fundPaidAt || (isPaid ? '01/09/2026' : new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })));
+    setFundAdjustAuditedBy(attendee.fundAuditedBy || (currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc'));
+    setReceiptUploadErrorMsg('');
+    setReceiptUploadSuccessMsg('');
+  };
+
+  const handleReceiptFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      setReceiptUploadErrorMsg('Kích thước ảnh không được vượt quá 15MB!');
+      return;
+    }
+
+    setIsUploadingReceipt(true);
+    setReceiptUploadErrorMsg('');
+    setReceiptUploadSuccessMsg('');
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = reader.result as string;
+
+        // If appsScriptUrl is present, upload to Drive subfolder "ChungTu_QuyLop_K8A1"
+        if (appsScriptUrl && appsScriptUrl.trim()) {
+          try {
+            const payload = {
+              action: 'upload_fund_receipt',
+              fileData: base64Data,
+              mimeType: file.type || 'image/jpeg',
+              fullName: adjustFundMember?.fullName || 'ThanhVien',
+              phone: adjustFundMember?.phone || '',
+              fundAmount: fundAdjustAmount,
+              fundPaymentMethod: fundAdjustPaymentMethod,
+              fundPaidAt: fundAdjustPaidAt || new Date().toLocaleString('vi-VN'),
+              fundAuditedBy: currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc',
+              fundNote: fundAdjustNote
+            };
+
+            const res = await fetch(appsScriptUrl, {
+              method: 'POST',
+              body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            if (json.status === 'success' && json.url) {
+              setFundAdjustReceiptUrl(json.url);
+              setReceiptUploadSuccessMsg('Đã lưu bill vào thư mục Drive ChungTu_QuyLop_K8A1!');
+              setIsUploadingReceipt(false);
+              return;
+            }
+          } catch (fetchErr) {
+            console.warn('Drive upload failed, fallback to local image:', fetchErr);
+          }
+        }
+
+        // Fallback: Store base64 data URL
+        setFundAdjustReceiptUrl(base64Data);
+        setReceiptUploadSuccessMsg('Đã đính kèm ảnh chứng từ thành công!');
+        setIsUploadingReceipt(false);
+      };
+
+      reader.onerror = () => {
+        setReceiptUploadErrorMsg('Lỗi khi đọc file ảnh!');
+        setIsUploadingReceipt(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setReceiptUploadErrorMsg('Lỗi: ' + (err.message || 'Không thể upload ảnh'));
+      setIsUploadingReceipt(false);
+    }
   };
 
   const handleSaveAdjustFund = (e: React.FormEvent) => {
     e.preventDefault();
     if (!adjustFundMember) return;
 
+    const targetStatus = fundAdjustStatus || (fundAdjustAmount > 0 ? 'paid' : 'unpaid');
+    const auditedTime = fundAdjustPaidAt || (targetStatus === 'paid' ? new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : undefined);
+    const auditorName = fundAdjustAuditedBy || (currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc');
+
     const updated = rsvpList.map(item => {
       if ((adjustFundMember.id && item.id === adjustFundMember.id) || item.phone === adjustFundMember.phone) {
         return {
           ...item,
-          fundStatus: fundAdjustAmount > 0 ? 'paid' : 'unpaid',
+          fundStatus: targetStatus,
           fundAmount: Number(fundAdjustAmount),
+          fundPaymentMethod: fundAdjustPaymentMethod,
+          fundReceiptUrl: fundAdjustReceiptUrl?.trim() || undefined,
+          fundPaidAt: targetStatus === 'paid' ? auditedTime : undefined,
+          fundAuditedBy: targetStatus === 'paid' ? auditorName : undefined,
           fundNote: fundAdjustNote.trim()
         } as RsvpData;
       }
@@ -506,31 +668,98 @@ export default function AdminManagementHub({
 
     onUpdateRsvpList(updated);
     localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+    if (appsScriptUrl && appsScriptUrl.trim()) {
+      fetch(appsScriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update_fund',
+          phone: adjustFundMember.phone,
+          fullName: adjustFundMember.fullName,
+          fundStatus: targetStatus,
+          fundAmount: Number(fundAdjustAmount),
+          fundPaymentMethod: fundAdjustPaymentMethod,
+          fundReceiptUrl: fundAdjustReceiptUrl?.trim() || '',
+          fundPaidAt: auditedTime || '',
+          fundAuditedBy: auditorName,
+          fundNote: fundAdjustNote.trim()
+        })
+      }).catch(err => console.warn('Sync fund to Google Sheets failed:', err));
+    }
+
+    if (targetStatus === 'paid') {
+      confetti({ particleCount: 40, spread: 55, origin: { y: 0.6 } });
+    }
+
     setAdjustFundMember(null);
   };
 
   // Export CSV for Fund Reconciliation
   const handleExportFundCsv = () => {
-    const headers = ['STT', 'Họ và Tên', 'Biệt Danh', 'Số Điện Thoại', 'Lớp', 'Tham Gia', 'Trạng Thái Đóng Quỹ', 'Số Tiền Thực Thu (VNĐ)', 'Ghi Chú Đối Soát'];
-    const rows = rsvpList.map((a, idx) => [
-      idx + 1,
-      `"${a.fullName || ''}"`,
-      `"${a.nickname || ''}"`,
-      `"${a.phone || ''}"`,
-      `"${a.className || 'K8A1'}"`,
-      a.status === 'yes' ? 'Tham gia' : 'Vắng mặt',
-      a.fundStatus === 'paid' ? 'ĐÃ NỘP TIỀN' : 'CHƯA NỘP',
-      a.fundStatus === 'paid' ? (a.fundAmount || 500000) : 0,
-      `"${(a.fundNote || '').replace(/"/g, '""')}"`
-    ]);
+    const headers = [
+      'STT',
+      'Họ và Tên',
+      'Biệt Danh',
+      'Số Điện Thoại',
+      'Lớp',
+      'Tham Gia',
+      'Trạng Thái Đóng Quỹ',
+      'Hình Thức TT',
+      'Số Tiền Đã Nộp (VNĐ)',
+      'Ủng Hộ Thêm (VNĐ)',
+      'Link Ảnh Chứng Từ (Drive)',
+      'Thời Gian Nộp',
+      'Người Đối Soát',
+      'Ghi Chú Kế Toán'
+    ];
 
-    const summaryRow = ['', 'TỔNG CỘNG ĐÃ THU', '', '', '', '', '', collectedFund, 'VNĐ'];
+    const rows = rsvpList.map((a, idx) => {
+      const isPaid = a.fundStatus === 'paid';
+      const amount = isPaid ? (a.fundAmount !== undefined ? a.fundAmount : 500000) : 0;
+      const extra = isPaid && amount > 500000 ? amount - 500000 : 0;
+      const methodText = a.fundPaymentMethod === 'cash' ? 'Tiền mặt tại bàn đón tiếp' : (a.fundPaymentMethod === 'other' ? 'Khác' : 'Chuyển khoản Ngân hàng');
+      const statusText = a.fundStatus === 'paid' ? 'ĐÃ NỘP TIỀN' : (a.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : (a.fundStatus === 'exempt' ? 'MIỄN ĐÓNG' : 'CHƯA NỘP'));
+
+      return [
+        idx + 1,
+        `"${a.fullName || ''}"`,
+        `"${a.nickname || ''}"`,
+        `"${a.phone || ''}"`,
+        `"${a.className || 'K8A1'}"`,
+        a.status === 'yes' ? 'Tham gia' : 'Vắng mặt',
+        `"${statusText}"`,
+        `"${methodText}"`,
+        amount,
+        extra,
+        `"${a.fundReceiptUrl || ''}"`,
+        `"${a.fundPaidAt || ''}"`,
+        `"${a.fundAuditedBy || ''}"`,
+        `"${(a.fundNote || '').replace(/"/g, '""')}"`
+      ];
+    });
+
+    const summaryRow = [
+      '',
+      'TỔNG CỘNG ĐÃ THU',
+      '',
+      '',
+      '',
+      `Đã nộp: ${paidMembersCount}/${confirmedCount} bạn`,
+      '',
+      '',
+      collectedFund,
+      totalExtraFund,
+      `Chứng từ đã lưu: ${hasReceiptCount}`,
+      '',
+      '',
+      'VNĐ'
+    ];
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(',')), summaryRow.join(',')].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `Doi_Soat_Quy_K8A1_20Nam_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `So_Quy_Doi_Soat_K8A1_20Nam_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -948,14 +1177,23 @@ export default function AdminManagementHub({
       const matchQuery = !q ||
         (item.fullName || '').toLowerCase().includes(q) ||
         (item.nickname || '').toLowerCase().includes(q) ||
-        (item.phone || '').includes(q);
+        (item.phone || '').includes(q) ||
+        (item.fundNote || '').toLowerCase().includes(q) ||
+        (item.fundAuditedBy || '').toLowerCase().includes(q);
 
       const isPaid = item.fundStatus === 'paid';
+      const hasReceipt = Boolean(item.fundReceiptUrl && item.fundReceiptUrl.trim());
+
       const matchFundStatus =
         fundStatusFilter === 'all' ||
         (fundStatusFilter === 'paid' && isPaid) ||
-        (fundStatusFilter === 'unpaid' && !isPaid) ||
-        (fundStatusFilter === 'extra' && isPaid && (item.fundAmount || 0) > 500000);
+        (fundStatusFilter === 'unpaid' && (item.fundStatus === 'unpaid' || !item.fundStatus)) ||
+        (fundStatusFilter === 'pending' && item.fundStatus === 'pending') ||
+        (fundStatusFilter === 'extra' && isPaid && (item.fundAmount || 0) > 500000) ||
+        (fundStatusFilter === 'has_receipt' && hasReceipt) ||
+        (fundStatusFilter === 'no_receipt' && !hasReceipt && isPaid) ||
+        (fundStatusFilter === 'bank_transfer' && (item.fundPaymentMethod === 'bank_transfer' || !item.fundPaymentMethod)) ||
+        (fundStatusFilter === 'cash' && item.fundPaymentMethod === 'cash');
 
       return matchQuery && matchFundStatus;
     });
@@ -1487,71 +1725,200 @@ export default function AdminManagementHub({
           {/* --------------------------------------------------------------- */}
           {activeTab === 'fund' && (
             <div className="space-y-4">
-              <div className="bg-gradient-to-r from-[#1A1613] via-[#26201A] to-[#14110F] text-white p-5 rounded-xl border border-amber-400/40 shadow-lg relative overflow-hidden">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+              {/* Hero Banner with Actions & Progress */}
+              <div className="bg-gradient-to-r from-[#1A1613] via-[#26201A] to-[#14110F] text-white p-5 rounded-2xl border border-amber-400/40 shadow-xl relative overflow-hidden">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-amber-300">
-                      Bảng Kế Toán & Đối Soát Đóng Góp Hội Khóa K8A1
-                    </span>
-                    <h3 className="text-2xl sm:text-3xl font-serif font-bold text-amber-100">
-                      Mức thu cố định: 500.000 VNĐ / bạn
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px] font-sans font-bold uppercase tracking-wider">
+                        Sổ Kế Toán & Đối Soát Quỹ
+                      </span>
+                      <span className="text-xs text-slate-400">• Hội Khóa 20 Năm K8A1</span>
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-serif font-bold text-amber-100 flex items-center gap-2">
+                      <span>Mức thu cố định: 500.000 VNĐ / bạn</span>
                     </h3>
-                    <p className="text-xs text-slate-300 font-sans">
-                      Chi phí bao gồm: Tiệc trưa Crown Palace, Áo đồng phục kỷ niệm 20 năm, Thẻ quà tặng và Backdrop chụp hình.
+                    <p className="text-xs text-slate-300 font-sans max-w-2xl">
+                      Bao gồm: Tiệc trưa Crown Palace, Áo đồng phục 20 năm, Thẻ học sinh kỷ niệm, Backdrop & âm thanh. Ảnh chứng từ nộp quỹ được tự động lưu vào thư mục Drive <code className="text-amber-300 font-mono bg-amber-950/60 px-1 py-0.5 rounded">ChungTu_QuyLop_K8A1</code>.
                     </p>
                   </div>
 
-                  <button
-                    onClick={handleExportFundCsv}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition cursor-pointer shrink-0"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Xuất Sổ Quỹ (CSV)</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <a
+                      href={K8A1_DRIVE_FOLDER_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-200 hover:text-amber-100 border border-amber-400/30 text-xs font-sans font-bold rounded-lg shadow-md transition"
+                      title="Mở thư mục Google Drive lưu toàn bộ ảnh chứng từ"
+                    >
+                      <Folder className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Thư Mục Drive Chứng Từ</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </a>
+
+                    <button
+                      onClick={handleExportFundCsv}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Xuất Sổ Quỹ (CSV)</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-amber-400/20 space-y-1.5">
-                  <div className="flex justify-between text-xs">
+                <div className="mt-5 pt-3 border-t border-amber-400/20 space-y-1.5">
+                  <div className="flex justify-between text-xs font-sans">
                     <span className="text-amber-200">
-                      Tiến độ thu: <strong>{paidMembersCount} / {confirmedCount}</strong> bạn ({expectedFund > 0 ? Math.round((collectedFund / expectedFund) * 100) : 0}%)
+                      Tiến độ đóng quỹ: <strong className="text-white">{paidMembersCount} / {confirmedCount}</strong> bạn tham dự ({expectedFund > 0 ? Math.round((collectedFund / expectedFund) * 100) : 0}%)
                     </span>
                     <span className="font-mono text-amber-300 font-bold">
                       {collectedFund.toLocaleString('vi-VN')} / {expectedFund.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
-                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-amber-400/20">
                     <div 
-                      className="bg-gradient-to-r from-amber-400 to-emerald-400 h-full rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 h-full rounded-full transition-all duration-500 shadow-sm"
                       style={{ width: `${expectedFund > 0 ? Math.min(100, Math.round((collectedFund / expectedFund) * 100)) : 0}%` }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Fund Search Toolbar */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-amber-200">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={fundSearch}
-                    onChange={(e) => setFundSearch(e.target.value)}
-                    placeholder="Tìm theo tên bạn, số điện thoại..."
-                    className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
-                  />
+              {/* 4 Financial KPI Summary Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-sans block">Tổng Thực Thu</span>
+                  <div className="text-xl font-bold font-mono text-emerald-700 mt-1">
+                    {collectedFund.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    Mục tiêu: {expectedFund.toLocaleString('vi-VN')} đ
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={fundStatusFilter}
-                    onChange={(e) => setFundStatusFilter(e.target.value as any)}
-                    className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-sans block">Đã Nộp / Tham Dự</span>
+                  <div className="text-xl font-bold font-mono text-slate-900 mt-1">
+                    {paidMembersCount} / {confirmedCount} <span className="text-xs font-normal text-slate-500">bạn</span>
+                  </div>
+                  <span className="text-[10px] text-rose-600 font-semibold mt-0.5 block">
+                    Còn {unpaidMembersCount} bạn chưa nộp
+                  </span>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-sans block">Chứng Từ / Bill Đã Lưu</span>
+                  <div className="text-xl font-bold font-mono text-blue-700 mt-1 flex items-center gap-1.5">
+                    <span>{hasReceiptCount} / {paidMembersCount}</span>
+                    <span className="text-xs font-normal text-slate-500">bill</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block truncate" title="Lưu trong folder ChungTu_QuyLop_K8A1">
+                    Folder: ChungTu_QuyLop_K8A1
+                  </span>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
+                  <span className="text-[11px] text-slate-500 font-sans block">Ủng Hộ Thêm (Mạnh Thường Quân)</span>
+                  <div className="text-xl font-bold font-mono text-amber-700 mt-1">
+                    {totalExtraFund.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span className="text-[10px] text-amber-800 font-semibold mt-0.5 block">
+                    Từ {extraMembersCount} bạn đóng thêm
+                  </span>
+                </div>
+              </div>
+
+              {/* Fund Search & Filter Toolbar */}
+              <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={fundSearch}
+                      onChange={(e) => setFundSearch(e.target.value)}
+                      placeholder="Tìm theo tên bạn, số điện thoại, ghi chú, người đối soát..."
+                      className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={fundStatusFilter}
+                      onChange={(e) => setFundStatusFilter(e.target.value as any)}
+                      className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="all">Tất cả trạng thái ({rsvpList.length})</option>
+                      <option value="paid">Đã đóng tiền ({paidMembersCount})</option>
+                      <option value="unpaid">Chưa đóng tiền ({unpaidMembersCount})</option>
+                      <option value="pending">Chờ đối soát ({pendingMembersCount})</option>
+                      <option value="has_receipt">Có ảnh Bill/UNC ({hasReceiptCount})</option>
+                      <option value="no_receipt">Chưa có ảnh Bill ({paidMembersCount - hasReceiptCount})</option>
+                      <option value="extra">Đóng thêm ủng hộ ({extraMembersCount})</option>
+                      <option value="bank_transfer">Chuyển khoản Ngân hàng</option>
+                      <option value="cash">Tiền mặt bàn đón tiếp</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Quick Filter Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Lọc nhanh:</span>
+                  <button
+                    type="button"
+                    onClick={() => setFundStatusFilter('all')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      fundStatusFilter === 'all'
+                        ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                   >
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="paid">Đã đóng tiền ({paidMembersCount})</option>
-                    <option value="unpaid">Chưa đóng tiền ({rsvpList.length - paidMembersCount})</option>
-                    <option value="extra">Đóng thêm ủng hộ ({rsvpList.filter(a => a.fundStatus === 'paid' && (a.fundAmount || 0) > 500000).length})</option>
-                  </select>
+                    Tất cả ({rsvpList.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFundStatusFilter('paid')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      fundStatusFilter === 'paid'
+                        ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    Đã đóng ({paidMembersCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFundStatusFilter('unpaid')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      fundStatusFilter === 'unpaid'
+                        ? 'bg-rose-600 text-white shadow-2xs font-bold'
+                        : 'bg-rose-50 hover:bg-rose-100 text-rose-700'
+                    }`}
+                  >
+                    Chưa đóng ({unpaidMembersCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFundStatusFilter('has_receipt')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      fundStatusFilter === 'has_receipt'
+                        ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                        : 'bg-blue-50 hover:bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    Có ảnh Bill ({hasReceiptCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFundStatusFilter('extra')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      fundStatusFilter === 'extra'
+                        ? 'bg-amber-700 text-white shadow-2xs font-bold'
+                        : 'bg-amber-100/70 hover:bg-amber-200 text-amber-900'
+                    }`}
+                  >
+                    + Ủng hộ thêm ({extraMembersCount})
+                  </button>
                 </div>
               </div>
 
@@ -1565,86 +1932,195 @@ export default function AdminManagementHub({
                         <th className="py-3 px-3">Họ và Tên</th>
                         <th className="py-3 px-3">Số Điện Thoại</th>
                         <th className="py-3 px-3">Số Tiền Đã Thu</th>
-                        <th className="py-3 px-3">Trạng Thái 1-Chạm</th>
-                        <th className="py-3 px-3">Ghi Chú Kế Toán</th>
+                        <th className="py-3 px-3">Hình Thức & Giờ</th>
+                        <th className="py-3 px-3 text-center">Chứng Từ / Bill</th>
+                        <th className="py-3 px-3 text-center">Trạng Thái 1-Chạm</th>
+                        <th className="py-3 px-3">Người & Ghi Chú</th>
                         <th className="py-3 px-3 text-right">Điều Chỉnh</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-sans">
-                      {filteredFundList.map((item, idx) => {
-                        const isPaid = item.fundStatus === 'paid';
-                        const amount = item.fundAmount !== undefined ? item.fundAmount : (isPaid ? 500000 : 0);
-                        return (
-                          <tr key={item.id || item.phone} className="hover:bg-amber-50/40 transition">
-                            <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
-                              {idx + 1}
-                            </td>
+                      {filteredFundList.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="py-10 text-center text-slate-400">
+                            Không tìm thấy dữ liệu đối soát nào phù hợp với bộ lọc.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredFundList.map((item, idx) => {
+                          const isPaid = item.fundStatus === 'paid';
+                          const amount = item.fundAmount !== undefined ? item.fundAmount : (isPaid ? 500000 : 0);
+                          const hasReceipt = Boolean(item.fundReceiptUrl && item.fundReceiptUrl.trim());
+                          const isExtra = isPaid && amount > 500000;
 
-                            <td className="py-2.5 px-3">
-                              <span className="font-bold text-slate-900 text-sm">
-                                {item.fullName}
-                              </span>
-                              {item.nickname && (
-                                <span className="text-amber-800 text-[11px] block italic">
-                                  “{item.nickname}”
+                          return (
+                            <tr key={item.id || item.phone} className="hover:bg-amber-50/40 transition">
+                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                                {idx + 1}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold flex items-center justify-center text-[11px] shrink-0">
+                                    {(item.fullName || 'K').slice(0, 1).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-slate-900 text-xs">
+                                        {item.fullName}
+                                      </span>
+                                      {item.status === 'yes' ? (
+                                        <span className="px-1.5 py-0.2 text-[9px] bg-emerald-100 text-emerald-800 rounded font-bold">
+                                          Tham gia
+                                        </span>
+                                      ) : (
+                                        <span className="px-1.5 py-0.2 text-[9px] bg-slate-100 text-slate-600 rounded">
+                                          Vắng
+                                        </span>
+                                      )}
+                                    </div>
+                                    {item.nickname && (
+                                      <span className="text-amber-800 text-[11px] block italic">
+                                        “{item.nickname}”
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3 font-mono text-slate-600">
+                                {item.phone}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <span className={`font-mono font-bold text-xs ${isPaid ? 'text-emerald-700' : 'text-slate-400'}`}>
+                                  {isPaid ? `${amount.toLocaleString('vi-VN')} đ` : '0 đ'}
                                 </span>
-                              )}
-                            </td>
-
-                            <td className="py-2.5 px-3 font-mono text-slate-600">
-                              {item.phone}
-                            </td>
-
-                            <td className="py-2.5 px-3">
-                              <span className={`font-mono font-bold text-xs ${isPaid ? 'text-emerald-700' : 'text-slate-400'}`}>
-                                {isPaid ? `${amount.toLocaleString('vi-VN')} đ` : '0 đ'}
-                              </span>
-                              {isPaid && amount > 500000 && (
-                                <span className="block text-[10px] font-sans font-bold text-amber-700 uppercase">
-                                  + Ủng hộ thêm {(amount - 500000).toLocaleString('vi-VN')}đ
-                                </span>
-                              )}
-                            </td>
-
-                            <td className="py-2.5 px-3">
-                              <button
-                                onClick={() => handleToggleFundPaid(item)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
-                                  isPaid
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs'
-                                    : 'bg-rose-50 hover:bg-emerald-50 text-rose-700 hover:text-emerald-700 border border-rose-200'
-                                }`}
-                              >
-                                {isPaid ? (
-                                  <>
-                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Đã Thu Tiền</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Clock className="w-3.5 h-3.5 text-rose-500" />
-                                    <span>Chưa Nộp (Bấm để thu)</span>
-                                  </>
+                                {isExtra && (
+                                  <span className="block text-[10px] font-sans font-bold text-amber-700 uppercase">
+                                    + Ủng hộ {(amount - 500000).toLocaleString('vi-VN')}đ
+                                  </span>
                                 )}
-                              </button>
-                            </td>
+                              </td>
 
-                            <td className="py-2.5 px-3 text-slate-600 text-xs italic">
-                              {item.fundNote || (isPaid ? 'Đã đóng 500.000đ' : 'Chưa đóng')}
-                            </td>
+                              <td className="py-2.5 px-3">
+                                <div className="space-y-0.5">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
+                                    item.fundPaymentMethod === 'cash'
+                                      ? 'bg-amber-100 text-amber-900'
+                                      : 'bg-blue-50 text-blue-800 border border-blue-200/60'
+                                  }`}>
+                                    {item.fundPaymentMethod === 'cash' ? '💵 Tiền mặt' : '🏦 Chuyển khoản'}
+                                  </span>
+                                  {item.fundPaidAt && (
+                                    <span className="text-[10px] text-slate-400 block font-mono">
+                                      {item.fundPaidAt}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
 
-                            <td className="py-2.5 px-3 text-right">
-                              <button
-                                onClick={() => handleOpenAdjustFund(item)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 bg-amber-100/60 hover:bg-amber-200/80 border border-amber-300/80 rounded transition cursor-pointer"
-                              >
-                                <Edit className="w-3 h-3" />
-                                <span>Sửa Tiền</span>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              {/* Receipt Image Thumbnail & Zoom */}
+                              <td className="py-2.5 px-3 text-center">
+                                {hasReceipt ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewReceiptModal({
+                                      isOpen: true,
+                                      receiptUrl: item.fundReceiptUrl!,
+                                      memberName: item.fullName,
+                                      amount: amount,
+                                      paymentMethod: item.fundPaymentMethod,
+                                      paidAt: item.fundPaidAt,
+                                      note: item.fundNote,
+                                      phone: item.phone,
+                                      auditedBy: item.fundAuditedBy
+                                    })}
+                                    className="group relative inline-block rounded-lg overflow-hidden border-2 border-emerald-400/80 shadow-2xs hover:shadow-md transition cursor-pointer"
+                                    title="Bấm để xem phóng to ảnh Bill/UNC"
+                                  >
+                                    <img
+                                      src={item.fundReceiptUrl}
+                                      alt={`Bill ${item.fullName}`}
+                                      className="w-10 h-10 object-cover group-hover:scale-110 transition duration-200"
+                                      loading="lazy"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                      <ZoomIn className="w-4 h-4 text-white" />
+                                    </div>
+                                    <span className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[8px] font-bold leading-tight py-0.2">
+                                      Bill
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAdjustFund(item)}
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-900 border border-dashed border-slate-300 hover:border-amber-400 rounded text-[10px] font-sans font-medium transition cursor-pointer"
+                                    title="Thêm ảnh chứng từ nộp tiền"
+                                  >
+                                    <Camera className="w-3 h-3 text-slate-400" />
+                                    <span>+ Đính bill</span>
+                                  </button>
+                                )}
+                              </td>
+
+                              {/* 1-Touch Status Toggle */}
+                              <td className="py-2.5 px-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleFundPaid(item)}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1.2 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                                    isPaid
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs'
+                                      : 'bg-rose-50 hover:bg-emerald-50 text-rose-700 hover:text-emerald-700 border border-rose-200'
+                                  }`}
+                                  title="Bấm để đổi nhanh trạng thái Đã Thu / Chưa Thu"
+                                >
+                                  {isPaid ? (
+                                    <>
+                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Đã Thu Tiền</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="w-3.5 h-3.5 text-rose-500" />
+                                      <span>Chưa Nộp</span>
+                                    </>
+                                  )}
+                                </button>
+                              </td>
+
+                              {/* Audit Trail & Notes */}
+                              <td className="py-2.5 px-3 text-slate-600 text-xs">
+                                <div className="space-y-0.5">
+                                  <p className="italic text-slate-700 line-clamp-2">
+                                    {item.fundNote || (isPaid ? 'Đã thu đủ 500k' : 'Chưa nộp')}
+                                  </p>
+                                  {item.fundAuditedBy && (
+                                    <span className="text-[10px] text-amber-800 font-sans font-semibold block">
+                                      Duyệt: {item.fundAuditedBy}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Action: Open Deep Reconciliation Modal */}
+                              <td className="py-2.5 px-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAdjustFund(item)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-bold text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg shadow-2xs transition cursor-pointer"
+                                  title="Đối soát chi tiết, sửa tiền hoặc upload ảnh chứng từ"
+                                >
+                                  <Edit className="w-3 h-3 text-amber-700" />
+                                  <span>Đối Soát</span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -2403,104 +2879,466 @@ export default function AdminManagementHub({
       </AnimatePresence>
 
       {/* =================================================================== */}
-      {/* MODAL: ADJUST FUND AMOUNT */}
+      {/* MODAL: COMPREHENSIVE FUND RECONCILIATION & RECEIPT UPLOAD */}
       {/* =================================================================== */}
       <AnimatePresence>
         {adjustFundMember && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-sm p-6 space-y-4 text-xs"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-4 text-xs my-auto"
             >
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div>
-                  <h3 className="text-base font-bold font-serif text-slate-900">
-                    💰 Đối Soát Quỹ: {adjustFundMember.fullName}
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Cập nhật số tiền thực nộp và ghi chú giao dịch
-                  </p>
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                    {(adjustFundMember.fullName || 'K').slice(0, 1).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold font-serif text-slate-900">
+                        {adjustFundMember.fullName}
+                      </h3>
+                      {adjustFundMember.status === 'yes' ? (
+                        <span className="px-2 py-0.5 text-[10px] bg-emerald-100 text-emerald-800 rounded-full font-bold">
+                          Tham gia
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-600 rounded-full">
+                          Vắng mặt
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-sans">
+                      SĐT: <span className="font-mono font-semibold text-slate-700">{adjustFundMember.phone}</span>
+                      {adjustFundMember.nickname && <span> • Biệt danh: “{adjustFundMember.nickname}”</span>}
+                      {adjustFundMember.shirtSize && <span> • Size: {adjustFundMember.shirtSize}</span>}
+                    </p>
+                  </div>
                 </div>
+
                 <button
+                  type="button"
                   onClick={() => setAdjustFundMember(null)}
-                  className="p-1 text-slate-400 hover:text-slate-700 rounded-full"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveAdjustFund} className="space-y-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Số Tiền Đã Nộp (VNĐ):</label>
+              <form onSubmit={handleSaveAdjustFund} className="space-y-4">
+                {/* 1. Số tiền đóng & Presets */}
+                <div className="space-y-1.5 bg-[#FAF8F5] p-3.5 rounded-xl border border-amber-200/80">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-emerald-600" />
+                      <span>Số Tiền Thực Nộp (VNĐ):</span>
+                    </label>
+                    <span className="text-[11px] font-mono text-slate-500">Chuẩn: 500.000 đ</span>
+                  </div>
+
                   <input
                     type="number"
                     step={50000}
                     value={fundAdjustAmount}
-                    onChange={(e) => setFundAdjustAmount(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-base font-bold text-emerald-700 focus:outline-none focus:border-amber-500"
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setFundAdjustAmount(val);
+                      if (val > 0 && fundAdjustStatus === 'unpaid') setFundAdjustStatus('paid');
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg font-mono text-lg font-bold text-emerald-700 focus:outline-none focus:border-amber-500 shadow-2xs"
                   />
-                  <div className="flex gap-1 pt-1">
+
+                  {/* Preset Buttons */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
                     <button
                       type="button"
-                      onClick={() => setFundAdjustAmount(500000)}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-bold"
+                      onClick={() => { setFundAdjustAmount(500000); setFundAdjustStatus('paid'); }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        fundAdjustAmount === 500000 ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}
                     >
-                      500k chuẩn
+                      500k Chuẩn
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFundAdjustAmount(1000000)}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-bold"
+                      onClick={() => { setFundAdjustAmount(1000000); setFundAdjustStatus('paid'); }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        fundAdjustAmount === 1000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                      }`}
                     >
-                      1 triệu
+                      1 Triệu
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFundAdjustAmount(2000000)}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-bold"
+                      onClick={() => { setFundAdjustAmount(1500000); setFundAdjustStatus('paid'); }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        fundAdjustAmount === 1500000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                      }`}
                     >
-                      2 triệu
+                      1.5 Triệu
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFundAdjustAmount(0)}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-bold"
+                      onClick={() => { setFundAdjustAmount(2000000); setFundAdjustStatus('paid'); }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        fundAdjustAmount === 2000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                      }`}
                     >
-                      0đ
+                      2 Triệu
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => { setFundAdjustAmount(5000000); setFundAdjustStatus('paid'); }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        fundAdjustAmount === 5000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                      }`}
+                    >
+                      5 Triệu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setFundAdjustAmount(0); setFundAdjustStatus('unpaid'); }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                        fundAdjustAmount === 0 ? 'bg-slate-700 text-white' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
+                      }`}
+                    >
+                      0đ (Chưa nộp)
+                    </button>
+                  </div>
+
+                  {fundAdjustAmount > 500000 && (
+                    <div className="p-2 bg-amber-100 text-amber-900 rounded-lg text-[11px] font-sans font-medium flex items-center gap-1.5 mt-2">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>
+                        Ủng hộ thêm: <strong>{(fundAdjustAmount - 500000).toLocaleString('vi-VN')} đ</strong> vào quỹ chung K8A1!
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Trạng thái & Hình thức thanh toán */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 text-xs block">Trạng thái đối soát:</label>
+                    <select
+                      value={fundAdjustStatus}
+                      onChange={(e) => setFundAdjustStatus(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="paid">✅ Đã nộp đầy đủ</option>
+                      <option value="pending">⏳ Chờ đối soát giao dịch</option>
+                      <option value="unpaid">❌ Chưa nộp</option>
+                      <option value="exempt">🛡️ Miễn đóng</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 text-xs block">Hình thức nộp tiền:</label>
+                    <select
+                      value={fundAdjustPaymentMethod}
+                      onChange={(e) => setFundAdjustPaymentMethod(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="bank_transfer">🏦 Chuyển khoản Ngân hàng (VCB, MB...)</option>
+                      <option value="cash">💵 Tiền mặt tại bàn đón tiếp</option>
+                      <option value="other">💳 Hình thức khác</option>
+                    </select>
                   </div>
                 </div>
 
+                {/* 3. Thời gian nộp & Người đối soát */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 text-xs block">Thời gian nộp:</label>
+                    <input
+                      type="text"
+                      value={fundAdjustPaidAt}
+                      onChange={(e) => setFundAdjustPaidAt(e.target.value)}
+                      placeholder="VD: 01/09/2026 09:30"
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 text-xs block">Người xác nhận đối soát:</label>
+                    <input
+                      type="text"
+                      value={fundAdjustAuditedBy}
+                      onChange={(e) => setFundAdjustAuditedBy(e.target.value)}
+                      placeholder="VD: Thủ Quỹ BLL / Admin"
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Ghi chú kế toán */}
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Ghi chú đối soát:</label>
+                  <label className="font-bold text-slate-700 text-xs block">Ghi chú giao dịch / Mã tham chiếu:</label>
                   <input
                     type="text"
                     value={fundAdjustNote}
                     onChange={(e) => setFundAdjustNote(e.target.value)}
-                    placeholder="VD: CK VCB lúc 10:30, Tiền mặt bàn đón tiếp..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                    placeholder="VD: Mã GD VCB-98124, bạn Hoàng nộp hộ, nộp tiền mặt..."
+                    className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
-                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                {/* 5. Tải Lên & Đính Kèm Ảnh Chứng Từ / Bill (Tự tạo folder trên Drive) */}
+                <div className="space-y-2 pt-2 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                      <Receipt className="w-4 h-4 text-blue-600" />
+                      <span>Ảnh Chứng Từ / Bill / UNC Giao Dịch:</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400">Tự lưu vào folder ChungTu_QuyLop_K8A1</span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={fundAdjustReceiptUrl}
+                      onChange={(e) => setFundAdjustReceiptUrl(e.target.value)}
+                      placeholder="Dán link ảnh Google Drive hoặc URL chứng từ..."
+                      className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                    />
+
+                    <label className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition cursor-pointer whitespace-nowrap shadow-xs ${
+                      isUploadingReceipt
+                        ? 'bg-slate-400 text-white cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                    }`}>
+                      {isUploadingReceipt ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Đang tải lên Drive...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Tải Bill Từ Máy</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingReceipt}
+                        onChange={handleReceiptFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {receiptUploadSuccessMsg && (
+                    <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>{receiptUploadSuccessMsg}</span>
+                    </p>
+                  )}
+
+                  {receiptUploadErrorMsg && (
+                    <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span>{receiptUploadErrorMsg}</span>
+                    </p>
+                  )}
+
+                  {/* Thumbnail Preview if attached */}
+                  {fundAdjustReceiptUrl && (
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={fundAdjustReceiptUrl}
+                          alt="Chứng từ nộp tiền"
+                          className="w-12 h-12 object-cover rounded-lg border border-slate-300 shadow-2xs"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-slate-800 text-xs block">
+                            Đã đính kèm chứng từ
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono truncate max-w-[200px] block">
+                            {fundAdjustReceiptUrl.startsWith('data:') ? 'Ảnh cục bộ (Base64)' : fundAdjustReceiptUrl}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setViewReceiptModal({
+                            isOpen: true,
+                            receiptUrl: fundAdjustReceiptUrl,
+                            memberName: adjustFundMember.fullName,
+                            amount: fundAdjustAmount,
+                            paymentMethod: fundAdjustPaymentMethod,
+                            paidAt: fundAdjustPaidAt,
+                            note: fundAdjustNote,
+                            phone: adjustFundMember.phone,
+                            auditedBy: fundAdjustAuditedBy
+                          })}
+                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded text-[11px] font-bold transition cursor-pointer"
+                        >
+                          Xem Lớn
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFundAdjustReceiptUrl('');
+                            setReceiptUploadSuccessMsg('');
+                          }}
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-bold transition cursor-pointer"
+                        >
+                          Gỡ Ảnh
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
                   <button
                     type="button"
                     onClick={() => setAdjustFundMember(null)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition text-xs"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md cursor-pointer transition text-xs"
                   >
-                    Lưu Đối Soát
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Lưu Đối Soát & Đồng Bộ</span>
                   </button>
                 </div>
               </form>
             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* =================================================================== */}
+      {/* MODAL: FULLSCREEN RECEIPT LIGHTBOX VIEWER */}
+      {/* =================================================================== */}
+      <AnimatePresence>
+        {viewReceiptModal && viewReceiptModal.isOpen && (
+          <div className="fixed inset-0 z-70 flex flex-col bg-black/95 backdrop-blur-md">
+            {/* Top Toolbar */}
+            <div className="flex items-center justify-between px-4 py-3 bg-black/60 border-b border-white/10 text-white z-10 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs">
+                  🧾
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold font-serif text-amber-200 flex items-center gap-2">
+                    <span>Chứng Từ: {viewReceiptModal.memberName}</span>
+                    <span className="px-2 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 rounded text-[11px] font-mono font-bold">
+                      {viewReceiptModal.amount.toLocaleString('vi-VN')} đ
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    SĐT: {viewReceiptModal.phone || 'N/A'} • {viewReceiptModal.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'} • {viewReceiptModal.paidAt || 'Đã xác nhận'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLightboxZoom(prev => Math.min(prev + 0.25, 2.5))}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition cursor-pointer"
+                  title="Phóng to"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLightboxZoom(prev => Math.max(prev - 0.25, 0.75))}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition cursor-pointer"
+                  title="Thu nhỏ"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLightboxZoom(1)}
+                  className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-[11px] font-bold text-white transition cursor-pointer"
+                  title="Đặt lại kích thước 100%"
+                >
+                  100%
+                </button>
+
+                {viewReceiptModal.receiptUrl.startsWith('http') && (
+                  <a
+                    href={viewReceiptModal.receiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-amber-300 transition"
+                    title="Mở ảnh gốc trong tab mới"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewReceiptModal(null);
+                    setLightboxZoom(1);
+                  }}
+                  className="p-2 bg-rose-600/80 hover:bg-rose-600 rounded-lg text-white transition cursor-pointer ml-2"
+                  title="Đóng xem ảnh (Esc)"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Center Image Viewport */}
+            <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: lightboxZoom }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                className="max-w-4xl max-h-[75vh] flex items-center justify-center"
+              >
+                <img
+                  src={viewReceiptModal.receiptUrl}
+                  alt={`Chứng từ ${viewReceiptModal.memberName}`}
+                  className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl border border-white/20"
+                />
+              </motion.div>
+            </div>
+
+            {/* Bottom Info Footer */}
+            <div className="px-4 py-3 bg-black/70 border-t border-white/10 text-xs text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
+              <div className="space-y-0.5">
+                <p className="text-white">
+                  <strong>Ghi chú kế toán:</strong> {viewReceiptModal.note || 'Đã đối soát khớp lệnh'}
+                </p>
+                {viewReceiptModal.auditedBy && (
+                  <p className="text-amber-300 text-[11px]">
+                    <strong>Người đối soát:</strong> {viewReceiptModal.auditedBy}
+                  </p>
+                )}
+              </div>
+
+              <a
+                href={K8A1_DRIVE_FOLDER_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 rounded-lg font-bold text-[11px] transition"
+              >
+                <Folder className="w-3.5 h-3.5 text-amber-400" />
+                <span>Mở Thư Mục Drive ChungTu_QuyLop_K8A1</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            </div>
           </div>
         )}
       </AnimatePresence>

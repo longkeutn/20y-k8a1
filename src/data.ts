@@ -14,7 +14,11 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     checkedIn: false,
     fundStatus: 'paid',
     fundAmount: 500000,
-    fundNote: 'Đã chuyển khoản Vietcombank'
+    fundPaymentMethod: 'bank_transfer',
+    fundPaidAt: '01/09/2026 09:30',
+    fundReceiptUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
+    fundAuditedBy: 'Thủ Quỹ BLL',
+    fundNote: 'Đã chuyển khoản Vietcombank (Mã GD: VCB-892134)'
   },
   {
     id: '2',
@@ -29,7 +33,10 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     checkedIn: false,
     fundStatus: 'paid',
     fundAmount: 500000,
-    fundNote: 'Thủ quỹ lớp đã xác nhận'
+    fundPaymentMethod: 'bank_transfer',
+    fundPaidAt: '01/09/2026 10:45',
+    fundAuditedBy: 'Thủ Quỹ BLL',
+    fundNote: 'Thủ quỹ lớp đã xác nhận qua MB Bank'
   },
   {
     id: '3',
@@ -44,7 +51,11 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     checkedIn: false,
     fundStatus: 'paid',
     fundAmount: 1000000,
-    fundNote: 'Ủng hộ thêm quỹ lớp 500k'
+    fundPaymentMethod: 'bank_transfer',
+    fundPaidAt: '02/09/2026 14:35',
+    fundReceiptUrl: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?auto=format&fit=crop&w=800&q=80',
+    fundAuditedBy: 'Admin',
+    fundNote: 'Đóng 500k + Ủng hộ thêm quỹ lớp 500k'
   },
   {
     id: '4',
@@ -59,7 +70,8 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     checkedIn: false,
     fundStatus: 'unpaid',
     fundAmount: 0,
-    fundNote: 'Hẹn đóng trực tiếp tại bàn lễ tân'
+    fundPaymentMethod: 'cash',
+    fundNote: 'Hẹn đóng trực tiếp tại bàn lễ tân Crown Palace'
   },
   {
     id: '5',
@@ -74,7 +86,10 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     checkedIn: false,
     fundStatus: 'paid',
     fundAmount: 500000,
-    fundNote: 'Đã chuyển khoản'
+    fundPaymentMethod: 'bank_transfer',
+    fundPaidAt: '03/09/2026 08:25',
+    fundAuditedBy: 'Thủ Quỹ BLL',
+    fundNote: 'Đã chuyển khoản Techcombank'
   }
 ];
 
@@ -258,16 +273,20 @@ function doPost(e) {
       return handleResponse(uploadPhotoToDrive(postData));
     }
 
+    if (action === 'upload_fund_receipt' || action === 'upload_receipt') {
+      return handleResponse(uploadFundReceiptToDrive(postData));
+    }
+
+    if (action === 'update_fund' || action === 'update_rsvp') {
+      return handleResponse(updateRSVP(postData));
+    }
+
     if (action === 'add_wish') {
       return handleResponse(saveWish(postData));
     }
 
     if (action === 'delete_wish') {
       return handleResponse(deleteWish(postData));
-    }
-
-    if (action === 'update_rsvp') {
-      return handleResponse(updateRSVP(postData));
     }
 
     if (action === 'delete_rsvp') {
@@ -315,9 +334,13 @@ function getRSVPList() {
       submittedAt: formatDate(row[6] || new Date()),
       checkedIn: row[7] === 'ĐÃ ĐẾN' || row[7] === true,
       checkedInAt: String(row[8] || ''),
-      fundStatus: row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 'paid' : 'unpaid',
+      fundStatus: row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 'paid' : (row[9] === 'CHỜ ĐỐI SOÁT' || row[9] === 'pending' ? 'pending' : (row[9] === 'MIỄN' || row[9] === 'exempt' ? 'exempt' : 'unpaid')),
       fundAmount: Number(row[10]) || (row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 500000 : 0),
-      fundNote: String(row[11] || '')
+      fundNote: String(row[11] || ''),
+      fundReceiptUrl: String(row[12] || ''),
+      fundPaidAt: String(row[13] || ''),
+      fundPaymentMethod: String(row[14] || 'bank_transfer'),
+      fundAuditedBy: String(row[15] || '')
     };
     list.push(item);
   }
@@ -335,7 +358,7 @@ function saveRSVP(data) {
     sheet = ss.getSheets()[0];
   }
 
-  // Khởi tạo tiêu đề cột đầy đủ
+  // Khởi tạo tiêu đề cột đầy đủ 16 cột
   if (sheet.getLastRow() === 0) {
     sheet.appendRow([
       'Họ và Tên', 
@@ -349,9 +372,13 @@ function saveRSVP(data) {
       'Giờ đến',
       'Quỹ 500k',
       'Số tiền',
-      'Ghi chú quỹ'
+      'Ghi chú quỹ',
+      'Link Ảnh Bill/UNC',
+      'Thời gian nộp',
+      'Hình thức',
+      'Người đối soát'
     ]);
-    sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#FAF3E0');
+    sheet.getRange(1, 1, 1, 16).setFontWeight('bold').setBackground('#FAF3E0');
   }
 
   const row = [
@@ -364,9 +391,13 @@ function saveRSVP(data) {
     new Date(),
     data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
     data.checkedInAt || '',
-    data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : 'CHƯA ĐÓNG',
+    data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : (data.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : 'CHƯA ĐÓNG'),
     data.fundAmount || (data.fundStatus === 'paid' ? 500000 : 0),
-    data.fundNote || ''
+    data.fundNote || '',
+    data.fundReceiptUrl || '',
+    data.fundPaidAt || '',
+    data.fundPaymentMethod || 'bank_transfer',
+    data.fundAuditedBy || ''
   ];
 
   sheet.appendRow(row);
@@ -395,9 +426,13 @@ function updateRSVP(data) {
       if (data.message !== undefined) sheet.getRange(rowIndex, 6).setValue(data.message);
       if (data.checkedIn !== undefined) sheet.getRange(rowIndex, 8).setValue(data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN');
       if (data.checkedInAt !== undefined) sheet.getRange(rowIndex, 9).setValue(data.checkedInAt);
-      if (data.fundStatus !== undefined) sheet.getRange(rowIndex, 10).setValue(data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : 'CHƯA ĐÓNG');
+      if (data.fundStatus !== undefined) sheet.getRange(rowIndex, 10).setValue(data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : (data.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : (data.fundStatus === 'exempt' ? 'MIỄN' : 'CHƯA ĐÓNG')));
       if (data.fundAmount !== undefined) sheet.getRange(rowIndex, 11).setValue(data.fundAmount);
       if (data.fundNote !== undefined) sheet.getRange(rowIndex, 12).setValue(data.fundNote);
+      if (data.fundReceiptUrl !== undefined) sheet.getRange(rowIndex, 13).setValue(data.fundReceiptUrl);
+      if (data.fundPaidAt !== undefined) sheet.getRange(rowIndex, 14).setValue(data.fundPaidAt);
+      if (data.fundPaymentMethod !== undefined) sheet.getRange(rowIndex, 15).setValue(data.fundPaymentMethod);
+      if (data.fundAuditedBy !== undefined) sheet.getRange(rowIndex, 16).setValue(data.fundAuditedBy);
       updated = true;
       break;
     }
@@ -620,6 +655,103 @@ function uploadPhotoToDrive(data) {
     };
   } catch (e) {
     return { status: 'error', message: 'Lỗi upload Drive: ' + e.toString() };
+  }
+}
+
+/**
+ * Tải ảnh chứng từ / bill nộp quỹ lên thư mục con "ChungTu_QuyLop_K8A1" trong Drive
+ */
+function uploadFundReceiptToDrive(data) {
+  const rootFolderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+  let rootFolder = null;
+
+  // 1. Mở thư mục gốc
+  if (rootFolderId) {
+    try {
+      rootFolder = DriveApp.getFolderById(rootFolderId);
+    } catch (e) {
+      console.warn("Không mở được root folder " + rootFolderId);
+    }
+  }
+
+  if (!rootFolder) {
+    try {
+      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
+      if (folders.hasNext()) {
+        rootFolder = folders.next();
+      } else {
+        rootFolder = DriveApp.createFolder("K8A1_KyNiem_20Nam");
+        rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+    } catch (e) {
+      rootFolder = DriveApp.getRootFolder();
+    }
+  }
+
+  // 2. Tự động tạo hoặc mở thư mục con lưu chứng từ: "ChungTu_QuyLop_K8A1"
+  let receiptFolder = null;
+  try {
+    const subFolders = rootFolder.getFoldersByName("ChungTu_QuyLop_K8A1");
+    if (subFolders.hasNext()) {
+      receiptFolder = subFolders.next();
+    } else {
+      receiptFolder = rootFolder.createFolder("ChungTu_QuyLop_K8A1");
+      receiptFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+  } catch (e) {
+    receiptFolder = rootFolder;
+  }
+
+  // 3. Giải mã file base64 và lưu
+  try {
+    let rawBase64 = data.fileData || '';
+    if (rawBase64.indexOf(',') > -1) {
+      rawBase64 = rawBase64.split(',')[1];
+    }
+    const decoded = Utilities.base64Decode(rawBase64);
+    const cleanName = (data.fullName || 'ThanhVien').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_');
+    const cleanPhone = (data.phone || '').replace(/[^0-9]/g, '');
+    const amountStr = data.fundAmount ? '_' + data.fundAmount + 'd' : '';
+    const fileName = 'Bill_' + cleanName + (cleanPhone ? '_' + cleanPhone : '') + amountStr + '_' + Date.now() + '.jpg';
+    
+    const blob = Utilities.newBlob(decoded, data.mimeType || 'image/jpeg', fileName);
+    const file = receiptFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileId = file.getId();
+    const cdnUrl = 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600';
+    const driveUrl = file.getUrl();
+
+    // 4. Nếu có phone hoặc fullName, tự động đồng bộ vào Sheet RSVP (Cột 13: fundReceiptUrl)
+    if (data.phone || data.fullName) {
+      try {
+        updateRSVP({
+          phone: data.phone,
+          fullName: data.fullName,
+          fundReceiptUrl: cdnUrl,
+          fundStatus: 'paid',
+          fundAmount: data.fundAmount || 500000,
+          fundPaymentMethod: data.fundPaymentMethod || 'bank_transfer',
+          fundPaidAt: data.fundPaidAt || formatDate(new Date()),
+          fundAuditedBy: data.fundAuditedBy || 'Ban Liên Lạc',
+          fundNote: data.fundNote || ('Đã lưu ảnh chứng từ giao dịch')
+        });
+      } catch (errSync) {
+        console.warn("Lỗi sync sheet: " + errSync);
+      }
+    }
+
+    return {
+      status: 'success',
+      message: 'Đã lưu chứng từ nộp quỹ thành công vào thư mục ChungTu_QuyLop_K8A1!',
+      fileId: fileId,
+      url: cdnUrl,
+      driveUrl: driveUrl,
+      folderUrl: receiptFolder.getUrl(),
+      fileName: fileName
+    };
+  } catch (e) {
+    return { status: 'error', message: 'Lỗi upload chứng từ Drive: ' + e.toString() };
   }
 }
 
