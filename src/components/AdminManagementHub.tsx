@@ -3031,7 +3031,7 @@ export default function AdminManagementHub({
                     <div>
                       <h4 className="font-bold text-indigo-950 text-sm">Chế độ Giám Sát Ban Liên Lạc</h4>
                       <p className="text-indigo-700 text-xs mt-0.5">
-                        Bạn đang xem toàn bộ sổ thu - chi và hóa đơn chứng từ với vai trò BLL. Thẩm quyền đối soát duyệt bill và nhập khoản chi quỹ thuộc về <strong>Thủ Quỹ</strong> (PIN 6868) hoặc Admin.
+                        Bạn đang xem toàn bộ sổ thu - chi và hóa đơn chứng từ với vai trò Ban Liên Lạc. Thẩm quyền đối soát duyệt bill và nhập khoản chi quỹ thuộc về <strong>Thủ Quỹ</strong> hoặc Admin.
                       </p>
                     </div>
                   </div>
@@ -5489,7 +5489,7 @@ export default function AdminManagementHub({
                               maxLength={4}
                               value={newAdminPin}
                               onChange={(e) => setNewAdminPin(e.target.value.replace(/\D/g, ''))}
-                              placeholder="4 số PIN Admin (8888)..."
+                              placeholder="Nhập 4 số PIN Admin mới..."
                               className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-amber-500"
                             />
                             <p className="text-[10px] text-slate-500">Toàn quyền hệ thống & cấu hình</p>
@@ -5505,7 +5505,7 @@ export default function AdminManagementHub({
                               maxLength={4}
                               value={newTreasurerPin}
                               onChange={(e) => setNewTreasurerPin(e.target.value.replace(/\D/g, ''))}
-                              placeholder="4 số PIN Thủ Quỹ (6868)..."
+                              placeholder="Nhập 4 số PIN Thủ Quỹ mới..."
                               className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-emerald-500"
                             />
                             <p className="text-[10px] text-slate-500">Đối soát bill nộp & chi tiêu quỹ</p>
@@ -5521,7 +5521,7 @@ export default function AdminManagementHub({
                               maxLength={4}
                               value={newBllPin}
                               onChange={(e) => setNewBllPin(e.target.value.replace(/\D/g, ''))}
-                              placeholder="4 số PIN BLL (2006)..."
+                              placeholder="Nhập 4 số PIN BLL mới..."
                               className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
                             />
                             <p className="text-[10px] text-slate-500">Giám sát, điểm danh, xuất CSV</p>
@@ -6059,7 +6059,7 @@ export default function AdminManagementHub({
                 {!canAuditAndSpend && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex items-center gap-2.5 text-xs text-indigo-900 shadow-2xs">
                     <span className="text-base shrink-0">👁️</span>
-                    <span><strong>Chế độ Giám Sát BLL:</strong> Bạn đang xem chi tiết thông tin đối soát. Thẩm quyền duyệt khớp lệnh và lưu sửa đổi thuộc về <strong>Thủ Quỹ</strong> (PIN 6868) hoặc Admin.</span>
+                    <span><strong>Chế độ Giám Sát BLL:</strong> Bạn đang xem chi tiết thông tin đối soát. Thẩm quyền duyệt khớp lệnh và lưu sửa đổi thuộc về <strong>Thủ Quỹ</strong> hoặc Admin.</span>
                   </div>
                 )}
 
