@@ -241,7 +241,7 @@ export default function ReceptionCheckin({
                       <button
                         onClick={() => onOpenPass(attendee)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-sans font-bold uppercase text-brand-gold hover:text-brand-text border border-brand-gold/40 hover:border-brand-text rounded-xs transition-colors cursor-pointer"
-                        title="Xem Thẻ Học Sinh / Vé Hội Khóa"
+                        title="Xem Thẻ Học Sinh / Vé Họp Lớp"
                       >
                         <Sparkles className="w-3 h-3" />
                         <span>Xem Thẻ</span>

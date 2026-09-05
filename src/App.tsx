@@ -442,7 +442,7 @@ export default function App() {
         ? 'vừa cập nhật thông tin phản hồi tham dự.'
         : (newRsvp.status === 'yes'
             ? (newRsvp.message ? `vừa xác nhận về lớp: "${newRsvp.message.slice(0, 50)}"` : 'vừa xác nhận chắc chắn có mặt tại Ngày hội ngộ 20 năm!')
-            : 'vừa gửi phản hồi về ngày hội khóa.'),
+            : 'vừa gửi phản hồi về ngày họp lớp K8A1.'),
       timeAgo: 'Vừa xong',
       isNew: true
     });
@@ -834,7 +834,7 @@ export default function App() {
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-400/50 text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.2em] shadow-md">
               <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>Hội Khóa 20 Năm • Niên Khóa 2003 — 2006</span>
+              <span>Họp Lớp 20 Năm • Niên Khóa 2003 — 2006</span>
             </div>
 
             {/* Quick Button for Admin / BLL to change Hero Cover Banner */}
@@ -976,7 +976,7 @@ export default function App() {
               <div className="space-y-1.5 border-b border-amber-300/60 pb-4 relative z-10">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
-                    Thư Ngỏ Hội Khóa 20 Năm (2003 — 2006)
+                    Thư Ngỏ Họp Lớp 20 Năm (2003 — 2006)
                   </span>
 
                   {(currentUserRole === 'admin' || currentUserRole === 'bll') && (
@@ -1131,7 +1131,7 @@ export default function App() {
             </section>
 
             {/* ======================================================== */}
-            {/* ☕ FOOTER: LỜI KẾT ẤM ÁP & THÔNG TIN HỘI KHÓA */}
+            {/* ☕ FOOTER: LỜI KẾT ẤM ÁP & THÔNG TIN HỌP LỚP K8A1 */}
             {/* ======================================================== */}
             <footer className="mt-14 pt-8 pb-8 border border-amber-200/80 bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 shadow-xs text-xs text-slate-600">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pb-6 border-b border-amber-200/60">

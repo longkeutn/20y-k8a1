@@ -475,7 +475,7 @@ export interface ShirtSizeOption {
 }
 
 /**
- * Bảng kích cỡ áo đồng phục polo Hội khóa 20 năm chuẩn hóa thống nhất toàn bộ hệ thống
+ * Bảng kích cỡ áo đồng phục polo Họp lớp 20 năm K8A1 chuẩn hóa thống nhất toàn bộ hệ thống
  */
 export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
   { value: 'S', label: 'Size S (Nữ <48kg / Nam <55kg)', weightHint: 'Nữ <48kg / Nam <55kg' },

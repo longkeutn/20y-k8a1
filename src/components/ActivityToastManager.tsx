@@ -82,7 +82,7 @@ export default function ActivityToastManager({
           type: 'rsvp',
           author: item.fullName,
           className: 'Cựu học sinh 2003-2006',
-          text: item.message ? `xác nhận tham dự: "${item.message.slice(0, 45)}..."` : 'vừa xác nhận tham gia ngày hội khóa!',
+          text: item.message ? `xác nhận tham dự: "${item.message.slice(0, 45)}..."` : 'vừa xác nhận tham gia ngày họp lớp K8A1!',
           timeAgo: 'Vừa xong'
         });
       }

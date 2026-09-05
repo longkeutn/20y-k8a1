@@ -223,7 +223,7 @@ export default function RsvpForm({
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
           ? (status === 'yes'
-              ? 'Đã cập nhật thông tin tham dự thành công vào Google Sheet! Hẹn gặp bạn tại Hội khóa 20 năm.'
+              ? 'Đã cập nhật thông tin tham dự thành công vào Google Sheet! Hẹn gặp bạn tại Ngày Họp Lớp 20 Năm Lớp K8A1.'
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (status === 'yes'
               ? 'Xác nhận tham dự thành công! Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1.'
@@ -251,7 +251,7 @@ export default function RsvpForm({
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
           ? (status === 'yes'
-              ? 'Đã cập nhật thông tin tham dự thành công! Hẹn gặp bạn tại Hội khóa 20 năm.'
+              ? 'Đã cập nhật thông tin tham dự thành công! Hẹn gặp bạn tại Ngày Họp Lớp 20 Năm Lớp K8A1.'
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (status === 'yes'
               ? 'Xác nhận tham dự thành công! Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1.'
@@ -536,7 +536,7 @@ export default function RsvpForm({
             {lastSubmittedAttendee && lastSubmittedAttendee.status === 'yes' && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-emerald-200 text-xs">
                 <span className="text-slate-700">
-                  Đóng quỹ hội khóa <strong>(tạm ứng 500.000đ)</strong>:
+                  Đóng quỹ họp lớp K8A1 <strong>(tạm ứng 500.000đ)</strong>:
                 </span>
                 <div className="flex items-center gap-2">
                   {onOpenReceiptModal ? (

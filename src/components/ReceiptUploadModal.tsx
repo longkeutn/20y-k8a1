@@ -215,7 +215,7 @@ export default function ReceiptUploadModal({
                 Gửi Ảnh Biên Lai / Bill Nộp Quỹ
               </h3>
               <p className="text-[10px] sm:text-[11px] text-slate-300 font-sans">
-                Hội Khóa 20 Năm Lớp K8A1 • Tạm ứng 500.000 VNĐ
+                Họp Lớp 20 Năm K8A1 • Tạm ứng 500.000 VNĐ
               </p>
             </div>
           </div>

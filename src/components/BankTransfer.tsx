@@ -136,7 +136,7 @@ export default function BankTransfer({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/80 pb-3.5 gap-3">
         <div className="space-y-1 min-w-0">
           <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
-            Đóng Quỹ Sự Kiện Hội Khóa
+            Đóng Quỹ Họp Lớp K8A1
           </span>
           <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
             Thông Tin Quỹ Lớp (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'}đ / Bạn)
@@ -359,7 +359,7 @@ export default function BankTransfer({
                 <span>Mã VietQR Chuyển Khoản Đóng Quỹ</span>
               </div>
               <h4 className="text-lg font-serif font-bold text-slate-900">
-                Hội Khóa 20 Năm K8A1 THPT Thái Nguyên
+                Họp Lớp 20 Năm K8A1 THPT Thái Nguyên
               </h4>
               <p className="text-xs text-slate-500 font-sans">
                 Mở ứng dụng ngân hàng bất kỳ (VCB, MB, Techcom, BIDV...) để quét

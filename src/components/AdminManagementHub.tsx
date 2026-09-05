@@ -2769,7 +2769,7 @@ export default function AdminManagementHub({
                       <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px] font-sans font-bold uppercase tracking-wider">
                         Sổ Kế Toán & Đối Soát Quỹ
                       </span>
-                      <span className="text-xs text-slate-400">• Hội Khóa 20 Năm K8A1</span>
+                      <span className="text-xs text-slate-400">• Họp Lớp 20 Năm K8A1</span>
                     </div>
                     <h3 className="text-2xl sm:text-3xl font-serif font-bold text-amber-100 flex items-center gap-2">
                       <span>Mức thu cố định: 500.000 VNĐ / bạn</span>
@@ -4918,7 +4918,7 @@ export default function AdminManagementHub({
                       onChange={(e) => setMemberFormData({ ...memberFormData, status: e.target.value as any })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
-                      <option value="yes">✅ Có tham gia hội khóa</option>
+                      <option value="yes">✅ Có tham gia họp lớp</option>
                       <option value="no">❌ Rất tiếc vắng mặt</option>
                     </select>
                   </div>

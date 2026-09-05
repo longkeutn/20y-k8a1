@@ -630,7 +630,7 @@ export default function DeveloperGuide({
           <div className="bg-[#FAF8F5] border border-brand-border rounded-sm p-5 space-y-3 text-xs">
             <div className="flex items-center gap-2 text-brand-gold font-sans font-bold uppercase tracking-wider">
               <QrCode className="w-4 h-4" />
-              <span>Kinh Nghiệm Vận Hành Ngày Hội Khóa 27/09/2026</span>
+              <span>Kinh Nghiệm Vận Hành Ngày Họp Lớp K8A1 27/09/2026</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-serif italic text-brand-text">
               <div className="space-y-1">
