@@ -1313,6 +1313,7 @@ export default function App() {
         onClose={() => setIsReceiptModalOpen(false)}
         appsScriptUrl={activeAppsScriptUrl}
         rsvpList={rsvpList}
+        classRoster={classRoster}
         defaultAttendee={selectedReceiptAttendee}
         onUpdateRsvpList={(updated) => {
           setRsvpList(updated);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Upload, 
@@ -10,16 +10,19 @@ import {
   DollarSign, 
   UserCheck, 
   Image as ImageIcon,
-  Sparkles
+  Sparkles,
+  Info,
+  ShieldCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { RsvpData } from '../types';
+import { RsvpData, ClassMember } from '../types';
 
 interface ReceiptUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   appsScriptUrl?: string;
   rsvpList?: RsvpData[];
+  classRoster?: ClassMember[];
   defaultAttendee?: RsvpData | null;
   onUpdateRsvpList?: (list: RsvpData[]) => void;
 }
@@ -29,6 +32,7 @@ export default function ReceiptUploadModal({
   onClose,
   appsScriptUrl = '',
   rsvpList = [],
+  classRoster = [],
   defaultAttendee,
   onUpdateRsvpList
 }: ReceiptUploadModalProps) {
@@ -36,11 +40,53 @@ export default function ReceiptUploadModal({
   const [customFullName, setCustomFullName] = useState<string>('');
   const [customPhone, setCustomPhone] = useState<string>('');
   const [transferAmount, setTransferAmount] = useState<number>(500000);
+  const [customAmountInput, setCustomAmountInput] = useState<string>('500.000');
+  const [selectedPreset, setSelectedPreset] = useState<'500k' | '1m' | '2m' | 'custom'>('500k');
   const [transferNote, setTransferNote] = useState<string>('');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Danh sách gợi ý thành viên kết hợp giữa Danh bạ Sĩ số lớp và RSVP (chống trùng lặp)
+  const memberOptions = useMemo(() => {
+    const list: { id: string; fullName: string; nickname?: string; phone: string; fundStatus?: string }[] = [];
+    const seen = new Set<string>();
+
+    // 1. Thành viên từ rsvpList
+    rsvpList.forEach((r) => {
+      const key = (r.phone || r.fullName).toLowerCase().trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        list.push({
+          id: r.id || r.phone,
+          fullName: r.fullName,
+          nickname: r.nickname,
+          phone: r.phone || '',
+          fundStatus: r.fundStatus
+        });
+      }
+    });
+
+    // 2. Thành viên từ classRoster (giúp các bạn chưa điểm danh vẫn dễ dàng chọn tên mình)
+    if (classRoster && classRoster.length > 0) {
+      classRoster.forEach((m) => {
+        const key = (m.phone || m.fullName).toLowerCase().trim();
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          list.push({
+            id: m.id,
+            fullName: m.fullName,
+            nickname: m.nickname,
+            phone: m.phone || '',
+            fundStatus: 'unpaid'
+          });
+        }
+      });
+    }
+
+    return list;
+  }, [rsvpList, classRoster]);
 
   // Auto-select attendee when modal opens or defaultAttendee changes
   useEffect(() => {
@@ -50,9 +96,11 @@ export default function ReceiptUploadModal({
       setReceiptImage(null);
       setTransferNote('');
       setTransferAmount(500000);
+      setCustomAmountInput('500.000');
+      setSelectedPreset('500k');
 
       if (defaultAttendee) {
-        setSelectedMemberPhone(defaultAttendee.phone || '');
+        setSelectedMemberPhone(defaultAttendee.phone || defaultAttendee.fullName || '');
         setCustomFullName(defaultAttendee.fullName || '');
         setCustomPhone(defaultAttendee.phone || '');
       } else {
@@ -65,13 +113,13 @@ export default function ReceiptUploadModal({
 
   if (!isOpen) return null;
 
-  const handleSelectMember = (phoneVal: string) => {
-    setSelectedMemberPhone(phoneVal);
-    if (phoneVal) {
-      const found = rsvpList.find(r => r.phone === phoneVal);
+  const handleSelectMember = (val: string) => {
+    setSelectedMemberPhone(val);
+    if (val) {
+      const found = memberOptions.find(m => (m.phone && m.phone === val) || m.fullName === val);
       if (found) {
         setCustomFullName(found.fullName);
-        setCustomPhone(found.phone);
+        if (found.phone) setCustomPhone(found.phone);
       }
     } else {
       setCustomFullName('');
@@ -109,8 +157,13 @@ export default function ReceiptUploadModal({
       return;
     }
 
+    if (transferAmount <= 0) {
+      setUploadError('Vui lòng chọn hoặc nhập số tiền chuyển khoản hợp lệ (> 0 đ)!');
+      return;
+    }
+
     if (!receiptImage) {
-      setUploadError('Vui lòng chọn ảnh chụp biên lai / bill chuyển khoản!');
+      setUploadError('Vui lòng chọn ảnh chụp biên lai / Bill chuyển khoản!');
       return;
     }
 
@@ -120,6 +173,10 @@ export default function ReceiptUploadModal({
 
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     let uploadedReceiptUrl = receiptImage;
+
+    const auditNoteStr = transferNote.trim()
+      ? `${transferNote.trim()} (Khai báo: ${transferAmount.toLocaleString('vi-VN')}đ)`
+      : `Thành viên gửi bill khai báo: ${transferAmount.toLocaleString('vi-VN')}đ (Chờ BLL đối soát)`;
 
     // Upload to Apps Script Google Drive subfolder "ChungTu_QuyLop_K8A1"
     if (appsScriptUrl && appsScriptUrl.trim()) {
@@ -133,7 +190,7 @@ export default function ReceiptUploadModal({
           fundStatus: 'pending',
           fundPaymentMethod: 'bank_transfer',
           fundPaidAt: nowStr,
-          fundNote: transferNote.trim() || `Thành viên tự tải lên bill ${transferAmount.toLocaleString('vi-VN')}đ`
+          fundNote: auditNoteStr
         };
 
         const res = await fetch(appsScriptUrl, {
@@ -151,7 +208,10 @@ export default function ReceiptUploadModal({
 
     // Synchronize to state & localStorage
     if (onUpdateRsvpList) {
-      const existingIdx = rsvpList.findIndex(r => r.phone === finalPhone || r.fullName.toLowerCase() === finalName.toLowerCase());
+      const existingIdx = rsvpList.findIndex(r => 
+        (finalPhone && r.phone && r.phone === finalPhone) || 
+        r.fullName.toLowerCase().trim() === finalName.toLowerCase().trim()
+      );
       let updatedList: RsvpData[];
       if (existingIdx >= 0) {
         updatedList = rsvpList.map((r, i) => {
@@ -163,7 +223,7 @@ export default function ReceiptUploadModal({
               fundReceiptUrl: uploadedReceiptUrl,
               fundPaidAt: nowStr,
               fundPaymentMethod: 'bank_transfer',
-              fundNote: transferNote.trim() || `Thành viên gửi bill ${transferAmount.toLocaleString('vi-VN')}đ`
+              fundNote: auditNoteStr
             };
           }
           return r;
@@ -182,7 +242,7 @@ export default function ReceiptUploadModal({
           fundReceiptUrl: uploadedReceiptUrl,
           fundPaidAt: nowStr,
           fundPaymentMethod: 'bank_transfer',
-          fundNote: transferNote.trim() || `Thành viên gửi bill ${transferAmount.toLocaleString('vi-VN')}đ`
+          fundNote: auditNoteStr
         };
         updatedList = [newEntry, ...rsvpList];
       }
@@ -192,12 +252,12 @@ export default function ReceiptUploadModal({
     }
 
     confetti({ particleCount: 65, spread: 70, origin: { y: 0.6 } });
-    setUploadSuccess(`Cảm ơn bạn ${finalName}! Biên lai ${transferAmount.toLocaleString('vi-VN')}đ đã được gửi tới Ban Liên Lạc đối soát.`);
+    setUploadSuccess(`Cảm ơn bạn ${finalName}! Biên lai nộp quỹ (Khai báo: ${transferAmount.toLocaleString('vi-VN')} đ) đã được gửi thành công. Thủ quỹ Ban Liên Lạc sẽ đối chiếu ảnh bill với sao kê ngân hàng để xác nhận số tiền chuẩn thức vào sổ Quỹ lớp.`);
     setIsSubmitting(false);
 
     setTimeout(() => {
       onClose();
-    }, 2500);
+    }, 2800);
   };
 
   return (
@@ -215,7 +275,7 @@ export default function ReceiptUploadModal({
                 Gửi Ảnh Biên Lai / Bill Nộp Quỹ
               </h3>
               <p className="text-[10px] sm:text-[11px] text-slate-300 font-sans">
-                Họp Lớp 20 Năm K8A1 • Tạm ứng 500.000 VNĐ
+                Họp Lớp 20 Năm K8A1 • Mức đóng tạm ứng 500.000 VNĐ
               </p>
             </div>
           </div>
@@ -243,12 +303,12 @@ export default function ReceiptUploadModal({
               onChange={(e) => handleSelectMember(e.target.value)}
               className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-xl text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
             >
-              <option value="">-- Chọn tên bạn (hoặc tự điền bên dưới) --</option>
-              {rsvpList.map((m) => {
-                const note = m.fundStatus === 'paid' ? ' (Đã đóng)' : (m.fundStatus === 'pending' ? ' (Chờ duyệt)' : '');
+              <option value="">-- Chọn tên bạn trong danh sách lớp (hoặc tự điền bên dưới) --</option>
+              {memberOptions.map((m) => {
+                const note = m.fundStatus === 'paid' ? ' (Đã đóng)' : (m.fundStatus === 'pending' ? ' (Chờ duyệt bill)' : '');
                 return (
-                  <option key={m.id || m.phone} value={m.phone}>
-                    {m.fullName} {m.nickname ? `(“${m.nickname}”)` : ''} - {m.phone} {note}
+                  <option key={m.id || m.phone || m.fullName} value={m.phone || m.fullName}>
+                    {m.fullName} {m.nickname ? `(“${m.nickname}”)` : ''} {m.phone ? `- ${m.phone}` : ''} {note}
                   </option>
                 );
               })}
@@ -285,51 +345,124 @@ export default function ReceiptUploadModal({
             </div>
           </div>
 
-          {/* Amount Presets */}
-          <div className="space-y-1.5">
+          {/* Amount Presets & Custom Number Input */}
+          <div className="space-y-2 p-3 bg-[#FAF8F5] border border-amber-200/80 rounded-xl">
             <div className="flex items-center justify-between">
-              <label className="block text-slate-800 font-sans font-bold">
-                Số tiền đã chuyển:
-              </label>
-              <span className="font-mono font-bold text-emerald-700 text-sm">
-                {transferAmount.toLocaleString('vi-VN')} đ
-              </span>
+              <div>
+                <label className="block text-slate-900 font-sans font-bold text-xs">
+                  Số tiền đã chuyển (Tự khai báo): <span className="text-rose-500">*</span>
+                </label>
+                <span className="text-[10px] text-slate-500 font-sans block">
+                  Bấm chọn nhanh hoặc tự gõ số tiền tùy ý
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="font-mono font-bold text-emerald-700 text-sm sm:text-base">
+                  {transferAmount > 0 ? `${transferAmount.toLocaleString('vi-VN')} đ` : '0 đ'}
+                </span>
+                {transferAmount > 500000 && (
+                  <span className="block text-[9px] font-sans font-bold text-amber-800 uppercase">
+                    + Ủng hộ {(transferAmount - 500000).toLocaleString('vi-VN')}đ
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            {/* 4 Nút chọn nhanh */}
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               <button
                 type="button"
-                onClick={() => setTransferAmount(500000)}
-                className={`py-1.5 px-2 rounded-lg font-sans text-center transition cursor-pointer ${
-                  transferAmount === 500000
-                    ? 'bg-emerald-600 text-white font-bold shadow-2xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                onClick={() => {
+                  setTransferAmount(500000);
+                  setCustomAmountInput('500.000');
+                  setSelectedPreset('500k');
+                }}
+                className={`py-2 px-1 rounded-lg font-sans text-xs text-center transition cursor-pointer font-bold ${
+                  selectedPreset === '500k'
+                    ? 'bg-emerald-600 text-white shadow-2xs ring-2 ring-emerald-400/50'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                 }`}
               >
                 500.000đ
               </button>
               <button
                 type="button"
-                onClick={() => setTransferAmount(1000000)}
-                className={`py-1.5 px-2 rounded-lg font-sans text-center transition cursor-pointer ${
-                  transferAmount === 1000000
-                    ? 'bg-amber-600 text-white font-bold shadow-2xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                onClick={() => {
+                  setTransferAmount(1000000);
+                  setCustomAmountInput('1.000.000');
+                  setSelectedPreset('1m');
+                }}
+                className={`py-2 px-1 rounded-lg font-sans text-xs text-center transition cursor-pointer font-bold ${
+                  selectedPreset === '1m'
+                    ? 'bg-amber-600 text-white shadow-2xs ring-2 ring-amber-400/50'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                 }`}
               >
                 1.000.000đ
               </button>
               <button
                 type="button"
-                onClick={() => setTransferAmount(2000000)}
-                className={`py-1.5 px-2 rounded-lg font-sans text-center transition cursor-pointer ${
-                  transferAmount === 2000000
-                    ? 'bg-amber-600 text-white font-bold shadow-2xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                onClick={() => {
+                  setTransferAmount(2000000);
+                  setCustomAmountInput('2.000.000');
+                  setSelectedPreset('2m');
+                }}
+                className={`py-2 px-1 rounded-lg font-sans text-xs text-center transition cursor-pointer font-bold ${
+                  selectedPreset === '2m'
+                    ? 'bg-amber-600 text-white shadow-2xs ring-2 ring-amber-400/50'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                 }`}
               >
                 2.000.000đ
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPreset('custom');
+                }}
+                className={`py-2 px-1 rounded-lg font-sans text-xs text-center transition cursor-pointer font-bold ${
+                  selectedPreset === 'custom'
+                    ? 'bg-amber-700 text-white shadow-2xs ring-2 ring-amber-500/50'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                }`}
+              >
+                Số khác ✏️
+              </button>
+            </div>
+
+            {/* Ô nhập số tiền tùy chọn */}
+            <div className="relative pt-0.5">
+              <div className="absolute inset-y-0 left-0 pl-3 pt-0.5 flex items-center pointer-events-none text-slate-400 font-bold font-mono text-xs">
+                ₫
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={customAmountInput}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '');
+                  const num = raw ? parseInt(raw, 10) : 0;
+                  setTransferAmount(num);
+                  setCustomAmountInput(raw ? num.toLocaleString('vi-VN') : '');
+                  if (num === 500000) setSelectedPreset('500k');
+                  else if (num === 1000000) setSelectedPreset('1m');
+                  else if (num === 2000000) setSelectedPreset('2m');
+                  else setSelectedPreset('custom');
+                }}
+                placeholder="Nhập số tiền bạn đã chuyển (VD: 700.000, 1.500.000...)"
+                className="w-full pl-8 pr-14 py-2 bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-xs font-mono font-bold text-slate-900 shadow-2xs placeholder:font-sans placeholder:font-normal placeholder:text-slate-400"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 pt-0.5 flex items-center pointer-events-none text-[11px] font-sans font-bold text-slate-400">
+                VNĐ
+              </div>
+            </div>
+
+            {/* Hộp giải thích quy trình đối soát minh bạch */}
+            <div className="p-2.5 bg-amber-100/70 border border-amber-300/80 rounded-xl text-amber-950 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed text-slate-700 font-sans">
+                <strong className="text-amber-900 font-semibold">Cơ chế đối soát Quỹ lớp:</strong> Con số bạn nhập là <em>số tiền tự khai báo</em> để BLL dễ tìm giao dịch. <strong>Thủ quỹ Ban Liên Lạc sẽ đối chiếu trực tiếp với ảnh biên lai và sao kê tài khoản ngân hàng</strong> — số tiền được BLL đối soát mới là số chuẩn chính thức ghi nhận vào quỹ.
+              </p>
             </div>
           </div>
 
@@ -415,7 +548,7 @@ export default function ReceiptUploadModal({
                 <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>Gửi ảnh biên lai thành công!</span>
               </div>
-              <p className="text-[11px] text-emerald-800 font-sans">
+              <p className="text-[11px] text-emerald-800 font-sans leading-relaxed">
                 {uploadSuccess}
               </p>
             </div>

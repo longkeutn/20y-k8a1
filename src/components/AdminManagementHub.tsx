@@ -2962,12 +2962,12 @@ export default function AdminManagementHub({
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => handleApproveFundDirect(item, 500000)}
+                                      onClick={() => handleApproveFundDirect(item, item.fundAmount || 500000)}
                                       className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold shadow-2xs transition cursor-pointer"
-                                      title="Khớp lệnh duyệt nhanh 500k cho bạn này"
+                                      title={`Khớp lệnh duyệt ${(item.fundAmount || 500000).toLocaleString('vi-VN')}đ cho bạn này`}
                                     >
                                       <Check className="w-3 h-3" />
-                                      <span>Duyệt 500k</span>
+                                      <span>Duyệt {(item.fundAmount || 500000).toLocaleString('vi-VN')}đ</span>
                                     </button>
                                   </div>
                                 ) : isPaid ? (
@@ -5281,7 +5281,7 @@ export default function AdminManagementHub({
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition cursor-pointer hover:scale-105 active:scale-95"
                     >
                       <Check className="w-4 h-4" />
-                      <span>✅ Duyệt Khớp Lệnh (500.000đ)</span>
+                      <span>✅ Duyệt Khớp Lệnh ({(viewReceiptModal.amount || 500000).toLocaleString('vi-VN')} đ)</span>
                     </button>
 
                     {viewReceiptModal.attendee && (
