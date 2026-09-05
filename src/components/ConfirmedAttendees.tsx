@@ -132,11 +132,14 @@ export default function ConfirmedAttendees({
     <div id="confirmed-attendees-module" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
       
       {/* HEADER BẢNG VÀNG ĐIỂM DANH */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/80 pb-3.5 gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200/80 pb-3.5 gap-3">
         <div className="space-y-1 min-w-0">
-          <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
-            Bảng Vàng Điểm Danh Thành Viên
-          </span>
+          <div className="flex items-center gap-1.5 text-amber-800">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span className="text-[11px] uppercase tracking-widest font-sans font-bold block">
+              Bảng Vàng Điểm Danh Thành Viên
+            </span>
+          </div>
           <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
             Danh Sách Điểm Danh Lớp K8A1
           </h2>
@@ -145,7 +148,7 @@ export default function ConfirmedAttendees({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex items-center gap-2 flex-wrap shrink-0 self-start sm:self-auto">
           {onRefresh && (
             <button
               type="button"
@@ -162,7 +165,7 @@ export default function ConfirmedAttendees({
           <button
             type="button"
             onClick={handleCopyZaloSummary}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:shadow transition cursor-pointer"
             title="Sao chép nhanh danh sách để dán vào nhóm Zalo lớp"
           >
             {copiedZalo ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -172,33 +175,33 @@ export default function ConfirmedAttendees({
       </div>
 
       {/* KPI Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="bg-[#FAF9F6] p-3 sm:p-4 rounded-sm border border-brand-border space-y-1">
-          <div className="flex items-center gap-1.5 text-brand-gold text-[10px] font-sans font-bold uppercase tracking-wider">
-            <CheckCircle2 className="w-3.5 h-3.5" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
+        <div className="bg-white/90 p-3 sm:p-4 rounded-xl border border-amber-200/90 shadow-2xs space-y-1">
+          <div className="flex items-center gap-1.5 text-emerald-700 text-[11px] font-sans font-bold uppercase tracking-wider">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>Có mặt</span>
           </div>
-          <div className="text-xl sm:text-2xl font-serif font-bold text-brand-text">
-            {confirmedAttendees.length} <span className="text-xs font-sans text-brand-text-muted font-normal">thành viên</span>
+          <div className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+            {confirmedAttendees.length} <span className="text-xs font-sans text-slate-500 font-normal">thành viên</span>
           </div>
         </div>
 
-        <div className="bg-[#FAF9F6] p-3 sm:p-4 rounded-sm border border-brand-border space-y-1">
-          <div className="flex items-center gap-1.5 text-brand-gold text-[10px] font-sans font-bold uppercase tracking-wider">
-            <Award className="w-3.5 h-3.5" />
+        <div className="bg-white/90 p-3 sm:p-4 rounded-xl border border-amber-200/90 shadow-2xs space-y-1">
+          <div className="flex items-center gap-1.5 text-amber-800 text-[11px] font-sans font-bold uppercase tracking-wider">
+            <Users className="w-4 h-4 text-amber-600" />
             <span>Tổng phản hồi</span>
           </div>
-          <div className="text-xl sm:text-2xl font-serif font-bold text-brand-text">
-            {rsvpList.length} <span className="text-xs font-sans text-brand-text-muted font-normal">bạn</span>
+          <div className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+            {rsvpList.length} <span className="text-xs font-sans text-slate-500 font-normal">bạn</span>
           </div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 bg-[#FAF9F6] p-3 sm:p-4 rounded-sm border border-brand-border space-y-1">
-          <div className="flex items-center gap-1.5 text-brand-gold text-[10px] font-sans font-bold uppercase tracking-wider">
-            <Calendar className="w-3.5 h-3.5" />
+        <div className="col-span-2 sm:col-span-1 bg-white/90 p-3 sm:p-4 rounded-xl border border-amber-200/90 shadow-2xs space-y-1">
+          <div className="flex items-center gap-1.5 text-amber-800 text-[11px] font-sans font-bold uppercase tracking-wider">
+            <Calendar className="w-4 h-4 text-amber-600" />
             <span>Ngày hội ngộ</span>
           </div>
-          <div className="text-xs sm:text-sm font-bold font-sans text-brand-text pt-1">
+          <div className="text-xs sm:text-sm font-bold font-sans text-slate-900 pt-0.5">
             27/09/2026 • Crown Palace
           </div>
         </div>
@@ -206,18 +209,18 @@ export default function ConfirmedAttendees({
 
       {/* Shirt Sizes Summary for BTC */}
       {Object.keys(shirtStats).length > 0 && (
-        <div className="bg-[#FAF9F6] border border-brand-border rounded-sm p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 font-sans font-bold text-[10px] uppercase tracking-wider text-brand-text">
-            <Shirt className="w-3.5 h-3.5 text-brand-gold" />
+        <div className="bg-[#FAF8F5] border border-amber-200/90 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs">
+          <div className="flex items-center gap-1.5 font-sans font-bold text-[11px] uppercase tracking-wider text-amber-900">
+            <Shirt className="w-4 h-4 text-amber-600" />
             <span>Tổng hợp size áo đồng phục K8A1:</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {Object.entries(shirtStats).map(([size, count]) => (
               <span
                 key={size}
-                className="bg-white border border-brand-border px-2 py-0.5 rounded-xs text-[10px] font-sans font-bold text-brand-text"
+                className="bg-white border border-amber-300/80 px-2.5 py-1 rounded-lg text-[11px] font-sans font-bold text-slate-800 shadow-2xs"
               >
-                Size {size}: <strong className="text-brand-gold">{count}</strong>
+                Size {size}: <strong className="text-amber-800">{count}</strong>
               </span>
             ))}
           </div>
@@ -225,25 +228,25 @@ export default function ConfirmedAttendees({
       )}
 
       {/* Filter and Search Toolbar */}
-      <div className="space-y-3 pt-1">
+      <div className="space-y-2.5 pt-1">
         {/* Status Tabs & View Mode */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           {/* Status Tabs */}
-          <div className="flex gap-1 bg-[#FAF9F6] p-1 rounded-sm border border-brand-border self-start">
+          <div className="grid grid-cols-3 gap-1 bg-[#FAF8F5] p-1 rounded-xl border border-amber-200/90 w-full sm:w-auto shadow-2xs">
             <button
               type="button"
               onClick={() => { setStatusFilter('yes'); setVisibleCount(15); }}
-              className={`px-3 py-1 text-[10px] uppercase font-sans font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                statusFilter === 'yes' ? 'bg-white text-brand-text shadow-2xs' : 'text-brand-text-muted hover:text-brand-text'
+              className={`px-2.5 py-1.5 text-center text-[11px] font-sans font-bold tracking-wide rounded-lg transition-all cursor-pointer ${
+                statusFilter === 'yes' ? 'bg-white text-amber-950 shadow-2xs border border-amber-200/60' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tham gia ({confirmedAttendees.length})
+              Có mặt ({confirmedAttendees.length})
             </button>
             <button
               type="button"
               onClick={() => { setStatusFilter('all'); setVisibleCount(15); }}
-              className={`px-3 py-1 text-[10px] uppercase font-sans font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                statusFilter === 'all' ? 'bg-white text-brand-text shadow-2xs' : 'text-brand-text-muted hover:text-brand-text'
+              className={`px-2.5 py-1.5 text-center text-[11px] font-sans font-bold tracking-wide rounded-lg transition-all cursor-pointer ${
+                statusFilter === 'all' ? 'bg-white text-amber-950 shadow-2xs border border-amber-200/60' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Tất cả ({rsvpList.length})
@@ -251,8 +254,8 @@ export default function ConfirmedAttendees({
             <button
               type="button"
               onClick={() => { setStatusFilter('no'); setVisibleCount(15); }}
-              className={`px-3 py-1 text-[10px] uppercase font-sans font-bold tracking-wider rounded-xs transition-all cursor-pointer ${
-                statusFilter === 'no' ? 'bg-white text-brand-text shadow-2xs' : 'text-brand-text-muted hover:text-brand-text'
+              className={`px-2.5 py-1.5 text-center text-[11px] font-sans font-bold tracking-wide rounded-lg transition-all cursor-pointer ${
+                statusFilter === 'no' ? 'bg-white text-slate-900 shadow-2xs border border-slate-200' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               Báo vắng ({rsvpList.filter(i => i.status === 'no').length})
@@ -260,52 +263,63 @@ export default function ConfirmedAttendees({
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex border border-brand-border rounded-xs overflow-hidden bg-white self-end sm:self-auto">
+          <div className="flex border border-amber-300/80 rounded-xl overflow-hidden bg-white self-end sm:self-auto shadow-2xs p-0.5">
             <button
               type="button"
               onClick={() => setViewMode('compact')}
-              className={`p-1.5 transition-colors cursor-pointer ${
-                viewMode === 'compact' ? 'bg-brand-gold-light text-brand-gold' : 'text-brand-text-muted hover:text-brand-text'
+              className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                viewMode === 'compact' ? 'bg-amber-100 text-amber-950 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
               }`}
-              title="Dạng danh bạ tinh gọn (tiết kiệm chỗ)"
+              title="Dạng danh bạ tinh gọn"
             >
               <LayoutList className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Danh bạ</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode('cards')}
-              className={`p-1.5 transition-colors cursor-pointer ${
-                viewMode === 'cards' ? 'bg-brand-gold-light text-brand-gold' : 'text-brand-text-muted hover:text-brand-text'
+              className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                viewMode === 'cards' ? 'bg-amber-100 text-amber-950 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Dạng thẻ trực quan"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Thẻ ảnh</span>
             </button>
           </div>
         </div>
 
         {/* Search & Sort Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-brand-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Tìm theo tên bạn bè, số điện thoại, lời nhắn..."
+              placeholder="Tìm theo tên bạn bè, biệt danh, SĐT..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setVisibleCount(15); }}
-              className="w-full pl-8 pr-3 py-2 border-b border-brand-border bg-transparent text-brand-text text-xs focus:outline-none focus:border-brand-gold placeholder:text-brand-text-muted/50 font-serif"
+              className="w-full pl-9 pr-8 py-2 bg-white border border-amber-200/90 rounded-xl text-xs sm:text-[13px] text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 placeholder:text-slate-400 font-sans shadow-2xs"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-1.5 self-end sm:self-auto text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text-muted">
-            <span>Sắp xếp:</span>
+          <div className="flex items-center gap-1.5 self-end sm:self-auto text-[11px] font-sans font-bold text-slate-600 shrink-0">
+            <span className="text-slate-500">Sắp xếp:</span>
             <button
               type="button"
               onClick={() => setSortBy('recent')}
-              className={`px-2 py-0.5 rounded-xs cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs cursor-pointer transition-all ${
                 sortBy === 'recent'
-                  ? 'bg-brand-text text-white'
-                  : 'bg-[#FAF9F6] border border-brand-border hover:text-brand-text'
+                  ? 'bg-amber-700 text-white font-bold shadow-2xs'
+                  : 'bg-white border border-amber-200/90 text-slate-700 hover:bg-amber-50'
               }`}
             >
               Mới nhất
@@ -313,10 +327,10 @@ export default function ConfirmedAttendees({
             <button
               type="button"
               onClick={() => setSortBy('name')}
-              className={`px-2 py-0.5 rounded-xs cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs cursor-pointer transition-all ${
                 sortBy === 'name'
-                  ? 'bg-brand-text text-white'
-                  : 'bg-[#FAF9F6] border border-brand-border hover:text-brand-text'
+                  ? 'bg-amber-700 text-white font-bold shadow-2xs'
+                  : 'bg-white border border-amber-200/90 text-slate-700 hover:bg-amber-50'
               }`}
             >
               Tên A-Z
@@ -327,185 +341,306 @@ export default function ConfirmedAttendees({
 
       {/* Main List Rendering */}
       {filteredList.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-brand-border rounded-sm bg-[#FAF9F6] text-brand-text-muted text-xs font-serif italic space-y-2">
-          <p>Không tìm thấy thành viên nào phù hợp với bộ lọc này.</p>
-          <a href="#rsvp-section" className="inline-block text-[10px] font-sans not-italic text-brand-gold font-bold uppercase tracking-wider hover:underline">
-            Bạn chưa đăng ký? Hãy bấm vào đây để xác nhận tham dự!
+        <div className="text-center py-12 border border-dashed border-amber-300/80 rounded-xl bg-[#FAF8F5] text-slate-500 text-xs font-serif italic space-y-2.5">
+          <p>Không tìm thấy thành viên nào phù hợp với từ khóa này.</p>
+          <a href="#rsvp-form-card" className="inline-block text-xs font-sans not-italic text-amber-800 font-bold uppercase tracking-wider hover:underline">
+            Bạn chưa đăng ký? Bấm vào đây để điểm danh ngay!
           </a>
         </div>
       ) : viewMode === 'compact' ? (
-        /* COMPACT DIRECTORY VIEW (Optimized for 60+ classmates) */
-        <div className="border border-brand-border rounded-sm overflow-hidden bg-white shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-[#FAF9F6] border-b border-brand-border text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text-muted">
-                  <th className="py-2.5 px-3 w-12 text-center">STT</th>
-                  <th className="py-2.5 px-3">Họ và Tên Thành Viên</th>
-                  <th className="py-2.5 px-3 text-center">Size Áo</th>
-                  <th className="py-2.5 px-3 text-center">Tham Gia</th>
-                  <th className="py-2.5 px-3 text-center">Quỹ 20 Năm</th>
-                  <th className="py-2.5 px-3 text-right">Kỷ Niệm</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-border/60">
-                {displayedItems.map((attendee, index) => (
-                  <tr 
-                    key={attendee.id || `compact-${index}`}
-                    className="hover:bg-brand-gold-light/20 transition-colors group"
-                  >
-                    {/* STT */}
-                    <td className="py-2.5 px-3 text-center font-mono text-brand-text-muted text-[11px]">
-                      {String(index + 1).padStart(2, '0')}
-                    </td>
+        <>
+          {/* DESKTOP TABLE VIEW (Screens >= md) */}
+          <div className="hidden md:block border border-amber-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-[#FAF8F5] border-b border-amber-200/80 text-[10px] font-sans font-bold uppercase tracking-wider text-amber-900">
+                    <th className="py-3 px-3.5 w-12 text-center">STT</th>
+                    <th className="py-3 px-3.5">Họ và Tên Thành Viên</th>
+                    <th className="py-3 px-3 text-center">Size Áo</th>
+                    <th className="py-3 px-3 text-center">Tham Gia</th>
+                    <th className="py-3 px-3 text-center">Quỹ 20 Năm</th>
+                    <th className="py-3 px-3.5 text-right">Kỷ Niệm</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {displayedItems.map((attendee, index) => (
+                    <tr 
+                      key={attendee.id || `compact-${index}`}
+                      className="hover:bg-amber-50/40 transition-colors group"
+                    >
+                      {/* STT */}
+                      <td className="py-3 px-3.5 text-center font-mono text-slate-400 text-[11px]">
+                        {String(index + 1).padStart(2, '0')}
+                      </td>
 
-                    {/* Name & Nickname */}
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-brand-gold-light text-brand-gold flex items-center justify-center font-serif text-xs font-bold shrink-0 border border-brand-border/30">
-                          {attendee.fullName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex flex-wrap items-baseline gap-1.5">
-                          <span className="font-serif font-bold text-brand-text text-sm leading-tight">
-                            {attendee.fullName}
-                          </span>
-                          {attendee.nickname && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-200/80 text-[10px] font-sans font-bold italic" title="Biệt danh thời cấp 3">
-                              "{attendee.nickname}"
+                      {/* Name & Nickname */}
+                      <td className="py-3 px-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center font-serif text-xs font-bold shrink-0 shadow-2xs">
+                            {attendee.fullName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex flex-wrap items-baseline gap-1.5">
+                            <span className="font-serif font-bold text-slate-900 text-sm leading-tight">
+                              {attendee.fullName}
                             </span>
+                            {attendee.nickname && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200/80 text-[10px] font-sans font-bold italic" title="Biệt danh thời cấp 3">
+                                "{attendee.nickname}"
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Shirt Size */}
+                      <td className="py-3 px-3 text-center">
+                        {attendee.status === 'yes' && attendee.shirtSize ? (
+                          <span className="font-sans font-bold text-[10px] px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80">
+                            {attendee.shirtSize}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">—</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-3 text-center">
+                        {attendee.status === 'yes' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Có mặt</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+                            <span>Vắng</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Fund Status Badge */}
+                      <td className="py-3 px-3 text-center">
+                        {attendee.status === 'yes' ? (
+                          attendee.fundStatus === 'paid' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap" title="Đã nộp quỹ tạm ứng 500k">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                              <span>Đã đóng</span>
+                            </span>
+                          ) : attendee.fundStatus === 'pending' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 whitespace-nowrap animate-pulse" title="Đã gửi biên lai, chờ BLL đối soát">
+                              <span>⏳ Chờ duyệt bill</span>
+                            </span>
+                          ) : onOpenReceiptModal ? (
+                            <button
+                              type="button"
+                              onClick={() => onOpenReceiptModal(attendee)}
+                              className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2.5 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap transition cursor-pointer"
+                              title="Bấm để tải ảnh biên lai gửi Ban Liên Lạc đối soát"
+                            >
+                              <span>+ Gửi bill</span>
+                            </button>
+                          ) : (
+                            <a 
+                              href="#bank-transfer-card" 
+                              className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2.5 py-0.5 rounded-md bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-900 border border-dashed border-slate-300 hover:border-amber-400 whitespace-nowrap transition cursor-pointer"
+                              title="Bấm để chuyển khoản và tải ảnh biên lai gửi Ban Liên Lạc"
+                            >
+                              <span>+ Nộp quỹ</span>
+                            </a>
+                          )
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">—</span>
+                        )}
+                      </td>
+
+                      {/* Message & Pass Button */}
+                      <td className="py-3 px-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {attendee.message && (
+                            <button
+                              type="button"
+                              onClick={() => setViewingMessage(attendee)}
+                              className="p-1 rounded-md text-amber-700 hover:bg-amber-100/60 transition-colors cursor-pointer"
+                              title="Xem lời nhắn"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {attendee.status === 'yes' && onOpenPassModal && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenPassModal(attendee)}
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-amber-300 hover:bg-amber-50 text-amber-900 text-[10px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                              title="Xem Thẻ Học Sinh"
+                            >
+                              <Award className="w-3 h-3 text-amber-600" />
+                              <span className="hidden lg:inline">Thẻ</span>
+                            </button>
                           )}
                         </div>
-                      </div>
-                    </td>
-
-                    {/* Shirt Size */}
-                    <td className="py-2.5 px-3 text-center">
-                      {attendee.status === 'yes' && attendee.shirtSize ? (
-                        <span className="font-sans font-bold text-[10px] px-2 py-0.5 rounded-xs bg-brand-gold/10 text-brand-gold border border-brand-gold/30">
-                          {attendee.shirtSize}
-                        </span>
-                      ) : (
-                        <span className="text-brand-text-muted text-[10px]">—</span>
-                      )}
-                    </td>
-
-                    {/* Status */}
-                    <td className="py-2.5 px-3 text-center">
-                      {attendee.status === 'yes' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>Có mặt</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-gray-50 text-gray-600 border border-gray-200 whitespace-nowrap">
-                          <span>Vắng</span>
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Fund Status Badge */}
-                    <td className="py-2.5 px-3 text-center">
-                      {attendee.status === 'yes' ? (
-                        attendee.fundStatus === 'paid' ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-emerald-50 text-emerald-800 border border-emerald-300/80 whitespace-nowrap" title="Đã nộp quỹ tạm ứng 500k">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                            <span>Đã đóng</span>
-                          </span>
-                        ) : attendee.fundStatus === 'pending' ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-300 whitespace-nowrap animate-pulse" title="Đã gửi biên lai, chờ BLL đối soát">
-                            <span>⏳ Chờ duyệt bill</span>
-                          </span>
-                        ) : onOpenReceiptModal ? (
-                          <button
-                            type="button"
-                            onClick={() => onOpenReceiptModal(attendee)}
-                            className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap transition cursor-pointer"
-                            title="Bấm để tải ảnh biên lai gửi Ban Liên Lạc đối soát"
-                          >
-                            <span>+ Gửi bill</span>
-                          </button>
-                        ) : (
-                          <a 
-                            href="#bank-transfer-card" 
-                            className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-slate-50 hover:bg-amber-50 text-slate-500 hover:text-amber-900 border border-dashed border-slate-300 hover:border-amber-400 whitespace-nowrap transition cursor-pointer"
-                            title="Bấm để chuyển khoản và tải ảnh biên lai gửi Ban Liên Lạc"
-                          >
-                            <span>+ Nộp quỹ</span>
-                          </a>
-                        )
-                      ) : (
-                        <span className="text-slate-400 text-[10px]">—</span>
-                      )}
-                    </td>
-
-                    {/* Message & Pass Button */}
-                    <td className="py-2.5 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {attendee.message && (
-                          <button
-                            type="button"
-                            onClick={() => setViewingMessage(attendee)}
-                            className="p-1 rounded-xs hover:bg-brand-gold-light text-brand-gold transition-colors cursor-pointer"
-                            title="Xem lời nhắn"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-
-                        {attendee.status === 'yes' && onOpenPassModal && (
-                          <button
-                            type="button"
-                            onClick={() => onOpenPassModal(attendee)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs border border-brand-border hover:bg-brand-gold-light text-brand-text text-[10px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                            title="Xem Thẻ Học Sinh"
-                          >
-                            <Award className="w-3 h-3 text-brand-gold" />
-                            <span className="hidden md:inline">Thẻ</span>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* MOBILE COMPACT LIST (Screens < md, Fits 100% width, No horizontal scroll!) */}
+          <div className="block md:hidden space-y-2">
+            {displayedItems.map((attendee, index) => (
+              <div 
+                key={attendee.id || `mobile-compact-${index}`}
+                className="bg-white border border-amber-200/80 rounded-xl p-3 shadow-2xs hover:border-amber-400 transition-all space-y-2"
+              >
+                {/* Dòng 1: STT, Tên, Biệt danh & Trạng thái có mặt */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center font-serif text-xs font-bold shrink-0 shadow-2xs">
+                      {attendee.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-serif font-bold text-slate-900 text-xs sm:text-sm truncate">
+                          {attendee.fullName}
+                        </span>
+                        {attendee.nickname && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200/80 text-[10px] font-sans font-bold italic">
+                            "{attendee.nickname}"
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                    attendee.status === 'yes'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}>
+                    {attendee.status === 'yes' ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Có mặt</span>
+                      </>
+                    ) : (
+                      <span>Vắng</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Dòng 2: Chi tiết Size áo, Quỹ lớp & Thẻ học sinh / Lời nhắn */}
+                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 text-[11px]">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {attendee.status === 'yes' && attendee.shirtSize ? (
+                      <span className="font-sans font-bold text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80">
+                        Áo: <strong>Size {attendee.shirtSize}</strong>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-[10px]">Chưa chọn size</span>
+                    )}
+
+                    {attendee.status === 'yes' && (
+                      attendee.fundStatus === 'paid' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                          <span>Đã đóng</span>
+                        </span>
+                      ) : attendee.fundStatus === 'pending' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 animate-pulse">
+                          <span>⏳ Chờ duyệt bill</span>
+                        </span>
+                      ) : onOpenReceiptModal ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenReceiptModal(attendee)}
+                          className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-amber-100/80 hover:bg-amber-200/80 text-amber-900 border border-amber-300 cursor-pointer"
+                        >
+                          <span>+ Gửi bill</span>
+                        </button>
+                      ) : (
+                        <a
+                          href="#bank-transfer-card"
+                          className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 border border-slate-200"
+                        >
+                          <span>+ Nộp quỹ</span>
+                        </a>
+                      )
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {attendee.message && (
+                      <button
+                        type="button"
+                        onClick={() => setViewingMessage(attendee)}
+                        className="p-1 rounded-md text-amber-700 hover:bg-amber-100/60 transition-colors cursor-pointer"
+                        title="Xem lời nhắn"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {attendee.status === 'yes' && onOpenPassModal && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenPassModal(attendee)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-amber-300 bg-white hover:bg-amber-50 text-amber-900 text-[10px] font-sans font-bold transition-colors cursor-pointer"
+                        title="Xem Thẻ Học Sinh"
+                      >
+                        <Award className="w-3 h-3 text-amber-600" />
+                        <span>Thẻ</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Lời nhắn preview nếu có */}
+                {attendee.message && (
+                  <p className="text-[11px] text-slate-600 font-serif italic line-clamp-1 pl-2 border-l-2 border-amber-300/80 pt-0.5">
+                    "{attendee.message}"
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         /* CARD GRID VIEW */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {displayedItems.map((attendee, index) => (
             <div
               key={attendee.id || `card-${index}`}
-              className="p-4 rounded-sm border border-brand-border bg-white shadow-2xs space-y-3 relative group hover:border-brand-gold transition-colors flex flex-col justify-between"
+              className="p-4 rounded-xl border border-amber-200/90 bg-white shadow-2xs space-y-3 relative group hover:border-amber-400 hover:shadow-xs transition-all flex flex-col justify-between"
             >
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-brand-gold-light text-brand-gold flex items-center justify-center font-serif text-xs font-bold shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center font-serif text-xs font-bold shrink-0 shadow-2xs">
                       {attendee.fullName.charAt(0).toUpperCase()}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-baseline gap-1.5">
-                        <h4 className="text-xs font-bold text-brand-text font-serif">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-serif truncate">
                           {attendee.fullName}
                         </h4>
                         {attendee.nickname && (
-                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-xs bg-amber-50 text-amber-900 border border-amber-200/80 text-[9px] font-sans font-bold italic">
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 border border-amber-200/80 text-[10px] font-sans font-bold italic">
                             "{attendee.nickname}"
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-brand-text-muted font-sans">
+                      <p className="text-[10px] text-slate-500 font-sans">
                         Lớp K8A1 (2003 — 2006)
                       </p>
                     </div>
                   </div>
 
-                  <span className={`inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-xs font-sans font-bold uppercase tracking-wider ${
+                  <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-sans font-bold uppercase tracking-wider shrink-0 ${
                     attendee.status === 'yes'
                       ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : 'bg-gray-50 text-gray-600 border border-gray-200'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200'
                   }`}>
                     {attendee.status === 'yes' ? 'Có mặt' : 'Vắng'}
                   </span>
@@ -514,26 +649,26 @@ export default function ConfirmedAttendees({
                 {attendee.status === 'yes' && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     {attendee.shirtSize && (
-                      <div className="inline-flex items-center gap-1 text-[10px] font-sans text-brand-text-muted bg-[#FAF9F6] px-2 py-0.5 rounded-xs border border-brand-border/60">
-                        <Shirt className="w-3 h-3 text-brand-gold" />
+                      <div className="inline-flex items-center gap-1 text-[10px] font-sans text-slate-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-amber-200/80">
+                        <Shirt className="w-3 h-3 text-amber-700" />
                         <span>Áo: <strong>Size {attendee.shirtSize}</strong></span>
                       </div>
                     )}
 
                     {attendee.fundStatus === 'paid' ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                         <span>Đã đóng quỹ</span>
                       </span>
                     ) : attendee.fundStatus === 'pending' ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-xs bg-amber-50 text-amber-900 border border-amber-300 animate-pulse">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 animate-pulse">
                         <span>⏳ Chờ duyệt bill</span>
                       </span>
                     ) : onOpenReceiptModal ? (
                       <button
                         type="button"
                         onClick={() => onOpenReceiptModal(attendee)}
-                        className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition cursor-pointer"
                         title="Bấm để tải ảnh biên lai gửi Ban Liên Lạc"
                       >
                         <span>+ Gửi bill</span>
@@ -541,7 +676,7 @@ export default function ConfirmedAttendees({
                     ) : (
                       <a
                         href="#bank-transfer-card"
-                        className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-xs bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-900 border border-dashed border-slate-300 hover:border-amber-400 transition"
+                        className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-md bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-900 border border-dashed border-slate-300 hover:border-amber-400 transition"
                       >
                         <span>+ Đóng quỹ</span>
                       </a>
@@ -550,20 +685,20 @@ export default function ConfirmedAttendees({
                 )}
 
                 {attendee.message && (
-                  <p className="text-[11px] text-brand-text-muted font-serif italic leading-relaxed pl-2 border-l border-brand-gold/40 line-clamp-2">
+                  <p className="text-[11px] text-slate-600 font-serif italic leading-relaxed pl-2.5 border-l-2 border-amber-400/80 line-clamp-2">
                     "{attendee.message}"
                   </p>
                 )}
               </div>
 
               {attendee.status === 'yes' && onOpenPassModal && (
-                <div className="pt-2 border-t border-brand-border/30 flex justify-end">
+                <div className="pt-2 border-t border-slate-100 flex justify-end">
                   <button
                     type="button"
                     onClick={() => onOpenPassModal(attendee)}
-                    className="inline-flex items-center gap-1 text-[10px] text-brand-gold hover:underline font-sans font-bold cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] text-amber-800 hover:text-amber-950 hover:underline font-sans font-bold cursor-pointer"
                   >
-                    <Award className="w-3 h-3" />
+                    <Award className="w-3.5 h-3.5 text-amber-600" />
                     <span>Xem Thẻ Học Sinh 🎓</span>
                   </button>
                 </div>
@@ -574,19 +709,19 @@ export default function ConfirmedAttendees({
       )}
 
       {/* Pagination / Load More Bar */}
-      <div className="pt-2 border-t border-brand-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        <p className="text-brand-text-muted text-[11px] font-serif italic">
+      <div className="pt-3 border-t border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <p className="text-slate-500 text-[11px] font-serif italic">
           Đang hiển thị <strong>{Math.min(visibleCount, filteredList.length)}</strong> / <strong>{filteredList.length}</strong> thành viên
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {hasMore && (
             <button
               type="button"
               onClick={() => setVisibleCount(prev => prev + 20)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-sm bg-[#FAF9F6] hover:bg-brand-gold-light border border-brand-border text-brand-text text-[10px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 border border-amber-200/90 text-slate-800 text-[11px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-2xs"
             >
-              <ChevronDown className="w-3 h-3 text-brand-gold" />
+              <ChevronDown className="w-3 h-3 text-amber-600" />
               <span>Xem thêm 20 bạn</span>
             </button>
           )}
@@ -595,7 +730,7 @@ export default function ConfirmedAttendees({
             <button
               type="button"
               onClick={() => setVisibleCount(filteredList.length)}
-              className="px-3 py-1.5 rounded-sm bg-brand-text hover:bg-brand-gold text-white text-[10px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-xs"
             >
               Hiện tất cả ({filteredList.length})
             </button>
@@ -605,7 +740,7 @@ export default function ConfirmedAttendees({
             <button
               type="button"
               onClick={() => setVisibleCount(15)}
-              className="px-3 py-1.5 rounded-sm bg-[#FAF9F6] hover:bg-brand-border/40 border border-brand-border text-brand-text-muted text-[10px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-600 text-[11px] font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-2xs"
             >
               Thu gọn lại
             </button>
@@ -615,18 +750,18 @@ export default function ConfirmedAttendees({
 
       {/* Modal View Message */}
       {viewingMessage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xs animate-fadeIn">
-          <div className="relative w-full max-w-md bg-white rounded-md shadow-xl border border-brand-border p-6 space-y-4">
-            <div className="flex items-start justify-between border-b border-brand-border pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-brand-gold-light text-brand-gold flex items-center justify-center font-serif text-sm font-bold">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-amber-200/90 p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between border-b border-amber-200/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center font-serif text-sm font-bold shadow-2xs">
                   {viewingMessage.fullName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h4 className="font-serif font-bold text-sm text-brand-text">
+                  <h4 className="font-serif font-bold text-sm text-slate-900">
                     {viewingMessage.fullName}
                   </h4>
-                  <p className="text-[10px] font-sans text-brand-text-muted">
+                  <p className="text-[10px] font-sans text-slate-500">
                     Lớp K8A1 • Niên khóa 2003 - 2006
                   </p>
                 </div>
@@ -634,26 +769,27 @@ export default function ConfirmedAttendees({
               <button
                 type="button"
                 onClick={() => setViewingMessage(null)}
-                className="text-brand-text-muted hover:text-brand-text p-1 cursor-pointer"
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2 py-2">
-              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-gold">
-                Lời nhắn gửi bạn bè Lớp K8A1:
+            <div className="space-y-2 py-1">
+              <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                <MessageSquare className="w-3.5 h-3.5 text-amber-600" />
+                <span>Lời nhắn gửi bạn bè Lớp K8A1:</span>
               </span>
-              <p className="font-serif italic text-sm text-brand-text leading-relaxed bg-[#FAF9F6] p-4 rounded-sm border border-brand-border">
+              <p className="font-serif italic text-xs sm:text-sm text-slate-800 leading-relaxed bg-[#FAF8F5] p-4 rounded-xl border border-amber-200/80 shadow-2xs">
                 "{viewingMessage.message}"
               </p>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setViewingMessage(null)}
-                className="px-4 py-1.5 rounded-sm bg-brand-text text-white text-xs font-sans font-bold uppercase tracking-wider cursor-pointer hover:bg-brand-gold transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-sans font-bold uppercase tracking-wider cursor-pointer transition-colors shadow-xs"
               >
                 Đóng
               </button>
@@ -663,13 +799,13 @@ export default function ConfirmedAttendees({
       )}
 
       {/* Footer prompt */}
-      <div className="p-3 bg-[#FAF9F6] border border-brand-border rounded-sm text-[11px] text-brand-text-muted font-serif italic flex items-center justify-between">
+      <div className="p-3 bg-[#FAF8F5] border border-amber-200/80 rounded-xl text-[11px] text-slate-600 font-serif italic flex items-center justify-between shadow-2xs">
         <span>
           💡 Danh sách cập nhật tự động. Các bạn có thể tìm nhanh tên mình hoặc kiểm tra size áo.
         </span>
         <a 
-          href="#rsvp-section" 
-          className="font-sans font-bold uppercase text-[10px] text-brand-gold hover:underline shrink-0 ml-2"
+          href="#rsvp-form-card" 
+          className="font-sans font-bold uppercase text-[10px] text-amber-800 hover:text-amber-950 hover:underline shrink-0 ml-2"
         >
           Tôi chưa đăng ký →
         </a>
