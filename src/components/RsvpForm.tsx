@@ -193,7 +193,6 @@ export default function RsvpForm({
     setLastSubmittedAttendee(rsvpPayload);
 
     if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
-      // Real API request to Google Apps Script
       try {
         await fetch(appsScriptUrl, {
           method: 'POST',
@@ -210,11 +209,11 @@ export default function RsvpForm({
         const isUpdate = !!matchedExistingAttendee;
         const successMessage = isUpdate
           ? (status === 'yes'
-              ? 'Đã cập nhật thông tin tham dự thành công! Hệ thống đã ghi nhận phản hồi mới nhất của bạn. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
+              ? 'Đã cập nhật thông tin tham dự thành công! Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
               : 'Đã cập nhật phản hồi: Rất tiếc bạn không thể tham gia. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (status === 'yes'
               ? 'Chúc mừng! Bạn đã xác nhận tham dự thành công. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
-              : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn lưu giữ những kỷ niệm đẹp về bạn.');
+              : 'Cảm ơn bạn đã phản hồi! Dù không thể đến, tập thể K8A1 vẫn luôn lưu giữ những kỷ niệm đẹp về bạn.');
         
         setSubmitSuccess(successMessage);
         onAddRsvp(rsvpPayload);
@@ -224,7 +223,7 @@ export default function RsvpForm({
         }
       } catch (error) {
         console.error('Lỗi khi gửi lên Apps Script:', error);
-        setSubmitError('Có lỗi xảy ra khi kết nối tới máy chủ Google Sheets. Đăng ký tạm thời lưu cục bộ!');
+        setSubmitError('Có lỗi xảy ra khi kết nối tới máy chủ. Đăng ký tạm thời lưu cục bộ!');
         onAddRsvp(rsvpPayload);
         if (status === 'yes') {
           triggerFullscreenFireworks();
@@ -233,7 +232,6 @@ export default function RsvpForm({
         setIsSubmitting(false);
       }
     } else {
-      // Simulation mode
       setTimeout(() => {
         onAddRsvp(rsvpPayload);
         const isUpdate = !!matchedExistingAttendee;
@@ -243,7 +241,7 @@ export default function RsvpForm({
               : 'Đã cập nhật phản hồi: Rất tiếc bạn không thể tham gia. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (status === 'yes'
               ? 'Chúc mừng! Bạn đã xác nhận tham dự thành công. Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1! 🎉'
-              : 'Cảm ơn bạn đã phản hồi! Dù bạn không thể đến, tập thể Lớp K8A1 vẫn luôn lưu giữ những kỷ niệm đẹp về bạn.');
+              : 'Cảm ơn bạn đã phản hồi! Dù không thể đến, tập thể K8A1 vẫn luôn lưu giữ những kỷ niệm đẹp về bạn.');
         
         setSubmitSuccess(successMessage);
         setIsSubmitting(false);
@@ -251,7 +249,7 @@ export default function RsvpForm({
         if (status === 'yes') {
           triggerFullscreenFireworks();
         }
-      }, 600);
+      }, 500);
     }
   };
 
@@ -260,480 +258,340 @@ export default function RsvpForm({
   }, [rsvpList]);
 
   return (
-    <div id="rsvp-section" className="space-y-6">
-      {/* Khung Biểu Mẫu Điểm Danh K8A1 - Phong Cách Ấm Áp Hoàng Gia */}
+    <div id="rsvp-section" className="space-y-4">
+      {/* Khung Biểu Mẫu Điểm Danh K8A1 - Tinh Gọn & Đẳng Cấp */}
       <div 
         id="rsvp-form-card" 
-        className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-lg space-y-6 text-left relative overflow-hidden"
+        className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-5 shadow-md space-y-3.5 text-left relative overflow-hidden"
       >
-        {/* Nền hiệu ứng sáng tinh tế */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-200/20 via-orange-100/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-amber-300/15 via-transparent to-transparent rounded-full blur-3xl pointer-events-none" />
-
-        {/* 🌟 HEADER SANG TRỌNG */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-300/60 pb-4 sm:pb-5 gap-3 relative z-10">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-950 text-xs font-bold tracking-wider font-sans uppercase border border-amber-300/80 shadow-2xs">
-              <CalendarCheck className="w-3.5 h-3.5 text-amber-700" />
-              <span>Điểm Danh Trực Tuyến • Hội Ngộ 20 Năm K8A1</span>
+        {/* 🌟 HEADER GỌN GÀNG */}
+        <div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-300/70">
+              <CalendarCheck className="w-4 h-4 text-amber-700" />
             </div>
-
-            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-[#1E293B] tracking-tight">
-              Xác Nhận Tham Dự Lớp K8A1
-            </h3>
-
-            <p className="text-xs sm:text-sm text-slate-600 font-serif italic leading-relaxed">
-              “Hạn chốt đến hết ngày 20/09/2026 để Ban Liên Lạc chuẩn bị quà kỷ niệm, may áo polo đồng phục và đặt tiệc trọn vẹn nhất.”
-            </p>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-serif font-bold text-[#1E293B] truncate leading-tight">
+                Xác Nhận Tham Dự Lớp K8A1
+              </h3>
+              <p className="text-[11px] text-slate-500 font-serif italic truncate">
+                Hạn chốt 20/09/2026 để Ban liên lạc chuẩn bị quà & đặt tiệc chu đáo nhất
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-sans font-bold text-amber-900 bg-amber-100/80 px-3 py-1.5 rounded-xl border border-amber-300/60 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>{confirmedCount} Bạn Đã Xác Nhận</span>
-            </span>
-          </div>
+          <span className="text-xs font-sans font-bold text-amber-900 bg-amber-100/90 px-2.5 py-1 rounded-lg border border-amber-300/60 shrink-0 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{confirmedCount} Đã Đăng Ký</span>
+          </span>
         </div>
 
         {/* 🌟 FORM ĐIỂM DANH */}
-        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+        <form onSubmit={handleSubmit} className="space-y-3 relative z-10">
           
-          {/* ======================================================== */}
-          {/* 👤 KHỐI NHẬN DIỆN THÀNH VIÊN ĐỒNG BỘ TOÀN DỰ ÁN */}
-          {/* ======================================================== */}
-          <div className="bg-[#FAF8F5] border border-amber-200 rounded-xl p-3.5 space-y-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase font-sans tracking-wide">
-                <Users className="w-4 h-4 text-amber-700 shrink-0" />
-                <span>Nhận diện thành viên Lớp K8A1</span>
-              </div>
-              
-              {activeMember ? (
+          {/* 👤 KHỐI NHẬN DIỆN THÀNH VIÊN SIÊU GỌN */}
+          <div className="bg-[#FAF8F5] border border-amber-200/90 rounded-xl px-3 py-2 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-2xs">
+            {activeMember ? (
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-serif font-bold text-[11px] flex items-center justify-center shrink-0 shadow-2xs">
+                    {activeMember.fullName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="font-serif font-bold text-slate-900 truncate">{activeMember.fullName}</span>
+                  {activeMember.nickname && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-sans font-bold shrink-0">
+                      “{activeMember.nickname}”
+                    </span>
+                  )}
+                  {matchedExistingAttendee && (
+                    <span className="text-[10px] text-emerald-700 font-sans font-semibold hidden sm:inline">
+                      • Đã đăng ký ({matchedExistingAttendee.status === 'yes' ? 'Có mặt' : 'Vắng mặt'})
+                    </span>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={handleResetMember}
-                  className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-amber-800 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300/70 transition cursor-pointer"
-                  title="Đổi sang bạn khác hoặc tự nhập tên"
+                  className="text-[11px] text-amber-800 hover:text-amber-950 font-bold underline cursor-pointer shrink-0 ml-2"
                 >
-                  <RotateCcw className="w-3 h-3 text-amber-700" />
-                  <span>Chọn bạn khác / Tự nhập</span>
+                  Chọn bạn khác
                 </button>
-              ) : (
-                <span className="text-[11px] text-slate-500 font-serif italic">
-                  (Chọn 1 lần sẽ tự điền cả Sổ lưu bút & Quỹ lớp)
-                </span>
-              )}
-            </div>
-
-            {activeMember ? (
-              /* Khi đã nhận diện được thành viên */
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-emerald-200 shadow-2xs">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-serif font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
-                    {activeMember.fullName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-serif font-bold text-sm sm:text-base text-[#1E293B]">
-                        {activeMember.fullName}
-                      </h4>
-                      {activeMember.nickname && (
-                        <span className="text-xs px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-sans font-bold">
-                          “{activeMember.nickname}”
-                        </span>
-                      )}
-                      {activeMember.role && activeMember.role !== 'Thành viên' && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-sans font-semibold">
-                          {activeMember.role}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-emerald-700 font-sans flex items-center gap-1 mt-0.5">
-                      <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>
-                        {matchedExistingAttendee 
-                          ? `Đã đăng ký trước đó (${matchedExistingAttendee.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt'}) • Bấm gửi bên dưới để cập nhật`
-                          : 'Đã kết nối danh bạ • Mời bạn xác nhận tham gia và chọn size áo'}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
-                {matchedExistingAttendee && (
-                  <span className="text-[10px] font-sans font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg shrink-0 self-start sm:self-auto">
-                    Chế độ Cập nhật 🔄
-                  </span>
-                )}
               </div>
             ) : (
-              /* Khi chưa nhận diện: Dropdown chọn nhanh từ Roster */
-              <div className="space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
-                  <div className="sm:col-span-8">
-                    <select
-                      value={isCustomMode ? 'custom' : ''}
-                      onChange={(e) => handleSelectMember(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-sans font-semibold text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer"
-                    >
-                      <option value="">-- Bấm vào đây để chọn tên bạn trong Danh Bạ K8A1 --</option>
-                      {rosterList.map((m) => {
-                        const isRegistered = rsvpList.some(r => 
-                          normalizeName(r.fullName) === normalizeName(m.fullName) || 
-                          (m.phone && normalizePhone(r.phone) === normalizePhone(m.phone))
-                        );
-                        return (
-                          <option key={m.id} value={m.id}>
-                            {m.fullName} {m.nickname ? `(“${m.nickname}”)` : ''} {m.role && m.role !== 'Thành viên' ? `[${m.role}]` : ''} {isRegistered ? '✅ (Đã đăng ký)' : ''}
-                          </option>
-                        );
-                      })}
-                      <option value="custom">✍️ Nhập tên khác (Khách mời / Thầy cô / Bạn bè ngoài lớp)</option>
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-4 text-[11px] text-slate-500 font-serif italic">
-                    {isCustomMode ? 'Đang ở chế độ tự nhập họ tên' : 'Chọn đúng tên để tự điền SĐT & size áo!'}
-                  </div>
-                </div>
+              <div className="flex items-center gap-2 w-full">
+                <Users className="w-4 h-4 text-amber-700 shrink-0" />
+                <select
+                  value={isCustomMode ? 'custom' : ''}
+                  onChange={(e) => handleSelectMember(e.target.value)}
+                  className="flex-1 bg-white border border-amber-300 rounded-lg py-1 px-2.5 text-xs text-slate-800 font-sans cursor-pointer focus:outline-none focus:border-amber-500 shadow-2xs font-medium"
+                >
+                  <option value="">-- Chọn tên bạn trong Danh Bạ K8A1 để tự điền thông tin --</option>
+                  {rosterList.map((m) => {
+                    const isRegistered = rsvpList.some(r => 
+                      normalizeName(r.fullName) === normalizeName(m.fullName) || 
+                      (m.phone && normalizePhone(r.phone) === normalizePhone(m.phone))
+                    );
+                    return (
+                      <option key={m.id} value={m.id}>
+                        {m.fullName} {m.nickname ? `(${m.nickname})` : ''} {isRegistered ? '✅ (Đã đăng ký)' : ''}
+                      </option>
+                    );
+                  })}
+                  <option value="custom">✍️ Nhập tên khác</option>
+                </select>
               </div>
             )}
           </div>
 
-          {/* ======================================================== */}
-          {/* 🔘 2 NÚT CHỌN TRẠNG THÁI THAM GIA TO RÕ, ĐẸP MẮT */}
-          {/* ======================================================== */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-700 font-sans">
-              Khả năng tham dự của bạn: <span className="text-rose-500">*</span>
-            </label>
+          {/* 🔘 2 NÚT CHỌN TRẠNG THÁI GỌN GÀNG (SEGMENTED CONTROL) */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/90">
+            <button
+              type="button"
+              onClick={() => setStatus('yes')}
+              className={`py-2 px-3 rounded-lg text-xs font-serif font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                status === 'yes'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Có Tham Gia 🎉</span>
+            </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Option 1: Yes */}
-              <button
-                type="button"
-                onClick={() => setStatus('yes')}
-                className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center gap-3.5 cursor-pointer text-left ${
-                  status === 'yes'
-                    ? 'border-amber-500 bg-white shadow-md ring-2 ring-amber-400/30'
-                    : 'border-slate-200 bg-white/60 hover:bg-white hover:border-amber-300 text-slate-600'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  status === 'yes'
-                    ? 'bg-amber-500 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-400'
-                }`}>
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-bold font-serif ${status === 'yes' ? 'text-amber-950' : 'text-slate-700'}`}>
-                      Có Tham Gia 🎉
-                    </span>
-                    {status === 'yes' && (
-                      <span className="text-[10px] bg-amber-100 text-amber-900 font-sans font-bold px-2 py-0.2 rounded-full">
-                        Chắc chắn
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-sans mt-0.5">
-                    Hội ngộ cùng cả lớp K8A1 tại Crown Palace
-                  </p>
-                </div>
-              </button>
-
-              {/* Option 2: No */}
-              <button
-                type="button"
-                onClick={() => setStatus('no')}
-                className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center gap-3.5 cursor-pointer text-left ${
-                  status === 'no'
-                    ? 'border-rose-400 bg-white shadow-md ring-2 ring-rose-300/30'
-                    : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300 text-slate-600'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  status === 'no'
-                    ? 'bg-rose-500 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-400'
-                }`}>
-                  <HeartHandshake className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-bold font-serif ${status === 'no' ? 'text-rose-950' : 'text-slate-700'}`}>
-                      Rất Tiếc Vắng Mặt 🌸
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-sans mt-0.5">
-                    Không thể đến trực tiếp, gửi lời chúc tới lớp
-                  </p>
-                </div>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setStatus('no')}
+              className={`py-2 px-3 rounded-lg text-xs font-serif font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                status === 'no'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <HeartHandshake className="w-3.5 h-3.5" />
+              <span>Rất Tiếc Vắng Mặt 🌸</span>
+            </button>
           </div>
 
-          {/* ======================================================== */}
-          {/* 📝 CÁC TRƯỜNG THÔNG TIN CÁ NHÂN */}
-          {/* ======================================================== */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Họ tên */}
-              <div className="space-y-1">
-                <label htmlFor="rsvp-fullName" className="block text-xs font-bold text-slate-700 font-sans">
-                  Họ và tên của bạn: <span className="text-rose-500">*</span>
+          {/* 📝 FORM ĐIỀN THÔNG TIN 2X2 */}
+          <div className="bg-white rounded-xl border border-slate-200/90 p-3 sm:p-4 space-y-2.5 shadow-2xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-0.5">
+                <label className="block text-[11px] font-bold text-slate-700 font-sans">
+                  Họ và tên <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  id="rsvp-fullName"
-                  placeholder="VD: Nguyễn Văn A"
+                  placeholder="Nguyễn Văn A"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-sans"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-sans"
                 />
               </div>
 
-              {/* Biệt danh */}
-              <div className="space-y-1">
-                <label htmlFor="rsvp-nickname" className="block text-xs font-bold text-slate-700 font-sans">
-                  Biệt danh thời cấp 3 <span className="text-amber-700 text-[11px] font-normal italic">(gợi nhớ kỷ niệm xưa)</span>:
+              <div className="space-y-0.5">
+                <label className="block text-[11px] font-bold text-slate-700 font-sans">
+                  Biệt danh cấp 3 <span className="text-slate-400 font-normal italic">(kỷ niệm)</span>
                 </label>
                 <input
                   type="text"
-                  id="rsvp-nickname"
-                  placeholder='VD: "Tuấn Béo", "Nam Cận", "Mai Tồ"...'
+                  placeholder='VD: "Tuấn Béo", "Nam Cận"...'
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-sans"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-sans"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Số điện thoại */}
-              <div className="space-y-1">
-                <label htmlFor="rsvp-phone" className="block text-xs font-bold text-slate-700 font-sans">
-                  Số điện thoại liên hệ: <span className="text-rose-500">*</span>
+              <div className="space-y-0.5">
+                <label className="block text-[11px] font-bold text-slate-700 font-sans">
+                  Số điện thoại <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="tel"
-                  id="rsvp-phone"
                   placeholder="090x xxx xxx"
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-mono"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
-              {/* Chọn Size Áo */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="rsvp-shirtSize" className="block text-xs font-bold text-slate-700 font-sans">
-                    Size áo polo đồng phục 20 năm:
+                  <label className="block text-[11px] font-bold text-slate-700 font-sans">
+                    Size áo polo đồng phục
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowSizeGuide(!showSizeGuide)}
-                    className="text-[11px] font-sans text-amber-800 hover:text-amber-950 font-bold underline cursor-pointer flex items-center gap-1"
+                    className="text-[10px] font-sans text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
                   >
-                    <Info className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Xem Bảng Size</span>
+                    Bảng size
                   </button>
                 </div>
-
                 <select
-                  id="rsvp-shirtSize"
                   value={shirtSize}
                   onChange={(e) => setShirtSize(e.target.value)}
                   disabled={status === 'no'}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs cursor-pointer disabled:opacity-50 disabled:bg-slate-100 font-sans font-medium"
+                  className="w-full px-2.5 py-1.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer disabled:opacity-40 font-sans"
                 >
-                  <option value="S">Size S (Dưới 50kg • Cao dưới 1m60)</option>
-                  <option value="M">Size M (50 - 60kg • Cao 1m60 - 1m68)</option>
-                  <option value="L">Size L (61 - 70kg • Cao 1m68 - 1m75)</option>
-                  <option value="XL">Size XL (71 - 80kg • Cao 1m73 - 1m80)</option>
-                  <option value="2XL">Size 2XL (81 - 90kg • Cao trên 1m75)</option>
-                  <option value="3XL">Size 3XL (Trên 90kg • Form rộng rãi)</option>
+                  <option value="S">Size S (&lt; 50kg • &lt; 1m60)</option>
+                  <option value="M">Size M (50 - 60kg • 1m60 - 1m68)</option>
+                  <option value="L">Size L (61 - 70kg • 1m68 - 1m75)</option>
+                  <option value="XL">Size XL (71 - 80kg • 1m73 - 1m80)</option>
+                  <option value="2XL">Size 2XL (81 - 90kg • &gt; 1m75)</option>
+                  <option value="3XL">Size 3XL (&gt; 90kg)</option>
                 </select>
               </div>
             </div>
 
-            {/* Bảng Tra Cứu Size Áo Popover / Card */}
+            {/* Bảng Size Popover Siêu Gọn */}
             {showSizeGuide && (
-              <div className="bg-[#FAF8F5] border border-amber-300/80 rounded-xl p-3.5 space-y-2.5 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between font-bold text-slate-900 font-serif text-xs">
-                  <span className="flex items-center gap-1.5 text-amber-900">
-                    <Shirt className="w-4 h-4 text-amber-700" />
-                    Bảng thông số chọn size áo polo đồng phục Hội khóa K8A1:
+              <div className="bg-[#FAF8F5] border border-amber-300/80 rounded-lg p-2.5 space-y-1.5 animate-in fade-in duration-150 text-xs">
+                <div className="flex items-center justify-between font-bold text-amber-900 font-serif text-[11px]">
+                  <span className="flex items-center gap-1">
+                    <Shirt className="w-3.5 h-3.5 text-amber-700" />
+                    Bảng size áo polo đồng phục Hội khóa K8A1:
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowSizeGuide(false)}
-                    className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
+                    className="text-slate-400 hover:text-slate-700 cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-[10px] font-sans">
-                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                    <span className="font-bold block text-amber-800 text-xs">Size S</span>
-                    <span className="text-slate-600">&lt; 50kg</span>
+                <div className="grid grid-cols-6 gap-1 text-center text-[10px] font-sans">
+                  <div className="bg-white p-1 rounded border border-amber-200">
+                    <span className="font-bold block text-amber-800">S</span>
+                    <span className="text-slate-500">&lt;50kg</span>
                   </div>
-                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                    <span className="font-bold block text-amber-800 text-xs">Size M</span>
-                    <span className="text-slate-600">50 - 60kg</span>
+                  <div className="bg-white p-1 rounded border border-amber-200">
+                    <span className="font-bold block text-amber-800">M</span>
+                    <span className="text-slate-500">50-60k</span>
                   </div>
-                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                    <span className="font-bold block text-amber-800 text-xs">Size L</span>
-                    <span className="text-slate-600">61 - 70kg</span>
+                  <div className="bg-white p-1 rounded border border-amber-200">
+                    <span className="font-bold block text-amber-800">L</span>
+                    <span className="text-slate-500">61-70k</span>
                   </div>
-                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                    <span className="font-bold block text-amber-800 text-xs">Size XL</span>
-                    <span className="text-slate-600">71 - 80kg</span>
+                  <div className="bg-white p-1 rounded border border-amber-200">
+                    <span className="font-bold block text-amber-800">XL</span>
+                    <span className="text-slate-500">71-80k</span>
                   </div>
-                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                    <span className="font-bold block text-amber-800 text-xs">Size 2XL</span>
-                    <span className="text-slate-600">81 - 90kg</span>
+                  <div className="bg-white p-1 rounded border border-amber-200">
+                    <span className="font-bold block text-amber-800">2XL</span>
+                    <span className="text-slate-500">81-90k</span>
                   </div>
-                  <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                    <span className="font-bold block text-amber-800 text-xs">Size 3XL</span>
-                    <span className="text-slate-600">&gt; 90kg</span>
+                  <div className="bg-white p-1 rounded border border-amber-200">
+                    <span className="font-bold block text-amber-800">3XL</span>
+                    <span className="text-slate-500">&gt;90kg</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 font-serif italic">
-                  * Chất liệu cá sấu cotton 4 chiều cao cấp, co giãn thoải mái. Nếu bạn phân vân giữa 2 cỡ, hãy chọn tăng 1 size để mặc rộng rãi nhé!
-                </p>
               </div>
             )}
 
-            {/* Lời nhắn */}
-            <div className="space-y-1">
-              <label htmlFor="rsvp-message" className="block text-xs font-bold text-slate-700 font-sans">
-                Lời nhắn gửi tới cả lớp / Lý do (Tùy chọn):
+            <div className="space-y-0.5">
+              <label className="block text-[11px] font-bold text-slate-700 font-sans">
+                Lời nhắn gửi tới cả lớp / Lý do (Tùy chọn)
               </label>
               <textarea
-                id="rsvp-message"
                 rows={2}
-                placeholder="Gửi gắm lời chào, kỷ niệm xưa hoặc lý do nếu bạn vắng mặt..."
+                placeholder="Gửi gắm lời chào, kỷ niệm xưa hoặc lý do nếu vắng mặt..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-2xs font-serif resize-none"
+                className="w-full px-2.5 py-1.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-serif resize-none"
               />
             </div>
           </div>
 
-          {/* ======================================================== */}
-          {/* ⚠️ THÔNG BÁO LỖI / THÀNH CÔNG */}
-          {/* ======================================================== */}
+          {/* Thông báo lỗi */}
           {submitError && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 text-xs text-rose-700 rounded-xl">
+            <div className="p-2.5 bg-rose-50 border border-rose-200 text-xs text-rose-700 rounded-lg">
               {submitError}
             </div>
           )}
 
+          {/* Thông báo thành công & Thao tác sau đăng ký */}
           {submitSuccess && (
-            <div className="p-4 sm:p-5 bg-white border border-emerald-300 rounded-2xl shadow-sm space-y-3.5 text-left animate-in fade-in duration-300">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <p className="font-serif font-bold text-sm sm:text-base text-emerald-900 leading-snug">
+            <div className="p-3.5 bg-white border border-emerald-300 rounded-xl shadow-xs space-y-2.5 text-left animate-in fade-in duration-200">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5 min-w-0">
+                  <p className="font-serif font-bold text-xs sm:text-sm text-emerald-900 leading-snug">
                     {submitSuccess}
-                  </p>
-                  <p className="text-xs text-slate-500 font-sans">
-                    Dữ liệu điểm danh đã được ghi nhận trực tiếp vào Google Sheets tab "Diem_Danh".
                   </p>
                 </div>
               </div>
 
-              {/* Action Banner: Đóng quỹ / Tải biên lai & Nhận thẻ học sinh */}
               {lastSubmittedAttendee && lastSubmittedAttendee.status === 'yes' && (
-                <div className="p-3.5 bg-gradient-to-r from-[#FAF6EE] to-[#F5EFE6] border border-amber-300/80 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-800 flex items-center justify-center shrink-0">
-                      <CreditCard className="w-4 h-4 text-amber-700" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 font-sans">
-                        Đóng Quỹ Sự Kiện (Tạm Ứng 500.000đ)
-                      </p>
-                      <p className="text-[11px] text-slate-600 font-sans">
-                        Bạn có thể chuyển khoản và gửi ảnh biên lai để Ban Liên Lạc đối soát ngay.
-                      </p>
-                    </div>
+                <div className="p-2.5 bg-[#FAF6EE] border border-amber-300/80 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-amber-700 shrink-0" />
+                    <span><strong>Đóng quỹ (500k):</strong> Chuyển khoản và gửi ảnh biên lai để đối soát ngay</span>
                   </div>
 
-                  <div className="flex items-center gap-2 self-stretch sm:self-auto">
-                    {onOpenReceiptModal ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenReceiptModal(lastSubmittedAttendee)}
-                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-xs whitespace-nowrap cursor-pointer flex-1 sm:flex-none text-center"
-                      >
-                        Gửi Ảnh Biên Lai ➔
-                      </button>
-                    ) : (
-                      <a
-                        href="#bank-transfer-card"
-                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-xs whitespace-nowrap flex-1 sm:flex-none text-center"
-                      >
-                        Gửi Ảnh Biên Lai ➔
-                      </a>
-                    )}
-                  </div>
+                  {onOpenReceiptModal ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenReceiptModal(lastSubmittedAttendee)}
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[11px] uppercase tracking-wider rounded-md transition shadow-2xs whitespace-nowrap cursor-pointer self-stretch sm:self-auto text-center"
+                    >
+                      Gửi Bill ➔
+                    </button>
+                  ) : (
+                    <a
+                      href="#bank-transfer-card"
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-[11px] uppercase tracking-wider rounded-md transition shadow-2xs whitespace-nowrap self-stretch sm:self-auto text-center"
+                    >
+                      Gửi Bill ➔
+                    </a>
+                  )}
                 </div>
               )}
 
-              {/* Utility actions footer */}
-              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="pt-1.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={triggerFullscreenFireworks}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-amber-100 hover:bg-amber-200 text-amber-950 text-[11px] font-sans font-bold cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Bắn lại pháo hoa 🎉</span>
+                    <Sparkles className="w-3 h-3 text-amber-700" />
+                    <span>Pháo hoa 🎉</span>
                   </button>
 
                   {lastSubmittedAttendee && onOpenPassModal && (
                     <button
                       type="button"
                       onClick={() => onOpenPassModal(lastSubmittedAttendee)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E293B] hover:bg-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1E293B] hover:bg-amber-700 text-white text-[11px] font-sans font-bold cursor-pointer"
                     >
-                      <Award className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Nhận Thẻ Học Sinh Của Bạn 🎓</span>
+                      <Award className="w-3 h-3 text-amber-300" />
+                      <span>Thẻ Học Sinh 🎓</span>
                     </button>
                   )}
                 </div>
 
-                <QuickShare variant="pill" buttonText="Rủ bạn K8A1 cùng đăng ký" />
+                <QuickShare variant="pill" buttonText="Rủ bạn lớp K8A1" />
               </div>
             </div>
           )}
 
-          {/* ======================================================== */}
           {/* 🚀 NÚT GỬI ĐIỂM DANH */}
-          {/* ======================================================== */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-widest py-3.5 sm:py-4 px-6 rounded-xl sm:rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 disabled:opacity-60 cursor-pointer transform hover:-translate-y-0.5"
+            className="w-full bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white font-sans font-bold text-xs uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{matchedExistingAttendee ? 'Đang cập nhật...' : 'Đang gửi đăng ký...'}</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>{matchedExistingAttendee ? 'Đang cập nhật...' : 'Đang gửi...'}</span>
               </>
             ) : (
               <>
-                <Send className="w-4 h-4" />
-                <span>{matchedExistingAttendee ? 'Cập Nhật Thông Tin Tham Dự' : 'Gửi Xác Nhận Tham Dự Lớp K8A1'}</span>
+                <Send className="w-3.5 h-3.5" />
+                <span>{matchedExistingAttendee ? 'Cập Nhật Điểm Danh' : 'Gửi Xác Nhận Tham Dự Lớp K8A1'}</span>
               </>
             )}
           </button>

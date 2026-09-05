@@ -916,13 +916,13 @@ export default function App() {
       </section>
 
       {/* Main Container */}
-      <main className="w-full max-w-4xl px-3 sm:px-4 -mt-6 sm:-mt-8 md:-mt-10 relative z-20 space-y-12">
+      <main className="w-full max-w-4xl px-3 sm:px-4 -mt-6 sm:-mt-8 md:-mt-10 relative z-20 space-y-8 sm:space-y-10">
         
         {showLegacyAdminPanel ? (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            className="space-y-5"
           >
             <div className="bg-white p-4 rounded-xl border border-amber-200 text-center space-y-1 shadow-sm">
               <h2 className="text-lg font-bold text-[#1E293B]">⚙️ Cấu Hình Kết Nối Google Apps Script</h2>
@@ -945,7 +945,7 @@ export default function App() {
             />
           </motion.div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-8 sm:space-y-9">
 
             {/* MODULE ĐẾM NGƯỢC THỜI GIAN */}
             <div className="pt-0.5">
@@ -1143,7 +1143,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 💬 PHÂN VÙNG 4: BỨC TƯỜNG LƯU BÚT SỐ K8A1 */}
             {/* ======================================================== */}
-            <section id="luu-but" className="space-y-6 scroll-mt-20">
+            <section id="luu-but" className="space-y-4 scroll-mt-20">
               <WishesGuestbook
                 appsScriptUrl={activeAppsScriptUrl}
                 wishesList={wishesList}
@@ -1157,7 +1157,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 🎟️ PHÂN VÙNG 5: ĐIỂM DANH & THÀNH VIÊN VÀ QUỸ LỚP */}
             {/* ======================================================== */}
-            <section id="diem-danh" className="space-y-10 scroll-mt-20">
+            <section id="diem-danh" className="space-y-6 scroll-mt-20">
               
               {/* Form Điểm Danh */}
               <RsvpForm 
