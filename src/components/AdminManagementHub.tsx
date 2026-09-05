@@ -4711,7 +4711,7 @@ export default function AdminManagementHub({
                 {/* ============================================================= */}
                 {(settingsSection === 'all' || settingsSection === 'venue') && (
                   <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
-                    <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200 pb-3 gap-2">
                       <div className="flex items-center gap-2">
                         <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
                           <MapPin className="w-4 h-4" />
@@ -4725,23 +4725,44 @@ export default function AdminManagementHub({
                           </p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
-                        BLL & Admin
-                      </span>
+
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEventConfigForm({
+                              ...eventConfigForm,
+                              venueName: "Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên",
+                              venueSubtitle: "Địa điểm tổ chức Họp Lớp 20 Năm Ngày Trở Về — Lớp K8A1",
+                              venueAddress: "Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên",
+                              shortAddress: "Số 1 Hoàng Văn Thụ, TP. Thái Nguyên",
+                              mapDirectUrl: "https://maps.app.goo.gl/a3utiYosZqGHKDjYA",
+                              mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.234!2d105.836034!3d21.5949059!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e0!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn"
+                            });
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                          <span>⚡ Điền nhanh: Tháp đôi Prime</span>
+                        </button>
+                        <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
+                          BLL & Admin
+                        </span>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                       <div className="space-y-1.5 sm:col-span-2">
                         <label className="font-bold text-slate-700 flex items-center justify-between">
                           <span>Tên Trung Tâm / Nhà Hàng (*):</span>
-                          <span className="text-[11px] font-normal text-slate-400">VD: Crown Palace Thái Nguyên</span>
+                          <span className="text-[11px] font-normal text-slate-400">VD: Crown Palace hoặc Prime Thái Nguyên</span>
                         </label>
                         <input
                           type="text"
                           required
                           value={eventConfigForm.venueName}
                           onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueName: e.target.value })}
-                          placeholder="VD: Trung Tâm Tiệc Cưới & Sự Kiện Crown Palace"
+                          placeholder="VD: Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên"
                           className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                         />
                       </div>
@@ -4768,7 +4789,7 @@ export default function AdminManagementHub({
                           required
                           value={eventConfigForm.venueAddress}
                           onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueAddress: e.target.value })}
-                          placeholder="VD: Số 779 đường Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên, Tỉnh Thái Nguyên"
+                          placeholder="VD: Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên"
                           className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
                         />
                       </div>
@@ -4781,7 +4802,7 @@ export default function AdminManagementHub({
                           type="text"
                           value={eventConfigForm.shortAddress}
                           onChange={(e) => setEventConfigForm({ ...eventConfigForm, shortAddress: e.target.value })}
-                          placeholder="VD: 779 Dương Tự Minh, TP. Thái Nguyên"
+                          placeholder="VD: Số 1 Hoàng Văn Thụ, TP. Thái Nguyên"
                           className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
                         />
                       </div>
@@ -4805,7 +4826,7 @@ export default function AdminManagementHub({
                           type="url"
                           value={eventConfigForm.mapDirectUrl}
                           onChange={(e) => setEventConfigForm({ ...eventConfigForm, mapDirectUrl: e.target.value })}
-                          placeholder="https://maps.google.com/?q=..."
+                          placeholder="https://maps.app.goo.gl/..."
                           className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
                         />
                       </div>
@@ -4813,18 +4834,48 @@ export default function AdminManagementHub({
                       <div className="space-y-1.5 sm:col-span-2">
                         <label className="font-bold text-slate-700 flex items-center justify-between">
                           <span>Link Nhúng Bản Đồ Google Maps (iframe embed):</span>
-                          <span className="text-[11px] text-slate-400 font-normal">URL trong thẻ iframe src</span>
+                          <span className="text-[11px] text-slate-400 font-normal">Tự động trích xuất nếu bạn dán thẻ iframe</span>
                         </label>
                         <input
-                          type="url"
+                          type="text"
                           value={eventConfigForm.mapEmbedUrl}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, mapEmbedUrl: e.target.value })}
-                          placeholder="https://maps.google.com/maps?q=...&output=embed"
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            // Tự động bóc tách link nếu người dùng dán nguyên thẻ <iframe src="...">
+                            const iframeMatch = raw.match(/src=["']([^"']+)["']/i);
+                            const cleaned = iframeMatch && iframeMatch[1] ? iframeMatch[1] : raw.trim();
+                            setEventConfigForm({ ...eventConfigForm, mapEmbedUrl: cleaned });
+                          }}
+                          placeholder="https://www.google.com/maps/embed?pb=..."
                           className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
                         />
-                        <p className="text-[11px] text-slate-400">
-                          💡 <strong>Cách lấy link nhúng:</strong> Mở Google Maps → Tìm địa điểm → Bấm <em>Chia sẻ</em> → Chọn tab <em>Nhúng bản đồ</em> → Sao chép URL nằm trong thuộc tính <code>src="..."</code> dán vào đây.
+                        <p className="text-[11px] text-slate-500">
+                          💡 <strong>Cách lấy link nhúng:</strong> Mở Google Maps trên máy tính → Bấm <em>Chia sẻ</em> → Chọn tab <em>Nhúng bản đồ</em> → Bạn có thể sao chép nguyên cả đoạn mã HTML iframe dán vào đây (hệ thống sẽ tự bóc tách đường dẫn).
                         </p>
+
+                        {/* Cảnh báo thông minh nếu người dùng dán nhầm link chia sẻ / maps.app.goo.gl */}
+                        {eventConfigForm.mapEmbedUrl && (eventConfigForm.mapEmbedUrl.includes('maps.app.goo.gl') || (eventConfigForm.mapEmbedUrl.includes('google.com/maps') && !eventConfigForm.mapEmbedUrl.includes('/embed') && !eventConfigForm.mapEmbedUrl.includes('output=embed'))) && (
+                          <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 space-y-1.5 animate-in fade-in">
+                            <p className="font-bold flex items-center gap-1.5 text-amber-900">
+                              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span>Link bạn vừa dán là Link xem/chia sẻ bản đồ (Google chặn không cho nhúng link này vào website)!</span>
+                            </p>
+                            <p className="text-[11px] text-slate-600 leading-relaxed">
+                              Khung bản đồ cần URL nhúng đặc thù có dạng <code>https://www.google.com/maps/embed?pb=...</code>. Bạn hãy bấm nút bên dưới để áp dụng ngay link nhúng chuẩn của Tháp đôi Prime Thái Nguyên:
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setEventConfigForm({
+                                ...eventConfigForm,
+                                mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.234!2d105.836034!3d21.5949059!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e0!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn"
+                              })}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Chuyển Sang Link Nhúng Chuẩn Của Tháp Đôi Prime</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Live Embed Preview */}

@@ -9,17 +9,17 @@ import confetti from 'canvas-confetti';
 import { UserRole, VenueMediaItem, EventConfig } from '../types';
 
 // ============================================================================
-// CONSTANTS & VENUE METADATA (CROWN PALACE THÁI NGUYÊN)
+// CONSTANTS & VENUE METADATA (TRUNG TÂM SỰ KIỆN & NHÀ HÀNG PRIME THÁI NGUYÊN)
 // ============================================================================
 export const VENUE_DETAILS = {
-  name: 'Trung Tâm Tiệc Cưới & Sự Kiện Crown Palace',
+  name: 'Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên',
   subtitle: 'Địa điểm tổ chức Họp Lớp 20 Năm Ngày Trở Về — Lớp K8A1',
-  address: 'Số 779 đường Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên, Tỉnh Thái Nguyên',
-  shortAddress: '779 Dương Tự Minh, TP. Thái Nguyên',
+  address: 'Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên',
+  shortAddress: 'Số 1 Hoàng Văn Thụ, TP. Thái Nguyên',
   eventTime: 'Từ 08:30 Sáng — Chủ Nhật, ngày 27/09/2026',
-  googleMapsUrl: 'https://maps.google.com/?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&ll=21.6041,105.8286&z=16',
-  directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.6041,105.8286',
-  embedMapUrl: 'https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=&z=15&ie=UTF8&iwloc=&output=embed'
+  googleMapsUrl: 'https://maps.app.goo.gl/a3utiYosZqGHKDjYA',
+  directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.5949009,105.8386089',
+  embedMapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.234!2d105.836034!3d21.5949059!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e0!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn'
 };
 
 // Media mặc định minh họa không gian tổ chức họp lớp tại Crown Palace (giữ lại để tương thích ngược)

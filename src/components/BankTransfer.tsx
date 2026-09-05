@@ -215,7 +215,7 @@ export default function BankTransfer({
             Thông Tin Quỹ Lớp (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'}đ / Bạn)
           </h3>
           <p className="text-xs text-slate-500 font-serif italic">
-            Kinh phí bao gồm: Tiệc trưa Crown Palace, Áo polo đồng phục 20 năm, Thẻ học sinh & quà lưu niệm
+            Kinh phí bao gồm: Tiệc trưa giao lưu hội ngộ, Áo polo đồng phục 20 năm, Thẻ học sinh & quà lưu niệm
           </p>
 
           {activeMember && (
