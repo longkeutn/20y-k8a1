@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   CheckCircle2,
   Heart,
   Sparkles,
   X,
-  Users,
-  MessageSquare,
   Bell,
   BellOff,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from 'lucide-react';
 import { RsvpData, WishData, ActivityToast } from '../types';
 
@@ -20,44 +19,96 @@ interface ActivityToastManagerProps {
   onClearLatestAction?: () => void;
 }
 
-// Fallback alumni activities for natural rotation
-const SEED_ACTIVITIES: Omit<ActivityToast, 'id'>[] = [
-  {
-    type: 'rsvp',
-    author: 'Nguyễn Tuấn Anh',
-    className: 'Lớp 12A1',
-    text: 'vừa xác nhận tham gia ngày hội ngộ 20 năm!',
-    timeAgo: 'Vừa xong'
-  },
-  {
-    type: 'wish',
-    author: 'Lê Thu Trang',
-    className: 'Lớp 12D',
-    text: 'đã gửi lời chúc: "Rất mong chờ được gặp lại thầy cô và cả lớp!"',
-    timeAgo: '2 phút trước'
-  },
-  {
-    type: 'rsvp',
-    author: 'Trần Hoàng Long',
-    className: 'Lớp 12A3',
-    text: 'vừa đăng ký tham dự cùng người thân.',
-    timeAgo: '4 phút trước'
-  },
-  {
-    type: 'wish',
-    author: 'Phạm Minh Đức',
-    className: 'Lớp 12A2',
-    text: 'đã gửi lời chúc: "20 năm trôi qua như một giấc mơ, chúc chúng mình hội ngộ rực rỡ!"',
-    timeAgo: '7 phút trước'
-  },
-  {
-    type: 'rsvp',
-    author: 'Vũ Hải Yến',
-    className: 'Lớp 12B',
-    text: 'vừa xác nhận sẽ có mặt đúng 17:30 ngày 18/10/2026.',
-    timeAgo: '12 phút trước'
+/**
+ * Định dạng thời gian thực tế, trung thực (tránh fake "Vừa xong" hay "X phút trước" gây hiểu nhầm)
+ */
+export function formatActivityTime(rawDate?: string): { timeAgo: string; isRecent: boolean } {
+  if (!rawDate) return { timeAgo: 'Gần đây', isRecent: false };
+
+  const str = String(rawDate).trim();
+  if (!str) return { timeAgo: 'Gần đây', isRecent: false };
+
+  // Nếu dữ liệu gốc đã là định dạng chữ tương đối hợp lệ
+  if (str === 'Vừa xong') return { timeAgo: 'Vừa xong', isRecent: true };
+  if (str === 'Hôm nay') return { timeAgo: 'Hôm nay', isRecent: false };
+  if (str === 'Hôm qua') return { timeAgo: 'Hôm qua', isRecent: false };
+  if (str.endsWith('trước')) return { timeAgo: str, isRecent: str.includes('phút') };
+
+  let date: Date | null = null;
+
+  // Dạng DD/MM/YYYY HH:mm hoặc DD/MM/YYYY
+  const dmyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (dmyMatch) {
+    const [, d, m, y, h, min] = dmyMatch;
+    date = new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0));
+  } else {
+    // Dạng ISO YYYY-MM-DD
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      date = parsed;
+    }
   }
-];
+
+  if (!date || isNaN(date.getTime())) {
+    return { timeAgo: str, isRecent: false };
+  }
+
+  const now = Date.now();
+  const diffSec = Math.floor((now - date.getTime()) / 1000);
+
+  // Dưới 2 phút (thao tác trực tiếp vừa diễn ra)
+  if (diffSec < 120) {
+    return { timeAgo: 'Vừa xong', isRecent: true };
+  }
+  // Dưới 60 phút
+  if (diffSec < 3600) {
+    const mins = Math.max(1, Math.floor(diffSec / 60));
+    return { timeAgo: `${mins} phút trước`, isRecent: mins <= 5 };
+  }
+  // Dưới 24 giờ
+  if (diffSec < 86400) {
+    const hours = Math.floor(diffSec / 3600);
+    return { timeAgo: `${hours} giờ trước`, isRecent: false };
+  }
+  // Dưới 48 giờ
+  if (diffSec < 172800) {
+    return { timeAgo: 'Hôm qua', isRecent: false };
+  }
+  // Dưới 7 ngày
+  if (diffSec < 86400 * 7) {
+    const days = Math.floor(diffSec / 86400);
+    return { timeAgo: `${days} ngày trước`, isRecent: false };
+  }
+
+  // Quá 7 ngày: hiển thị ngày thực tế DD/MM/YYYY
+  const pad = (n: number) => (n < 10 ? '0' + n : String(n));
+  return {
+    timeAgo: `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`,
+    isRecent: false
+  };
+}
+
+/**
+ * Trích xuất điểm thời gian để sắp xếp các hoạt động thực tế mới nhất
+ */
+function parseTimeScore(rawDate?: string): number {
+  if (!rawDate) return 0;
+  const str = String(rawDate).trim();
+  if (str === 'Vừa xong' || str === 'Hôm nay') return Date.now();
+  if (str === 'Hôm qua') return Date.now() - 86400000;
+  const matchMins = str.match(/(\d+)\s*phút\s*trước/);
+  if (matchMins) return Date.now() - Number(matchMins[1]) * 60000;
+  const matchDays = str.match(/(\d+)\s*ngày\s*trước/);
+  if (matchDays) return Date.now() - Number(matchDays[1]) * 86400000;
+
+  const dmy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (dmy) {
+    const [, d, m, y, h, min] = dmy;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0)).getTime();
+  }
+  const parsed = new Date(str).getTime();
+  return isNaN(parsed) ? 0 : parsed;
+}
 
 export default function ActivityToastManager({
   rsvpList,
@@ -66,111 +117,167 @@ export default function ActivityToastManager({
   onClearLatestAction
 }: ActivityToastManagerProps) {
   const [currentToast, setCurrentToast] = useState<ActivityToast | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('k8a1_activity_toast_muted') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const currentIndexRef = useRef(0);
+  const isPausedRef = useRef(false);
 
-  // Generate dynamic pool of activities from real props and seeds
-  const getActivityPool = useCallback((): ActivityToast[] => {
-    const pool: ActivityToast[] = [];
+  // Tạo danh sách hoạt động HOÀN TOÀN TỪ DỮ LIỆU THẬT CỦA LỚP K8A1 (loại bỏ hoàn toàn seed hardcode)
+  const activityPool = useMemo((): ActivityToast[] => {
+    const poolWithTime: { toast: ActivityToast; timeScore: number }[] = [];
 
-    // Map real RSVPs
-    rsvpList.slice(0, 8).forEach((item, index) => {
-      if (item.status === 'yes') {
-        pool.push({
-          id: `rsvp-${item.id || index}-${item.fullName}`,
-          type: 'rsvp',
-          author: item.fullName,
-          className: 'Cựu học sinh 2003-2006',
-          text: item.message ? `xác nhận tham dự: "${item.message.slice(0, 45)}..."` : 'vừa xác nhận tham gia ngày họp lớp K8A1!',
-          timeAgo: 'Vừa xong'
+    // 1. Phản hồi điểm danh thực tế từ rsvpList
+    rsvpList.forEach((item, index) => {
+      if (item.status === 'yes' && item.fullName && item.fullName.trim()) {
+        const rawTime = item.submittedAt || item.fundPaidAt;
+        const timeInfo = formatActivityTime(rawTime);
+        const actionText = item.message && item.message.trim()
+          ? `xác nhận tham dự: "${item.message.trim().slice(0, 45)}${item.message.trim().length > 45 ? '...' : ''}"`
+          : 'đã xác nhận tham gia ngày hội ngộ 20 năm K8A1!';
+
+        poolWithTime.push({
+          toast: {
+            id: `real-rsvp-${item.id || index}-${item.fullName}`,
+            type: 'rsvp',
+            author: item.fullName.trim(),
+            className: item.className || 'K8A1',
+            text: actionText,
+            timeAgo: timeInfo.timeAgo,
+            isNew: timeInfo.isRecent
+          },
+          timeScore: parseTimeScore(rawTime) || (rsvpList.length - index)
         });
       }
     });
 
-    // Map real Wishes
-    wishesList.slice(0, 8).forEach((wish, index) => {
-      pool.push({
-        id: `wish-${wish.id || index}-${wish.fullName}`,
-        type: 'wish',
-        author: wish.fullName,
-        className: wish.className || 'Niên khóa 2003-2006',
-        text: `gửi lời chúc: "${wish.message.slice(0, 50)}${wish.message.length > 50 ? '...' : ''}"`,
-        timeAgo: 'Vừa xong'
-      });
+    // 2. Lời chúc thực tế từ wishesList
+    wishesList.forEach((wish, index) => {
+      if (wish.fullName && wish.fullName.trim() && wish.message && wish.message.trim()) {
+        const rawTime = wish.submittedAt;
+        const timeInfo = formatActivityTime(rawTime);
+
+        poolWithTime.push({
+          toast: {
+            id: `real-wish-${wish.id || index}-${wish.fullName}`,
+            type: 'wish',
+            author: wish.fullName.trim(),
+            className: wish.className || 'Lớp K8A1',
+            text: `gửi lời chúc: "${wish.message.trim().slice(0, 50)}${wish.message.trim().length > 50 ? '...' : ''}"`,
+            timeAgo: timeInfo.timeAgo,
+            isNew: timeInfo.isRecent
+          },
+          timeScore: parseTimeScore(rawTime) || (wishesList.length - index)
+        });
+      }
     });
 
-    // Add seed activities
-    SEED_ACTIVITIES.forEach((seed, index) => {
-      pool.push({
-        ...seed,
-        id: `seed-${index}`
-      });
-    });
+    // Sắp xếp các hoạt động mới nhất lên trước
+    poolWithTime.sort((a, b) => b.timeScore - a.timeScore);
 
-    return pool;
+    // Lấy tối đa 8 hoạt động mới nhất
+    return poolWithTime.slice(0, 8).map(p => p.toast);
   }, [rsvpList, wishesList]);
 
-  // Handle high-priority action trigger from user (RSVP or Wish just submitted)
+  // Xử lý thông báo tức thời khi người dùng vừa thao tác (gửi RSVP hoặc gửi lời chúc)
   useEffect(() => {
     if (latestAction && !isMuted) {
       if (timerRef.current) clearTimeout(timerRef.current);
       setCurrentToast(latestAction);
 
-      // Auto dismiss after 7 seconds
+      // Tự động đóng sau 6.5 giây
       timerRef.current = setTimeout(() => {
         setCurrentToast(null);
         if (onClearLatestAction) onClearLatestAction();
-      }, 7000);
+      }, 6500);
     }
   }, [latestAction, isMuted, onClearLatestAction]);
 
-  // Periodically rotate activities to simulate lively activity
+  // Xoay tua hiển thị thông tin thực tế nhẹ nhàng, trung thực
   useEffect(() => {
-    if (isMuted) return;
+    if (isMuted || activityPool.length === 0) return;
 
-    const interval = setInterval(() => {
-      // If user hasn't triggered an immediate toast recently
-      if (!currentToast) {
-        const pool = getActivityPool();
-        if (pool.length === 0) return;
-
-        const nextToast = pool[currentIndexRef.current % pool.length];
+    // Chờ 8 giây sau khi tải trang mới hiển thị thông báo đầu tiên
+    const initialTimer = setTimeout(() => {
+      if (!currentToast && !isPausedRef.current && activityPool.length > 0) {
+        const first = activityPool[currentIndexRef.current % activityPool.length];
         currentIndexRef.current += 1;
+        setCurrentToast(first);
 
-        setCurrentToast(nextToast);
-
-        // Hide after 5.5 seconds
         timerRef.current = setTimeout(() => {
           setCurrentToast(null);
-        }, 5500);
+        }, 5000);
       }
-    }, 14000);
+    }, 8000);
+
+    // Chu kỳ xoay tua 26 giây một lần (nhẹ nhàng, không dồn dập)
+    const interval = setInterval(() => {
+      if (isPausedRef.current) return;
+      if (!currentToast && activityPool.length > 0) {
+        const nextToast = activityPool[currentIndexRef.current % activityPool.length];
+        currentIndexRef.current += 1;
+        setCurrentToast(nextToast);
+
+        timerRef.current = setTimeout(() => {
+          setCurrentToast(null);
+        }, 5000);
+      }
+    }, 26000);
 
     return () => {
+      clearTimeout(initialTimer);
       clearInterval(interval);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isMuted, currentToast, getActivityPool]);
+  }, [isMuted, currentToast, activityPool]);
+
+  // Bật / tắt thông báo và lưu trạng thái vào localStorage
+  const handleToggleMute = () => {
+    setIsMuted(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('k8a1_activity_toast_muted', String(next));
+      } catch {}
+      if (next) {
+        setCurrentToast(null);
+        if (timerRef.current) clearTimeout(timerRef.current);
+      }
+      return next;
+    });
+  };
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentToast(null);
     if (timerRef.current) clearTimeout(timerRef.current);
+    // Khi người dùng bấm đóng X, tạm dừng hiển thị trong 60 giây để tránh làm phiền
+    isPausedRef.current = true;
+    setTimeout(() => {
+      isPausedRef.current = false;
+    }, 60000);
   };
 
   const handleToastClick = () => {
     if (!currentToast) return;
+    setCurrentToast(null);
     
-    // Smooth scroll to relevant section
-    if (currentToast.type === 'rsvp') {
-      const el = document.getElementById('attendees') || document.getElementById('rsvp');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      const el = document.getElementById('guestbook');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    // Cuộn mượt đến phân vùng Điểm danh
+    const el = document.getElementById('diem-danh') || document.getElementById('attendees');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  // Không hiển thị gì nếu không có hoạt động nào và không có thông báo hiện hành
+  if (activityPool.length === 0 && !currentToast) {
+    return null;
+  }
 
   return (
     <div
@@ -181,14 +288,14 @@ export default function ActivityToastManager({
         {currentToast && !isMuted && (
           <motion.div
             key={currentToast.id}
-            initial={{ opacity: 0, y: 30, scale: 0.96 }}
+            initial={{ opacity: 0, y: 25, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
             onClick={handleToastClick}
             className="pointer-events-auto bg-[#FAF8F5]/98 backdrop-blur-md border border-brand-gold/40 shadow-xl rounded-sm p-3.5 pr-3 cursor-pointer hover:border-brand-gold hover:shadow-2xl transition-all group relative overflow-hidden"
           >
-            {/* Elegant top gold accent bar */}
+            {/* Thanh viền chỉ vàng sang trọng phía trên */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-brand-gold/20 via-brand-gold to-brand-gold/20" />
 
             <div className="flex items-start gap-3">
@@ -207,7 +314,7 @@ export default function ActivityToastManager({
                 )}
               </div>
 
-              {/* Toast Content */}
+              {/* Nội dung thông báo */}
               <div className="flex-1 min-w-0 pr-4">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-serif font-bold text-xs text-brand-text truncate">
@@ -231,17 +338,26 @@ export default function ActivityToastManager({
 
                 <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-brand-border/40 text-[9px] text-brand-text-muted font-sans">
                   <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>{currentToast.timeAgo}</span>
+                    {currentToast.isNew ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-emerald-700 font-semibold">{currentToast.timeAgo}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-2.5 h-2.5 text-brand-gold/80" />
+                        <span>{currentToast.timeAgo}</span>
+                      </>
+                    )}
                   </span>
                   <span className="text-brand-gold font-medium group-hover:underline flex items-center gap-0.5">
-                    {currentToast.type === 'rsvp' ? 'Xem danh sách' : 'Xem lưu bút'}
+                    {currentToast.type === 'rsvp' ? 'Xem danh sách' : 'Xem chi tiết'}
                     <ChevronRight className="w-2.5 h-2.5" />
                   </span>
                 </div>
               </div>
 
-              {/* Close button */}
+              {/* Nút đóng thông báo */}
               <button
                 type="button"
                 onClick={handleDismiss}
@@ -255,11 +371,11 @@ export default function ActivityToastManager({
         )}
       </AnimatePresence>
 
-      {/* Small floating mute/unmute toggle indicator */}
+      {/* Nút nhỏ góc dưới để bật / tắt thông báo */}
       <div className="pointer-events-auto flex items-center gap-1.5 mt-1.5 pl-1 opacity-60 hover:opacity-100 transition-opacity">
         <button
           type="button"
-          onClick={() => setIsMuted(!isMuted)}
+          onClick={handleToggleMute}
           className="inline-flex items-center gap-1 text-[9px] font-sans font-medium text-brand-text-muted bg-white/90 backdrop-blur-xs border border-brand-border px-2 py-0.5 rounded-xs shadow-2xs hover:text-brand-text cursor-pointer"
           title={isMuted ? 'Bật lại thông báo hoạt động' : 'Tạm tắt thông báo hoạt động'}
         >
