@@ -37,14 +37,15 @@ import {
   Phone,
   MessageSquare,
   X,
-  Link,
-  Save,
   CheckCircle,
   Upload,
-  RotateCcw
+  RotateCcw,
+  Folder,
+  ExternalLink
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo } from '../types';
+import { K8A1_DRIVE_FOLDER_ID, K8A1_DRIVE_FOLDER_URL } from '../data';
 
 interface AdminManagementHubProps {
   isOpen: boolean;
@@ -642,10 +643,27 @@ export default function AdminManagementHub({
     }
   };
 
+  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setPhotoFormData(prev => ({
+          ...prev,
+          url: result,
+          caption: prev.caption || file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ')
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSavePhoto = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!photoFormData.url.trim() || !photoFormData.caption.trim()) {
-      alert('Vui lòng nhập Link ảnh và Chú thích!');
+    if (!photoFormData.url?.trim() || !photoFormData.caption?.trim()) {
+      alert('Vui lòng chọn ảnh hoặc nhập Link ảnh và Chú thích!');
       return;
     }
 
@@ -653,7 +671,7 @@ export default function AdminManagementHub({
       id: 'img-' + Date.now(),
       url: photoFormData.url.trim(),
       caption: photoFormData.caption.trim(),
-      date: photoFormData.date.trim() || 'Kỷ niệm xưa',
+      date: photoFormData.date?.trim() || 'Kỷ niệm xưa',
       isUserUploaded: true
     };
 
@@ -1598,13 +1616,26 @@ export default function AdminManagementHub({
                 )}
 
                 {mediaSubTab === 'photos' && (
-                  <button
-                    onClick={() => setIsAddPhotoModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Thêm Ảnh Mới</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={K8A1_DRIVE_FOLDER_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-sans font-semibold transition cursor-pointer"
+                      title={`Mở thư mục Google Drive (ID: ${K8A1_DRIVE_FOLDER_ID})`}
+                    >
+                      <Folder className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Folder Drive Lớp</span>
+                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                    </a>
+                    <button
+                      onClick={() => setIsAddPhotoModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm Ảnh Mới</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -2266,14 +2297,34 @@ export default function AdminManagementHub({
 
               <form onSubmit={handleSavePhoto} className="space-y-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Đường dẫn ảnh (URL Image) (*):</label>
+                  <label className="font-bold text-slate-700">Tải ảnh từ thiết bị hoặc dán URL:</label>
+                  <div className="flex items-center gap-2">
+                    <label className="px-3 py-2 bg-slate-100 hover:bg-amber-100 text-slate-700 border border-slate-300 rounded-lg cursor-pointer flex items-center gap-1.5 font-semibold text-[11px] transition">
+                      <Upload className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Chọn file ảnh</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-[10px] text-slate-400">hoặc dán link bên dưới</span>
+                  </div>
+
+                  {photoFormData.url && (
+                    <div className="mt-2 relative rounded-lg overflow-hidden border border-amber-300 bg-slate-900 h-24 flex items-center justify-center">
+                      <img src={photoFormData.url} alt="Xem trước" className="max-h-full max-w-full object-contain" />
+                    </div>
+                  )}
+
                   <input
-                    type="url"
+                    type="text"
                     required
                     value={photoFormData.url}
                     onChange={(e) => setPhotoFormData({ ...photoFormData, url: e.target.value })}
                     placeholder="https://... ảnh Unsplash hoặc Google Drive direct link"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500 mt-1"
                   />
                 </div>
 

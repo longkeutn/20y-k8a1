@@ -178,10 +178,13 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * 6. Bấm Deploy -> Cấp quyền (Review Permissions) -> Sao chép URL kết thúc bằng /exec
  */
 
+export const K8A1_DRIVE_FOLDER_ID = "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+export const K8A1_DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+
 const CONFIG = {
-  // Thay bằng ID thư mục Google Drive của lớp bạn (nếu muốn lưu ảnh tải lên)
-  DRIVE_FOLDER_ID: "",
-  // Tên trang tính lưu danh sách điểm danh RSVP
+  // ID thư mục Google Drive của lớp K8A1 lưu trữ và đồng bộ ảnh kỷ niệm
+  DRIVE_FOLDER_ID: "1Skmip1HQhmXan-58kwbY_msamP-bWokq",
+  // Tên trang tính lưu danh sách điểm danh
   RSVP_SHEET_NAME: "Trang_tinh_1",
   // Tên trang tính lưu lời chúc & lưu bút
   WISHES_SHEET_NAME: "Loi_Chuc",
@@ -494,60 +497,84 @@ function deleteWish(data) {
 }
 
 /**
- * Lấy ảnh từ Google Drive Folder (nếu có cấu hình)
+ * Lấy ảnh từ Google Drive Folder (ID: 1Skmip1HQhmXan-58kwbY_msamP-bWokq)
  */
 function getDrivePhotos() {
-  if (!CONFIG.DRIVE_FOLDER_ID) {
+  const folderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+  if (!folderId) {
     return { status: 'success', data: [] };
   }
 
   try {
-    const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+    const folder = DriveApp.getFolderById(folderId);
     const files = folder.getFiles();
     const photos = [];
 
     while (files.hasNext()) {
       const file = files.next();
       const mimeType = file.getMimeType();
-      if (mimeType.indexOf('image/') === 0) {
+      if (mimeType.indexOf('image/') === 0 || mimeType === 'application/octet-stream') {
+        const fileId = file.getId();
         photos.push({
-          id: file.getId(),
-          url: 'https://drive.google.com/thumbnail?authuser=0&sz=w800&id=' + file.getId(),
-          caption: file.getName(),
+          id: fileId,
+          // URL xem ảnh trực tiếp chất lượng cao từ CDN Google
+          url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
+          thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
+          driveUrl: file.getUrl(),
+          caption: file.getName().replace(/\.[^/.]+$/, ''),
           date: formatDate(file.getDateCreated())
         });
       }
     }
     return { status: 'success', data: photos };
   } catch (e) {
-    return { status: 'success', data: [] };
+    return { status: 'error', message: e.toString(), data: [] };
   }
 }
 
 /**
- * Tải ảnh lên thư mục Drive
+ * Tải ảnh lên thư mục Drive (ID: 1Skmip1HQhmXan-58kwbY_msamP-bWokq)
  */
 function uploadPhotoToDrive(data) {
-  if (!CONFIG.DRIVE_FOLDER_ID) {
+  const folderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+  if (!folderId) {
     return { status: 'error', message: 'Chưa cấu hình DRIVE_FOLDER_ID trong Google Apps Script!' };
   }
 
   try {
-    const folder = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
-    const base64Data = data.fileData.split(',')[1];
-    const decoded = Utilities.base64Decode(base64Data);
-    const blob = Utilities.newBlob(decoded, 'image/jpeg', 'K8A1_' + Date.now() + '.jpg');
+    const folder = DriveApp.getFolderById(folderId);
+    let rawBase64 = data.fileData || '';
+    if (rawBase64.indexOf(',') > -1) {
+      rawBase64 = rawBase64.split(',')[1];
+    }
+    const decoded = Utilities.base64Decode(rawBase64);
+    const cleanCaption = (data.caption || 'K8A1_KyNiem').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_');
+    const fileName = cleanCaption + '_' + Date.now() + '.jpg';
+    const blob = Utilities.newBlob(decoded, 'image/jpeg', fileName);
     const file = folder.createFile(blob);
+    
+    // Cấp quyền xem cho bất kỳ ai có link
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileId = file.getId();
+    const photoItem = {
+      id: fileId,
+      url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
+      thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
+      driveUrl: file.getUrl(),
+      caption: data.caption || file.getName().replace(/\.[^/.]+$/, ''),
+      date: formatDate(new Date())
+    };
 
     return {
       status: 'success',
-      message: 'Tải ảnh thành công!',
-      fileId: file.getId(),
+      message: 'Tải ảnh lên Google Drive thành công!',
+      data: photoItem,
+      fileId: fileId,
       viewUrl: file.getUrl()
     };
   } catch (e) {
-    return { status: 'error', message: e.toString() };
+    return { status: 'error', message: 'Lỗi upload Drive: ' + e.toString() };
   }
 }
 

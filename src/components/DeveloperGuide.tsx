@@ -730,7 +730,7 @@ export default function DeveloperGuide({
           </div>
 
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-brand-text font-serif italic">
-            <strong>Thông báo:</strong> Mã ID thư mục Google Drive của bạn (<code>1sQg-XNUTIdJITSIdoiIGai-7cari7xBz</code>) đã được tích hợp sẵn vào mã nguồn bên dưới! Bạn chỉ cần copy và dán trực tiếp vào Google Apps Script.
+            <strong>Thông báo:</strong> Mã ID thư mục Google Drive của bạn (<code>1Skmip1HQhmXan-58kwbY_msamP-bWokq</code>) đã được tích hợp sẵn vào mã nguồn bên dưới! Bạn chỉ cần copy và dán trực tiếp vào Google Apps Script.
           </div>
 
           <div className="overflow-hidden rounded-sm border border-brand-border bg-slate-900 shadow-lg max-h-[450px] overflow-y-auto">

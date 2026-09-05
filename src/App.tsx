@@ -220,7 +220,16 @@ export default function App() {
       })
       .catch(err => console.warn('Lỗi khi tải Lời chúc:', err));
 
-    Promise.allSettled([rsvpPromise, wishesPromise]).finally(() => {
+    const photosPromise = fetch(`${appsScriptUrl}?action=get_photos`)
+      .then(res => res.json())
+      .then(result => {
+        if (result && result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
+          setImages([...result.data, ...DEFAULT_MEMORIES.filter(d => !result.data.some((r: any) => r.id === d.id))]);
+        }
+      })
+      .catch(err => console.warn('Lỗi khi tải Ảnh Drive:', err));
+
+    Promise.allSettled([rsvpPromise, wishesPromise, photosPromise]).finally(() => {
       setTimeout(() => setIsRefreshing(false), 400);
     });
   };
@@ -250,8 +259,8 @@ export default function App() {
     fetch(`${appsScriptUrl}?action=get_photos`)
       .then(res => res.json())
       .then(result => {
-        if (result && result.status === 'success' && Array.isArray(result.data)) {
-          setImages([...DEFAULT_MEMORIES, ...result.data]);
+        if (result && result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
+          setImages([...result.data, ...DEFAULT_MEMORIES.filter(d => !result.data.some((r: any) => r.id === d.id))]);
         }
       })
       .catch(err => console.warn('Lỗi kết nối Photo Drive:', err));
