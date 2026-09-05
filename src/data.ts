@@ -1676,6 +1676,7 @@ function getMediaSettings() {
     const rows = sheet.getDataRange().getValues();
     let videos = [];
     let venueMedia = [];
+    let photos = [];
 
     for (let i = 1; i < rows.length; i++) {
       const type = String(rows[i][0] || '').trim();
@@ -1684,12 +1685,13 @@ function getMediaSettings() {
       try {
         if (type === 'videos') videos = JSON.parse(rawJson);
         if (type === 'venue_media') venueMedia = JSON.parse(rawJson);
+        if (type === 'photos') photos = JSON.parse(rawJson);
       } catch (e) {}
     }
 
-    return { status: 'success', data: { videos: videos, venueMedia: venueMedia } };
+    return { status: 'success', data: { videos: videos, venueMedia: venueMedia, photos: photos } };
   } catch (err) {
-    return { status: 'error', message: err.toString(), data: { videos: [], venueMedia: [] } };
+    return { status: 'error', message: err.toString(), data: { videos: [], venueMedia: [], photos: [] } };
   }
 }
 
@@ -1707,15 +1709,21 @@ function saveMediaSettings(postData) {
     const rows = sheet.getDataRange().getValues();
     let videoRow = null;
     let venueMediaRow = null;
+    let photoRow = null;
 
     for (let i = 1; i < rows.length; i++) {
       const type = String(rows[i][0] || '').trim();
       if (type === 'videos') videoRow = i + 1;
       if (type === 'venue_media') venueMediaRow = i + 1;
+      if (type === 'photos') photoRow = i + 1;
     }
 
-    if (postData.videos !== undefined) {
-      const jsonStr = JSON.stringify(postData.videos);
+    const videos = postData.videos !== undefined ? postData.videos : (postData.media && postData.media.videos !== undefined ? postData.media.videos : undefined);
+    const venueMedia = postData.venueMedia !== undefined ? postData.venueMedia : (postData.media && postData.media.venueMedia !== undefined ? postData.media.venueMedia : undefined);
+    const photos = postData.photos !== undefined ? postData.photos : (postData.media && postData.media.photos !== undefined ? postData.media.photos : undefined);
+
+    if (videos !== undefined) {
+      const jsonStr = JSON.stringify(videos);
       if (videoRow) {
         sheet.getRange(videoRow, 2).setValue(jsonStr);
         sheet.getRange(videoRow, 3).setValue(nowStr);
@@ -1724,13 +1732,23 @@ function saveMediaSettings(postData) {
       }
     }
 
-    if (postData.venueMedia !== undefined) {
-      const jsonStr = JSON.stringify(postData.venueMedia);
+    if (venueMedia !== undefined) {
+      const jsonStr = JSON.stringify(venueMedia);
       if (venueMediaRow) {
         sheet.getRange(venueMediaRow, 2).setValue(jsonStr);
         sheet.getRange(venueMediaRow, 3).setValue(nowStr);
       } else {
         sheet.appendRow(['venue_media', jsonStr, nowStr]);
+      }
+    }
+
+    if (photos !== undefined) {
+      const jsonStr = JSON.stringify(photos);
+      if (photoRow) {
+        sheet.getRange(photoRow, 2).setValue(jsonStr);
+        sheet.getRange(photoRow, 3).setValue(nowStr);
+      } else {
+        sheet.appendRow(['photos', jsonStr, nowStr]);
       }
     }
 
@@ -2030,7 +2048,7 @@ function getAllData() {
     const rsvp = (getRSVPList() || {}).data || [];
     const wishes = (getWishesList() || {}).data || [];
     const config = (getEventConfig() || {}).data || {};
-    const media = (getMediaSettings() || {}).data || { videos: [], venueMedia: [] };
+    const media = (getMediaSettings() || {}).data || { videos: [], venueMedia: [], photos: [] };
     const roster = (getClassRoster() || {}).data || [];
     const viewCount = (getViewCount() || {}).count || 1258;
 

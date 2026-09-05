@@ -429,13 +429,20 @@ export default function App() {
     });
   };
 
-  // Synchronize new image uploads
+  // Synchronize new image uploads with direct Google Sheet sync
   const handleAddImage = (newImg: MemoryImage) => {
     const local = localStorage.getItem('uploaded_images');
     const uploaded = local ? JSON.parse(local) : [];
     const updatedUploaded = [newImg, ...uploaded];
-    localStorage.setItem('uploaded_images', JSON.stringify(updatedUploaded));
+    try {
+      localStorage.setItem('uploaded_images', JSON.stringify(updatedUploaded));
+    } catch (e) {}
     setImages([newImg, ...images]);
+    syncToBackend('save_media', { 
+      photos: updatedUploaded, 
+      videos, 
+      venueMedia: venueMediaList 
+    });
   };
 
   // Update venue media (Crown Palace photos/videos) with direct Google Sheet sync
@@ -444,7 +451,8 @@ export default function App() {
     try {
       localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
     } catch (e) {}
-    syncToBackend('save_media', { venueMedia: updated, videos });
+    const userPhotos = images.filter(i => i.isUserUploaded);
+    syncToBackend('save_media', { venueMedia: updated, videos, photos: userPhotos });
   };
 
   // Update custom video list with direct Google Sheet sync
@@ -454,7 +462,8 @@ export default function App() {
       localStorage.setItem('custom_videos', JSON.stringify(updated));
       localStorage.setItem('k8a1_video_list', JSON.stringify(updated));
     } catch (e) {}
-    syncToBackend('save_media', { videos: updated, venueMedia: venueMediaList });
+    const userPhotos = images.filter(i => i.isUserUploaded);
+    syncToBackend('save_media', { videos: updated, venueMedia: venueMediaList, photos: userPhotos });
   };
 
   // Update hero banner url and vertical crop position with direct Google Sheet sync
@@ -550,7 +559,7 @@ export default function App() {
           }
         }
 
-        // 4. Đồng bộ Media (Video & Venue Media) từ Google Sheet
+        // 4. Đồng bộ Media (Video, Venue Media & Photos) từ Google Sheet
         if (media) {
           if (Array.isArray(media.videos) && media.videos.length > 0) {
             setVideos(media.videos);
@@ -560,6 +569,13 @@ export default function App() {
           if (Array.isArray(media.venueMedia) && media.venueMedia.length > 0) {
             setVenueMediaList(media.venueMedia);
             localStorage.setItem('k8a1_venue_media_list', JSON.stringify(media.venueMedia));
+          }
+          if (Array.isArray(media.photos) && media.photos.length > 0) {
+            const userUploaded = media.photos.map((p: any) => ({ ...p, isUserUploaded: true }));
+            setImages([...DEFAULT_MEMORIES, ...userUploaded]);
+            try {
+              localStorage.setItem('uploaded_images', JSON.stringify(userUploaded));
+            } catch (e) {}
           }
         }
 
@@ -1131,8 +1147,12 @@ export default function App() {
         }}
         images={images}
         onUpdateImages={(updated) => {
+          const userOnly = updated.filter(i => i.isUserUploaded);
           setImages(updated);
-          localStorage.setItem('uploaded_images', JSON.stringify(updated.filter(i => i.isUserUploaded)));
+          try {
+            localStorage.setItem('uploaded_images', JSON.stringify(userOnly));
+          } catch (e) {}
+          syncToBackend('save_media', { photos: userOnly, videos, venueMedia: venueMediaList });
         }}
         videos={videos}
         onUpdateVideos={handleUpdateVideos}

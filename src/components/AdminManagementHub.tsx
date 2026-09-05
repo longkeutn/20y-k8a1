@@ -242,6 +242,9 @@ export default function AdminManagementHub({
   const [dragStartPos, setDragStartPos] = useState(50);
   const bannerPreviewRef = React.useRef<HTMLDivElement>(null);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingVenuePhoto, setIsUploadingVenuePhoto] = useState(false);
+  const [isUploadingCustomQr, setIsUploadingCustomQr] = useState(false);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
 
   // Event & Venue Configuration State (Full CRUD for BLL & Admin)
@@ -974,54 +977,45 @@ export default function AdminManagementHub({
     setReceiptUploadSuccessMsg('');
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64Data = reader.result as string;
+      const base64Data = await compressImageToJpeg(file, 1600, 0.82);
 
-        // If appsScriptUrl is present, upload to Drive subfolder "ChungTu_QuyLop_K8A1"
-        if (appsScriptUrl && appsScriptUrl.trim()) {
-          try {
-            const payload = {
-              action: 'upload_fund_receipt',
-              fileData: base64Data,
-              mimeType: file.type || 'image/jpeg',
-              fullName: adjustFundMember?.fullName || 'ThanhVien',
-              phone: adjustFundMember?.phone || '',
-              fundAmount: fundAdjustAmount,
-              fundPaymentMethod: fundAdjustPaymentMethod,
-              fundPaidAt: fundAdjustPaidAt || new Date().toLocaleString('vi-VN'),
-              fundAuditedBy: currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc',
-              fundNote: fundAdjustNote
-            };
+      // If appsScriptUrl is present, upload to Drive subfolder "ChungTu_QuyLop_K8A1"
+      const targetUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      if (targetUrl && targetUrl.trim()) {
+        try {
+          const payload = {
+            action: 'upload_fund_receipt',
+            fileData: base64Data,
+            mimeType: 'image/jpeg',
+            fullName: adjustFundMember?.fullName || 'ThanhVien',
+            phone: adjustFundMember?.phone || '',
+            fundAmount: fundAdjustAmount,
+            fundPaymentMethod: fundAdjustPaymentMethod,
+            fundPaidAt: fundAdjustPaidAt || new Date().toLocaleString('vi-VN'),
+            fundAuditedBy: currentUserRole === 'admin' ? 'Trưởng Ban (Admin)' : 'Ban Liên Lạc',
+            fundNote: fundAdjustNote
+          };
 
-            const res = await fetch(appsScriptUrl, {
-              method: 'POST',
-              body: JSON.stringify(payload)
-            });
-            const json = await res.json();
-            if (json.status === 'success' && json.url) {
-              setFundAdjustReceiptUrl(json.url);
-              setReceiptUploadSuccessMsg('Đã lưu bill vào thư mục Drive ChungTu_QuyLop_K8A1!');
-              setIsUploadingReceipt(false);
-              return;
-            }
-          } catch (fetchErr) {
-            console.warn('Drive upload failed, fallback to local image:', fetchErr);
+          const res = await fetch(targetUrl, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (json.status === 'success' && json.url) {
+            setFundAdjustReceiptUrl(json.url);
+            setReceiptUploadSuccessMsg('Đã lưu bill vào thư mục Drive ChungTu_QuyLop_K8A1!');
+            setIsUploadingReceipt(false);
+            return;
           }
+        } catch (fetchErr) {
+          console.warn('Drive upload failed, fallback to local image:', fetchErr);
         }
+      }
 
-        // Fallback: Store base64 data URL
-        setFundAdjustReceiptUrl(base64Data);
-        setReceiptUploadSuccessMsg('Đã đính kèm ảnh chứng từ thành công!');
-        setIsUploadingReceipt(false);
-      };
-
-      reader.onerror = () => {
-        setReceiptUploadErrorMsg('Lỗi khi đọc file ảnh!');
-        setIsUploadingReceipt(false);
-      };
-
-      reader.readAsDataURL(file);
+      // Fallback: Store compressed base64 data URL
+      setFundAdjustReceiptUrl(base64Data);
+      setReceiptUploadSuccessMsg('Đã đính kèm ảnh chứng từ thành công!');
+      setIsUploadingReceipt(false);
     } catch (err: any) {
       setReceiptUploadErrorMsg('Lỗi: ' + (err.message || 'Không thể upload ảnh'));
       setIsUploadingReceipt(false);
@@ -1507,21 +1501,53 @@ export default function AdminManagementHub({
     }
   };
 
-  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setPhotoFormData(prev => ({
-          ...prev,
-          url: result,
-          caption: prev.caption || file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ')
-        }));
+    setIsUploadingPhoto(true);
+    try {
+      const compressed = await compressImageToJpeg(file, 1600, 0.82);
+      const cleanCaption = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+
+      const targetScriptUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      if (targetScriptUrl && targetScriptUrl.trim()) {
+        try {
+          const res = await fetch(targetScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'upload_photo',
+              fileData: compressed,
+              caption: cleanCaption
+            })
+          });
+          const result = await res.json();
+          if (result && result.status === 'success' && result.data && (result.data.url || result.data.driveUrl)) {
+            const driveUrl = result.data.url || result.data.driveUrl;
+            setPhotoFormData(prev => ({
+              ...prev,
+              url: driveUrl,
+              caption: prev.caption || cleanCaption
+            }));
+            return;
+          }
+        } catch (uploadErr) {
+          console.warn('Lỗi upload photo lên Drive:', uploadErr);
+        }
       }
-    };
-    reader.readAsDataURL(file);
+
+      setPhotoFormData(prev => ({
+        ...prev,
+        url: compressed,
+        caption: prev.caption || cleanCaption
+      }));
+    } catch (err: any) {
+      console.error('Lỗi xử lý file ảnh:', err);
+      alert('Không thể đọc file ảnh: ' + (err?.message || err));
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = '';
+    }
   };
 
   const handleSavePhoto = (e: React.FormEvent) => {
@@ -1594,25 +1620,57 @@ export default function AdminManagementHub({
     }
   };
 
-  const handleVenuePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVenuePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      alert('Kích thước ảnh tối đa là 8MB!');
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Kích thước ảnh tối đa là 15MB!');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setVenueMediaFormData(prev => ({
-          ...prev,
-          url: result,
-          title: prev.title || 'Ảnh Không Gian Crown Palace'
-        }));
+    setIsUploadingVenuePhoto(true);
+    try {
+      const compressed = await compressImageToJpeg(file, 1600, 0.82);
+      const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ') || 'Ảnh Không Gian Crown Palace';
+
+      const targetScriptUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      if (targetScriptUrl && targetScriptUrl.trim()) {
+        try {
+          const res = await fetch(targetScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'upload_photo',
+              fileData: compressed,
+              caption: 'Venue_' + cleanTitle
+            })
+          });
+          const result = await res.json();
+          if (result && result.status === 'success' && result.data && (result.data.url || result.data.driveUrl)) {
+            const driveUrl = result.data.url || result.data.driveUrl;
+            setVenueMediaFormData(prev => ({
+              ...prev,
+              url: driveUrl,
+              title: prev.title || cleanTitle
+            }));
+            return;
+          }
+        } catch (uploadErr) {
+          console.warn('Lỗi upload venue photo lên Drive:', uploadErr);
+        }
       }
-    };
-    reader.readAsDataURL(file);
+
+      setVenueMediaFormData(prev => ({
+        ...prev,
+        url: compressed,
+        title: prev.title || cleanTitle
+      }));
+    } catch (err: any) {
+      console.error('Lỗi xử lý file ảnh không gian:', err);
+      alert('Không thể đọc file ảnh: ' + (err?.message || err));
+    } finally {
+      setIsUploadingVenuePhoto(false);
+      e.target.value = '';
+    }
   };
 
   const handleResetVenueMedia = () => {
@@ -4327,28 +4385,58 @@ export default function AdminManagementHub({
                               className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-mono text-[11px] focus:outline-none focus:border-amber-500"
                             />
                             
-                            <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 hover:border-amber-400 rounded-lg text-[11px] font-bold text-slate-700 cursor-pointer shrink-0 transition-colors shadow-xs">
-                              <Upload className="w-3.5 h-3.5 text-amber-700" />
-                              <span>Tải file ảnh</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const reader = new FileReader();
-                                    reader.onload = (loadEvt) => {
-                                      const b64 = loadEvt.target?.result as string;
-                                      if (b64) {
-                                        setEventConfigForm({ ...eventConfigForm, customQrUrl: b64 });
+                            {isUploadingCustomQr ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-300 rounded-lg text-[11px] font-bold text-amber-800 animate-pulse shrink-0">
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                                <span>Đang tải lên...</span>
+                              </span>
+                            ) : (
+                              <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 hover:border-amber-400 rounded-lg text-[11px] font-bold text-slate-700 cursor-pointer shrink-0 transition-colors shadow-xs">
+                                <Upload className="w-3.5 h-3.5 text-amber-700" />
+                                <span>Tải file ảnh</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setIsUploadingCustomQr(true);
+                                    try {
+                                      const compressed = await compressImageToJpeg(file, 800, 0.85);
+                                      const targetScriptUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+                                      if (targetScriptUrl && targetScriptUrl.trim()) {
+                                        try {
+                                          const res = await fetch(targetScriptUrl, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                            body: JSON.stringify({
+                                              action: 'upload_photo',
+                                              fileData: compressed,
+                                              caption: 'Custom_VietQR_K8A1'
+                                            })
+                                          });
+                                          const result = await res.json();
+                                          if (result && result.status === 'success' && result.data && (result.data.url || result.data.driveUrl)) {
+                                            const driveUrl = result.data.url || result.data.driveUrl;
+                                            setEventConfigForm(prev => ({ ...prev, customQrUrl: driveUrl }));
+                                            return;
+                                          }
+                                        } catch (uploadErr) {
+                                          console.warn('Lỗi upload custom QR lên Drive:', uploadErr);
+                                        }
                                       }
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                              />
-                            </label>
+                                      setEventConfigForm(prev => ({ ...prev, customQrUrl: compressed }));
+                                    } catch (err) {
+                                      console.error('Lỗi xử lý file QR:', err);
+                                    } finally {
+                                      setIsUploadingCustomQr(false);
+                                      e.target.value = '';
+                                    }
+                                  }}
+                                />
+                              </label>
+                            )}
                           </div>
                           <p className="text-[10px] text-slate-500 font-sans">
                             Nếu để trống, hệ thống sẽ tự động sinh mã VietQR sắc nét theo đúng STK và Mức quỹ ở trên.
@@ -5663,16 +5751,23 @@ export default function AdminManagementHub({
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700">Tải ảnh từ thiết bị hoặc dán URL:</label>
                   <div className="flex items-center gap-2">
-                    <label className="px-3 py-2 bg-slate-100 hover:bg-amber-100 text-slate-700 border border-slate-300 rounded-lg cursor-pointer flex items-center gap-1.5 font-semibold text-[11px] transition">
-                      <Upload className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Chọn file ảnh</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoFileUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    {isUploadingPhoto ? (
+                      <span className="px-3 py-2 bg-amber-50 text-amber-800 border border-amber-300 rounded-lg flex items-center gap-1.5 font-semibold text-[11px] animate-pulse">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                        <span>Đang nén và tải lên Drive...</span>
+                      </span>
+                    ) : (
+                      <label className="px-3 py-2 bg-slate-100 hover:bg-amber-100 text-slate-700 border border-slate-300 rounded-lg cursor-pointer flex items-center gap-1.5 font-semibold text-[11px] transition">
+                        <Upload className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Chọn file ảnh</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                     <span className="text-[10px] text-slate-400">hoặc dán link bên dưới</span>
                   </div>
 
@@ -5765,16 +5860,23 @@ export default function AdminManagementHub({
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700">Đường dẫn Link hoặc Tải ảnh từ máy (*):</label>
                   <div className="flex items-center gap-2">
-                    <label className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-amber-200 rounded-lg cursor-pointer flex items-center gap-1.5 font-bold text-[11px] transition shrink-0">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Chọn file ảnh</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleVenuePhotoUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    {isUploadingVenuePhoto ? (
+                      <span className="px-3 py-2 bg-amber-900/40 text-amber-200 border border-amber-500/40 rounded-lg flex items-center gap-1.5 font-bold text-[11px] transition shrink-0 animate-pulse">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-300" />
+                        <span>Đang nén và tải lên Drive...</span>
+                      </span>
+                    ) : (
+                      <label className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-amber-200 rounded-lg cursor-pointer flex items-center gap-1.5 font-bold text-[11px] transition shrink-0">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Chọn file ảnh</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleVenuePhotoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                     <span className="text-[10px] text-slate-400">hoặc dán link Facebook, YouTube, Drive</span>
                   </div>
 
