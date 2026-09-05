@@ -61,26 +61,7 @@ export function parseVideoEmbedUrl(url: string): { embedUrl: string; type: 'yout
   };
 }
 
-const INITIAL_VIDEOS: MemoryVideo[] = [
-  {
-    id: 'vid-1',
-    title: 'Phóng Sự Kỷ Niệm: 20 Năm Ngày Trở Về — Lớp K8A1',
-    embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 'vid-2',
-    title: 'Giai Điệu Thanh Xuân: Mong Ước Kỷ Niệm Xưa (Niên Khóa 2003 — 2006)',
-    embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 'vid-3',
-    title: 'Hội Trại 26/3 & Những Tiếng Hát Dưới Tán Cây Bàng Sân Trường',
-    embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80'
-  }
-];
+const INITIAL_VIDEOS: MemoryVideo[] = [];
 
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
@@ -96,6 +77,13 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     } catch {}
     return videos.length > 0 ? videos : INITIAL_VIDEOS;
   });
+
+  // Tự động đồng bộ ngay khi Google Sheet trả về danh sách video mà không cần tải lại trang
+  useEffect(() => {
+    if (videos && videos.length > 0) {
+      setVideoList(videos);
+    }
+  }, [videos]);
 
   const [activeVideoIndex, setActiveVideoIndex] = useState<number>(0);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -523,9 +511,14 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 loading="lazy"
               ></iframe>
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
-                <Video className="w-12 h-12 text-slate-600 animate-pulse" />
-                <p className="text-xs font-serif">Chưa có video nào. Bấm nút "Chèn Link Video" để thêm video kỷ niệm.</p>
+              <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-400 space-y-3 bg-[#0d111a]">
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center animate-pulse">
+                  <Film className="w-6 h-6 text-amber-400" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-200">Đang đồng bộ thước phim thanh xuân K8A1...</p>
+                  <p className="text-xs text-slate-500">Dữ liệu video đang được nạp tự động từ Google Sheet</p>
+                </div>
               </div>
             )}
           </div>
@@ -536,7 +529,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 ● ĐANG CHIẾU TRÊN MÀN ẢNH
               </span>
               <h4 className="font-serif font-bold text-sm sm:text-base text-white">
-                {activeVideo?.title}
+                {activeVideo?.title || 'Thước phim kỷ niệm Lớp K8A1'}
               </h4>
             </div>
             <span className="text-[11px] text-slate-400 font-sans italic self-start sm:self-auto">
@@ -679,8 +672,25 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           </div>
         </div>
 
-        {/* Empty State */}
-        {filteredImages.length === 0 && (
+        {/* Loading / Skeleton State khi đang nạp ảnh từ Drive */}
+        {images.length === 0 ? (
+          <div className="space-y-4 relative z-10">
+            <div className="flex items-center gap-2 text-xs font-sans text-amber-700 font-bold">
+              <Camera className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+              <span>Đang kết nối thư viện ảnh Google Drive của lớp K8A1...</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5 lg:gap-6 animate-pulse">
+              {[1, 2, 3, 4, 5, 6].map((sk) => (
+                <div key={sk} className="bg-white p-2 sm:p-4 pb-2.5 sm:pb-4 rounded-xl sm:rounded-2xl border border-slate-200/90 space-y-2.5">
+                  <div className="aspect-square sm:aspect-[4/3] bg-slate-200/80 rounded-lg flex items-center justify-center">
+                    <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-slate-400/40" />
+                  </div>
+                  <div className="h-2.5 bg-slate-200/70 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredImages.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-dashed border-amber-300 space-y-3">
             <ImageIcon className="w-12 h-12 text-amber-400 mx-auto" />
             <p className="font-serif text-slate-600 text-sm">Không tìm thấy bức ảnh nào phù hợp với bộ lọc hiện tại.</p>
@@ -691,7 +701,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               Xem Tất Cả Ảnh Kỷ Niệm
             </button>
           </div>
-        )}
+        ) : null}
 
         {/* =================================================================== */}
         {/* 🌟 BỐ CỤC BENTO MOSAIC BẤT ĐỐI XỨNG TUYỆT ĐẸP (CLEAN NO-CAPTION CARDS) */}

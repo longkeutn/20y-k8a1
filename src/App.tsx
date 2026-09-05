@@ -182,9 +182,9 @@ export default function App() {
   // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
   const [heroBannerUrl, setHeroBannerUrl] = useState<string>(() => {
     try {
-      return localStorage.getItem('k8a1_hero_banner_url') || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+      return localStorage.getItem('k8a1_hero_banner_url') || '';
     } catch {
-      return 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+      return '';
     }
   });
 
@@ -317,14 +317,14 @@ export default function App() {
   const [images, setImages] = useState<MemoryImage[]>(() => {
     try {
       const local = localStorage.getItem('uploaded_images');
-      const uploaded = local ? JSON.parse(local) : [];
-      if (Array.isArray(uploaded) && uploaded.length > 0) {
-        return [...uploaded, ...DEFAULT_MEMORIES.filter(d => !uploaded.some((u: any) => u.id === d.id))];
+      if (local) {
+        const uploaded = JSON.parse(local);
+        if (Array.isArray(uploaded) && uploaded.length > 0) return uploaded;
       }
-      return DEFAULT_MEMORIES;
+      return [];
     } catch (e) {
       console.warn('Lỗi đọc uploaded_images từ localStorage:', e);
-      return DEFAULT_MEMORIES;
+      return [];
     }
   });
 
@@ -336,9 +336,9 @@ export default function App() {
         const parsed = JSON.parse(local);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      return DEFAULT_VIDEOS;
+      return [];
     } catch {
-      return DEFAULT_VIDEOS;
+      return [];
     }
   });
 
@@ -527,187 +527,157 @@ export default function App() {
   };
 
   // Nạp toàn bộ dữ liệu từ Google Sheet & Google Drive (Single Source of Truth)
+  // Nạp toàn bộ dữ liệu từ Google Sheet & Google Drive (Single Source of Truth)
   const hydrateAllData = async (targetUrl: string = activeAppsScriptUrl) => {
     if (!targetUrl || !targetUrl.startsWith('http')) return;
     setIsRefreshing(true);
     try {
-      // 1. Tải song song cả Master Data (Sheet) và Thư Viện Ảnh (Google Drive)
-      const [allDataSettled, photosSettled] = await Promise.allSettled([
-        fetch(`${targetUrl}?action=get_all_data&t=${Date.now()}`).then(r => r.json()),
-        fetch(`${targetUrl}?action=get_photos&t=${Date.now()}`).then(r => r.json())
-      ]);
+      // 1. Tải song song nhưng cập nhật state NGAY LẬP TỨC khi mỗi tiến trình hoàn tất
+      const fetchMasterPromise = (async () => {
+        try {
+          const res = await fetch(`${targetUrl}?action=get_all_data&t=${Date.now()}`);
+          const result = await res.json();
+          if (result && result.status === 'success' && result.data) {
+            const { rsvp, wishes, config, media, roster, drivePhotos: embeddedDrivePhotos } = result.data;
 
-      let drivePhotos: MemoryImage[] = [];
+            // A. Cập nhật Banner & Cấu hình sự kiện ngay lập tức
+            if (config && Object.keys(config).length > 0) {
+              setEventConfig((prev) => {
+                const updated = sanitizeEventConfig({ ...prev, ...config });
+                try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
+                return updated;
+              });
 
-      // 2. Xử lý Thư Viện Ảnh từ Google Drive (Kho Kỷ Yếu của Lớp K8A1)
-      if (photosSettled.status === 'fulfilled' && photosSettled.value) {
-        const photosJson = photosSettled.value;
-        if (photosJson.status === 'success' && Array.isArray(photosJson.data) && photosJson.data.length > 0) {
-          drivePhotos = photosJson.data
-            .filter((p: any) => {
-              const cap = (p.caption || '').toLowerCase();
-              return !cap.includes('hero banner') && 
-                     !cap.includes('hero_banner') && 
-                     !cap.includes('test upload') && 
-                     !cap.includes('bill_');
-            })
-            .map((p: any) => ({
-              id: p.id || `drive-${Date.now()}`,
-              url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
-              thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
-              caption: p.caption || 'Kỷ niệm Lớp K8A1',
-              date: p.date || '2006',
-              isUserUploaded: true,
-              driveUrl: p.driveUrl
-            }));
-        }
-      }
-
-      // 3. Xử lý Master Data từ Google Sheet
-      let sheetPhotos: MemoryImage[] = [];
-
-      if (allDataSettled.status === 'fulfilled' && allDataSettled.value) {
-        const result = allDataSettled.value;
-        if (result && result.status === 'success' && result.data) {
-          const { rsvp, wishes, config, media, roster, drivePhotos: embeddedDrivePhotos } = result.data;
-
-          // Nếu có drivePhotos nhúng sẵn trong get_all_data
-          if (drivePhotos.length === 0 && Array.isArray(embeddedDrivePhotos) && embeddedDrivePhotos.length > 0) {
-            drivePhotos = embeddedDrivePhotos.map((p: any) => ({
-              id: p.id,
-              url: p.url,
-              caption: p.caption || 'Kỷ niệm Lớp K8A1',
-              date: p.date || '2006',
-              isUserUploaded: true,
-              driveUrl: p.driveUrl
-            }));
-          }
-
-          // A. Đồng bộ RSVP từ Google Sheet (lọc trùng lặp thông minh)
-          if (Array.isArray(rsvp) && rsvp.length > 0) {
-            const uniqueRsvp: RsvpData[] = [];
-            const seen = new Set<string>();
-
-            for (const rawItem of rsvp) {
-              if (!rawItem) continue;
-              const item = sanitizeRsvp(rawItem);
-              const key = normalizePhoneForMatch(item.phone) || normalizeNameForMatch(item.fullName);
-              if (key && seen.has(key)) {
-                const idx = uniqueRsvp.findIndex(x => (normalizePhoneForMatch(x.phone) || normalizeNameForMatch(x.fullName)) === key);
-                if (idx >= 0) {
-                  uniqueRsvp[idx] = {
-                    ...uniqueRsvp[idx],
-                    ...item,
-                    checkedIn: uniqueRsvp[idx].checkedIn || item.checkedIn,
-                    fundStatus: (uniqueRsvp[idx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[idx].fundStatus),
-                    fundAmount: Math.max(uniqueRsvp[idx].fundAmount || 0, item.fundAmount || 0),
-                    fundReceiptUrl: item.fundReceiptUrl || uniqueRsvp[idx].fundReceiptUrl
-                  };
-                }
-              } else {
-                if (key) seen.add(key);
-                uniqueRsvp.push(item);
+              if (config.heroBannerUrl) {
+                const cleanBanner = normalizeImageUrl(config.heroBannerUrl);
+                setHeroBannerUrl(cleanBanner);
+                try { localStorage.setItem('k8a1_hero_banner_url', cleanBanner); } catch (e) {}
+              }
+              if (config.heroBannerPosition !== undefined) {
+                const pos = Number(config.heroBannerPosition) || 50;
+                setHeroBannerPosition(pos);
+                try { localStorage.setItem('k8a1_hero_banner_position', pos.toString()); } catch (e) {}
               }
             }
 
-            setRsvpList(uniqueRsvp);
-            try {
-              localStorage.setItem('rsvp_list', JSON.stringify(uniqueRsvp));
-            } catch (e) {}
-          }
+            // B. Cập nhật Videos ngay lập tức
+            if (media) {
+              if (Array.isArray(media.videos) && media.videos.length > 0) {
+                setVideos(media.videos);
+                try {
+                  localStorage.setItem('k8a1_video_list', JSON.stringify(media.videos));
+                  localStorage.setItem('custom_videos', JSON.stringify(media.videos));
+                } catch (e) {}
+              }
+              if (Array.isArray(media.venueMedia) && media.venueMedia.length > 0) {
+                setVenueMediaList(media.venueMedia);
+                try { localStorage.setItem('k8a1_venue_media_list', JSON.stringify(media.venueMedia)); } catch (e) {}
+              }
+            }
 
-          // B. Đồng bộ Lời chúc từ Google Sheet
-          if (Array.isArray(wishes) && wishes.length > 0) {
-            setWishesList(wishes);
-            localStorage.setItem('wishes_list', JSON.stringify(wishes));
-          }
+            // C. Đồng bộ RSVP từ Google Sheet (lọc trùng lặp thông minh)
+            if (Array.isArray(rsvp) && rsvp.length > 0) {
+              const uniqueRsvp: RsvpData[] = [];
+              const seen = new Set<string>();
 
-          // C. Đồng bộ Cấu hình sự kiện từ Google Sheet
-          if (config && Object.keys(config).length > 0) {
-            setEventConfig((prev) => {
-              const updated = sanitizeEventConfig({ ...prev, ...config });
-              localStorage.setItem('k8a1_event_config', JSON.stringify(updated));
-              return updated;
-            });
+              for (const rawItem of rsvp) {
+                if (!rawItem) continue;
+                const item = sanitizeRsvp(rawItem);
+                const key = normalizePhoneForMatch(item.phone) || normalizeNameForMatch(item.fullName);
+                if (key && seen.has(key)) {
+                  const idx = uniqueRsvp.findIndex(x => (normalizePhoneForMatch(x.phone) || normalizeNameForMatch(x.fullName)) === key);
+                  if (idx >= 0) {
+                    uniqueRsvp[idx] = {
+                      ...uniqueRsvp[idx],
+                      ...item,
+                      checkedIn: uniqueRsvp[idx].checkedIn || item.checkedIn,
+                      fundStatus: (uniqueRsvp[idx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[idx].fundStatus),
+                      fundAmount: Math.max(uniqueRsvp[idx].fundAmount || 0, item.fundAmount || 0),
+                      fundReceiptUrl: item.fundReceiptUrl || uniqueRsvp[idx].fundReceiptUrl
+                    };
+                  }
+                } else {
+                  if (key) seen.add(key);
+                  uniqueRsvp.push(item);
+                }
+              }
 
-            if (config.heroBannerUrl) {
-              const cleanBanner = normalizeImageUrl(config.heroBannerUrl);
-              setHeroBannerUrl(cleanBanner);
-              try {
-                localStorage.setItem('k8a1_hero_banner_url', cleanBanner);
-              } catch (e) {}
+              setRsvpList(uniqueRsvp);
+              try { localStorage.setItem('rsvp_list', JSON.stringify(uniqueRsvp)); } catch (e) {}
             }
-            if (config.heroBannerPosition !== undefined) {
-              const pos = Number(config.heroBannerPosition) || 50;
-              setHeroBannerPosition(pos);
-              try {
-                localStorage.setItem('k8a1_hero_banner_position', pos.toString());
-              } catch (e) {}
+
+            // D. Đồng bộ Lời chúc từ Google Sheet
+            if (Array.isArray(wishes) && wishes.length > 0) {
+              setWishesList(wishes);
+              try { localStorage.setItem('wishes_list', JSON.stringify(wishes)); } catch (e) {}
+            }
+
+            // E. Đồng bộ Danh bạ Sĩ số Lớp K8A1 từ Google Sheet
+            if (Array.isArray(roster) && roster.length > 0) {
+              const sanitizedRoster = roster
+                .filter((r: any) => r && (r.fullName || r.id))
+                .map((r: any, idx: number) => sanitizeClassMember(r, idx));
+              if (sanitizedRoster.length > 0) {
+                setClassRoster(sanitizedRoster);
+                try { localStorage.setItem('k8a1_class_roster', JSON.stringify(sanitizedRoster)); } catch (e) {}
+              }
+            }
+
+            // F. Cập nhật ảnh tức thời nếu có drivePhotos nhúng trong get_all_data
+            if (Array.isArray(embeddedDrivePhotos) && embeddedDrivePhotos.length > 0) {
+              const embPhotos: MemoryImage[] = embeddedDrivePhotos.map((p: any) => ({
+                id: p.id || `drive-${Date.now()}`,
+                url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+                thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+                caption: p.caption || 'Kỷ niệm Lớp K8A1',
+                date: p.date || '2006',
+                isUserUploaded: true,
+                driveUrl: p.driveUrl
+              }));
+              setImages(embPhotos);
+              try { localStorage.setItem('uploaded_images', JSON.stringify(embPhotos)); } catch (e) {}
             }
           }
-
-          // D. Đồng bộ Media (Video & Venue Media) từ Google Sheet
-          if (media) {
-            if (Array.isArray(media.videos) && media.videos.length > 0) {
-              setVideos(media.videos);
-              localStorage.setItem('k8a1_video_list', JSON.stringify(media.videos));
-              localStorage.setItem('custom_videos', JSON.stringify(media.videos));
-            }
-            if (Array.isArray(media.venueMedia) && media.venueMedia.length > 0) {
-              setVenueMediaList(media.venueMedia);
-              localStorage.setItem('k8a1_venue_media_list', JSON.stringify(media.venueMedia));
-            }
-            if (Array.isArray(media.photos) && media.photos.length > 0) {
-              sheetPhotos = media.photos.map((p: any) => ({ ...p, isUserUploaded: true }));
-            }
-          }
-
-          // E. Đồng bộ Danh bạ Sĩ số Lớp K8A1 từ Google Sheet (tab "Danh_Sach_Lop")
-          if (Array.isArray(roster) && roster.length > 0) {
-            const sanitizedRoster = roster
-              .filter((r: any) => r && (r.fullName || r.id))
-              .map((r: any, idx: number) => sanitizeClassMember(r, idx));
-            if (sanitizedRoster.length > 0) {
-              setClassRoster(sanitizedRoster);
-              try {
-                localStorage.setItem('k8a1_class_roster', JSON.stringify(sanitizedRoster));
-              } catch (e) {}
-            }
-          }
+        } catch (err) {
+          console.warn('Lỗi nạp Master Data từ Google Sheet:', err);
         }
-      }
+      })();
 
-      // 4. Hợp nhất Thư Viện Ảnh (Kho Kỷ Yếu & Kỷ Niệm): Ưu tiên ảnh thật từ Google Drive và Sheet
-      const photoMap = new Map<string, MemoryImage>();
-      const combinedPhotos: MemoryImage[] = [];
-
-      // Đưa ảnh Drive của lớp vào trước
-      drivePhotos.forEach(dp => {
-        if (!photoMap.has(dp.id)) {
-          photoMap.set(dp.id, dp);
-          combinedPhotos.push(dp);
-        }
-      });
-
-      // Hợp nhất thêm ảnh từ Sheet (nếu có id khác)
-      sheetPhotos.forEach(sp => {
-        if (sp && sp.url && !photoMap.has(sp.id)) {
-          photoMap.set(sp.id, sp);
-          combinedPhotos.push(sp);
-        }
-      });
-
-      if (combinedPhotos.length > 0) {
-        // Kết hợp ảnh đã upload đưa lên đầu + các ảnh mẫu mặc định còn lại
-        const finalImages = [
-          ...combinedPhotos,
-          ...DEFAULT_MEMORIES.filter(dm => !photoMap.has(dm.id))
-        ];
-        setImages(finalImages);
+      // 2. Tải Thư viện ảnh Google Drive (Kho Kỷ Yếu & Kỷ Niệm của Lớp)
+      const fetchPhotosPromise = (async () => {
         try {
-          localStorage.setItem('uploaded_images', JSON.stringify(combinedPhotos));
-        } catch (e) {}
-      }
+          const res = await fetch(`${targetUrl}?action=get_photos&t=${Date.now()}`);
+          const photosJson = await res.json();
+          if (photosJson && photosJson.status === 'success' && Array.isArray(photosJson.data) && photosJson.data.length > 0) {
+            const drivePhotos: MemoryImage[] = photosJson.data
+              .filter((p: any) => {
+                const cap = (p.caption || '').toLowerCase();
+                return !cap.includes('hero banner') && 
+                       !cap.includes('hero_banner') && 
+                       !cap.includes('test upload') && 
+                       !cap.includes('bill_');
+              })
+              .map((p: any) => ({
+                id: p.id || `drive-${Date.now()}`,
+                url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+                thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+                caption: p.caption || 'Kỷ niệm Lớp K8A1',
+                date: p.date || '2006',
+                isUserUploaded: true,
+                driveUrl: p.driveUrl
+              }));
+
+            if (drivePhotos.length > 0) {
+              setImages(drivePhotos);
+              try { localStorage.setItem('uploaded_images', JSON.stringify(drivePhotos)); } catch (e) {}
+            }
+          }
+        } catch (err) {
+          console.warn('Lỗi nạp ảnh Drive:', err);
+        }
+      })();
+
+      await Promise.allSettled([fetchMasterPromise, fetchPhotosPromise]);
     } catch (err) {
       console.warn('Lỗi đồng bộ từ Google Sheet & Drive:', err);
     } finally {
@@ -826,20 +796,27 @@ export default function App() {
       {/* ======================================================== */}
       <section id="hero" className="w-full relative overflow-hidden bg-[#161B26] scroll-mt-14">
         
-        {/* 1. Full-Width Background Panoramic Photo with Smooth Bottom Fade */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <img
-            src={heroBannerUrl}
-            alt="Kỷ Niệm Thanh Xuân K8A1 THPT Thái Nguyên"
-            style={{ objectPosition: `center ${heroBannerPosition}%` }}
-            onError={(e) => {
-              const fallback = DEFAULT_EVENT_CONFIG.heroBannerUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
-              if ((e.target as HTMLImageElement).src !== fallback) {
-                (e.target as HTMLImageElement).src = fallback;
-              }
-            }}
-            className="w-full h-full object-cover filter brightness-65 contrast-105 saturate-90 scale-102 transition-[object-position] duration-300"
-          />
+        {/* 1. Full-Width Background Panoramic Photo or Branded Dynamic Theme */}
+        <div className="absolute inset-0 z-0 overflow-hidden bg-[#161B26]">
+          {heroBannerUrl ? (
+            <img
+              src={heroBannerUrl}
+              alt="Kỷ Niệm Thanh Xuân K8A1 THPT Thái Nguyên"
+              style={{ objectPosition: `center ${heroBannerPosition}%` }}
+              onError={(e) => {
+                // Khi ảnh lỗi hoặc link hỏng, ẩn thẻ img để hiển thị nền gradient sang trọng, không dùng link unsplash rác
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+              className="w-full h-full object-cover filter brightness-65 contrast-105 saturate-90 scale-102 transition-[object-position] duration-500"
+            />
+          ) : (
+            /* Nền K8A1 Gradient & Glassmorphism sang trọng khi chưa có ảnh hoặc đang tải */
+            <div className="w-full h-full bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0A0E17] relative">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(245,158,11,0.16),transparent_50%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,_rgba(180,83,9,0.12),transparent_50%)]" />
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
+            </div>
+          )}
           {/* Top Darkening Tint for Navbar Contrast */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent pointer-events-none" />
           

@@ -189,56 +189,9 @@ export const INITIAL_WISHES_LIST: WishData[] = [
   }
 ];
 
-export const DEFAULT_MEMORIES: MemoryImage[] = [
-  {
-    id: 'img1',
-    url: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Giờ ra chơi năm ấy — Chia nhau từng que kem cổng trường',
-    date: 'Tháng 10/2004'
-  },
-  {
-    id: 'img2',
-    url: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Hội trại 26/3 năm 2005 — Đêm lửa trại và tiếng đàn guitar mộc',
-    date: 'Tháng 03/2005'
-  },
-  {
-    id: 'img3',
-    url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Góc lớp A1 thân thuộc — Bàn cuối luôn là trung tâm những tiếng cười',
-    date: 'Tháng 11/2005'
-  },
-  {
-    id: 'img4',
-    url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Áo trắng ngày bế giảng — Chi chít nét chữ ký và lưu bút mực tím',
-    date: 'Tháng 05/2006'
-  },
-  {
-    id: 'img5',
-    url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1000&q=80',
-    caption: 'Giải bóng đá trường — Đội bóng K8A1 vô địch trong lòng người hâm mộ',
-    date: 'Tháng 01/2006'
-  }
-];
+export const DEFAULT_MEMORIES: MemoryImage[] = [];
 
-export const DEFAULT_VIDEOS: MemoryVideo[] = [
-  {
-    id: 'vid-1',
-    title: 'Phóng Sự Kỷ Niệm: 20 Năm Ngày Trở Về — Lớp K8A1',
-    embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
-  },
-  {
-    id: 'vid-2',
-    title: 'Giai Điệu Thanh Xuân: Mong Ước Kỷ Niệm Xưa (Niên Khóa 2003 — 2006)',
-    embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
-  },
-  {
-    id: 'vid-3',
-    title: 'Hội Trại 26/3 & Những Tiếng Hát Dưới Tán Cây Bàng Sân Trường',
-    embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
-  }
-];
+export const DEFAULT_VIDEOS: MemoryVideo[] = [];
 
 export interface BankItem {
   code: string;       // VietQR identifier / short code
@@ -668,7 +621,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   customQrUrl: "",
   bankCode: "vietcombank",
   qrTemplate: "compact",
-  heroBannerUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80",
+  heroBannerUrl: "",
   heroBannerPosition: 50
 };
 

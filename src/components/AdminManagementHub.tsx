@@ -185,7 +185,7 @@ export default function AdminManagementHub({
   onUpdateVideos,
   venueMediaList,
   onUpdateVenueMediaList,
-  heroBannerUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80',
+  heroBannerUrl = '',
   heroBannerPosition = 50,
   onUpdateHeroBannerUrl,
   eventConfig,
@@ -1455,7 +1455,7 @@ export default function AdminManagementHub({
   };
 
   const handleResetBanner = async () => {
-    const defaultUrl = DEFAULT_EVENT_CONFIG.heroBannerUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+    const defaultUrl = DEFAULT_EVENT_CONFIG.heroBannerUrl || '';
     setBannerInput(defaultUrl);
     setBannerPositionY(50);
     setEventConfigForm(prev => ({
@@ -3396,9 +3396,11 @@ export default function AdminManagementHub({
                         alt="Preview Banner"
                         style={{ objectPosition: `center ${bannerPositionY}%` }}
                         onError={(e) => {
-                          const fallback = DEFAULT_EVENT_CONFIG.heroBannerUrl || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
-                          if ((e.target as HTMLImageElement).src !== fallback) {
+                          const fallback = DEFAULT_EVENT_CONFIG.heroBannerUrl || '';
+                          if (fallback && (e.target as HTMLImageElement).src !== fallback) {
                             (e.target as HTMLImageElement).src = fallback;
+                          } else {
+                            (e.target as HTMLImageElement).style.display = 'none';
                           }
                         }}
                         className="w-full h-full object-cover select-none pointer-events-none transition-[object-position] duration-75 filter contrast-105"
