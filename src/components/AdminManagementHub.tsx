@@ -41,7 +41,9 @@ import {
   Upload,
   RotateCcw,
   Folder,
-  ExternalLink
+  ExternalLink,
+  Save,
+  Link
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo } from '../types';
