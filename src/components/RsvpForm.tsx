@@ -287,7 +287,7 @@ export default function RsvpForm({
             Xác Nhận Tham Dự Lớp K8A1
           </h3>
           <p className="text-xs text-slate-500 font-serif italic">
-            Hạn chốt ngày 20/09/2026 để may đo áo đồng phục & đặt tiệc
+            Vui lòng xác nhận sớm để may đo áo đồng phục & đặt tiệc
           </p>
         </div>
 
@@ -366,58 +366,32 @@ export default function RsvpForm({
         )}
       </div>
 
-      {/* CHỌN TRẠNG THÁI THAM GIA GỌN GÀNG & TRỰC QUAN */}
+      {/* CHỌN TRẠNG THÁI THAM GIA */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
         <button
           type="button"
           onClick={() => setStatus('yes')}
-          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer relative flex items-center gap-2.5 ${
+          className={`py-3 px-3 rounded-xl border font-sans font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
             status === 'yes'
               ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40'
               : 'bg-white text-slate-700 border-slate-300 hover:border-amber-300 hover:bg-amber-50/30'
           }`}
         >
-          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ${
-            status === 'yes' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'
-          }`}>
-            <CheckCircle2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="block text-xs sm:text-sm font-bold font-sans leading-tight">
-              Có Tham Gia
-            </span>
-            <span className={`block text-[10px] sm:text-[11px] leading-tight truncate mt-0.5 ${
-              status === 'yes' ? 'text-amber-100' : 'text-slate-500'
-            }`}>
-              Hội ngộ cùng lớp 27/09
-            </span>
-          </div>
+          <CheckCircle2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          <span>Có Tham Gia</span>
         </button>
 
         <button
           type="button"
           onClick={() => setStatus('no')}
-          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer relative flex items-center gap-2.5 ${
+          className={`py-3 px-3 rounded-xl border font-sans font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
             status === 'no'
               ? 'bg-gradient-to-br from-slate-700 to-slate-800 text-white border-slate-800 shadow-sm ring-2 ring-slate-400/40'
               : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400 hover:bg-slate-50/50'
           }`}
         >
-          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 ${
-            status === 'no' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="block text-xs sm:text-sm font-bold font-sans leading-tight">
-              Rất Tiếc Vắng Mặt
-            </span>
-            <span className={`block text-[10px] sm:text-[11px] leading-tight truncate mt-0.5 ${
-              status === 'no' ? 'text-slate-300' : 'text-slate-500'
-            }`}>
-              Gửi lời chúc & kỷ niệm
-            </span>
-          </div>
+          <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          <span>Rất Tiếc Vắng Mặt</span>
         </button>
       </div>
 

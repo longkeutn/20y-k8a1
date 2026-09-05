@@ -1159,6 +1159,7 @@ export default function App() {
               <ConfirmedAttendees
                 appsScriptUrl={activeAppsScriptUrl}
                 rsvpList={rsvpList}
+                eventConfig={eventConfig}
                 onRefresh={handleRefreshData}
                 isRefreshing={isRefreshing}
                 onOpenPassModal={handleOpenPass}
@@ -1358,6 +1359,7 @@ export default function App() {
         onClose={() => setIsPassModalOpen(false)}
         defaultAttendee={selectedPassAttendee}
         allAttendees={rsvpList}
+        eventConfig={eventConfig}
       />
 
       {/* Modal Tải Lên Biên Lai Đóng Quỹ (Self-Service Receipt Uploader) */}

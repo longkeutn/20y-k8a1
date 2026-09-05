@@ -16,7 +16,7 @@ import {
   Upload
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { RsvpData } from '../types';
+import { RsvpData, EventConfig } from '../types';
 import { SHIRT_SIZE_OPTIONS } from '../data';
 
 interface StudentPassModalProps {
@@ -24,13 +24,15 @@ interface StudentPassModalProps {
   onClose: () => void;
   defaultAttendee?: RsvpData | null;
   allAttendees?: RsvpData[];
+  eventConfig?: EventConfig;
 }
 
 export default function StudentPassModal({
   isOpen,
   onClose,
   defaultAttendee,
-  allAttendees = []
+  allAttendees = [],
+  eventConfig
 }: StudentPassModalProps) {
   const [name, setName] = useState(defaultAttendee?.fullName || 'Nguyễn Minh Anh');
   const [className, setClassName] = useState(defaultAttendee?.className || 'K8A1');
@@ -170,9 +172,12 @@ export default function StudentPassModal({
   };
 
   const handleCopyPassText = () => {
+    const venue = eventConfig?.venueName || 'Crown Palace';
+    const address = eventConfig?.venueAddress || '779 Dương Tự Minh, TP. Thái Nguyên';
+    const timeText = eventConfig?.eventTimeText || eventConfig?.eventDateText || 'Từ 08:30 Sáng - Chủ Nhật, 27/09/2026';
     const text = `🎓 THẺ THÀNH VIÊN HỘI NGỘ 20 NĂM LỚP K8A1 (2006 — 2026)\n👤 Cựu học sinh: ${name}${
       currentNickname ? ` ("${currentNickname}")` : ''
-    }\n🏫 Lớp: ${className} • Trường THPT Thái Nguyên\n🎟️ Mã thẻ: #${passCode}\n📍 Địa điểm: Crown Palace, 779 Dương Tự Minh, TP. Thái Nguyên\n⏰ Thời gian: Từ 08:30 Sáng - Chủ Nhật, 27/09/2026\n✨ 20 Năm Ngày Trở Về - K8A1 Mãi Là Anh Em!`;
+    }\n🏫 Lớp: ${className} • Trường THPT Thái Nguyên\n🎟️ Mã thẻ: #${passCode}\n📍 Địa điểm: ${venue}, ${address}\n⏰ Thời gian: ${timeText}\n✨ 20 Năm Ngày Trở Về - K8A1 Mãi Là Anh Em!`;
     try {
       if (navigator.clipboard?.writeText) {
         navigator.clipboard
@@ -196,9 +201,10 @@ export default function StudentPassModal({
   };
 
   const handleNativeShare = async () => {
+    const venue = eventConfig?.venueName || 'Crown Palace';
     const shareData = {
       title: `Thẻ Kỷ Niệm 20 Năm Lớp K8A1 - ${name}`,
-      text: `Mình vừa nhận Thẻ Thành Viên Hội Ngộ 20 Năm Lớp K8A1 (Khóa 8 THPT Thái Nguyên)! Hẹn gặp lại cả lớp tại Crown Palace ngày 27/09/2026 nhé ❤️`,
+      text: `Mình vừa nhận Thẻ Thành Viên Hội Ngộ 20 Năm Lớp K8A1 (Khóa 8 THPT Thái Nguyên)! Hẹn gặp lại cả lớp tại ${venue} nhé ❤️`,
       url: window.location.href
     };
     if (navigator.share) {
@@ -456,11 +462,11 @@ export default function StudentPassModal({
               <div className="text-[10px] text-brand-text-muted space-y-0.5 pt-1">
                 <p className="flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-brand-gold shrink-0" />
-                  <span>Từ 08:30 Sáng • Chủ Nhật, 27/09/2026</span>
+                  <span>{eventConfig?.eventTimeText || eventConfig?.eventDateText || 'Từ 08:30 Sáng • Chủ Nhật, 27/09/2026'}</span>
                 </p>
                 <p className="flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-brand-gold shrink-0" />
-                  <span className="truncate">Crown Palace (779 Dương Tự Minh, Thái Nguyên)</span>
+                  <span className="truncate">{eventConfig?.venueName || 'Crown Palace'}{eventConfig?.venueAddress ? ` (${eventConfig.venueAddress})` : ''}</span>
                 </p>
               </div>
             </div>

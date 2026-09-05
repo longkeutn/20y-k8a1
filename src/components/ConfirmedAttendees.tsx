@@ -18,11 +18,12 @@ import {
   LayoutGrid,
   X
 } from 'lucide-react';
-import { RsvpData } from '../types';
+import { RsvpData, EventConfig } from '../types';
 
 interface ConfirmedAttendeesProps {
   appsScriptUrl: string;
   rsvpList: RsvpData[];
+  eventConfig?: EventConfig;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onOpenPassModal?: (attendee: RsvpData) => void;
@@ -32,6 +33,7 @@ interface ConfirmedAttendeesProps {
 export default function ConfirmedAttendees({ 
   appsScriptUrl, 
   rsvpList, 
+  eventConfig,
   onRefresh, 
   isRefreshing = false,
   onOpenPassModal,
@@ -108,8 +110,9 @@ export default function ConfirmedAttendees({
       .map(([s, c]) => `${s}: ${c}`)
       .join(' | ');
 
-    let text = `🎓 DANH SÁCH XÁC NHẬN HỘI NGỘ 20 NĂM LỚP K8A1 (27/09/2026)\n`;
-    text += `📍 Địa điểm: Crown Palace Thái Nguyên\n`;
+    let text = `🎓 DANH SÁCH XÁC NHẬN HỘI NGỘ 20 NĂM LỚP K8A1\n`;
+    if (eventConfig?.eventDateText) text += `⏰ Thời gian: ${eventConfig.eventDateText}\n`;
+    if (eventConfig?.venueName) text += `📍 Địa điểm: ${eventConfig.venueName}\n`;
     text += `✅ Sĩ số có mặt: ${confirmedAttendees.length} bạn\n`;
     if (shirtSummaryText) {
       text += `👕 Tổng hợp áo: ${shirtSummaryText}\n`;
@@ -144,7 +147,7 @@ export default function ConfirmedAttendees({
             Danh Sách Điểm Danh Lớp K8A1
           </h2>
           <p className="text-xs text-slate-500 font-serif italic">
-            Tự động đồng bộ từ Google Sheets • Hội ngộ Chủ Nhật, 27/09/2026 tại Crown Palace
+            Tự động đồng bộ từ Google Sheets • Hội ngộ 20 Năm Lớp K8A1
           </p>
         </div>
 
@@ -201,8 +204,8 @@ export default function ConfirmedAttendees({
             <Calendar className="w-4 h-4 text-amber-600" />
             <span>Ngày hội ngộ</span>
           </div>
-          <div className="text-xs sm:text-sm font-bold font-sans text-slate-900 pt-0.5">
-            27/09/2026 • Crown Palace
+          <div className="text-xs sm:text-sm font-bold font-sans text-slate-900 pt-0.5 truncate" title={eventConfig?.eventDateText || "Ngày hội ngộ"}>
+            {eventConfig?.eventDateText || "Ngày hội ngộ"}
           </div>
         </div>
       </div>
