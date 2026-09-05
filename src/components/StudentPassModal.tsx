@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData } from '../types';
+import { SHIRT_SIZE_OPTIONS } from '../data';
 
 interface StudentPassModalProps {
   isOpen: boolean;
@@ -293,12 +294,9 @@ export default function StudentPassModal({
                 onChange={(e) => setShirtSize(e.target.value)}
                 className="w-full px-2.5 py-1.5 border border-brand-border rounded bg-white text-xs font-serif font-bold text-brand-text focus:outline-none focus:border-brand-gold cursor-pointer"
               >
-                <option value="S">Size S</option>
-                <option value="M">Size M</option>
-                <option value="L">Size L</option>
-                <option value="XL">Size XL</option>
-                <option value="2XL">Size 2XL</option>
-                <option value="3XL">Size 3XL</option>
+                {SHIRT_SIZE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
           </div>

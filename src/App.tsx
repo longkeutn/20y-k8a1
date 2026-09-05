@@ -426,6 +426,9 @@ export default function App() {
       return updated;
     });
 
+    // Đồng bộ trực tiếp lên Google Apps Script tab "Trang_tinh_1" / "Diem_Danh"
+    syncToBackend('rsvp', newRsvp);
+
     setLatestAction({
       id: `toast-rsvp-${Date.now()}`,
       type: 'rsvp',
@@ -445,7 +448,12 @@ export default function App() {
   const handleAddWish = (newWish: WishData) => {
     const updated = [newWish, ...wishesList];
     setWishesList(updated);
-    localStorage.setItem('wishes_list', JSON.stringify(updated));
+    try {
+      localStorage.setItem('wishes_list', JSON.stringify(updated));
+    } catch (e) {}
+
+    // Đồng bộ trực tiếp lên Google Apps Script tab "Loi_Chuc"
+    syncToBackend('add_wish', newWish);
 
     setLatestAction({
       id: `toast-wish-${Date.now()}`,

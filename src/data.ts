@@ -515,6 +515,24 @@ export function sanitizeVietQrText(text?: any): string {
     .slice(0, 50);
 }
 
+export interface ShirtSizeOption {
+  value: string;
+  label: string;
+  weightHint?: string;
+}
+
+/**
+ * Bảng kích cỡ áo đồng phục polo Hội khóa 20 năm chuẩn hóa thống nhất toàn bộ hệ thống
+ */
+export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
+  { value: 'S', label: 'Size S (Nữ <48kg / Nam <55kg)', weightHint: 'Nữ <48kg / Nam <55kg' },
+  { value: 'M', label: 'Size M (48 - 56kg)', weightHint: '48 - 56kg' },
+  { value: 'L', label: 'Size L (57 - 65kg)', weightHint: '57 - 65kg' },
+  { value: 'XL', label: 'Size XL (66 - 74kg)', weightHint: '66 - 74kg' },
+  { value: '2XL', label: 'Size 2XL (75 - 84kg)', weightHint: '75 - 84kg' },
+  { value: '3XL', label: 'Size 3XL (> 85kg)', weightHint: '> 85kg' }
+];
+
 /**
  * Sinh URL tạo ảnh mã VietQR chuẩn xác, tương thích 100% App Ngân hàng Việt Nam
  */

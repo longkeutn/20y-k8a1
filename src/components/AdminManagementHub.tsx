@@ -74,7 +74,8 @@ import {
   sanitizeVietQrText, 
   GOOGLE_APPS_SCRIPT_CODE,
   CLASS_ROSTER_K8A1,
-  normalizeImageUrl
+  normalizeImageUrl,
+  SHIRT_SIZE_OPTIONS
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 
@@ -636,14 +637,25 @@ export default function AdminManagementHub({
       return;
     }
 
+    const memberPayload: RsvpData = {
+      ...memberFormData,
+      fullName: cleanFullName,
+      phone: cleanPhone,
+      className: memberFormData.className || 'K8A1',
+      shirtSize: memberFormData.shirtSize || 'L',
+      status: memberFormData.status || 'yes',
+      fundStatus: memberFormData.fundStatus || 'unpaid',
+      fundAmount: memberFormData.fundAmount || 500000,
+      fundNote: memberFormData.fundNote || '',
+      message: memberFormData.message || ''
+    };
+
     if (editingMember) {
       const updated = rsvpList.map(item => {
         if ((editingMember.id && item.id === editingMember.id) || String(item.phone || '') === String(editingMember.phone || '')) {
           return {
             ...item,
-            ...memberFormData,
-            fullName: cleanFullName,
-            phone: cleanPhone
+            ...memberPayload
           } as RsvpData;
         }
         return item;
@@ -652,23 +664,26 @@ export default function AdminManagementHub({
       localStorage.setItem('rsvp_list', JSON.stringify(updated));
     } else {
       const newMember: RsvpData = {
+        ...memberPayload,
         id: 'user-' + Date.now(),
-        fullName: memberFormData.fullName!.trim(),
-        nickname: memberFormData.nickname?.trim() || '',
-        phone: memberFormData.phone!.trim(),
-        className: memberFormData.className || 'K8A1',
-        status: memberFormData.status || 'yes',
-        shirtSize: memberFormData.shirtSize || 'L',
-        message: memberFormData.message?.trim() || '',
         submittedAt: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        checkedIn: false,
-        fundStatus: memberFormData.fundStatus || 'unpaid',
-        fundAmount: memberFormData.fundAmount || 500000,
-        fundNote: memberFormData.fundNote || ''
+        checkedIn: false
       };
       const updated = [newMember, ...rsvpList];
       onUpdateRsvpList(updated);
       localStorage.setItem('rsvp_list', JSON.stringify(updated));
+    }
+
+    // Đồng bộ tức thì lên Google Sheet tab "Diem_Danh"
+    if (appsScriptUrl && appsScriptUrl.trim()) {
+      fetch(appsScriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'rsvp',
+          ...memberPayload
+        })
+      }).catch(err => console.warn('Lỗi đồng bộ member lên Google Sheet:', err));
     }
 
     setIsAddMemberModalOpen(false);
@@ -687,6 +702,20 @@ export default function AdminManagementHub({
       });
       onUpdateRsvpList(updated);
       localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+      // Xóa trực tiếp trên Google Sheet tab "Diem_Danh"
+      if (appsScriptUrl && appsScriptUrl.trim()) {
+        fetch(appsScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'delete_rsvp',
+            fullName: attendee.fullName,
+            phone: attendee.phone,
+            rowId: attendee.rowId
+          })
+        }).catch(err => console.warn('Lỗi xóa rsvp trên Google Sheet:', err));
+      }
     }
   };
 
@@ -2548,12 +2577,9 @@ export default function AdminManagementHub({
                     className="hidden sm:block px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
                     <option value="all">Tất cả size áo</option>
-                    <option value="S">Size S</option>
-                    <option value="M">Size M</option>
-                    <option value="L">Size L</option>
-                    <option value="XL">Size XL</option>
-                    <option value="XXL">Size XXL</option>
-                    <option value="3XL">Size 3XL</option>
+                    {SHIRT_SIZE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>Size {opt.value} ({opt.weightHint})</option>
+                    ))}
                   </select>
                 </div>
 
@@ -4875,12 +4901,9 @@ export default function AdminManagementHub({
                       onChange={(e) => setRosterFormData({ ...rosterFormData, shirtSize: e.target.value })}
                       className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
-                      <option value="S">Size S (&lt; 50kg)</option>
-                      <option value="M">Size M (50 - 58kg)</option>
-                      <option value="L">Size L (59 - 68kg)</option>
-                      <option value="XL">Size XL (69 - 78kg)</option>
-                      <option value="2XL">Size 2XL (79 - 88kg)</option>
-                      <option value="3XL">Size 3XL (&gt; 88kg)</option>
+                      {SHIRT_SIZE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -4988,12 +5011,9 @@ export default function AdminManagementHub({
                       onChange={(e) => setMemberFormData({ ...memberFormData, shirtSize: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
-                      <option value="S">Size S (Nữ &lt;48kg / Nam &lt;55kg)</option>
-                      <option value="M">Size M (48-56kg)</option>
-                      <option value="L">Size L (57-65kg)</option>
-                      <option value="XL">Size XL (66-74kg)</option>
-                      <option value="XXL">Size XXL (75-84kg)</option>
-                      <option value="3XL">Size 3XL (&gt;85kg)</option>
+                      {SHIRT_SIZE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
