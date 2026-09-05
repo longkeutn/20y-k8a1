@@ -669,7 +669,13 @@ export default function BankTransfer({
                 ) : (
                   <div className="space-y-3">
                     {effectiveExpenses.map((item, idx) => {
-                      const catConfig = EXPENSE_CATEGORIES[item.category] || EXPENSE_CATEGORIES.other;
+                      const catMeta = EXPENSE_CATEGORIES.find(c => c.id === item.category) || {
+                        label: 'Chi khác',
+                        shortLabel: 'Khác',
+                        badgeBg: 'bg-slate-100',
+                        badgeText: 'text-slate-700',
+                        badgeBorder: 'border-slate-200'
+                      };
                       return (
                         <div 
                           key={item.id || idx}
@@ -677,29 +683,36 @@ export default function BankTransfer({
                         >
                           <div className="space-y-1.5 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className={`inline-flex items-center gap-1 text-[11px] font-sans font-bold px-2 py-0.5 rounded-full ${catConfig.color}`}>
-                                <span>{catConfig.icon}</span>
-                                <span>{catConfig.label}</span>
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-sans font-bold px-2.5 py-0.5 rounded-full border ${catMeta.badgeBg} ${catMeta.badgeText} ${catMeta.badgeBorder}`}>
+                                <span>{catMeta.label}</span>
                               </span>
                               <span className="text-xs text-slate-500 font-sans flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                {item.spentDate || '—'}
+                                {item.date || '—'}
                               </span>
+                              {item.eventScope && (
+                                <span className="text-[10px] font-sans font-medium bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
+                                  {item.eventScope}
+                                </span>
+                              )}
                             </div>
 
                             <h4 className="text-sm font-sans font-bold text-slate-900 leading-snug">
                               {item.title}
                             </h4>
 
-                            {item.description && (
+                            {item.note && (
                               <p className="text-xs text-slate-600 font-sans leading-relaxed">
-                                {item.description}
+                                {item.note}
                               </p>
                             )}
 
-                            {item.paidBy && (
+                            {item.spender && (
                               <p className="text-[11px] text-slate-500 font-sans">
-                                Người thực hiện / chi: <strong className="text-slate-800">{item.paidBy}</strong>
+                                Người thực hiện / chi: <strong className="text-slate-800">{item.spender}</strong>
+                                {item.recipient && (
+                                  <> • Nơi nhận: <span className="text-slate-700 font-medium">{item.recipient}</span></>
+                                )}
                               </p>
                             )}
                           </div>
