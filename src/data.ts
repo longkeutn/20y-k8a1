@@ -990,7 +990,7 @@ function doPost(e) {
       return handleResponse(uploadPhotoToDrive(postData));
     }
 
-    if (action === 'upload_fund_receipt' || action === 'upload_receipt') {
+    if (action === 'upload_fund_receipt' || action === 'upload_receipt' || action === 'upload_expense_receipt') {
       return handleResponse(uploadFundReceiptToDrive(postData));
     }
 
@@ -1716,10 +1716,45 @@ function uploadFundReceiptToDrive(data) {
       rawBase64 = rawBase64.split(',')[1];
     }
     const decoded = Utilities.base64Decode(rawBase64);
-    const cleanName = String(data.fullName || 'ThanhVien').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_');
-    const cleanPhone = String(data.phone || '').replace(/[^0-9]/g, '');
-    const amountStr = data.fundAmount ? '_' + data.fundAmount + 'd' : '';
-    const fileName = 'Bill_' + cleanName + (cleanPhone ? '_' + cleanPhone : '') + amountStr + '_' + Date.now() + '.jpg';
+
+    // Tạo Timestamp định dạng gọn gàng: YYYYMMDD_HHmmss
+    const now = new Date();
+    const pad = function(n) { return n < 10 ? '0' + n : String(n); };
+    const timeStamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+
+    // Hàm chuẩn hóa chuỗi tên file an toàn (loại bỏ dấu tiếng Việt và ký tự đặc biệt)
+    const cleanStr = function(str) {
+      if (!str) return '';
+      return String(str)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+    };
+
+    let fileName = '';
+    const isExpense = data.receiptType === 'chi' || 
+                      data.type === 'expense' || 
+                      data.action === 'upload_expense_receipt' || 
+                      Boolean(data.title);
+
+    if (isExpense) {
+      // 🏷️ ĐẶT TÊN CHO CHỨNG TỪ / HÓA ĐƠN CHI TIÊU (Prefix: Chi_)
+      const cleanCategory = cleanStr(data.category || 'Chi');
+      const cleanTitle = cleanStr(data.title || 'KhoanChi');
+      const amount = Number(data.amount || data.fundAmount) || 0;
+      const amountStr = amount > 0 ? '_' + amount + 'd' : '';
+      fileName = 'Chi_' + (cleanCategory ? cleanCategory + '_' : '') + (cleanTitle || 'KhoanChi') + amountStr + '_' + timeStamp + '.jpg';
+    } else {
+      // 🏷️ ĐẶT TÊN CHO BIÊN LAI / BILL NỘP QUỸ (Prefix: Thu_)
+      const cleanName = cleanStr(data.fullName || 'ThanhVien');
+      const cleanPhone = String(data.phone || '').replace(/[^0-9]/g, '');
+      const amount = Number(data.fundAmount || data.amount) || 0;
+      const amountStr = amount > 0 ? '_' + amount + 'd' : '';
+      fileName = 'Thu_' + (cleanName || 'ThanhVien') + (cleanPhone ? '_' + cleanPhone : '') + amountStr + '_' + timeStamp + '.jpg';
+    }
     
     const blob = Utilities.newBlob(decoded, data.mimeType || 'image/jpeg', fileName);
     const file = receiptFolder.createFile(blob);
@@ -1729,8 +1764,8 @@ function uploadFundReceiptToDrive(data) {
     const cdnUrl = 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600';
     const driveUrl = file.getUrl();
 
-    // 4. Nếu có phone hoặc fullName, tự động đồng bộ vào Sheet RSVP (Cột 13: fundReceiptUrl)
-    if (data.phone || data.fullName) {
+    // 4. Nếu là thu quỹ và có phone hoặc fullName, tự động đồng bộ vào Sheet RSVP (Cột 13: fundReceiptUrl)
+    if (!isExpense && (data.phone || data.fullName)) {
       const targetStatus = data.fundStatus || (data.fundAuditedBy ? 'paid' : 'pending');
       try {
         updateRSVP({
@@ -1751,7 +1786,9 @@ function uploadFundReceiptToDrive(data) {
 
     return {
       status: 'success',
-      message: 'Đã lưu chứng từ nộp quỹ thành công vào thư mục ChungTu_QuyLop_K8A1!',
+      message: isExpense
+        ? 'Đã lưu hóa đơn chi tiêu vào thư mục Drive ChungTu_QuyLop_K8A1!'
+        : 'Đã lưu chứng từ nộp quỹ vào thư mục Drive ChungTu_QuyLop_K8A1!',
       fileId: fileId,
       url: cdnUrl,
       driveUrl: driveUrl,

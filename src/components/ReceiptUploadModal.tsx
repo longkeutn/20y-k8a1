@@ -183,6 +183,7 @@ export default function ReceiptUploadModal({
       try {
         const payload = {
           action: 'upload_fund_receipt',
+          receiptType: 'thu',
           fileData: receiptImage,
           fullName: finalName,
           phone: finalPhone,

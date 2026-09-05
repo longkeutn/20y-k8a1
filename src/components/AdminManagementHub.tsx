@@ -790,6 +790,37 @@ export default function AdminManagementHub({
     try {
       setIsUploadingExpenseReceipt(true);
       const base64Jpeg = await compressImageToJpeg(file, 1600, 0.82);
+
+      const targetUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      if (targetUrl && targetUrl.trim()) {
+        try {
+          const payload = {
+            action: 'upload_expense_receipt',
+            receiptType: 'chi',
+            fileData: base64Jpeg,
+            mimeType: 'image/jpeg',
+            title: expenseFormData.title || 'KhoanChi',
+            category: expenseFormData.category || 'other',
+            amount: expenseFormData.amount || 0,
+            spender: expenseFormData.spender || '',
+            date: expenseFormData.date || new Date().toISOString().split('T')[0]
+          };
+
+          const res = await fetch(targetUrl, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (json.status === 'success' && json.url) {
+            setExpenseFormData(prev => ({ ...prev, receiptUrl: json.url }));
+            setIsUploadingExpenseReceipt(false);
+            return;
+          }
+        } catch (fetchErr) {
+          console.warn('Lỗi tải hóa đơn lên Drive, chuyển sang lưu cục bộ:', fetchErr);
+        }
+      }
+
       setExpenseFormData(prev => ({ ...prev, receiptUrl: base64Jpeg }));
     } catch (err) {
       console.warn('Lỗi nén ảnh chứng từ:', err);
@@ -1247,6 +1278,7 @@ export default function AdminManagementHub({
         try {
           const payload = {
             action: 'upload_fund_receipt',
+            receiptType: 'thu',
             fileData: base64Data,
             mimeType: 'image/jpeg',
             fullName: adjustFundMember?.fullName || 'ThanhVien',
@@ -7122,12 +7154,12 @@ export default function AdminManagementHub({
                     {isUploadingExpenseReceipt ? (
                       <span className="px-3 py-2 bg-amber-50 text-amber-800 border border-amber-300 rounded-xl flex items-center gap-1.5 font-semibold text-xs animate-pulse">
                         <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                        <span>Đang nén ảnh chứng từ...</span>
+                        <span>Đang tải hóa đơn lên Drive ChungTu_QuyLop_K8A1...</span>
                       </span>
                     ) : (
                       <label className="px-3 py-2 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-xl cursor-pointer flex items-center gap-1.5 font-semibold text-xs transition shadow-2xs">
                         <Upload className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Tải ảnh từ máy / Chụp bill</span>
+                        <span>Tải ảnh từ máy / Chụp hóa đơn</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -7139,20 +7171,30 @@ export default function AdminManagementHub({
                   </div>
 
                   {expenseFormData.receiptUrl && (
-                    <div className="mt-2 relative rounded-xl overflow-hidden border border-amber-300 bg-slate-900 h-28 flex items-center justify-center group">
-                      <img
-                        src={expenseFormData.receiptUrl}
-                        alt="Ảnh hóa đơn"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setExpenseFormData(prev => ({ ...prev, receiptUrl: '' }))}
-                        className="absolute top-2 right-2 p-1 bg-black/60 hover:bg-rose-600 text-white rounded-full transition cursor-pointer"
-                        title="Xóa ảnh này"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                    <div className="mt-2 space-y-1">
+                      <div className="relative rounded-xl overflow-hidden border border-amber-300 bg-slate-900 h-28 flex items-center justify-center group">
+                        <img
+                          src={expenseFormData.receiptUrl}
+                          alt="Ảnh hóa đơn"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setExpenseFormData(prev => ({ ...prev, receiptUrl: '' }))}
+                          className="absolute top-2 right-2 p-1 bg-black/60 hover:bg-rose-600 text-white rounded-full transition cursor-pointer"
+                          title="Xóa ảnh này"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 font-mono truncate">
+                        {expenseFormData.receiptUrl.startsWith('http') ? (
+                          <span className="text-emerald-700 flex items-center gap-1 font-sans font-semibold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />
+                            Đã lưu trữ an toàn trên Google Drive (ChungTu_QuyLop_K8A1)
+                          </span>
+                        ) : 'Ảnh đính kèm cục bộ (Base64)'}
+                      </p>
                     </div>
                   )}
 
