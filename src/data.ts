@@ -1,4 +1,4 @@
-import { RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember } from './types';
+import { RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem } from './types';
 
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
@@ -192,6 +192,150 @@ export const INITIAL_WISHES_LIST: WishData[] = [
 export const DEFAULT_MEMORIES: MemoryImage[] = [];
 
 export const DEFAULT_VIDEOS: MemoryVideo[] = [];
+
+// ============================================================================
+// DANH MỤC & DỮ LIỆU SỔ QUỸ THU - CHI LỚP K8A1 (CHUẨN THEO QUY CHẾ ĐIỀU 3 & 4)
+// ============================================================================
+
+export interface ExpenseCategoryMeta {
+  id: ExpenseCategory;
+  label: string;
+  shortLabel: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  description: string;
+}
+
+export const EXPENSE_CATEGORIES: ExpenseCategoryMeta[] = [
+  {
+    id: 'care',
+    label: 'Hiếu Hỷ & Thăm Hỏi',
+    shortLabel: 'Hiếu hỷ',
+    badgeBg: 'bg-rose-50',
+    badgeText: 'text-rose-700',
+    badgeBorder: 'border-rose-200',
+    description: 'Thăm viếng tứ thân phụ mẫu (500k), thăm hỏi ốm đau/tai nạn (300k), việc hỷ theo Quy chế'
+  },
+  {
+    id: 'teacher',
+    label: 'Tri Ân Thầy Cô',
+    shortLabel: 'Tri ân',
+    badgeBg: 'bg-purple-50',
+    badgeText: 'text-purple-700',
+    badgeBorder: 'border-purple-200',
+    description: 'Hoa tươi & quà tặng tri ân các thầy cô giáo cũ dịp 20/11, Tết Nguyên Đán, ngày họp lớp'
+  },
+  {
+    id: 'party',
+    label: 'Tiệc & Sự Kiện Gặp Mặt',
+    shortLabel: 'Tiệc & Sự kiện',
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-800',
+    badgeBorder: 'border-emerald-200',
+    description: 'Đặt cọc & thanh toán tiệc Crown Palace, ẩm thực, đồ uống, liên hoan gặp mặt định kỳ'
+  },
+  {
+    id: 'souvenir',
+    label: 'Đồng Phục & Kỷ Niệm',
+    shortLabel: 'Đồng phục & Quà',
+    badgeBg: 'bg-blue-50',
+    badgeText: 'text-blue-700',
+    badgeBorder: 'border-blue-200',
+    description: 'Áo polo đồng phục 20 năm K8A1, thẻ cựu học sinh kỷ niệm, quà lưu niệm'
+  },
+  {
+    id: 'media',
+    label: 'Sân Khấu & Truyền Thông',
+    shortLabel: 'Sân khấu & Media',
+    badgeBg: 'bg-amber-50',
+    badgeText: 'text-amber-800',
+    badgeBorder: 'border-amber-200',
+    description: 'In ấn backdrop sân khấu, âm thanh ánh sáng, quay chụp phóng sự kỷ niệm, duy trì webapp'
+  },
+  {
+    id: 'other',
+    label: 'Chi Khác & Dự Phòng',
+    shortLabel: 'Khác',
+    badgeBg: 'bg-slate-100',
+    badgeText: 'text-slate-700',
+    badgeBorder: 'border-slate-200',
+    description: 'Nước suối, đạo cụ trò chơi, chi phí phát sinh chuẩn bị'
+  }
+];
+
+export const INITIAL_EXPENSES_LIST: ExpenseItem[] = [
+  {
+    id: 'exp-01',
+    title: 'Đặt cọc sảnh tiệc Hội trường Crown Palace Thái Nguyên',
+    category: 'party',
+    amount: 5000000,
+    date: '15/08/2026',
+    spender: 'Bùi Thành Long',
+    recipient: 'Trung tâm Tiệc cưới Crown Palace Thái Nguyên',
+    receiptUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
+    eventScope: 'Kỷ niệm 20 năm',
+    note: 'Đặt cọc giữ chỗ sảnh tiệc trưa ngày 27/09/2026 (dự kiến 40-45 suất tiệc VIP)',
+    createdAt: '2026-08-15T09:00:00.000Z'
+  },
+  {
+    id: 'exp-02',
+    title: 'Đặt may & in ấn 45 áo polo đồng phục 20 năm K8A1',
+    category: 'souvenir',
+    amount: 6750000,
+    date: '20/08/2026',
+    spender: 'Huyền Trang B',
+    recipient: 'Xưởng may đồng phục Thái Nguyên',
+    receiptUrl: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?auto=format&fit=crop&w=800&q=80',
+    eventScope: 'Kỷ niệm 20 năm',
+    note: 'May 45 áo polo cá sấu cao cấp thêu logo 20 năm K8A1 theo bảng size đã đăng ký',
+    createdAt: '2026-08-20T14:30:00.000Z'
+  },
+  {
+    id: 'exp-03',
+    title: 'In ấn Backdrop check-in, sân khấu & 45 Thẻ học sinh lưu niệm',
+    category: 'media',
+    amount: 2500000,
+    date: '28/08/2026',
+    spender: 'Nguyễn Tuấn Thành',
+    recipient: 'Quảng cáo & In ấn Thái Nguyên',
+    receiptUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
+    eventScope: 'Kỷ niệm 20 năm',
+    note: 'Backdrop bạt hiflex căng khung sắt + 45 thẻ học sinh K8A1 kèm dây đeo cổ',
+    createdAt: '2026-08-28T16:00:00.000Z'
+  },
+  {
+    id: 'exp-04',
+    title: 'Đặt 5 giỏ hoa tươi & quà tặng tri ân Thầy Cô giáo cũ',
+    category: 'teacher',
+    amount: 3000000,
+    date: '01/09/2026',
+    spender: 'Hứa Thị Vân Anh',
+    recipient: 'Tiệm hoa tươi Thái Nguyên',
+    eventScope: 'Kỷ niệm 20 năm',
+    note: 'Tri ân thầy cô giáo chủ nhiệm và các thầy cô bộ môn gắn bó cùng lớp K8A1',
+    createdAt: '2026-09-01T10:00:00.000Z'
+  }
+];
+
+export const SPONSORS_LIST: SponsorItem[] = [
+  {
+    id: 'sp-1',
+    name: 'Lê Hoàng Nam',
+    className: 'K8A1',
+    amount: 500000,
+    note: 'Ủng hộ thêm quỹ lớp cho ngày hội ngộ 20 năm thêm tưng bừng',
+    date: '02/09/2026'
+  },
+  {
+    id: 'sp-2',
+    name: 'Nguyễn Tuấn Anh',
+    className: 'K8A1',
+    amount: 500000,
+    note: 'Góp thêm vào quỹ nước uống & đạo cụ trò chơi anh em',
+    date: '01/09/2026'
+  }
+];
 
 export interface BankItem {
   code: string;       // VietQR identifier / short code
@@ -663,7 +807,9 @@ const CONFIG = {
   // Tên trang tính lưu danh sách video và media địa điểm
   MEDIA_SHEET_NAME: "Media_Cai_Dat",
   // Tên trang tính đếm lượt truy cập
-  VIEW_COUNTER_SHEET_NAME: "Luot_Truy_Cap"
+  VIEW_COUNTER_SHEET_NAME: "Luot_Truy_Cap",
+  // Tên trang tính lưu các khoản chi tiêu quỹ lớp (Sổ chi)
+  EXPENSES_SHEET_NAME: "Khoan_Chi"
 };
 
 // Chuẩn hóa phản hồi JSON cho WebApp (CORS tự động xử lý bởi Google Apps Script)
@@ -682,6 +828,11 @@ function doGet(e) {
     // 1. Đồng bộ toàn bộ dữ liệu chỉ trong 1 request duy nhất (Single Source of Truth)
     if (action === 'get_all_data' || action === 'all' || action === 'sync') {
       return handleResponse(getAllData());
+    }
+
+    // 1b. Lấy danh sách chi tiêu quỹ lớp
+    if (action === 'get_expenses' || action === 'get_expense_list') {
+      return handleResponse(getExpensesList());
     }
 
     // 2. Lấy cấu hình sự kiện
@@ -794,6 +945,11 @@ function doPost(e) {
 
     if (action === 'update_fund' || action === 'update_rsvp') {
       return handleResponse(updateRSVP(postData));
+    }
+
+    // Quản lý chi tiêu quỹ lớp (Sheet: "Khoan_Chi")
+    if (action === 'save_expenses' || action === 'update_expenses') {
+      return handleResponse(saveExpensesList(postData));
     }
 
     if (action === 'add_wish') {
@@ -2063,6 +2219,80 @@ function deleteClassMember(postData) {
 
 /**
  * -------------------------------------------------------------
+ * 3E. QUẢN LÝ SỔ CHI TIÊU QUỸ LỚP (Sheet: "Khoan_Chi")
+ * -------------------------------------------------------------
+ */
+function getExpensesList() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.EXPENSES_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.EXPENSES_SHEET_NAME);
+      sheet.appendRow(['ID', 'Tiêu đề khoản chi', 'Nhóm chi', 'Số tiền', 'Ngày chi', 'Người chi', 'Người nhận/Đơn vị', 'Ảnh hóa đơn', 'Phạm vi sự kiện', 'Ghi chú', 'Thời gian tạo']);
+      return { status: 'success', data: [] };
+    }
+    const rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) return { status: 'success', data: [] };
+    const list = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r[0] && !r[1]) continue;
+      list.push({
+        id: String(r[0] || ''),
+        title: String(r[1] || ''),
+        category: String(r[2] || 'other'),
+        amount: Number(r[3]) || 0,
+        date: String(r[4] || ''),
+        spender: String(r[5] || ''),
+        recipient: String(r[6] || ''),
+        receiptUrl: String(r[7] || ''),
+        eventScope: String(r[8] || ''),
+        note: String(r[9] || ''),
+        createdAt: String(r[10] || '')
+      });
+    }
+    return { status: 'success', data: list };
+  } catch (err) {
+    return { status: 'error', message: err.toString(), data: [] };
+  }
+}
+
+function saveExpensesList(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.EXPENSES_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.EXPENSES_SHEET_NAME);
+    }
+    sheet.clearContents();
+    sheet.appendRow(['ID', 'Tiêu đề khoản chi', 'Nhóm chi', 'Số tiền', 'Ngày chi', 'Người chi', 'Người nhận/Đơn vị', 'Ảnh hóa đơn', 'Phạm vi sự kiện', 'Ghi chú', 'Thời gian tạo']);
+    const expenses = Array.isArray(postData.expenses) ? postData.expenses : (postData.data || []);
+    if (expenses.length > 0) {
+      const rows = expenses.map(function(item, idx) {
+        return [
+          item.id || ('exp-' + (Date.now() + idx)),
+          item.title || '',
+          item.category || 'other',
+          Number(item.amount) || 0,
+          item.date || '',
+          item.spender || '',
+          item.recipient || '',
+          item.receiptUrl || '',
+          item.eventScope || '',
+          item.note || '',
+          item.createdAt || new Date().toISOString()
+        ];
+      });
+      sheet.getRange(2, 1, rows.length, 11).setValues(rows);
+    }
+    return { status: 'success', message: 'Đã lưu danh sách chi tiêu quỹ lớp thành công!' };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+/**
+ * -------------------------------------------------------------
  * 4. TOÀN BỘ CƠ SỞ DỮ LIỆU ĐỒNG BỘ 1 LỆNH (SINGLE SOURCE OF TRUTH)
  * -------------------------------------------------------------
  */
@@ -2075,6 +2305,7 @@ function getAllData() {
     const roster = (getClassRoster() || {}).data || [];
     const viewCount = (getViewCount() || {}).count || 1258;
     const drivePhotos = (getDrivePhotos() || {}).data || [];
+    const expenses = (getExpensesList() || {}).data || [];
 
     return {
       status: 'success',
@@ -2085,7 +2316,8 @@ function getAllData() {
         media: media,
         roster: roster,
         viewCount: viewCount,
-        drivePhotos: drivePhotos
+        drivePhotos: drivePhotos,
+        expenses: expenses
       }
     };
   } catch (err) {

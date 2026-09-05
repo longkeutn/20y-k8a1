@@ -22,8 +22,8 @@ import {
   ScrollText
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi } from './data';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from './types';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, INITIAL_EXPENSES_LIST, normalizeImageUrl, formatDateTimeVi } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -357,6 +357,33 @@ export default function App() {
     }
   });
 
+  // Helper chuẩn hóa dữ liệu khoản chi tiêu quỹ lớp, chống crash dữ liệu
+  const sanitizeExpense = (item: any, idx: number): ExpenseItem => ({
+    id: item.id ? String(item.id) : ('exp-' + (Date.now() + idx)),
+    title: String(item.title || '').trim(),
+    category: (item.category || 'other') as ExpenseCategory,
+    amount: Number(item.amount) || 0,
+    date: String(item.date || '').trim(),
+    spender: String(item.spender || '').trim(),
+    recipient: item.recipient ? String(item.recipient).trim() : '',
+    receiptUrl: item.receiptUrl ? String(item.receiptUrl).trim() : '',
+    eventScope: item.eventScope ? String(item.eventScope).trim() : 'Kỷ niệm 20 năm',
+    note: item.note ? String(item.note).trim() : '',
+    createdAt: item.createdAt ? String(item.createdAt) : new Date().toISOString()
+  });
+
+  // Sổ Chi Tiêu Quỹ Lớp (Khoan_Chi) - Quản lý thu chi minh bạch theo Quy chế Điều 3 & 4
+  const [expenses, setExpenses] = useState<ExpenseItem[]>(() => {
+    try {
+      const local = localStorage.getItem('k8a1_expenses_list');
+      if (!local) return INITIAL_EXPENSES_LIST;
+      const parsed = JSON.parse(local);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed.map(sanitizeExpense) : INITIAL_EXPENSES_LIST;
+    } catch {
+      return INITIAL_EXPENSES_LIST;
+    }
+  });
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLegacyAdminPanel, setShowLegacyAdminPanel] = useState(false);
   const [latestAction, setLatestAction] = useState<ActivityToast | null>(null);
@@ -527,7 +554,45 @@ export default function App() {
     syncToBackend('save_config', { config: nextConfig });
   };
 
-  // Nạp toàn bộ dữ liệu từ Google Sheet & Google Drive (Single Source of Truth)
+  // Quản lý Sổ Chi Tiêu Quỹ Lớp (Khoan_Chi)
+  const handleAddExpense = (newExpense: ExpenseItem) => {
+    const clean = sanitizeExpense(newExpense, 0);
+    const updated = [clean, ...expenses];
+    setExpenses(updated);
+    try {
+      localStorage.setItem('k8a1_expenses_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_expenses', { expenses: updated });
+  };
+
+  const handleUpdateExpense = (updatedExpense: ExpenseItem) => {
+    const clean = sanitizeExpense(updatedExpense, 0);
+    const updated = expenses.map(e => e.id === clean.id ? clean : e);
+    setExpenses(updated);
+    try {
+      localStorage.setItem('k8a1_expenses_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_expenses', { expenses: updated });
+  };
+
+  const handleDeleteExpense = (id: string) => {
+    const updated = expenses.filter(e => e.id !== id);
+    setExpenses(updated);
+    try {
+      localStorage.setItem('k8a1_expenses_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_expenses', { expenses: updated });
+  };
+
+  const handleSaveAllExpenses = (newList: ExpenseItem[]) => {
+    const clean = newList.map(sanitizeExpense);
+    setExpenses(clean);
+    try {
+      localStorage.setItem('k8a1_expenses_list', JSON.stringify(clean));
+    } catch (e) {}
+    syncToBackend('save_expenses', { expenses: clean });
+  };
+
   // Nạp toàn bộ dữ liệu từ Google Sheet & Google Drive (Single Source of Truth)
   const hydrateAllData = async (targetUrl: string = activeAppsScriptUrl) => {
     if (!targetUrl || !targetUrl.startsWith('http')) return;
@@ -637,6 +702,13 @@ export default function App() {
               }));
               setImages(embPhotos);
               try { localStorage.setItem('uploaded_images', JSON.stringify(embPhotos)); } catch (e) {}
+            }
+
+            // G. Đồng bộ Sổ Chi Tiêu Quỹ Lớp từ Google Sheet (tab "Khoan_Chi")
+            if (Array.isArray(result.data.expenses) && result.data.expenses.length > 0) {
+              const cleanExp = result.data.expenses.map((item: any, idx: number) => sanitizeExpense(item, idx));
+              setExpenses(cleanExp);
+              try { localStorage.setItem('k8a1_expenses_list', JSON.stringify(cleanExp)); } catch (e) {}
             }
           }
         } catch (err) {
@@ -1109,6 +1181,7 @@ export default function App() {
                 qrTemplate={eventConfig.qrTemplate}
                 appsScriptUrl={activeAppsScriptUrl}
                 rsvpList={rsvpList}
+                expenses={expenses}
                 activeMember={activeMember}
                 onOpenReceiptModal={handleOpenReceiptModal}
                 onOpenCharterModal={() => setIsCharterModalOpen(true)}
@@ -1284,6 +1357,11 @@ export default function App() {
           eventConfig={eventConfig}
           onUpdateEventConfig={handleUpdateEventConfig}
           appsScriptUrl={activeAppsScriptUrl}
+          expenses={expenses}
+          onAddExpense={handleAddExpense}
+          onUpdateExpense={handleUpdateExpense}
+          onDeleteExpense={handleDeleteExpense}
+          onSaveAllExpenses={handleSaveAllExpenses}
           onSaveAppsScriptUrl={(url) => {
             setAppsScriptUrl(url);
             if (url) {

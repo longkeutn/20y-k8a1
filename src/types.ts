@@ -192,4 +192,32 @@ export interface EventConfig {
   heroBannerPosition?: number;
 }
 
+export type ExpenseCategory = 
+  | 'care'       // Hiếu hỷ & Thăm hỏi (theo quy chế: thăm viếng phụ mẫu 500k, ốm đau 300k...)
+  | 'teacher'    // Tri ân Thầy Cô (20/11, Tết, quà kỷ niệm...)
+  | 'party'      // Tiệc & Sự kiện gặp mặt (Crown Palace, đồ uống, liên hoan định kỳ...)
+  | 'souvenir'   // Đồng phục & Kỷ niệm (Áo polo K8A1, thẻ học sinh, kỷ yếu...)
+  | 'media'      // Sân khấu & Truyền thông (Backdrop, âm thanh, quay chụp phóng sự, webapp...)
+  | 'other';     // Chi khác & Dự phòng (Đạo cụ, nước suối, vật phẩm chung...)
+
+export type IncomeCategory = 
+  | 'event'        // Thu sự kiện họp lớp (500k/bạn)
+  | 'annual'       // Quỹ thường niên định kỳ (100k/người/năm theo Điều 4 Quy chế)
+  | 'sponsor'      // Ủng hộ & Tài trợ của mạnh thường quân
+  | 'other_income';// Thu khác (Lãi ngân hàng, chuyển kỳ trước...)
+
+export interface ExpenseItem {
+  id: string;                      // Mã khoản chi (vd: 'exp-1725500000000')
+  title: string;                   // Tên khoản chi (vd: "Đặt cọc tiệc Crown Palace", "Phúng viếng phụ mẫu bạn Tuấn Thành")
+  category: ExpenseCategory;       // Phân loại nhóm chi chuẩn quy chế
+  amount: number;                  // Số tiền chi (VNĐ)
+  date: string;                    // Ngày thực hiện chi (YYYY-MM-DD hoặc DD/MM/YYYY)
+  spender: string;                 // Người thực hiện chi / phụ trách chi
+  recipient?: string;              // Người nhận / Đơn vị thụ hưởng (vd: "Gia đình bạn A", "Nhà hàng Crown Palace")
+  receiptUrl?: string;             // Link ảnh hóa đơn / bill chuyển tiền
+  eventScope?: string;             // Phạm vi sự kiện (vd: "Kỷ niệm 20 năm", "Thường niên 2026", "20/11/2026")
+  note?: string;                   // Ghi chú chi tiết
+  createdAt?: string;              // Thời gian tạo bản ghi
+}
+
 

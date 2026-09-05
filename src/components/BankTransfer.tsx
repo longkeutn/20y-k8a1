@@ -6,16 +6,26 @@ import {
   HelpCircle, 
   Upload, 
   Receipt, 
-  Maximize2,
-  Download,
-  X,
-  QrCode,
-  Sparkles,
-  UserCheck,
-  ScrollText
+  Maximize2, 
+  Download, 
+  X, 
+  QrCode, 
+  Sparkles, 
+  UserCheck, 
+  ScrollText,
+  Eye,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  Calendar,
+  ChevronRight,
+  ShieldCheck,
+  FileText,
+  Image as ImageIcon,
+  ArrowUpRight
 } from 'lucide-react';
-import { RsvpData, ClassMember } from '../types';
-import { generateVietQrUrl } from '../data';
+import { RsvpData, ClassMember, ExpenseItem } from '../types';
+import { generateVietQrUrl, INITIAL_EXPENSES_LIST, EXPENSE_CATEGORIES } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
@@ -29,6 +39,7 @@ interface BankTransferProps {
   qrTemplate?: 'compact' | 'compact2' | 'qr_only';
   appsScriptUrl?: string;
   rsvpList?: RsvpData[];
+  expenses?: ExpenseItem[];
   activeMember?: ClassMember | null;
   onUpdateRsvpList?: (list: RsvpData[]) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
@@ -46,6 +57,7 @@ export default function BankTransfer({
   qrTemplate = "compact",
   appsScriptUrl = "",
   rsvpList = [],
+  expenses = [],
   activeMember,
   onUpdateRsvpList,
   onOpenReceiptModal,
@@ -58,6 +70,9 @@ export default function BankTransfer({
   const [copiedSyntax, setCopiedSyntax] = useState(false);
   const [isLocalModalOpen, setIsLocalModalOpen] = useState(false);
   const [isZoomQrOpen, setIsZoomQrOpen] = useState(false);
+  const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
+  const [ledgerTab, setLedgerTab] = useState<'expense' | 'income'>('expense');
+  const [viewingPublicReceipt, setViewingPublicReceipt] = useState<string | null>(null);
 
   // Chuẩn hóa an toàn tuyệt đối các biến cấu hình tài khoản
   const accountStr = String(bankAccount || '10123456789');
@@ -84,6 +99,25 @@ export default function BankTransfer({
   });
 
   const qrUrl = customQrUrl && String(customQrUrl).trim() !== '' ? String(customQrUrl) : dynamicQrUrl;
+
+  // Danh sách các khoản chi (ưu tiên prop expenses, fallback INITIAL_EXPENSES_LIST)
+  const effectiveExpenses: ExpenseItem[] = Array.isArray(expenses) && expenses.length > 0
+    ? expenses
+    : INITIAL_EXPENSES_LIST;
+
+  // Tính tổng thu từ rsvpList
+  const paidAttendees = (rsvpList || []).filter(r => r.paid);
+  const totalIncome = paidAttendees.reduce((sum, r) => {
+    const verified = Number(r.verifiedAmount);
+    if (!isNaN(verified) && verified > 0) return sum + verified;
+    return sum + (Number(r.paidAmount) || fundAmountNum);
+  }, 0);
+
+  // Tính tổng chi từ effectiveExpenses
+  const totalExpense = effectiveExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+  // Số dư quỹ = Thu - Chi
+  const fundBalance = totalIncome - totalExpense;
 
   const copyToClipboard = (text: any, type: 'account' | 'syntax') => {
     navigator.clipboard.writeText(String(text || ''));
@@ -307,6 +341,76 @@ export default function BankTransfer({
         </div>
       </div>
 
+      {/* MINH BẠCH TÀI CHÍNH QUỸ LỚP */}
+      <div className="bg-gradient-to-br from-white to-amber-50/50 border border-amber-200/90 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-sans font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-amber-700" />
+                Minh Bạch Quỹ Lớp K8A1
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" /> Công khai
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 font-sans">
+              Công khai thu chi định kỳ & sự kiện 20 năm theo Quy chế Hoạt động Lớp
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsLedgerModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-950 font-sans font-bold text-xs rounded-xl border border-amber-300/80 transition cursor-pointer shadow-2xs hover:shadow-xs self-start sm:self-auto"
+          >
+            <Eye className="w-3.5 h-3.5 text-amber-800" />
+            <span>Xem Sổ Thu — Chi Minh Bạch</span>
+            <ChevronRight className="w-3.5 h-3.5 text-amber-700" />
+          </button>
+        </div>
+
+        {/* 3 Master Stats */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-1">
+          {/* Tổng Thu */}
+          <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-emerald-200/80 shadow-2xs">
+            <span className="text-[10px] sm:text-[11px] font-sans font-semibold text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-emerald-600 shrink-0" />
+              <span className="truncate">Tổng Thu ({paidAttendees.length} bạn)</span>
+            </span>
+            <p className="text-xs sm:text-base font-bold font-mono text-emerald-800 mt-1 truncate">
+              {totalIncome.toLocaleString('vi-VN')} <span className="text-[10px] font-normal">đ</span>
+            </p>
+          </div>
+
+          {/* Tổng Chi */}
+          <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-rose-200/80 shadow-2xs">
+            <span className="text-[10px] sm:text-[11px] font-sans font-semibold text-rose-700 uppercase tracking-wider flex items-center gap-1">
+              <TrendingDown className="w-3 h-3 text-rose-600 shrink-0" />
+              <span className="truncate">Tổng Chi ({effectiveExpenses.length} mục)</span>
+            </span>
+            <p className="text-xs sm:text-base font-bold font-mono text-rose-800 mt-1 truncate">
+              {totalExpense.toLocaleString('vi-VN')} <span className="text-[10px] font-normal">đ</span>
+            </p>
+          </div>
+
+          {/* Số Dư Quỹ */}
+          <div className={`p-2.5 sm:p-3 rounded-xl border shadow-2xs ${
+            fundBalance >= 0 ? 'bg-amber-50/70 border-amber-300/80' : 'bg-rose-50/70 border-rose-300/80'
+          }`}>
+            <span className="text-[10px] sm:text-[11px] font-sans font-semibold text-amber-900 uppercase tracking-wider flex items-center gap-1">
+              <Wallet className="w-3 h-3 text-amber-700 shrink-0" />
+              <span className="truncate">Số Dư Quỹ</span>
+            </span>
+            <p className={`text-xs sm:text-base font-bold font-mono mt-1 truncate ${
+              fundBalance >= 0 ? 'text-amber-950 font-black' : 'text-rose-700'
+            }`}>
+              {fundBalance.toLocaleString('vi-VN')} <span className="text-[10px] font-normal">đ</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* COMPACT & ELEGANT ACTION FOOTER STRIP */}
       <div className="pt-4 border-t border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-[#FAF8F5] to-[#F5EFE6] -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 p-4 sm:p-5 rounded-b-2xl sm:rounded-b-3xl">
         <div className="flex items-center gap-2.5 text-left">
@@ -462,6 +566,271 @@ export default function BankTransfer({
           rsvpList={rsvpList}
           onUpdateRsvpList={onUpdateRsvpList}
         />
+      )}
+
+      {/* ======================================================== */}
+      {/* 📊 SỔ THU CHI MINH BẠCH MODAL DÀNH CHO CẢ LỚP */}
+      {/* ======================================================== */}
+      {isLedgerModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200"
+          onClick={() => setIsLedgerModalOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-amber-200 overflow-hidden animate-in zoom-in-95 duration-200 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-6 bg-gradient-to-r from-amber-50 via-white to-amber-50/50 border-b border-amber-200/80 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-900 border border-amber-300/60 flex items-center justify-center shrink-0">
+                  <Wallet className="w-5 h-5 text-amber-700" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-serif font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>Sổ Quỹ K8A1 — Thu & Chi Minh Bạch</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 font-sans">
+                    Công khai mọi khoản thu và chi tiêu thực tế của lớp K8A1 THPT Thái Nguyên
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsLedgerModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer transition-colors shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 3 Summary Stats Strip */}
+            <div className="bg-[#FAF9F6] border-b border-amber-200/60 px-4 py-3 sm:px-6 grid grid-cols-3 gap-2 sm:gap-4 shrink-0">
+              <div className="text-center sm:text-left">
+                <span className="text-[10px] font-sans font-bold uppercase text-emerald-700 tracking-wider">Tổng Thu</span>
+                <p className="text-xs sm:text-sm font-bold font-mono text-emerald-800">
+                  {totalIncome.toLocaleString('vi-VN')} đ
+                </p>
+                <span className="text-[10px] text-slate-400">({paidAttendees.length} bạn đã nộp)</span>
+              </div>
+              <div className="text-center sm:text-left">
+                <span className="text-[10px] font-sans font-bold uppercase text-rose-700 tracking-wider">Tổng Chi</span>
+                <p className="text-xs sm:text-sm font-bold font-mono text-rose-800">
+                  {totalExpense.toLocaleString('vi-VN')} đ
+                </p>
+                <span className="text-[10px] text-slate-400">({effectiveExpenses.length} khoản chi)</span>
+              </div>
+              <div className="text-center sm:text-left">
+                <span className="text-[10px] font-sans font-bold uppercase text-amber-900 tracking-wider">Số Dư Quỹ</span>
+                <p className={`text-xs sm:text-sm font-bold font-mono ${fundBalance >= 0 ? 'text-amber-900' : 'text-rose-700'}`}>
+                  {fundBalance.toLocaleString('vi-VN')} đ
+                </p>
+                <span className="text-[10px] text-slate-400">({fundBalance >= 0 ? 'Dư quỹ' : 'Thiếu hụt'})</span>
+              </div>
+            </div>
+
+            {/* Tab Switcher */}
+            <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-slate-100 flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setLedgerTab('expense')}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-sans font-bold transition cursor-pointer ${
+                  ledgerTab === 'expense'
+                    ? 'bg-rose-100 text-rose-900 shadow-2xs border border-rose-300/80'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TrendingDown className="w-3.5 h-3.5 text-rose-600" />
+                <span>Các Khoản Chi ({effectiveExpenses.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLedgerTab('income')}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-sans font-bold transition cursor-pointer ${
+                  ledgerTab === 'income'
+                    ? 'bg-emerald-100 text-emerald-900 shadow-2xs border border-emerald-300/80'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Danh Sách Đóng Quỹ ({paidAttendees.length})</span>
+              </button>
+            </div>
+
+            {/* Modal Body - Scrollable Content */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-3">
+              {ledgerTab === 'expense' ? (
+                effectiveExpenses.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 text-sm font-sans">
+                    Chưa có khoản chi tiêu nào được ghi nhận.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {effectiveExpenses.map((item, idx) => {
+                      const catConfig = EXPENSE_CATEGORIES[item.category] || EXPENSE_CATEGORIES.other;
+                      return (
+                        <div 
+                          key={item.id || idx}
+                          className="bg-[#FAF9F6] border border-amber-200/70 rounded-2xl p-3.5 sm:p-4 hover:border-amber-400/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                        >
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-sans font-bold px-2 py-0.5 rounded-full ${catConfig.color}`}>
+                                <span>{catConfig.icon}</span>
+                                <span>{catConfig.label}</span>
+                              </span>
+                              <span className="text-xs text-slate-500 font-sans flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {item.spentDate || '—'}
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm font-sans font-bold text-slate-900 leading-snug">
+                              {item.title}
+                            </h4>
+
+                            {item.description && (
+                              <p className="text-xs text-slate-600 font-sans leading-relaxed">
+                                {item.description}
+                              </p>
+                            )}
+
+                            {item.paidBy && (
+                              <p className="text-[11px] text-slate-500 font-sans">
+                                Người thực hiện / chi: <strong className="text-slate-800">{item.paidBy}</strong>
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 border-slate-200/60 pt-2 sm:pt-0">
+                            <span className="text-base sm:text-lg font-bold font-mono text-rose-700">
+                              -{Number(item.amount || 0).toLocaleString('vi-VN')} đ
+                            </span>
+
+                            {item.receiptUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setViewingPublicReceipt(item.receiptUrl || null)}
+                                className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-2.5 py-1 rounded-lg border border-amber-300/80 transition cursor-pointer"
+                              >
+                                <ImageIcon className="w-3 h-3 text-amber-700" />
+                                <span>Xem Hóa Đơn</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                paidAttendees.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 text-sm font-sans">
+                    Chưa có bạn nào hoàn thành đóng quỹ.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {paidAttendees.map((att, idx) => {
+                      const amount = Number(att.verifiedAmount) || Number(att.paidAmount) || fundAmountNum;
+                      return (
+                        <div 
+                          key={att.id || idx}
+                          className="bg-[#FAF9F6] border border-emerald-200/70 rounded-xl p-3 flex items-center justify-between gap-2 shadow-2xs"
+                        >
+                          <div className="min-w-0 space-y-0.5">
+                            <p className="text-xs sm:text-sm font-sans font-bold text-slate-900 truncate">
+                              {idx + 1}. {att.fullName} {att.nickname ? `(“${att.nickname}”)` : ''}
+                            </p>
+                            <p className="text-[11px] text-slate-500 font-sans">
+                              {att.paidAt ? new Date(att.paidAt).toLocaleDateString('vi-VN') : 'Đã xác nhận'}
+                            </p>
+                          </div>
+                          <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
+                            +{amount.toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* Modal Footer Note */}
+            <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600 font-sans shrink-0">
+              <p className="italic text-center sm:text-left">
+                Mọi khoản thu chi được thực hiện công khai, minh bạch theo Quy chế Hoạt động Lớp K8A1.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsLedgerModalOpen(false)}
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 🖼️ PUBLIC RECEIPT LIGHTBOX MODAL */}
+      {/* ======================================================== */}
+      {viewingPublicReceipt && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setViewingPublicReceipt(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-amber-200 space-y-4 animate-in zoom-in-95 duration-200 text-left relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-amber-700" />
+                <h4 className="text-sm font-bold text-slate-900 font-sans">
+                  Hóa Đơn / Chứng Từ Khoản Chi
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingPublicReceipt(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-auto rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center p-2">
+              <img 
+                src={viewingPublicReceipt} 
+                alt="Hóa đơn chứng từ"
+                className="max-h-[55vh] w-auto object-contain rounded-lg"
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <a
+                href={viewingPublicReceipt}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-amber-800 hover:text-amber-950 font-bold"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+                <span>Mở ảnh gốc trong tab mới</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setViewingPublicReceipt(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
