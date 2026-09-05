@@ -335,7 +335,7 @@ export default function App() {
       </div>
 
       {/* Main Container */}
-      <main className="w-full max-w-4xl px-3 sm:px-4 pt-5 md:pt-7 space-y-12">
+      <main className="w-full max-w-4xl px-3 sm:px-4 pt-4 md:pt-6 space-y-10">
         
         {showLegacyAdminPanel ? (
           <motion.div
@@ -360,101 +360,111 @@ export default function App() {
             />
           </motion.div>
         ) : (
-          <div className="space-y-14">
+          <div className="space-y-12">
 
             {/* ======================================================== */}
-            {/* 🌟 PHÂN VÙNG 1: CINEMATIC HERO POSTER & THIỆP MỜI VIP */}
+            {/* 🌟 PHÂN VÙNG 1: CINEMATIC WIDE HERO COVER & THIỆP MỜI VIP */}
             {/* ======================================================== */}
             <motion.section 
               id="hero"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="text-left space-y-6 scroll-mt-20"
             >
-              {/* 🌟 CINEMATIC HERO POSTER BANNER (HOÀNG KIM SANG TRỌNG) */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1C1613] via-[#2A1E1A] to-[#140F0D] border-2 border-amber-400/50 p-6 sm:p-10 md:p-12 shadow-2xl text-white space-y-6">
+              {/* 🌟 ẢNH TO NGANG BÊN TRÊN MỜ DẦN XUỐNG DƯỚI (CINEMATIC PANORAMIC HERO) */}
+              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-amber-300/60 shadow-xl bg-slate-900">
                 
-                {/* Ambient Golden Glows */}
-                <div className="absolute -top-24 -left-24 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-amber-600/20 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute inset-0 bg-[radial-gradient(#C5A059_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
-
-                {/* Classical Corner Accents */}
-                <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-amber-400/60 pointer-events-none" />
-                <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-amber-400/60 pointer-events-none" />
-                <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-amber-400/60 pointer-events-none" />
-                <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-amber-400/60 pointer-events-none" />
-
-                {/* Top Badge: 20th Anniversary Emblem */}
-                <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-amber-400/20 pb-5">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-400/40 bg-amber-950/70 backdrop-blur-md text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.22em] shadow-inner">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                    <span>Hội Khóa 20 Năm • Niên Khóa 2003 — 2006</span>
-                  </div>
-                  <QuickShare variant="pill" buttonText="Rủ bạn vào Zalo" />
+                {/* 1. Background Panoramic Photo */}
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80"
+                    alt="Kỷ Niệm Thanh Xuân K8A1"
+                    className="w-full h-full object-cover object-center filter brightness-65 contrast-105 saturate-90 scale-102"
+                  />
+                  {/* Top Darkening Tint for Navbar Contrast */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/35 to-transparent pointer-events-none" />
+                  
+                  {/* Warm Golden Sepia Ambient Layer */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-amber-950/40 via-transparent to-rose-950/30 pointer-events-none" />
+                  
+                  {/* 🌟 CRUCIAL: Soft Gradient Fade Out to Page Cream Background (#FDFBF7) */}
+                  <div className="absolute inset-x-0 bottom-0 h-44 sm:h-52 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7]/80 to-transparent pointer-events-none" />
                 </div>
 
-                {/* Hero Title & Emotional Subtitle */}
-                <div className="relative z-10 space-y-3 max-w-2xl">
-                  <h1 className="text-3xl sm:text-5xl md:text-6xl font-serif text-[#FFFDF8] font-bold tracking-tight leading-[1.12]">
-                    20 Năm Ngày Trở Về
-                    <span className="block text-xl sm:text-2xl md:text-3xl font-light italic text-amber-200/90 mt-2 font-serif">
-                      Lớp K8A1 — Trường THPT Thái Nguyên
-                    </span>
-                  </h1>
-                  <p className="text-xs sm:text-sm md:text-base text-amber-100/90 font-serif italic leading-relaxed pt-1">
-                    “Hai mươi năm — một chặng đường đủ dài để trưởng thành, nhưng chỉ cần gặp lại bạn bè là thanh xuân tuổi 18 lại bừng sáng vẹn nguyên.”
-                  </p>
-                </div>
-
-                {/* Quick Event Summary Strip inside Poster */}
-                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 sm:p-4 rounded-xl bg-white/10 border border-amber-400/30 backdrop-blur-xs text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
-                      <Calendar className="w-4 h-4" />
+                {/* 2. Overlaid Hero Content (Đè nội dung lên ảnh) */}
+                <div className="relative z-10 p-5 sm:p-8 md:p-10 space-y-5 sm:space-y-6">
+                  
+                  {/* Top Badge Strip */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-400/50 text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.2em] shadow-md">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                      <span>Hội Khóa 20 Năm • Niên Khóa 2003 — 2006</span>
                     </div>
-                    <div>
-                      <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/80 font-bold">Thời gian hội ngộ</p>
-                      <p className="font-serif font-bold text-white text-sm">Chủ Nhật, 27/09/2026 (08:30 — 15:30)</p>
+                    <QuickShare variant="pill" buttonText="Rủ bạn vào Zalo" />
+                  </div>
+
+                  {/* Main Title & Subtitle */}
+                  <div className="space-y-2 max-w-2xl text-left">
+                    <h1 className="text-3xl sm:text-5xl md:text-6xl font-serif text-white font-black tracking-tight leading-[1.1] drop-shadow-lg">
+                      20 Năm Ngày Trở Về
+                      <span className="block text-xl sm:text-2xl md:text-3xl font-serif font-medium italic text-amber-300 mt-1.5 drop-shadow-md">
+                        Lớp K8A1 — Trường THPT Thái Nguyên
+                      </span>
+                    </h1>
+                    <p className="text-xs sm:text-sm md:text-base text-slate-100 font-serif italic leading-relaxed pt-1 drop-shadow-md max-w-xl">
+                      “Hai mươi năm — một chặng đường đủ dài để trưởng thành, nhưng chỉ cần gặp lại bạn bè là thanh xuân tuổi 18 lại bừng sáng vẹn nguyên.”
+                    </p>
+                  </div>
+
+                  {/* Compact Event Boarding Pass Strip (Glass Card) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 sm:p-4 rounded-xl bg-[#1E293B]/80 border border-amber-300/40 backdrop-blur-md text-white text-xs shadow-xl">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/90 font-bold">Thời gian hội ngộ</p>
+                        <p className="font-serif font-bold text-white text-xs sm:text-sm">Chủ Nhật, 27/09/2026 (08:30 — 15:30)</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/90 font-bold">Địa điểm gặp mặt</p>
+                        <p className="font-serif font-bold text-white text-xs sm:text-sm">Crown Palace Thái Nguyên (779 Dương Tự Minh)</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/80 font-bold">Địa điểm gặp mặt</p>
-                      <p className="font-serif font-bold text-white text-sm">Crown Palace Thái Nguyên (779 Dương Tự Minh)</p>
-                    </div>
+                  {/* Primary Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-3 pt-1 pb-3">
+                    <button
+                      onClick={() => {
+                        document.getElementById('diem-danh')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="inline-flex items-center gap-2 px-5 sm:px-6 py-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-amber-300/40"
+                    >
+                      <CheckCircle className="w-4 h-4 text-amber-100" />
+                      <span>Xác Nhận Tham Dự Ngay (RSVP)</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenPass()}
+                      className="inline-flex items-center gap-1.5 px-4 py-3 bg-black/40 hover:bg-black/60 border border-amber-300/50 text-amber-200 font-sans font-bold text-xs uppercase tracking-wider rounded-xl backdrop-blur-md transition-colors cursor-pointer"
+                    >
+                      <Award className="w-4 h-4 text-amber-300" />
+                      <span>Thẻ Học Sinh Kỷ Niệm 🎓</span>
+                    </button>
                   </div>
-                </div>
-
-                {/* Primary Action Buttons on Banner */}
-                <div className="relative z-10 flex flex-wrap items-center gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      document.getElementById('diem-danh')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-lg shadow-xl shadow-amber-950/60 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <CheckCircle className="w-4 h-4 text-amber-100" />
-                    <span>Xác Nhận Tham Dự Ngay (RSVP)</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleOpenPass()}
-                    className="inline-flex items-center gap-1.5 px-4 py-3 bg-white/10 hover:bg-white/20 border border-amber-400/40 text-amber-100 font-sans font-bold text-xs uppercase tracking-wider rounded-lg backdrop-blur-xs transition-colors cursor-pointer"
-                  >
-                    <Award className="w-4 h-4 text-amber-300" />
-                    <span>Thẻ Học Sinh Kỷ Niệm 🎓</span>
-                  </button>
                 </div>
               </div>
 
               {/* MODULE ĐẾM NGƯỢC THỜI GIAN */}
-              <div className="pt-1">
+              <div className="pt-0.5">
                 <CountdownTimer targetDate="2026-09-27T08:30:00+07:00" />
               </div>
 
