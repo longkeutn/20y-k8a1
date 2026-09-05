@@ -733,8 +733,8 @@ export default function App() {
               <span className="hidden sm:inline">Ký Ức</span>
             </a>
 
-            {/* Background Audio Player integrated into navbar */}
-            <AudioPlayer variant="navbar" customAudioUrl="" />
+            {/* Background Audio Player integrated into navbar (YouTube Audio-Only) */}
+            <AudioPlayer variant="navbar" customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" />
 
             {/* Primary Action Button */}
             <a 
