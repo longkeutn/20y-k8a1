@@ -970,49 +970,6 @@ export default function App() {
               />
             </div>
 
-            {/* LIVE CLASSMATES GATHERING STRIP (SOCIAL PROOF) */}
-            <div className="bg-gradient-to-r from-[#FFFDF9] via-[#FAF6F0] to-[#F5EFE6] border border-amber-300/80 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                {/* Overlapping Avatars */}
-                <div className="flex -space-x-2.5 overflow-hidden py-1 shrink-0">
-                  {rsvpList.filter(a => a.status === 'yes').slice(0, 5).map((att, i) => (
-                    <div 
-                      key={att.id || i}
-                      className="inline-block h-9 w-9 rounded-full ring-2 ring-white bg-gradient-to-br from-amber-200 to-amber-400 text-amber-950 font-serif font-bold text-xs flex items-center justify-center shadow-xs"
-                      title={`${att.fullName} ${att.nickname ? `("${att.nickname}")` : ''}`}
-                    >
-                      {att.fullName.charAt(0).toUpperCase()}
-                    </div>
-                  ))}
-                  <div className="inline-block h-9 w-9 rounded-full ring-2 ring-white bg-[#1E293B] text-amber-300 font-sans font-bold text-[10px] flex items-center justify-center shadow-xs">
-                    +{rsvpList.filter(a => a.status === 'yes').length}
-                  </div>
-                </div>
-
-                <div className="text-left space-y-0.5">
-                  <p className="text-xs sm:text-sm font-serif font-bold text-[#1E293B] flex items-center gap-1.5">
-                    <span>{rsvpList.filter(a => a.status === 'yes').length} bạn bè K8A1 đã xác nhận trở về!</span>
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                  </p>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 font-sans">
-                    Các bạn vào điền tên và biệt danh để lớp chuẩn bị đón tiếp chu đáo nhé!
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  document.getElementById('diem-danh')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="px-4 py-2 bg-[#8B1E2D] hover:bg-[#701524] text-white font-sans font-bold text-[11px] uppercase tracking-wider rounded-lg shadow-sm transition-all cursor-pointer whitespace-nowrap self-stretch sm:self-auto text-center"
-              >
-                Điền Điểm Danh Ngay ✍️
-              </button>
-            </div>
-
             {/* 📜 TẤM THIỆP MỜI VIP DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL ĐỈNH CAO) */}
             <div 
               id="invitation-letter-card" 
@@ -1133,10 +1090,6 @@ export default function App() {
             {/* ======================================================== */}
             <AlumniConvergenceMap
               eventConfig={eventConfig}
-              venueMediaList={venueMediaList}
-              onUpdateVenueMediaList={handleUpdateVenueMedia}
-              currentUserRole={currentUserRole}
-              onOpenAdminHub={(tab, subTab) => handleOpenAdminHub(tab || 'media', subTab || 'venue')}
             />
 
             {/* ======================================================== */}
