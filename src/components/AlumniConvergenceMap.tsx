@@ -9,13 +9,15 @@ import {
   Play,
   Video,
   Image as ImageIcon,
-  Clock,
   Edit3,
   X,
-  Building2,
-  ExternalLink
+  ExternalLink,
+  Shield,
+  Upload,
+  Plus
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { UserRole, VenueMediaItem } from '../types';
 
 // ============================================================================
 // CONSTANTS & VENUE METADATA (CROWN PALACE THÁI NGUYÊN)
@@ -30,15 +32,6 @@ export const VENUE_DETAILS = {
   directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.6041,105.8286',
   embedMapUrl: 'https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=&z=15&ie=UTF8&iwloc=&output=embed'
 };
-
-export interface VenueMediaItem {
-  id: string;
-  title: string;
-  url: string;
-  type?: 'youtube' | 'facebook' | 'drive' | 'direct_video' | 'image';
-  thumbnail?: string;
-  desc?: string;
-}
 
 // Media mặc định minh họa không gian tổ chức họp lớp tại Crown Palace
 export const DEFAULT_VENUE_MEDIA: VenueMediaItem[] = [
@@ -70,29 +63,44 @@ export const DEFAULT_VENUE_MEDIA: VenueMediaItem[] = [
 ];
 
 // ============================================================================
-// HÀM PARSE LINK VIDEO / ẢNH (FACEBOOK, YOUTUBE, DRIVE, MP4, IMAGE)
+// HÀM PARSE LINK VIDEO / ẢNH (FACEBOOK REEL, FACEBOOK VIDEO, YOUTUBE, DRIVE, MP4, IMAGE)
 // ============================================================================
 export function parseVenueMedia(url: string): {
   type: 'youtube' | 'facebook' | 'drive' | 'direct_video' | 'image' | 'empty';
   embedUrl: string;
   rawUrl: string;
+  canonicalUrl: string;
   label: string;
+  isReel?: boolean;
   videoId?: string;
   driveId?: string;
 } {
   if (!url || typeof url !== 'string') {
-    return { type: 'empty', embedUrl: '', rawUrl: '', label: 'Trống' };
+    return { type: 'empty', embedUrl: '', rawUrl: '', canonicalUrl: '', label: 'Trống' };
   }
   const cleanUrl = url.trim();
 
-  // 1. Facebook Video / Watch / Post Link
-  if (cleanUrl.includes('facebook.com') || cleanUrl.includes('fb.watch')) {
-    const encoded = encodeURIComponent(cleanUrl);
+  // 1. Facebook Reel / Video / Watch / Post / Share
+  if (cleanUrl.includes('facebook.com') || cleanUrl.includes('fb.watch') || cleanUrl.includes('fb.com')) {
+    const isReel = cleanUrl.includes('/reel/') || cleanUrl.includes('/reels/') || cleanUrl.includes('/share/r/');
+    
+    // Normalize URL for Facebook Plugin
+    let canonical = cleanUrl;
+    const reelMatch = cleanUrl.match(/(?:reel|reels)\/(\d+)/i);
+    if (reelMatch && reelMatch[1]) {
+      canonical = `https://www.facebook.com/reel/${reelMatch[1]}/`;
+    }
+    
+    const encoded = encodeURIComponent(canonical);
+    const embedUrl = `https://www.facebook.com/plugins/video.php?href=${encoded}&show_text=0&autoplay=0`;
+
     return {
       type: 'facebook',
-      embedUrl: `https://www.facebook.com/plugins/video.php?href=${encoded}&show_text=0&autoplay=0`,
+      isReel,
+      embedUrl,
       rawUrl: cleanUrl,
-      label: 'Facebook Video'
+      canonicalUrl: canonical,
+      label: isReel ? 'Facebook Reel' : 'Facebook Video'
     };
   }
 
@@ -103,6 +111,7 @@ export function parseVenueMedia(url: string): {
       type: 'youtube',
       embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`,
       rawUrl: cleanUrl,
+      canonicalUrl: `https://www.youtube.com/watch?v=${ytMatch[1]}`,
       videoId: ytMatch[1],
       label: 'YouTube Video'
     };
@@ -116,6 +125,7 @@ export function parseVenueMedia(url: string): {
       type: 'drive',
       embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
       rawUrl: cleanUrl,
+      canonicalUrl: cleanUrl,
       driveId: fileId,
       label: 'Google Drive'
     };
@@ -127,6 +137,7 @@ export function parseVenueMedia(url: string): {
       type: 'direct_video',
       embedUrl: cleanUrl,
       rawUrl: cleanUrl,
+      canonicalUrl: cleanUrl,
       label: 'Video Trực Tiếp'
     };
   }
@@ -136,6 +147,7 @@ export function parseVenueMedia(url: string): {
     type: 'image',
     embedUrl: cleanUrl,
     rawUrl: cleanUrl,
+    canonicalUrl: cleanUrl,
     label: 'Hình Ảnh'
   };
 }
@@ -145,14 +157,25 @@ export function parseVenueMedia(url: string): {
 // ============================================================================
 interface Props {
   className?: string;
-  customVenueMedia?: VenueMediaItem[];
+  venueMediaList?: VenueMediaItem[];
+  onUpdateVenueMediaList?: (list: VenueMediaItem[]) => void;
+  currentUserRole?: UserRole;
+  onOpenAdminHub?: () => void;
 }
 
-export default function AlumniConvergenceMap({ className = '', customVenueMedia }: Props) {
+export default function AlumniConvergenceMap({
+  className = '',
+  venueMediaList,
+  onUpdateVenueMediaList,
+  currentUserRole = 'guest',
+  onOpenAdminHub
+}: Props) {
   const [copied, setCopied] = useState(false);
+  const isAuthorized = currentUserRole === 'admin' || currentUserRole === 'bll';
 
   // Danh sách video & ảnh không gian nhà hàng
   const [mediaList, setMediaList] = useState<VenueMediaItem[]>(() => {
+    if (venueMediaList && venueMediaList.length > 0) return venueMediaList;
     try {
       const local = localStorage.getItem('k8a1_venue_media_list');
       if (local) {
@@ -160,12 +183,19 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return customVenueMedia && customVenueMedia.length > 0 ? customVenueMedia : DEFAULT_VENUE_MEDIA;
+    return DEFAULT_VENUE_MEDIA;
   });
+
+  // Đồng bộ khi prop thay đổi
+  React.useEffect(() => {
+    if (venueMediaList && venueMediaList.length > 0) {
+      setMediaList(venueMediaList);
+    }
+  }, [venueMediaList]);
 
   const [activeMediaIndex, setActiveMediaIndex] = useState<number>(0);
 
-  // Modal chỉnh sửa link video/ảnh nhà hàng
+  // Modal chỉnh sửa nhanh dành cho BLL / Admin
   const [isEditMediaModalOpen, setIsEditMediaModalOpen] = useState(false);
   const [newMediaUrl, setNewMediaUrl] = useState('');
   const [newMediaTitle, setNewMediaTitle] = useState('');
@@ -187,7 +217,28 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Lưu media mới (Facebook, YouTube, Drive, MP4, Ảnh)
+  // Upload file ảnh từ máy
+  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Kích thước ảnh tối đa là 8MB!');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setNewMediaUrl(result);
+        if (!newMediaTitle.trim()) {
+          setNewMediaTitle('Ảnh Không Gian Crown Palace');
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Lưu media mới (Facebook Reel, Facebook Video, YouTube, Drive, MP4, Ảnh)
   const handleAddMediaSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMediaUrl.trim()) return;
@@ -195,7 +246,7 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
     const parsed = parseVenueMedia(newMediaUrl.trim());
     const newItem: VenueMediaItem = {
       id: `vm-${Date.now()}`,
-      title: newMediaTitle.trim() || (parsed.type === 'image' ? 'Ảnh Không Gian Nhà Hàng' : `Video Minh Họa (${parsed.label})`),
+      title: newMediaTitle.trim() || (parsed.type === 'image' ? 'Ảnh Không Gian Nhà Hàng' : `${parsed.label} Minh Họa`),
       url: newMediaUrl.trim(),
       type: parsed.type === 'empty' ? 'image' : parsed.type,
       desc: newMediaDesc.trim() || 'Minh họa không gian tổ chức họp lớp tại Crown Palace Thái Nguyên.'
@@ -207,6 +258,9 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
     try {
       localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
     } catch {}
+    if (onUpdateVenueMediaList) {
+      onUpdateVenueMediaList(updated);
+    }
 
     setEditSuccessMsg('Đã cập nhật video/ảnh nhà hàng thành công!');
     setTimeout(() => {
@@ -225,6 +279,9 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
     try {
       localStorage.removeItem('k8a1_venue_media_list');
     } catch {}
+    if (onUpdateVenueMediaList) {
+      onUpdateVenueMediaList(DEFAULT_VENUE_MEDIA);
+    }
     setEditSuccessMsg('Đã khôi phục danh sách mặc định!');
     setTimeout(() => setEditSuccessMsg(''), 1500);
   };
@@ -237,10 +294,10 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
       {/* ======================================================== */}
       <div className="bg-[#FAF7F2] border border-amber-200/90 rounded-3xl p-5 sm:p-7 shadow-lg relative overflow-hidden space-y-6 text-left">
         
-        {/* Nền hoa văn vân sáng & hiệu ứng Glow */}
+        {/* Nền hoa văn vân sáng */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-amber-200/20 via-orange-100/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        {/* 🌟 HEADER GỌN GÀNG & TINH TẾ */}
+        {/* 🌟 HEADER TINH TẾ */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-300/60 pb-4 gap-3 relative z-10">
           <div className="space-y-1.5 max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-100 text-amber-950 text-[10px] font-bold tracking-wider font-sans uppercase border border-amber-300/60">
@@ -304,14 +361,14 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
             <div className="md:col-span-6 relative flex items-center justify-center bg-slate-950/80 rounded-xl p-2.5 border border-slate-800 h-36 shadow-inner overflow-hidden">
               <svg viewBox="0 0 220 115" className="w-full h-full select-none">
                 <defs>
-                  <linearGradient id="cleanGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <linearGradient id="roleGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.9" />
                     <stop offset="100%" stopColor="#e11d48" stopOpacity="0.9" />
                   </linearGradient>
                 </defs>
 
                 {/* Đường bay cong hội tụ về Thái Nguyên (130, 28) */}
-                <path d="M 35,95 Q 80,68 130,28" fill="none" stroke="url(#cleanGlowGrad)" strokeWidth="1.6" strokeDasharray="4 2" className="opacity-80" />
+                <path d="M 35,95 Q 80,68 130,28" fill="none" stroke="url(#roleGlowGrad)" strokeWidth="1.6" strokeDasharray="4 2" className="opacity-80" />
                 <path d="M 70,102 Q 105,72 130,28" fill="none" stroke="#f59e0b" strokeWidth="1.6" strokeDasharray="4 2" className="opacity-75" />
                 <path d="M 185,70 Q 160,48 130,28" fill="none" stroke="#f59e0b" strokeWidth="1.6" strokeDasharray="4 2" className="opacity-75" />
                 
@@ -414,31 +471,49 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
                 </div>
               </div>
 
-              {/* Nút nhỏ đổi video/ảnh */}
-              <button
-                type="button"
-                onClick={() => setIsEditMediaModalOpen(true)}
-                className="text-[11px] font-sans font-semibold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200/80 cursor-pointer"
-                title="Dán link Facebook, YouTube, Drive hoặc ảnh"
-              >
-                <Edit3 className="w-3 h-3 text-amber-700" />
-                <span>Đổi Link</span>
-              </button>
+              {/* Nút cấu hình theo vai trò BLL / Admin */}
+              {isAuthorized ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenAdminHub ? onOpenAdminHub() : setIsEditMediaModalOpen(true)}
+                  className="text-[11px] font-sans font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-300/80 cursor-pointer shadow-2xs"
+                  title="Dành cho Ban Liên Lạc & Admin: Đổi video hoặc ảnh không gian nhà hàng"
+                >
+                  <Edit3 className="w-3 h-3 text-amber-700" />
+                  <span>Cấu Hình BLL</span>
+                </button>
+              ) : null}
             </div>
 
-            {/* 🌟 TRÌNH PHÁT ĐA ĐỊNH DẠNG (FACEBOOK, YOUTUBE, DRIVE, MP4, ẢNH) */}
+            {/* 🌟 TRÌNH PHÁT ĐA ĐỊNH DẠNG (FACEBOOK REEL/VIDEO, YOUTUBE, DRIVE, MP4, ẢNH) */}
             <div className="relative rounded-xl overflow-hidden bg-slate-950 border-2 border-amber-300/40 shadow-inner aspect-video flex items-center justify-center">
               
-              {/* 1. Facebook Video Embed */}
+              {/* 1. Facebook Reel / Video Embed */}
               {parsedCurrentMedia.type === 'facebook' && (
-                <iframe
-                  title={currentMedia.title}
-                  src={parsedCurrentMedia.embedUrl}
-                  className="w-full h-full border-0"
-                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                  allowFullScreen
-                  loading="lazy"
-                />
+                <div className="w-full h-full relative flex items-center justify-center bg-black">
+                  <iframe
+                    title={currentMedia.title}
+                    src={parsedCurrentMedia.embedUrl}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+
+                  {/* Nút hành động mở trực tiếp trên Facebook (giải quyết 100% nếu trình duyệt chặn iframe) */}
+                  <div className="absolute top-2.5 right-2.5 z-20">
+                    <a
+                      href={parsedCurrentMedia.rawUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1877F2] hover:bg-[#166fe5] text-white text-[10px] font-sans font-bold rounded-lg shadow-md transition transform hover:scale-105"
+                      title="Mở xem video trên ứng dụng / web Facebook"
+                    >
+                      <span>{parsedCurrentMedia.isReel ? 'Mở Reel Facebook' : 'Mở Facebook'}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
               )}
 
               {/* 2. YouTube Video Embed */}
@@ -606,9 +681,9 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
       </div>
 
       {/* ======================================================== */}
-      {/* ✏️ MODAL TÙY CHỈNH LINK VIDEO / ẢNH MINH HỌA NHÀ HÀNG */}
+      {/* ✏️ MODAL TÙY CHỈNH DÀNH RIÊNG CHO BLL / ADMIN */}
       {/* ======================================================== */}
-      {isEditMediaModalOpen && (
+      {isEditMediaModalOpen && isAuthorized && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-amber-200 relative text-left space-y-4">
             
@@ -625,14 +700,14 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
 
             <div className="space-y-1 border-b border-slate-200 pb-2.5">
               <div className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Cấu Hình Không Gian Họp Lớp</span>
+                <Shield className="w-3.5 h-3.5 text-amber-600" />
+                <span>Cấu Hình Ban Liên Lạc • Không Gian Nhà Hàng</span>
               </div>
               <h3 className="font-serif font-bold text-lg text-[#1E293B]">
-                Đổi Video Hoặc Ảnh Nhà Hàng
+                Thêm / Đổi Video & Ảnh Crown Palace
               </h3>
               <p className="text-xs text-slate-500 font-serif italic">
-                Hỗ trợ link từ <strong>Facebook, YouTube, Google Drive, MP4</strong> hoặc link ảnh Crown Palace.
+                Hỗ trợ dán link <strong>Facebook Reel, Facebook Video, YouTube, Google Drive, MP4</strong> hoặc tải ảnh trực tiếp từ thiết bị.
               </p>
             </div>
 
@@ -646,25 +721,38 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
             <form onSubmit={handleAddMediaSubmit} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Đường dẫn Link (Facebook / YouTube / Google Drive / Ảnh): <span className="text-rose-500">*</span>
+                  Đường dẫn Video / Ảnh: <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="https://www.facebook.com/watch/?v=... hoặc https://youtu.be/..."
-                  value={newMediaUrl}
-                  onChange={(e) => setNewMediaUrl(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800 font-mono text-xs"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Dán link Facebook Reel, YouTube, Drive, MP4 hoặc ảnh..."
+                    value={newMediaUrl}
+                    onChange={(e) => setNewMediaUrl(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800 font-mono text-xs"
+                  />
+                  
+                  <label className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-amber-200 font-bold rounded-xl cursor-pointer transition flex items-center gap-1 shrink-0">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Tải Ảnh</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Tiêu đề (Tùy chọn):
+                  Tiêu đề video / ảnh (Tùy chọn):
                 </label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Video Không Gian Sảnh Tiệc Crown Palace"
+                  placeholder="Ví dụ: Video Facebook Reel Không Gian Crown Palace"
                   value={newMediaTitle}
                   onChange={(e) => setNewMediaTitle(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800"
@@ -677,7 +765,7 @@ export default function AlumniConvergenceMap({ className = '', customVenueMedia 
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Mô tả sảnh tiệc, bàn tiệc..."
+                  placeholder="Mô tả về sảnh tiệc, bàn tiệc..."
                   value={newMediaDesc}
                   onChange={(e) => setNewMediaDesc(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800"

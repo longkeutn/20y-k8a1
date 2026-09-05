@@ -43,11 +43,13 @@ import {
   Folder,
   ExternalLink,
   Save,
-  Link
+  Link,
+  Building2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem } from '../types';
 import { K8A1_DRIVE_FOLDER_ID, K8A1_DRIVE_FOLDER_URL } from '../data';
+import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 
 interface AdminManagementHubProps {
   isOpen: boolean;
@@ -68,6 +70,9 @@ interface AdminManagementHubProps {
   
   videos: MemoryVideo[];
   onUpdateVideos: (list: MemoryVideo[]) => void;
+
+  venueMediaList?: VenueMediaItem[];
+  onUpdateVenueMediaList?: (list: VenueMediaItem[]) => void;
   
   heroBannerUrl?: string;
   onUpdateHeroBannerUrl?: (url: string) => void;
@@ -92,6 +97,8 @@ export default function AdminManagementHub({
   onUpdateImages,
   videos,
   onUpdateVideos,
+  venueMediaList,
+  onUpdateVenueMediaList,
   heroBannerUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80',
   onUpdateHeroBannerUrl,
   appsScriptUrl,
@@ -164,7 +171,28 @@ export default function AdminManagementHub({
   });
 
   // Media Tab state
-  const [mediaSubTab, setMediaSubTab] = useState<'banner' | 'videos' | 'photos'>('banner');
+  const [mediaSubTab, setMediaSubTab] = useState<'venue' | 'banner' | 'videos' | 'photos'>('venue');
+  const [venueMediaListState, setVenueMediaListState] = useState<VenueMediaItem[]>(() => {
+    if (venueMediaList && venueMediaList.length > 0) return venueMediaList;
+    try {
+      const local = localStorage.getItem('k8a1_venue_media_list');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_VENUE_MEDIA;
+  });
+
+  useEffect(() => {
+    if (venueMediaList && venueMediaList.length > 0) {
+      setVenueMediaListState(venueMediaList);
+    }
+  }, [venueMediaList]);
+
+  const [isAddVenueMediaModalOpen, setIsAddVenueMediaModalOpen] = useState(false);
+  const [venueMediaFormData, setVenueMediaFormData] = useState({ title: '', url: '', desc: '' });
+
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [videoFormData, setVideoFormData] = useState({ title: '', url: '' });
   const [isAddPhotoModalOpen, setIsAddPhotoModalOpen] = useState(false);
@@ -689,6 +717,77 @@ export default function AdminManagementHub({
       const updated = images.filter(p => p.id !== photo.id);
       onUpdateImages(updated);
       localStorage.setItem('uploaded_images', JSON.stringify(updated));
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // VENUE MEDIA (REELS / VIDEOS / PHOTOS) HANDLERS FOR BLL & ADMIN
+  // ---------------------------------------------------------------------------
+  const handleSaveVenueMedia = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!venueMediaFormData.url.trim()) {
+      alert('Vui lòng nhập đường dẫn Link hoặc chọn file ảnh!');
+      return;
+    }
+
+    const parsed = parseVenueMedia(venueMediaFormData.url.trim());
+    const newItem: VenueMediaItem = {
+      id: `vm-${Date.now()}`,
+      title: venueMediaFormData.title.trim() || (parsed.type === 'image' ? 'Ảnh Không Gian Nhà Hàng' : `${parsed.label} Minh Họa`),
+      url: venueMediaFormData.url.trim(),
+      type: parsed.type === 'empty' ? 'image' : parsed.type,
+      desc: venueMediaFormData.desc.trim() || 'Minh họa không gian tổ chức họp lớp tại Crown Palace Thái Nguyên.'
+    };
+
+    const updated = [newItem, ...venueMediaListState];
+    setVenueMediaListState(updated);
+    localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
+    if (onUpdateVenueMediaList) {
+      onUpdateVenueMediaList(updated);
+    }
+    setIsAddVenueMediaModalOpen(false);
+    setVenueMediaFormData({ title: '', url: '', desc: '' });
+  };
+
+  const handleDeleteVenueMedia = (item: VenueMediaItem) => {
+    if (confirm(`Bạn có chắc muốn xóa mục "${item.title}"?`)) {
+      const updated = venueMediaListState.filter(v => v.id !== item.id);
+      setVenueMediaListState(updated);
+      localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
+      if (onUpdateVenueMediaList) {
+        onUpdateVenueMediaList(updated);
+      }
+    }
+  };
+
+  const handleVenuePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Kích thước ảnh tối đa là 8MB!');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setVenueMediaFormData(prev => ({
+          ...prev,
+          url: result,
+          title: prev.title || 'Ảnh Không Gian Crown Palace'
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetVenueMedia = () => {
+    if (confirm('Khôi phục danh sách video & ảnh không gian Crown Palace về mặc định?')) {
+      setVenueMediaListState(DEFAULT_VENUE_MEDIA);
+      localStorage.removeItem('k8a1_venue_media_list');
+      if (onUpdateVenueMediaList) {
+        onUpdateVenueMediaList(DEFAULT_VENUE_MEDIA);
+      }
     }
   };
 
@@ -1574,11 +1673,21 @@ export default function AdminManagementHub({
           {/* --------------------------------------------------------------- */}
           {activeTab === 'media' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-amber-200">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-amber-200 gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                  <button
+                    onClick={() => setMediaSubTab('venue')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                      mediaSubTab === 'venue' ? 'bg-[#1E293B] text-amber-300' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Không Gian Nhà Hàng ({venueMediaListState.length})</span>
+                  </button>
+
                   <button
                     onClick={() => setMediaSubTab('banner')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
                       mediaSubTab === 'banner' ? 'bg-[#1E293B] text-amber-300' : 'text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -1588,7 +1697,7 @@ export default function AdminManagementHub({
 
                   <button
                     onClick={() => setMediaSubTab('videos')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
                       mediaSubTab === 'videos' ? 'bg-[#1E293B] text-amber-300' : 'text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -1598,19 +1707,40 @@ export default function AdminManagementHub({
 
                   <button
                     onClick={() => setMediaSubTab('photos')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
                       mediaSubTab === 'photos' ? 'bg-[#1E293B] text-amber-300' : 'text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <ImageIcon className="w-3.5 h-3.5" />
-                    <span>Thư Viện Ảnh ({images.length})</span>
+                    <span>Thư Viện Kỷ Yếu ({images.length})</span>
                   </button>
                 </div>
+
+                {mediaSubTab === 'venue' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleResetVenueMedia}
+                      className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-slate-900 bg-slate-100 rounded-lg hover:bg-slate-200 transition cursor-pointer"
+                    >
+                      Khôi Phục Mặc Định
+                    </button>
+                    <button
+                      onClick={() => {
+                        setVenueMediaFormData({ title: '', url: '', desc: '' });
+                        setIsAddVenueMediaModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm Video / Ảnh Nhà Hàng</span>
+                    </button>
+                  </div>
+                )}
 
                 {mediaSubTab === 'videos' && (
                   <button
                     onClick={() => setIsAddVideoModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Chèn Link Video</span>
@@ -1632,7 +1762,7 @@ export default function AdminManagementHub({
                     </a>
                     <button
                       onClick={() => setIsAddPhotoModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>+ Thêm Ảnh Mới</span>
@@ -1640,6 +1770,80 @@ export default function AdminManagementHub({
                   </div>
                 )}
               </div>
+
+              {/* Sub-tab: VENUE MEDIA MANAGEMENT (FACEBOOK REELS, VIDEOS, PHOTOS) */}
+              {mediaSubTab === 'venue' && (
+                <div className="space-y-4">
+                  <div className="bg-amber-50/70 border border-amber-200/80 p-3.5 rounded-xl text-xs space-y-1 text-left">
+                    <p className="font-bold text-amber-950 flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-amber-700" />
+                      <span>Quản Lý Video & Ảnh Không Gian Nhà Hàng (Dành cho Ban Liên Lạc)</span>
+                    </p>
+                    <p className="text-slate-600 font-serif italic text-[11px]">
+                      Hỗ trợ dán link <strong>Facebook Reel, Facebook Video, YouTube, Google Drive, MP4</strong> hoặc tải ảnh trực tiếp để minh họa không gian tổ chức tại Crown Palace Thái Nguyên.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {venueMediaListState.map((item, idx) => {
+                      const parsed = parseVenueMedia(item.url);
+                      return (
+                        <div key={item.id || idx} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-xs flex flex-col justify-between text-left group">
+                          <div className="aspect-video bg-black relative flex items-center justify-center overflow-hidden">
+                            {parsed.type === 'image' ? (
+                              <img
+                                src={parsed.embedUrl}
+                                alt={item.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition"
+                              />
+                            ) : (
+                              <div className="w-full h-full relative">
+                                <iframe
+                                  src={parsed.embedUrl}
+                                  title={item.title}
+                                  className="w-full h-full border-0 pointer-events-none"
+                                />
+                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                  <Play className="w-8 h-8 text-amber-300 fill-amber-300/60" />
+                                </div>
+                              </div>
+                            )}
+
+                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[9px] font-sans font-bold bg-black/75 text-amber-300 border border-amber-400/30">
+                              {parsed.label}
+                            </span>
+                          </div>
+
+                          <div className="p-3 space-y-1.5">
+                            <h4 className="text-xs font-bold text-slate-900 line-clamp-1">{item.title}</h4>
+                            <p className="text-[11px] text-slate-500 font-serif italic line-clamp-2">{item.desc || item.url}</p>
+                            
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-amber-800 hover:text-amber-950 flex items-center gap-1 font-semibold"
+                              >
+                                <span>Xem link gốc</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+
+                              <button
+                                onClick={() => handleDeleteVenueMedia(item)}
+                                className="p-1 text-slate-400 hover:text-rose-600 transition"
+                                title="Xóa mục này"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Sub-tab: HERO BANNER COVER MANAGEMENT */}
               {mediaSubTab === 'banner' && (
@@ -2366,6 +2570,116 @@ export default function AdminManagementHub({
                     className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm cursor-pointer"
                   >
                     Thêm Ảnh
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* =================================================================== */}
+      {/* MODAL: ADD / EDIT VENUE MEDIA (CROWN PALACE) */}
+      {/* =================================================================== */}
+      <AnimatePresence>
+        {isAddVenueMediaModalOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-md p-6 space-y-4 text-xs"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 className="text-base font-bold font-serif text-slate-900 flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-amber-600" />
+                  <span>Thêm Video / Ảnh Crown Palace</span>
+                </h3>
+                <button
+                  onClick={() => setIsAddVenueMediaModalOpen(false)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveVenueMedia} className="space-y-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Đường dẫn Link hoặc Tải ảnh từ máy (*):</label>
+                  <div className="flex items-center gap-2">
+                    <label className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-amber-200 rounded-lg cursor-pointer flex items-center gap-1.5 font-bold text-[11px] transition shrink-0">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Chọn file ảnh</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleVenuePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-[10px] text-slate-400">hoặc dán link Facebook, YouTube, Drive</span>
+                  </div>
+
+                  {venueMediaFormData.url && (
+                    <div className="mt-2 relative rounded-lg overflow-hidden border border-amber-300 bg-slate-900 h-24 flex items-center justify-center">
+                      {venueMediaFormData.url.startsWith('data:image') || /\.(jpg|jpeg|png|webp)/i.test(venueMediaFormData.url) ? (
+                        <img src={venueMediaFormData.url} alt="Xem trước" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <span className="text-[10px] font-mono text-amber-300 p-2 truncate max-w-full">
+                          {venueMediaFormData.url}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <input
+                    type="text"
+                    required
+                    value={venueMediaFormData.url}
+                    onChange={(e) => setVenueMediaFormData({ ...venueMediaFormData, url: e.target.value })}
+                    placeholder="https://www.facebook.com/reel/... hoặc https://youtu.be/..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500 mt-1"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    Hỗ trợ: <strong>Facebook Reel, Facebook Video, YouTube, Google Drive, MP4, hoặc Ảnh</strong>.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Tiêu đề (Tùy chọn):</label>
+                  <input
+                    type="text"
+                    value={venueMediaFormData.title}
+                    onChange={(e) => setVenueMediaFormData({ ...venueMediaFormData, title: e.target.value })}
+                    placeholder="VD: Video Facebook Reel Không Gian Sảnh Tiệc"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Mô tả ngắn (Tùy chọn):</label>
+                  <textarea
+                    rows={2}
+                    value={venueMediaFormData.desc}
+                    onChange={(e) => setVenueMediaFormData({ ...venueMediaFormData, desc: e.target.value })}
+                    placeholder="VD: Không gian sảnh tiệc hoàng gia Crown Palace Thái Nguyên"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddVenueMediaModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm cursor-pointer"
+                  >
+                    Lưu Mục Này
                   </button>
                 </div>
               </form>

@@ -1,4 +1,4 @@
-﻿export type UserRole = 'guest' | 'bll' | 'admin';
+export type UserRole = 'guest' | 'bll' | 'admin';
 
 export interface RsvpData {
   id?: string;
@@ -134,4 +134,13 @@ export interface ActivityToast {
   text: string;
   timeAgo: string;
   isNew?: boolean;
+}
+
+export interface VenueMediaItem {
+  id: string;
+  title: string;
+  url: string;
+  type?: 'youtube' | 'facebook' | 'drive' | 'direct_video' | 'image';
+  thumbnail?: string;
+  desc?: string;
 }

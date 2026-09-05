@@ -20,8 +20,9 @@ import {
   Music
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast } from './types';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem } from './types';
 import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS } from './data';
+import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
 import CountdownTimer from './components/CountdownTimer';
@@ -124,6 +125,20 @@ export default function App() {
       return DEFAULT_VIDEOS;
     } catch {
       return DEFAULT_VIDEOS;
+    }
+  });
+
+  // Venue media state (Crown Palace)
+  const [venueMediaList, setVenueMediaList] = useState<VenueMediaItem[]>(() => {
+    try {
+      const local = localStorage.getItem('k8a1_venue_media_list');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_VENUE_MEDIA;
+    } catch {
+      return DEFAULT_VENUE_MEDIA;
     }
   });
 
@@ -634,9 +649,17 @@ export default function App() {
             </section>
 
             {/* ======================================================== */}
-            {/* 🗺️ PHÂN VÙNG 3: BẢN ĐỒ TỤ HỘI K8A1 */}
+            {/* 🗺️ PHÂN VÙNG 3: BẢN ĐỒ TỤ HỘI & ĐỊA ĐIỂM HỌP LỚP K8A1 */}
             {/* ======================================================== */}
-            <AlumniConvergenceMap />
+            <AlumniConvergenceMap
+              venueMediaList={venueMediaList}
+              onUpdateVenueMediaList={(updated) => {
+                setVenueMediaList(updated);
+                localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
+              }}
+              currentUserRole={currentUserRole}
+              onOpenAdminHub={() => setIsAdminHubOpen(true)}
+            />
 
             {/* ======================================================== */}
             {/* 💬 PHÂN VÙNG 4: BỨC TƯỜNG LƯU BÚT SỐ K8A1 */}
@@ -734,6 +757,11 @@ export default function App() {
           setVideos(updated);
           localStorage.setItem('custom_videos', JSON.stringify(updated));
           localStorage.setItem('k8a1_video_list', JSON.stringify(updated));
+        }}
+        venueMediaList={venueMediaList}
+        onUpdateVenueMediaList={(updated) => {
+          setVenueMediaList(updated);
+          localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
         }}
         heroBannerUrl={heroBannerUrl}
         onUpdateHeroBannerUrl={handleUpdateHeroBanner}
