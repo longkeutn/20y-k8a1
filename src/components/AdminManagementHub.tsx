@@ -28,6 +28,8 @@ import {
   RefreshCw,
   AlertTriangle,
   Check,
+  Copy,
+  FileCode,
   Eye,
   LogOut,
   Plus,
@@ -69,7 +71,8 @@ import {
   VIETNAM_BANKS,
   resolveBankCode,
   generateVietQrUrl,
-  sanitizeVietQrText
+  sanitizeVietQrText,
+  GOOGLE_APPS_SCRIPT_CODE
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 
@@ -176,6 +179,10 @@ export default function AdminManagementHub({
   const [newAdminPin, setNewAdminPin] = useState('');
   const [newBllPin, setNewBllPin] = useState('');
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
+  const [copiedScriptCode, setCopiedScriptCode] = useState(false);
+  const [showScriptCodeModal, setShowScriptCodeModal] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [bannerInput, setBannerInput] = useState(heroBannerUrl);
   const [bannerPositionY, setBannerPositionY] = useState<number>(heroBannerPosition ?? 50);
   const [isDraggingBanner, setIsDraggingBanner] = useState(false);
@@ -1277,6 +1284,50 @@ export default function AdminManagementHub({
       localStorage.removeItem('k8a1_admin_pin');
       localStorage.removeItem('k8a1_bll_pin');
       alert('Đã khôi phục mã PIN mặc định thành công!');
+    }
+  };
+
+  const handleCopyScriptCode = () => {
+    navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
+    setCopiedScriptCode(true);
+    setTimeout(() => setCopiedScriptCode(false), 3000);
+  };
+
+  const handleTestConnection = async () => {
+    const target = scriptUrlInput ? scriptUrlInput.trim() : '';
+    if (!target) {
+      alert('Vui lòng nhập URL Google Apps Script Web App trước khi kiểm tra!');
+      return;
+    }
+    setIsTestingConnection(true);
+    setConnectionTestResult(null);
+    try {
+      const res = await fetch(`${target}?action=get_all_data&t=${Date.now()}`);
+      const json = await res.json();
+      if (json && json.status === 'success') {
+        const rsvpCount = json.data?.rsvp?.length ?? 0;
+        const wishesCount = json.data?.wishes?.length ?? 0;
+        const hasConfig = !!json.data?.config;
+        const hasMedia = !!json.data?.media;
+        setConnectionTestResult({
+          success: true,
+          message: `Kết nối thành công! Đã đồng bộ từ Google Sheet (${rsvpCount} điểm danh, ${wishesCount} lời chúc${hasConfig ? ', Cấu hình Sheet: OK' : ''}${hasMedia ? ', Media Sheet: OK' : ''}).`
+        });
+        onSaveAppsScriptUrl(target);
+        if (onRefreshData) onRefreshData();
+      } else {
+        setConnectionTestResult({
+          success: false,
+          message: `Kết nối được nhưng trả về: ${json.message || JSON.stringify(json)}`
+        });
+      }
+    } catch (err: any) {
+      setConnectionTestResult({
+        success: false,
+        message: `Lỗi kết nối: ${err.message || 'Không thể gọi Web App. Hãy kiểm tra bạn đã chọn "Ai có quyền truy cập: Bất kỳ ai (Anyone)" khi Triển khai chưa!'}`
+      });
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -3644,20 +3695,130 @@ export default function AdminManagementHub({
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="font-bold text-slate-700 block">
-                            🔗 URL Google Apps Script WebApp (Backend Sheet):
-                          </label>
-                          <input
-                            type="url"
-                            value={scriptUrlInput}
-                            onChange={(e) => setScriptUrlInput(e.target.value)}
-                            placeholder="https://script.google.com/macros/s/.../exec"
-                            className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
-                          />
-                          <p className="text-[11px] text-slate-400">
-                            URL này kết nối trực tiếp với Google Sheets và Google Drive để đồng bộ Điểm danh, Lưu bút và Đếm lượt xem.
-                          </p>
+                        {/* GOOGLE APPS SCRIPT MASTER BACKEND */}
+                        <div className="p-4 bg-gradient-to-br from-amber-500/10 via-amber-100/40 to-slate-50 rounded-xl border-2 border-amber-300 space-y-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 bg-amber-600 text-white rounded-lg shadow-xs">
+                                <FileSpreadsheet className="w-4 h-4" />
+                              </span>
+                              <div>
+                                <h4 className="font-bold text-slate-900 text-sm">
+                                  Máy Chủ Backend Google Sheets & Drive (Code.gs)
+                                </h4>
+                                <p className="text-[11px] text-slate-500">
+                                  Lưu trữ tập trung mọi dữ liệu: Điểm danh, Lời chúc, Cấu hình sự kiện & Thư viện Media.
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleCopyScriptCode}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm shrink-0 ${
+                                copiedScriptCode
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white'
+                              }`}
+                            >
+                              {copiedScriptCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                              <span>{copiedScriptCode ? 'Đã Sao Chép Code.gs!' : '📋 Sao Chép Mã Code.gs Mới'}</span>
+                            </button>
+                          </div>
+
+                          {/* Quick Deployment Guide */}
+                          <div className="bg-white/90 rounded-xl p-3 border border-amber-200 space-y-2 text-[11.5px] text-slate-700 shadow-xs">
+                            <div className="font-bold text-amber-900 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <span>Cách triển khai để dữ liệu đồng nhất trên mọi máy tính và điện thoại:</span>
+                            </div>
+                            <ol className="list-decimal list-inside space-y-1 text-slate-600 pl-1 leading-relaxed">
+                              <li>
+                                Mở Google Sheet lớp K8A1 &gt; Nhấn menu <strong>Tiện ích mở rộng</strong> &gt; <strong>Apps Script</strong>.
+                              </li>
+                              <li>
+                                Xóa sạch mã cũ trong file <code>Code.gs</code>, dán toàn bộ mã vừa sao chép ở trên &gt; Nhấn <strong>Lưu (Ctrl+S)</strong>.
+                              </li>
+                              <li>
+                                Nhấn nút <strong>Triển khai</strong> (Deploy) màu xanh &gt; <strong>Tùy chọn triển khai mới</strong> &gt; Chọn bánh răng ⚙️ <strong>Ứng dụng web</strong>.
+                              </li>
+                              <li>
+                                Mục <em>"Ai có quyền truy cập"</em> (Who has access): Chọn <strong>Bất kỳ ai</strong> (Anyone) &gt; Nhấn <strong>Triển khai</strong>.
+                              </li>
+                              <li>
+                                Copy đường dẫn <strong>Ứng dụng web</strong> (kết thúc bằng <code>/exec</code>), dán vào ô bên dưới rồi nhấn <strong>"Kiểm Tra & Đồng Bộ"</strong>.
+                              </li>
+                            </ol>
+                          </div>
+
+                          {/* URL Input & Connection Tester */}
+                          <div className="space-y-2">
+                            <label className="font-bold text-slate-800 block text-xs">
+                              🔗 URL Google Apps Script WebApp (kết thúc bằng /exec):
+                            </label>
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                              <input
+                                type="url"
+                                value={scriptUrlInput}
+                                onChange={(e) => setScriptUrlInput(e.target.value)}
+                                placeholder="https://script.google.com/macros/s/.../exec"
+                                className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500 shadow-inner"
+                              />
+                              <button
+                                type="button"
+                                disabled={isTestingConnection}
+                                onClick={handleTestConnection}
+                                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-300 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 shrink-0"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${isTestingConnection ? 'animate-spin text-amber-400' : ''}`} />
+                                <span>{isTestingConnection ? 'Đang kiểm tra...' : 'Kiểm Tra & Đồng Bộ'}</span>
+                              </button>
+                            </div>
+
+                            {/* Connection feedback message */}
+                            {connectionTestResult && (
+                              <div className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 ${
+                                connectionTestResult.success
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                                  : 'bg-rose-50 border-rose-300 text-rose-900'
+                              }`}>
+                                {connectionTestResult.success ? (
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                                ) : (
+                                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                                )}
+                                <span className="leading-snug">{connectionTestResult.message}</span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                              <span>💡 Dữ liệu Điểm danh, Lời chúc, Ảnh biên lai và Cấu hình sự kiện được lưu trữ bảo mật trên Google Sheet & Drive.</span>
+                              <button
+                                type="button"
+                                onClick={() => setShowScriptCodeModal(!showScriptCodeModal)}
+                                className="text-amber-700 hover:text-amber-900 underline font-semibold cursor-pointer shrink-0 ml-2"
+                              >
+                                {showScriptCodeModal ? 'Ẩn mã Code.gs' : 'Xem mã Code.gs'}
+                              </button>
+                            </div>
+
+                            {showScriptCodeModal && (
+                              <div className="mt-2 p-3 bg-slate-900 text-slate-200 rounded-xl max-h-64 overflow-y-auto font-mono text-[11px] space-y-2 border border-slate-700">
+                                <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+                                  <span className="text-amber-400 font-bold">Mã Nguồn Code.gs (Google Apps Script)</span>
+                                  <button
+                                    type="button"
+                                    onClick={handleCopyScriptCode}
+                                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-[10px] transition cursor-pointer flex items-center gap-1"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                    <span>{copiedScriptCode ? 'Đã sao chép!' : 'Chép mã'}</span>
+                                  </button>
+                                </div>
+                                <pre className="whitespace-pre-wrap select-all leading-relaxed">{GOOGLE_APPS_SCRIPT_CODE}</pre>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="pt-2 flex items-center justify-between">

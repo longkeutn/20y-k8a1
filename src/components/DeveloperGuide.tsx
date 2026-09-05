@@ -29,27 +29,42 @@ import ReceptionCheckin from './ReceptionCheckin';
 import { RsvpData } from '../types';
 
 interface DeveloperGuideProps {
-  appsScriptUrl: string;
+  appsScriptUrl?: string;
+  currentUrl?: string;
   onSaveUrl: (url: string) => void;
-  onReset: () => void;
+  onReset?: () => void;
+  onResetUrl?: () => void;
   rsvpList?: RsvpData[];
   onToggleCheckIn?: (attendeeId: string, currentStatus: boolean) => void;
   onOpenPass?: (attendee?: RsvpData) => void;
 }
 
 export default function DeveloperGuide({ 
-  appsScriptUrl, 
+  appsScriptUrl = '', 
+  currentUrl = '',
   onSaveUrl, 
   onReset,
+  onResetUrl,
   rsvpList = [],
   onToggleCheckIn = () => {},
   onOpenPass = () => {}
 }: DeveloperGuideProps) {
-  const [inputUrl, setInputUrl] = useState(appsScriptUrl);
+  const effectiveUrl = (appsScriptUrl || currentUrl || '').trim();
+  const [inputUrl, setInputUrl] = useState(effectiveUrl);
   const [copiedScript, setCopiedScript] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'reception' | 'database' | 'hosting' | 'test' | 'code' | 'faq' | 'overview'>('reception');
   
+  // Update local input if parent prop changes
+  React.useEffect(() => {
+    setInputUrl(effectiveUrl);
+  }, [effectiveUrl]);
+
+  const handleResetAction = () => {
+    if (onReset) onReset();
+    if (onResetUrl) onResetUrl();
+  };
+
   // Connection Test State
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
@@ -69,7 +84,7 @@ export default function DeveloperGuide({
     e.preventDefault();
     const cleanUrl = inputUrl.trim();
     if (!cleanUrl) {
-      onReset();
+      handleResetAction();
       setSaveStatus('Đã chuyển về Chế độ Giả lập (Offline Demo Mode).');
       return;
     }
@@ -90,7 +105,7 @@ export default function DeveloperGuide({
 
   // Test live connection to Google Apps Script
   const handleTestConnection = async () => {
-    const targetUrl = inputUrl.trim() || appsScriptUrl;
+    const targetUrl = inputUrl.trim() || effectiveUrl;
     if (!targetUrl) {
       setTestResult({
         success: false,
@@ -104,8 +119,8 @@ export default function DeveloperGuide({
     setTestResult(null);
 
     try {
-      // Send ping query to test doGet endpoint
-      const response = await fetch(`${targetUrl}?action=get_attendees&timestamp=${Date.now()}`, {
+      // Send query to test doGet endpoint with action=get_all_data
+      const response = await fetch(`${targetUrl}?action=get_all_data&timestamp=${Date.now()}`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
       });
@@ -115,12 +130,22 @@ export default function DeveloperGuide({
       }
 
       const data = await response.json();
-      if (data && (Array.isArray(data) || Array.isArray(data.attendees) || data.status === 'success')) {
-        const count = Array.isArray(data) ? data.length : (data.attendees?.length || 0);
+      if (data && data.status === 'success') {
+        const rsvpCount = data.data?.rsvp?.length ?? (Array.isArray(data.rsvp) ? data.rsvp.length : 0);
+        const wishesCount = data.data?.wishes?.length ?? 0;
         setTestResult({
           success: true,
           message: 'Kết nối Google Apps Script & Google Sheets hoàn toàn thành công!',
-          details: `Đã đọc dữ liệu thành công từ Google Sheets. Hiện có ${count} bản ghi trong bảng tính.`,
+          details: `Đã kết nối với Sheet thành công. Tìm thấy ${rsvpCount} bản ghi điểm danh và ${wishesCount} lời chúc.`,
+          sampleDataCount: rsvpCount
+        });
+        onSaveUrl(targetUrl);
+      } else if (data && (Array.isArray(data) || Array.isArray(data.attendees))) {
+        const count = Array.isArray(data) ? data.length : (data.attendees?.length || 0);
+        setTestResult({
+          success: true,
+          message: 'Kết nối Google Apps Script thành công!',
+          details: `Đã đọc dữ liệu thành công từ Google Sheets. Hiện có ${count} bản ghi điểm danh.`,
           sampleDataCount: count
         });
         onSaveUrl(targetUrl);

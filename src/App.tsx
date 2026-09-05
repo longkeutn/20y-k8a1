@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -45,11 +45,14 @@ export default function App() {
   // Config state (Google Apps Script WebApp URL)
   const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => {
     try {
-      return localStorage.getItem('apps_script_url') || '';
+      return localStorage.getItem('apps_script_url') || DEFAULT_APPS_SCRIPT_URL || '';
     } catch {
-      return '';
+      return DEFAULT_APPS_SCRIPT_URL || '';
     }
   });
+
+  // URL kết nối thực tế: ưu tiên cấu hình máy này, nếu trống thì dùng URL mặc định của hệ thống
+  const activeAppsScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL || '';
 
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
   const [eventConfig, setEventConfig] = useState<EventConfig>(() => {
@@ -63,13 +66,32 @@ export default function App() {
     return DEFAULT_EVENT_CONFIG;
   });
 
+  // Hàm đồng bộ dữ liệu trực tiếp lên Google Sheet Backend
+  const syncToBackend = async (action: string, payload: any) => {
+    if (!activeAppsScriptUrl || !activeAppsScriptUrl.startsWith('http')) return;
+    try {
+      await fetch(activeAppsScriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action,
+          ...payload
+        })
+      });
+    } catch (err) {
+      console.warn(`Lỗi đồng bộ ${action} lên Google Sheet:`, err);
+    }
+  };
+
   const handleUpdateEventConfig = (newConfig: EventConfig) => {
     setEventConfig(newConfig);
     try {
       localStorage.setItem('k8a1_event_config', JSON.stringify(newConfig));
     } catch (err) {
-      console.error('Lỗi lưu event config:', err);
+      console.error('Lỗi lưu event config vào localStorage:', err);
     }
+    // Ghi trực tiếp và vĩnh viễn vào Google Sheet tab "Cau_Hinh"
+    syncToBackend('save_config', { config: newConfig });
   };
 
   // User Role (RBAC): 'guest' | 'bll' | 'admin'
@@ -258,7 +280,26 @@ export default function App() {
     setImages([newImg, ...images]);
   };
 
-  // Update hero banner url and vertical crop position
+  // Update venue media (Crown Palace photos/videos) with direct Google Sheet sync
+  const handleUpdateVenueMedia = (updated: VenueMediaItem[]) => {
+    setVenueMediaList(updated);
+    try {
+      localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_media', { venueMedia: updated, videos });
+  };
+
+  // Update custom video list with direct Google Sheet sync
+  const handleUpdateVideos = (updated: MemoryVideo[]) => {
+    setVideos(updated);
+    try {
+      localStorage.setItem('custom_videos', JSON.stringify(updated));
+      localStorage.setItem('k8a1_video_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_media', { videos: updated, venueMedia: venueMediaList });
+  };
+
+  // Update hero banner url and vertical crop position with direct Google Sheet sync
   const handleUpdateHeroBanner = (url: string, positionY: number = 50) => {
     setHeroBannerUrl(url);
     setHeroBannerPosition(positionY);
@@ -268,76 +309,81 @@ export default function App() {
     } catch (e) {
       console.warn('Lỗi lưu k8a1_hero_banner vào localStorage:', e);
     }
+    const nextConfig = { ...eventConfig, heroBannerUrl: url, heroBannerPosition: positionY };
+    setEventConfig(nextConfig);
+    syncToBackend('save_config', { config: nextConfig });
+  };
+
+  // Nạp toàn bộ dữ liệu từ Google Sheet (Single Source of Truth)
+  const hydrateAllData = async (targetUrl: string = activeAppsScriptUrl) => {
+    if (!targetUrl || !targetUrl.startsWith('http')) return;
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(`${targetUrl}?action=get_all_data&t=${Date.now()}`);
+      const result = await res.json();
+      if (result && result.status === 'success' && result.data) {
+        const { rsvp, wishes, config, media } = result.data;
+
+        // 1. Đồng bộ RSVP từ Google Sheet
+        if (Array.isArray(rsvp) && rsvp.length > 0) {
+          setRsvpList(rsvp);
+          localStorage.setItem('rsvp_list', JSON.stringify(rsvp));
+        }
+
+        // 2. Đồng bộ Lời chúc từ Google Sheet
+        if (Array.isArray(wishes) && wishes.length > 0) {
+          setWishesList(wishes);
+          localStorage.setItem('wishes_list', JSON.stringify(wishes));
+        }
+
+        // 3. Đồng bộ Cấu hình sự kiện (Địa điểm, Quỹ, Thư ngỏ, Banner) từ Google Sheet
+        if (config && Object.keys(config).length > 0) {
+          setEventConfig((prev) => {
+            const updated = { ...prev, ...config };
+            localStorage.setItem('k8a1_event_config', JSON.stringify(updated));
+            return updated;
+          });
+
+          if (config.heroBannerUrl) {
+            setHeroBannerUrl(config.heroBannerUrl);
+            localStorage.setItem('k8a1_hero_banner_url', config.heroBannerUrl);
+          }
+          if (config.heroBannerPosition !== undefined) {
+            const pos = Number(config.heroBannerPosition) || 50;
+            setHeroBannerPosition(pos);
+            localStorage.setItem('k8a1_hero_banner_position', pos.toString());
+          }
+        }
+
+        // 4. Đồng bộ Media (Video & Venue Media) từ Google Sheet
+        if (media) {
+          if (Array.isArray(media.videos) && media.videos.length > 0) {
+            setVideos(media.videos);
+            localStorage.setItem('k8a1_video_list', JSON.stringify(media.videos));
+            localStorage.setItem('custom_videos', JSON.stringify(media.videos));
+          }
+          if (Array.isArray(media.venueMedia) && media.venueMedia.length > 0) {
+            setVenueMediaList(media.venueMedia);
+            localStorage.setItem('k8a1_venue_media_list', JSON.stringify(media.venueMedia));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi đồng bộ từ Google Sheet:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   // Live Refresh data from Google Apps Script
   const handleRefreshData = () => {
-    if (!appsScriptUrl) return;
-    setIsRefreshing(true);
-
-    const rsvpPromise = fetch(`${appsScriptUrl}?action=get_rsvp`)
-      .then(res => res.json())
-      .then(result => {
-        if (result && result.status === 'success' && Array.isArray(result.data)) {
-          setRsvpList(result.data);
-        }
-      })
-      .catch(err => console.warn('Lỗi khi tải RSVP:', err));
-
-    const wishesPromise = fetch(`${appsScriptUrl}?action=get_wishes`)
-      .then(res => res.json())
-      .then(result => {
-        if (result && result.status === 'success' && Array.isArray(result.data)) {
-          setWishesList(result.data);
-        }
-      })
-      .catch(err => console.warn('Lỗi khi tải Lời chúc:', err));
-
-    const photosPromise = fetch(`${appsScriptUrl}?action=get_photos`)
-      .then(res => res.json())
-      .then(result => {
-        if (result && result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
-          setImages([...result.data, ...DEFAULT_MEMORIES.filter(d => !result.data.some((r: any) => r.id === d.id))]);
-        }
-      })
-      .catch(err => console.warn('Lỗi khi tải Ảnh Drive:', err));
-
-    Promise.allSettled([rsvpPromise, wishesPromise, photosPromise]).finally(() => {
-      setTimeout(() => setIsRefreshing(false), 400);
-    });
+    hydrateAllData(activeAppsScriptUrl);
   };
 
-  // Fetch initial data
+  // Tự động đồng bộ toàn bộ dữ liệu ngay khi tải trang và khi URL thay đổi
   useEffect(() => {
-    if (!appsScriptUrl) return;
-
-    fetch(`${appsScriptUrl}?action=get_rsvp`)
-      .then(res => res.json())
-      .then(result => {
-        if (result && result.status === 'success' && Array.isArray(result.data)) {
-          setRsvpList(result.data);
-        }
-      })
-      .catch(err => console.warn('Lỗi kết nối RSVP Sheet:', err));
-
-    fetch(`${appsScriptUrl}?action=get_wishes`)
-      .then(res => res.json())
-      .then(result => {
-        if (result && result.status === 'success' && Array.isArray(result.data)) {
-          setWishesList(result.data);
-        }
-      })
-      .catch(err => console.warn('Lỗi kết nối Lời chúc Sheet:', err));
-
-    fetch(`${appsScriptUrl}?action=get_photos`)
-      .then(res => res.json())
-      .then(result => {
-        if (result && result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
-          setImages([...result.data, ...DEFAULT_MEMORIES.filter(d => !result.data.some((r: any) => r.id === d.id))]);
-        }
-      })
-      .catch(err => console.warn('Lỗi kết nối Photo Drive:', err));
-  }, [appsScriptUrl]);
+    hydrateAllData(activeAppsScriptUrl);
+  }, [activeAppsScriptUrl]);
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#334155] flex flex-col items-center pb-20 selection:bg-amber-200 selection:text-amber-900 relative overflow-x-hidden font-sans">
@@ -549,10 +595,14 @@ export default function App() {
               <p className="text-xs text-slate-500">Dành cho Ban Tổ Chức đồng bộ danh sách điểm danh và lưu bút về Google Sheet</p>
             </div>
             <DeveloperGuide 
-              currentUrl={appsScriptUrl} 
+              currentUrl={activeAppsScriptUrl}
+              appsScriptUrl={activeAppsScriptUrl} 
               onSaveUrl={(url) => {
                 setAppsScriptUrl(url);
                 localStorage.setItem('apps_script_url', url);
+                if (url) {
+                  hydrateAllData(url);
+                }
               }}
               onResetUrl={() => {
                 setAppsScriptUrl('');
@@ -738,7 +788,7 @@ export default function App() {
             {/* ======================================================== */}
             <section id="ky-uc" className="space-y-6 scroll-mt-20">
               <MemoryCorner 
-                appsScriptUrl={appsScriptUrl} 
+                appsScriptUrl={activeAppsScriptUrl} 
                 images={images} 
                 videos={videos} 
                 onAddImage={handleAddImage} 
@@ -751,10 +801,7 @@ export default function App() {
             <AlumniConvergenceMap
               eventConfig={eventConfig}
               venueMediaList={venueMediaList}
-              onUpdateVenueMediaList={(updated) => {
-                setVenueMediaList(updated);
-                localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
-              }}
+              onUpdateVenueMediaList={handleUpdateVenueMedia}
               currentUserRole={currentUserRole}
               onOpenAdminHub={(tab, subTab) => handleOpenAdminHub(tab || 'media', subTab || 'venue')}
             />
@@ -764,7 +811,7 @@ export default function App() {
             {/* ======================================================== */}
             <section id="luu-but" className="space-y-6 scroll-mt-20">
               <WishesGuestbook
-                appsScriptUrl={appsScriptUrl}
+                appsScriptUrl={activeAppsScriptUrl}
                 wishesList={wishesList}
                 onAddWish={handleAddWish}
               />
@@ -777,7 +824,7 @@ export default function App() {
               
               {/* Form Điểm Danh */}
               <RsvpForm 
-                appsScriptUrl={appsScriptUrl} 
+                appsScriptUrl={activeAppsScriptUrl} 
                 rsvpList={rsvpList} 
                 onAddRsvp={handleAddRsvp} 
                 onOpenPassModal={handleOpenPass}
@@ -786,7 +833,7 @@ export default function App() {
 
               {/* Danh Sách Thành Viên Đã Xác Nhận */}
               <ConfirmedAttendees
-                appsScriptUrl={appsScriptUrl}
+                appsScriptUrl={activeAppsScriptUrl}
                 rsvpList={rsvpList}
                 onRefresh={handleRefreshData}
                 isRefreshing={isRefreshing}
@@ -804,7 +851,7 @@ export default function App() {
                 customQrUrl={eventConfig.customQrUrl}
                 bankCode={eventConfig.bankCode}
                 qrTemplate={eventConfig.qrTemplate}
-                appsScriptUrl={appsScriptUrl}
+                appsScriptUrl={activeAppsScriptUrl}
                 rsvpList={rsvpList}
                 onOpenReceiptModal={handleOpenReceiptModal}
                 onUpdateRsvpList={(updated) => {
@@ -831,7 +878,7 @@ export default function App() {
               </div>
 
               <div className="pt-2">
-                <ViewCounter appsScriptUrl={appsScriptUrl} />
+                <ViewCounter appsScriptUrl={activeAppsScriptUrl} />
               </div>
             </footer>
 
@@ -871,25 +918,23 @@ export default function App() {
           localStorage.setItem('uploaded_images', JSON.stringify(updated.filter(i => i.isUserUploaded)));
         }}
         videos={videos}
-        onUpdateVideos={(updated) => {
-          setVideos(updated);
-          localStorage.setItem('custom_videos', JSON.stringify(updated));
-          localStorage.setItem('k8a1_video_list', JSON.stringify(updated));
-        }}
+        onUpdateVideos={handleUpdateVideos}
         venueMediaList={venueMediaList}
-        onUpdateVenueMediaList={(updated) => {
-          setVenueMediaList(updated);
-          localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
-        }}
+        onUpdateVenueMediaList={handleUpdateVenueMedia}
         heroBannerUrl={heroBannerUrl}
         heroBannerPosition={heroBannerPosition}
         onUpdateHeroBannerUrl={handleUpdateHeroBanner}
         eventConfig={eventConfig}
         onUpdateEventConfig={handleUpdateEventConfig}
-        appsScriptUrl={appsScriptUrl}
+        appsScriptUrl={activeAppsScriptUrl}
         onSaveAppsScriptUrl={(url) => {
           setAppsScriptUrl(url);
-          localStorage.setItem('apps_script_url', url);
+          if (url) {
+            localStorage.setItem('apps_script_url', url);
+            hydrateAllData(url);
+          } else {
+            localStorage.removeItem('apps_script_url');
+          }
         }}
         onRefreshData={handleRefreshData}
         onOpenPassModal={handleOpenPass}
@@ -907,7 +952,7 @@ export default function App() {
       <ReceiptUploadModal
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
-        appsScriptUrl={appsScriptUrl}
+        appsScriptUrl={activeAppsScriptUrl}
         rsvpList={rsvpList}
         defaultAttendee={selectedReceiptAttendee}
         onUpdateRsvpList={(updated) => {

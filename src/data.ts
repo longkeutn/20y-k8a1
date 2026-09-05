@@ -521,8 +521,14 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   fundAmountPerPerson: 500000,
   customQrUrl: "",
   bankCode: "vietcombank",
-  qrTemplate: "compact"
+  qrTemplate: "compact",
+  heroBannerUrl: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80",
+  heroBannerPosition: 50
 };
+
+// URL Google Apps Script WebApp mặc định toàn hệ thống
+// BLL có thể dán URL triển khai (/exec) vào đây để mọi thiết bị/ẩn danh tự động đồng bộ cùng 1 Sheet
+export const DEFAULT_APPS_SCRIPT_URL = "";
 
 export const K8A1_DRIVE_FOLDER_ID = "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
 export const K8A1_DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1Skmip1HQhmXan-58kwbY_msamP-bWokq";
@@ -531,6 +537,7 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * GOOGLE APPS SCRIPT (Code.gs)
  * Phục vụ WebApp "Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên"
  * Hỗ trợ Phân quyền Admin (8888) & Ban Liên Lạc (2006) với Full CRUD
+ * Đồng bộ tập trung toàn bộ dữ liệu: Điểm danh, Quỹ, Lời chúc, Cấu hình sự kiện, Media vào Google Sheet
  * 
  * HƯỚNG DẪN TRIỂN KHAI CHUẨN ĐỂ KHÔNG BỊ LỖI "Failed to fetch":
  * 1. Mở Google Sheet -> Chọn Tiện ích mở rộng (Extensions) -> Apps Script
@@ -546,10 +553,14 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
 const CONFIG = {
   // ID thư mục Google Drive của lớp K8A1 lưu trữ và đồng bộ ảnh kỷ niệm
   DRIVE_FOLDER_ID: "1Skmip1HQhmXan-58kwbY_msamP-bWokq",
-  // Tên trang tính lưu danh sách điểm danh
+  // Tên trang tính lưu danh sách điểm danh & đối soát quỹ
   RSVP_SHEET_NAME: "Trang_tinh_1",
   // Tên trang tính lưu lời chúc & lưu bút
   WISHES_SHEET_NAME: "Loi_Chuc",
+  // Tên trang tính lưu toàn bộ cấu hình sự kiện (Địa điểm, Quỹ, Ngân hàng, Thư ngỏ, Banner)
+  CONFIG_SHEET_NAME: "Cau_Hinh",
+  // Tên trang tính lưu danh sách video và media địa điểm
+  MEDIA_SHEET_NAME: "Media_Cai_Dat",
   // Tên trang tính đếm lượt truy cập
   VIEW_COUNTER_SHEET_NAME: "Luot_Truy_Cap"
 };
@@ -565,20 +576,39 @@ function handleResponse(data) {
  */
 function doGet(e) {
   try {
-    const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'get_rsvp';
+    const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'get_all_data';
 
+    // 1. Đồng bộ toàn bộ dữ liệu chỉ trong 1 request duy nhất (Single Source of Truth)
+    if (action === 'get_all_data' || action === 'all' || action === 'sync') {
+      return handleResponse(getAllData());
+    }
+
+    // 2. Lấy cấu hình sự kiện
+    if (action === 'get_config') {
+      return handleResponse(getEventConfig());
+    }
+
+    // 3. Lấy media (Videos & Venue Media)
+    if (action === 'get_media') {
+      return handleResponse(getMediaSettings());
+    }
+
+    // 4. Lấy ảnh thư viện Drive
     if (action === 'get_photos') {
       return handleResponse(getDrivePhotos());
     }
 
+    // 5. Lấy danh sách lưu bút / lời chúc
     if (action === 'get_wishes') {
       return handleResponse(getWishesList());
     }
 
+    // 6. Lấy danh sách RSVP / điểm danh
     if (action === 'get_confirmed_attendees' || action === 'get_attendees' || action === 'get_rsvp') {
       return handleResponse(getRSVPList());
     }
 
+    // 7. Lấy số lượt xem trang
     if (action === 'get_view_count') {
       return handleResponse(getViewCount());
     }
@@ -587,15 +617,15 @@ function doGet(e) {
       return handleResponse(recordPageView());
     }
 
-    // Mặc định trả về danh sách RSVP
-    return handleResponse(getRSVPList());
+    // Mặc định trả về toàn bộ dữ liệu
+    return handleResponse(getAllData());
   } catch (err) {
     return handleResponse({ status: 'error', message: err.toString() });
   }
 }
 
 /**
- * Xử lý yêu cầu POST: Ghi điểm danh, lời chúc, đối soát quỹ vào Google Sheet / Drive
+ * Xử lý yêu cầu POST: Ghi điểm danh, đối soát quỹ, lưu cấu hình, media vào Google Sheet / Drive
  */
 function doPost(e) {
   try {
@@ -611,6 +641,16 @@ function doPost(e) {
     }
 
     const action = postData.action || 'rsvp';
+
+    // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Quỹ, Thư ngỏ, Banner)
+    if (action === 'save_config' || action === 'update_config') {
+      return handleResponse(saveEventConfig(postData));
+    }
+
+    // 2. Lưu Media (Video, Venue Media)
+    if (action === 'save_media' || action === 'update_media') {
+      return handleResponse(saveMediaSettings(postData));
+    }
 
     if (action === 'record_view' || action === 'hit_view') {
       return handleResponse(recordPageView());
@@ -1163,5 +1203,194 @@ function formatDate(date) {
   if (!(date instanceof Date)) return String(date);
   const pad = (n) => (n < 10 ? '0' + n : n);
   return \`\${pad(date.getDate())}/\${pad(date.getMonth() + 1)}/\${date.getFullYear()} \${pad(date.getHours())}:\${pad(date.getMinutes())}\`;
+}
+
+/**
+ * -------------------------------------------------------------
+ * 1. ĐỒNG BỘ CẤU HÌNH SỰ KIỆN (SHEET: "Cau_Hinh")
+ * Lưu Địa điểm, Thời gian, Thư ngỏ, Tài khoản Quỹ, Banner
+ * -------------------------------------------------------------
+ */
+function getEventConfig() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.CONFIG_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.CONFIG_SHEET_NAME);
+      sheet.appendRow(['Khoa_Key', 'Gia_Tri_Value', 'Mo_Ta_Description', 'Ngay_Cap_Nhat']);
+      sheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#FAF3E0');
+      return { status: 'success', data: {} };
+    }
+
+    const rows = sheet.getDataRange().getValues();
+    const config = {};
+    for (let i = 1; i < rows.length; i++) {
+      const key = String(rows[i][0] || '').trim();
+      if (key) {
+        let val = rows[i][1];
+        if (key === 'fundAmountPerPerson' || key === 'heroBannerPosition') {
+          val = Number(val) || 0;
+        }
+        config[key] = val;
+      }
+    }
+    return { status: 'success', data: config };
+  } catch (err) {
+    return { status: 'error', message: err.toString(), data: {} };
+  }
+}
+
+function saveEventConfig(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.CONFIG_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.CONFIG_SHEET_NAME);
+      sheet.appendRow(['Khoa_Key', 'Gia_Tri_Value', 'Mo_Ta_Description', 'Ngay_Cap_Nhat']);
+      sheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#FAF3E0');
+    }
+
+    const newConfig = postData.config || postData;
+    if (typeof newConfig !== 'object') {
+      return { status: 'error', message: 'Dữ liệu cấu hình không hợp lệ' };
+    }
+
+    const rows = sheet.getDataRange().getValues();
+    const keyToRowIndex = {};
+    for (let i = 1; i < rows.length; i++) {
+      const key = String(rows[i][0] || '').trim();
+      if (key) keyToRowIndex[key] = i + 1;
+    }
+
+    const nowStr = formatDate(new Date());
+    for (const [key, value] of Object.entries(newConfig)) {
+      if (key === 'action') continue;
+      const rowIndex = keyToRowIndex[key];
+      const valToSave = typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+      if (rowIndex) {
+        sheet.getRange(rowIndex, 2).setValue(valToSave);
+        sheet.getRange(rowIndex, 4).setValue(nowStr);
+      } else {
+        sheet.appendRow([key, valToSave, '', nowStr]);
+        keyToRowIndex[key] = sheet.getLastRow();
+      }
+    }
+
+    return { status: 'success', message: 'Đã lưu cấu hình vào Google Sheet thành công!', data: newConfig };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+/**
+ * -------------------------------------------------------------
+ * 2. ĐỒNG BỘ MEDIA (SHEET: "Media_Cai_Dat")
+ * Lưu danh sách video kỷ niệm và media địa điểm Crown Palace
+ * -------------------------------------------------------------
+ */
+function getMediaSettings() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.MEDIA_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.MEDIA_SHEET_NAME);
+      sheet.appendRow(['Loai_Media', 'Du_Lieu_JSON', 'Ngay_Cap_Nhat']);
+      sheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FAF3E0');
+      return { status: 'success', data: { videos: [], venueMedia: [] } };
+    }
+
+    const rows = sheet.getDataRange().getValues();
+    let videos = [];
+    let venueMedia = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const type = String(rows[i][0] || '').trim();
+      const rawJson = String(rows[i][1] || '').trim();
+      if (!rawJson) continue;
+      try {
+        if (type === 'videos') videos = JSON.parse(rawJson);
+        if (type === 'venue_media') venueMedia = JSON.parse(rawJson);
+      } catch (e) {}
+    }
+
+    return { status: 'success', data: { videos: videos, venueMedia: venueMedia } };
+  } catch (err) {
+    return { status: 'error', message: err.toString(), data: { videos: [], venueMedia: [] } };
+  }
+}
+
+function saveMediaSettings(postData) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.MEDIA_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(CONFIG.MEDIA_SHEET_NAME);
+      sheet.appendRow(['Loai_Media', 'Du_Lieu_JSON', 'Ngay_Cap_Nhat']);
+      sheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FAF3E0');
+    }
+
+    const nowStr = formatDate(new Date());
+    const rows = sheet.getDataRange().getValues();
+    let videoRow = null;
+    let venueMediaRow = null;
+
+    for (let i = 1; i < rows.length; i++) {
+      const type = String(rows[i][0] || '').trim();
+      if (type === 'videos') videoRow = i + 1;
+      if (type === 'venue_media') venueMediaRow = i + 1;
+    }
+
+    if (postData.videos !== undefined) {
+      const jsonStr = JSON.stringify(postData.videos);
+      if (videoRow) {
+        sheet.getRange(videoRow, 2).setValue(jsonStr);
+        sheet.getRange(videoRow, 3).setValue(nowStr);
+      } else {
+        sheet.appendRow(['videos', jsonStr, nowStr]);
+      }
+    }
+
+    if (postData.venueMedia !== undefined) {
+      const jsonStr = JSON.stringify(postData.venueMedia);
+      if (venueMediaRow) {
+        sheet.getRange(venueMediaRow, 2).setValue(jsonStr);
+        sheet.getRange(venueMediaRow, 3).setValue(nowStr);
+      } else {
+        sheet.appendRow(['venue_media', jsonStr, nowStr]);
+      }
+    }
+
+    return { status: 'success', message: 'Đã lưu Media vào Google Sheet thành công!' };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+/**
+ * -------------------------------------------------------------
+ * 3. TOÀN BỘ CƠ SỞ DỮ LIỆU ĐỒNG BỘ 1 LỆNH (SINGLE SOURCE OF TRUTH)
+ * -------------------------------------------------------------
+ */
+function getAllData() {
+  try {
+    const rsvp = (getRSVPList() || {}).data || [];
+    const wishes = (getWishesList() || {}).data || [];
+    const config = (getEventConfig() || {}).data || {};
+    const media = (getMediaSettings() || {}).data || { videos: [], venueMedia: [] };
+    const viewCount = (getViewCount() || {}).count || 1258;
+
+    return {
+      status: 'success',
+      data: {
+        rsvp: rsvp,
+        wishes: wishes,
+        config: config,
+        media: media,
+        viewCount: viewCount
+      }
+    };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
 }
 `;

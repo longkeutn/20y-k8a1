@@ -175,6 +175,8 @@ export interface EventConfig {
   customQrUrl?: string;
   bankCode?: string;
   qrTemplate?: 'compact' | 'compact2' | 'qr_only';
+  heroBannerUrl?: string;
+  heroBannerPosition?: number;
 }
 
 
