@@ -78,12 +78,25 @@ export default function App() {
   const [selectedPassAttendee, setSelectedPassAttendee] = useState<RsvpData | null>(null);
   const [isPassModalOpen, setIsPassModalOpen] = useState(false);
 
-  // Hero Banner Cover Image URL State
+  // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
   const [heroBannerUrl, setHeroBannerUrl] = useState<string>(() => {
     try {
       return localStorage.getItem('k8a1_hero_banner_url') || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
     } catch {
       return 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
+    }
+  });
+
+  const [heroBannerPosition, setHeroBannerPosition] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_hero_banner_position');
+      if (saved !== null) {
+        const num = parseFloat(saved);
+        if (!isNaN(num) && num >= 0 && num <= 100) return num;
+      }
+      return 50;
+    } catch {
+      return 50;
     }
   });
 
@@ -213,13 +226,15 @@ export default function App() {
     setImages([newImg, ...images]);
   };
 
-  // Update hero banner url
-  const handleUpdateHeroBanner = (url: string) => {
+  // Update hero banner url and vertical crop position
+  const handleUpdateHeroBanner = (url: string, positionY: number = 50) => {
     setHeroBannerUrl(url);
+    setHeroBannerPosition(positionY);
     try {
       localStorage.setItem('k8a1_hero_banner_url', url);
+      localStorage.setItem('k8a1_hero_banner_position', positionY.toString());
     } catch (e) {
-      console.warn('Lỗi lưu k8a1_hero_banner_url vào localStorage:', e);
+      console.warn('Lỗi lưu k8a1_hero_banner vào localStorage:', e);
     }
   };
 
@@ -398,7 +413,8 @@ export default function App() {
           <img
             src={heroBannerUrl}
             alt="Kỷ Niệm Thanh Xuân K8A1 THPT Thái Nguyên"
-            className="w-full h-full object-cover object-center filter brightness-65 contrast-105 saturate-90 scale-102"
+            style={{ objectPosition: `center ${heroBannerPosition}%` }}
+            className="w-full h-full object-cover filter brightness-65 contrast-105 saturate-90 scale-102 transition-[object-position] duration-300"
           />
           {/* Top Darkening Tint for Navbar Contrast */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent pointer-events-none" />
@@ -790,6 +806,7 @@ export default function App() {
           localStorage.setItem('k8a1_venue_media_list', JSON.stringify(updated));
         }}
         heroBannerUrl={heroBannerUrl}
+        heroBannerPosition={heroBannerPosition}
         onUpdateHeroBannerUrl={handleUpdateHeroBanner}
         appsScriptUrl={appsScriptUrl}
         onSaveAppsScriptUrl={(url) => {

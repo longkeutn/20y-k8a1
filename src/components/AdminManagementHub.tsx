@@ -45,7 +45,9 @@ import {
   Save,
   Link,
   Building2,
-  Play
+  Play,
+  MoveVertical,
+  SlidersHorizontal
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem } from '../types';
@@ -78,7 +80,8 @@ interface AdminManagementHubProps {
   onUpdateVenueMediaList?: (list: VenueMediaItem[]) => void;
   
   heroBannerUrl?: string;
-  onUpdateHeroBannerUrl?: (url: string) => void;
+  heroBannerPosition?: number;
+  onUpdateHeroBannerUrl?: (url: string, positionY?: number) => void;
   
   appsScriptUrl: string;
   onSaveAppsScriptUrl: (url: string) => void;
@@ -105,6 +108,7 @@ export default function AdminManagementHub({
   venueMediaList,
   onUpdateVenueMediaList,
   heroBannerUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80',
+  heroBannerPosition = 50,
   onUpdateHeroBannerUrl,
   appsScriptUrl,
   onSaveAppsScriptUrl,
@@ -144,6 +148,11 @@ export default function AdminManagementHub({
   const [newBllPin, setNewBllPin] = useState('');
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
   const [bannerInput, setBannerInput] = useState(heroBannerUrl);
+  const [bannerPositionY, setBannerPositionY] = useState<number>(heroBannerPosition ?? 50);
+  const [isDraggingBanner, setIsDraggingBanner] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartPos, setDragStartPos] = useState(50);
+  const bannerPreviewRef = React.useRef<HTMLDivElement>(null);
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
 
   // Search & Filters for Member Tab
@@ -221,6 +230,12 @@ export default function AdminManagementHub({
   useEffect(() => {
     setBannerInput(heroBannerUrl);
   }, [heroBannerUrl]);
+
+  useEffect(() => {
+    if (heroBannerPosition !== undefined) {
+      setBannerPositionY(heroBannerPosition);
+    }
+  }, [heroBannerPosition]);
 
   // Handle PIN input button click
   const handlePinDigit = (digit: string) => {
@@ -601,7 +616,7 @@ export default function AdminManagementHub({
   };
 
   // ---------------------------------------------------------------------------
-  // HERO BANNER COVER UPLOAD HANDLER
+  // HERO BANNER COVER UPLOAD & DRAG REPOSITION HANDLERS
   // ---------------------------------------------------------------------------
   const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -620,6 +635,49 @@ export default function AdminManagementHub({
     reader.readAsDataURL(file);
   };
 
+  const handleMouseDownBanner = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingBanner(true);
+    setDragStartY(e.clientY);
+    setDragStartPos(bannerPositionY);
+  };
+
+  const handleMouseMoveBanner = (e: React.MouseEvent) => {
+    if (!isDraggingBanner || !bannerPreviewRef.current) return;
+    const rect = bannerPreviewRef.current.getBoundingClientRect();
+    const deltaY = e.clientY - dragStartY;
+    const sensitivity = 0.6;
+    const deltaPercent = (deltaY / rect.height) * 100 * sensitivity;
+    const newPos = Math.min(100, Math.max(0, Math.round(dragStartPos - deltaPercent)));
+    setBannerPositionY(newPos);
+  };
+
+  const handleMouseUpBanner = () => {
+    setIsDraggingBanner(false);
+  };
+
+  const handleTouchStartBanner = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDraggingBanner(true);
+      setDragStartY(e.touches[0].clientY);
+      setDragStartPos(bannerPositionY);
+    }
+  };
+
+  const handleTouchMoveBanner = (e: React.TouchEvent) => {
+    if (!isDraggingBanner || !bannerPreviewRef.current || e.touches.length !== 1) return;
+    const rect = bannerPreviewRef.current.getBoundingClientRect();
+    const deltaY = e.touches[0].clientY - dragStartY;
+    const sensitivity = 0.6;
+    const deltaPercent = (deltaY / rect.height) * 100 * sensitivity;
+    const newPos = Math.min(100, Math.max(0, Math.round(dragStartPos - deltaPercent)));
+    setBannerPositionY(newPos);
+  };
+
+  const handleTouchEndBanner = () => {
+    setIsDraggingBanner(false);
+  };
+
   const handleSaveBanner = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerInput.trim()) {
@@ -627,8 +685,8 @@ export default function AdminManagementHub({
       return;
     }
     if (onUpdateHeroBannerUrl) {
-      onUpdateHeroBannerUrl(bannerInput.trim());
-      setSettingsSuccessMsg('Đã cập nhật ảnh bìa banner đầu trang thành công!');
+      onUpdateHeroBannerUrl(bannerInput.trim(), bannerPositionY);
+      setSettingsSuccessMsg('Đã lưu ảnh bìa và vị trí hiển thị thành công!');
       setTimeout(() => setSettingsSuccessMsg(''), 4000);
     }
   };
@@ -636,9 +694,10 @@ export default function AdminManagementHub({
   const handleResetBanner = () => {
     const defaultUrl = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80';
     setBannerInput(defaultUrl);
+    setBannerPositionY(50);
     if (onUpdateHeroBannerUrl) {
-      onUpdateHeroBannerUrl(defaultUrl);
-      setSettingsSuccessMsg('Đã khôi phục ảnh bìa banner về mặc định!');
+      onUpdateHeroBannerUrl(defaultUrl, 50);
+      setSettingsSuccessMsg('Đã khôi phục ảnh bìa banner và vị trí về mặc định!');
       setTimeout(() => setSettingsSuccessMsg(''), 4000);
     }
   };
@@ -1862,14 +1921,14 @@ export default function AdminManagementHub({
 
               {/* Sub-tab: HERO BANNER COVER MANAGEMENT */}
               {mediaSubTab === 'banner' && (
-                <div className="bg-white p-5 rounded-xl border border-amber-300 shadow-sm space-y-4">
+                <div className="bg-white p-5 rounded-xl border border-amber-300 shadow-sm space-y-4 text-left">
                   <div className="space-y-1">
                     <h4 className="text-sm font-bold text-slate-900 font-serif flex items-center gap-2">
                       <ImageIcon className="w-4 h-4 text-amber-600" />
-                      <span>Tùy Chỉnh & Tải Lên Ảnh Bìa Đầu Trang (Hero Banner)</span>
+                      <span>Tùy Chỉnh, Kéo Vị Trí & Tải Lên Ảnh Bìa Đầu Trang (Hero Banner)</span>
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Ảnh bìa hiển thị tràn ngang toàn màn hình trên desktop và mờ dần xuống nền trang. Bạn có thể dán đường link ảnh hoặc bấm "Tải ảnh từ máy" lên.
+                      Ảnh bìa hiển thị tràn ngang toàn màn hình. Bạn có thể <strong>nhấn giữ và kéo chuột lên/xuống trực tiếp</strong> trên ảnh xem trước hoặc dùng thanh trượt để chọn góc nhìn và khuôn mặt bạn bè đẹp nhất.
                     </p>
                   </div>
 
@@ -1880,19 +1939,116 @@ export default function AdminManagementHub({
                     </div>
                   )}
 
-                  {/* Banner Preview */}
+                  {/* Banner Preview With Interactive Drag Reposition */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700 block">Xem trước ảnh bìa hiện tại:</label>
-                    <div className="w-full h-48 sm:h-56 rounded-xl overflow-hidden relative border-2 border-dashed border-amber-300 bg-slate-900 shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <MoveVertical className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Xem trước & Kéo chỉnh vùng hiển thị ảnh bìa:</span>
+                      </label>
+                      <span className="text-[11px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300/80">
+                        Vị trí: {bannerPositionY}% {bannerPositionY <= 25 ? '(Phía Trên)' : bannerPositionY >= 75 ? '(Phía Dưới)' : '(Chính Giữa)'}
+                      </span>
+                    </div>
+
+                    <div
+                      ref={bannerPreviewRef}
+                      onMouseDown={handleMouseDownBanner}
+                      onMouseMove={handleMouseMoveBanner}
+                      onMouseUp={handleMouseUpBanner}
+                      onMouseLeave={handleMouseUpBanner}
+                      onTouchStart={handleTouchStartBanner}
+                      onTouchMove={handleTouchMoveBanner}
+                      onTouchEnd={handleTouchEndBanner}
+                      className={`w-full h-52 sm:h-64 rounded-xl overflow-hidden relative border-2 border-dashed border-amber-400 bg-slate-900 shadow-inner select-none transition-all ${
+                        isDraggingBanner ? 'cursor-grabbing ring-2 ring-amber-500 shadow-lg' : 'cursor-grab hover:border-amber-500'
+                      }`}
+                      title="Nhấn giữ và kéo lên/xuống để chỉnh góc nhìn"
+                    >
                       <img
                         src={bannerInput}
                         alt="Preview Banner"
-                        className="w-full h-full object-cover object-center"
+                        style={{ objectPosition: `center ${bannerPositionY}%` }}
+                        className="w-full h-full object-cover select-none pointer-events-none transition-[object-position] duration-75 filter contrast-105"
                       />
+                      {/* Hiệu ứng mờ dần cạnh dưới như trên trang chủ */}
                       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#FDFBF7] to-transparent pointer-events-none" />
-                      <span className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[10px] text-amber-200 font-mono">
-                        Ảnh xem trước (Hiệu ứng mờ dần cạnh dưới)
+
+                      {/* Reposition instruction overlay badge */}
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-black/75 backdrop-blur-md rounded-lg text-[11px] text-amber-200 font-sans font-medium border border-amber-400/40 shadow-md">
+                        <MoveVertical className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
+                        <span>🖐️ Kéo ảnh lên/xuống trực tiếp để chọn vùng ưng ý</span>
+                      </div>
+
+                      <div className="absolute bottom-2.5 right-2.5 px-2.5 py-1 bg-black/70 backdrop-blur-md rounded-lg text-[10px] text-amber-300 font-mono border border-amber-400/30">
+                        Object-Position: center {bannerPositionY}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Thanh Trượt & Nút Chọn Vùng Nhanh */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span className="flex items-center gap-1.5 text-slate-900">
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Thanh trượt vi chỉnh vị trí dọc:</span>
                       </span>
+                      <span className="text-[11px] text-slate-500 font-mono">{bannerPositionY}%</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-slate-400 font-bold shrink-0">🔝 Đỉnh (0%)</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={bannerPositionY}
+                        onChange={(e) => setBannerPositionY(Number(e.target.value))}
+                        className="flex-1 accent-amber-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                      />
+                      <span className="text-[10px] text-slate-400 font-bold shrink-0">🔻 Đáy (100%)</span>
+                    </div>
+
+                    {/* Quick Preset Buttons */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/80">
+                      <span className="text-[11px] text-slate-500 italic">Vị trí nhanh:</span>
+                      <button
+                        type="button"
+                        onClick={() => setBannerPositionY(15)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer ${
+                          bannerPositionY === 15 ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-amber-50'
+                        }`}
+                      >
+                        🔝 Lấy Cảnh Trên (15%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBannerPositionY(35)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer ${
+                          bannerPositionY === 35 ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-amber-50'
+                        }`}
+                      >
+                        👥 Canh Khuôn Mặt (35%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBannerPositionY(50)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer ${
+                          bannerPositionY === 50 ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-amber-50'
+                        }`}
+                      >
+                        🎯 Chính Giữa (50%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBannerPositionY(80)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer ${
+                          bannerPositionY === 80 ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-amber-50'
+                        }`}
+                      >
+                        🔻 Lấy Phần Dưới (80%)
+                      </button>
                     </div>
                   </div>
 
@@ -1938,7 +2094,7 @@ export default function AdminManagementHub({
                         className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 text-white font-bold rounded-lg shadow-sm transition cursor-pointer"
                       >
                         <Save className="w-3.5 h-3.5" />
-                        <span>Lưu Ảnh Bìa Hero</span>
+                        <span>Lưu Ảnh Bìa & Vị Trí</span>
                       </button>
                     </div>
                   </form>
