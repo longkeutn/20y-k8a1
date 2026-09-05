@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { 
   Camera, 
   Image as ImageIcon, 
@@ -20,7 +20,15 @@ import {
   CheckCircle2, 
   Loader2, 
   AlertCircle,
-  Download
+  Download,
+  LayoutGrid,
+  Maximize2,
+  Search,
+  Filter,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
@@ -33,11 +41,10 @@ interface MemoryCornerProps {
   onAddImage?: (newImage: MemoryImage) => void;
 }
 
-// Hàm chuẩn hóa link video YouTube hoặc Google Drive sang link nhúng (Embed URL)
+// Chuẩn hóa link video YouTube hoặc Google Drive sang Embed URL
 export function parseVideoEmbedUrl(url: string): { embedUrl: string; type: 'youtube' | 'drive' | 'direct' } {
   if (!url) return { embedUrl: '', type: 'direct' };
 
-  // 1. YouTube link
   const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
   if (ytMatch && ytMatch[1]) {
     return {
@@ -46,7 +53,6 @@ export function parseVideoEmbedUrl(url: string): { embedUrl: string; type: 'yout
     };
   }
 
-  // 2. Google Drive link (file/d/ID hoặc open?id=ID)
   const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/i);
   if (driveMatch && driveMatch[1]) {
     return {
@@ -55,7 +61,6 @@ export function parseVideoEmbedUrl(url: string): { embedUrl: string; type: 'yout
     };
   }
 
-  // 3. Fallback direct or already embed link
   return {
     embedUrl: url,
     type: 'direct'
@@ -82,6 +87,9 @@ const INITIAL_VIDEOS: MemoryVideo[] = [
     thumbnail: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80'
   }
 ];
+
+type GalleryViewMode = 'stage' | 'polaroid' | 'filmstrip';
+type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
 export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, onAddImage }: MemoryCornerProps) {
   // Video State
@@ -111,9 +119,22 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   const [uploadSuccess, setUploadSuccess] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Photo Gallery State
+  // Gallery Display Mode & Filter State
+  const [viewMode, setViewMode] = useState<GalleryViewMode>('stage');
+  const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [stageIndex, setStageIndex] = useState<number>(0);
+  
+  // Display Optimization: Pagination & Visible Item Count
+  const INITIAL_VISIBLE_COUNT = 8;
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_COUNT);
+
+  // Lightbox State
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'lop-hoc' | 'hoat-dong' | 'be-giang'>('all');
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const lightboxRef = useRef<HTMLDivElement | null>(null);
+
+  // Likes Counter State
   const [likesMap, setLikesMap] = useState<Record<string, number>>(() => {
     try {
       const local = localStorage.getItem('k8a1_photo_likes');
@@ -123,14 +144,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
   });
 
-  // Lightbox Zoom & Controls
-  const [zoomLevel, setZoomLevel] = useState<number>(1);
-  const lightboxRef = useRef<HTMLDivElement | null>(null);
-
-  const activeVideo = videoList[activeVideoIndex] || videoList[0];
-  const currentImage = selectedImageIndex !== null ? images[selectedImageIndex] : null;
-
-  // Xử lý nén ảnh trên trình duyệt trước khi gửi về Google Drive
+  // Nén ảnh trình duyệt trước khi gửi Google Drive
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -159,44 +173,113 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             resolve(e.target?.result as string);
             return;
           }
-
           ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          resolve(dataUrl);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
         };
-        img.onerror = () => reject(new Error('Không thể đọc file ảnh'));
+        img.onerror = reject;
         img.src = e.target?.result as string;
       };
-      reader.onerror = () => reject(new Error('Lỗi khi đọc file'));
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   };
 
-  // Chọn ảnh từ máy tính / điện thoại
+  // Lọc danh sách ảnh theo danh mục & từ khóa tìm kiếm
+  const filteredImages = useMemo(() => {
+    return images.filter(img => {
+      // 1. Keyword search
+      if (searchKeyword.trim()) {
+        const kw = searchKeyword.toLowerCase();
+        const matchCap = img.caption?.toLowerCase().includes(kw);
+        const matchDate = img.date?.toLowerCase().includes(kw);
+        if (!matchCap && !matchDate) return false;
+      }
+
+      // 2. Category filter
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'uploads') return !!img.isUserUploaded;
+
+      const text = `${img.caption || ''} ${img.date || ''}`.toLowerCase();
+      if (activeFilter === 'class') {
+        return text.includes('lớp') || text.includes('học') || text.includes('thầy') || text.includes('cô') || text.includes('bàn') || text.includes('trường') || text.includes('kem');
+      }
+      if (activeFilter === 'activity') {
+        return text.includes('trại') || text.includes('lửa') || text.includes('bóng') || text.includes('hồ') || text.includes('ngoại khóa') || text.includes('hát') || text.includes('đá');
+      }
+      if (activeFilter === 'graduation') {
+        return text.includes('bế giảng') || text.includes('áo trắng') || text.includes('lưu bút') || text.includes('kỷ yếu') || text.includes('tốt nghiệp') || text.includes('chia tay');
+      }
+
+      return true;
+    });
+  }, [images, activeFilter, searchKeyword]);
+
+  // Đếm số lượng theo từng danh mục
+  const countsByCategory = useMemo(() => {
+    return {
+      all: images.length,
+      class: images.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(lớp|học|thầy|cô|bàn|trường|kem)/)).length,
+      activity: images.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(trại|lửa|bóng|hồ|ngoại khóa|hát|đá)/)).length,
+      graduation: images.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(bế giảng|áo trắng|lưu bút|kỷ yếu|tốt nghiệp|chia tay)/)).length,
+      uploads: images.filter(i => !!i.isUserUploaded).length,
+    };
+  }, [images]);
+
+  // Danh sách hiển thị sau khi giới hạn số lượng (Tối ưu performance)
+  const displayedImages = useMemo(() => {
+    return filteredImages.slice(0, visibleCount);
+  }, [filteredImages, visibleCount]);
+
+  const hasMore = visibleCount < filteredImages.length;
+  const currentStageImage = filteredImages[stageIndex] || filteredImages[0] || images[0];
+
+  // Reset stage index khi filter thay đổi
+  useEffect(() => {
+    setStageIndex(0);
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }, [activeFilter, searchKeyword]);
+
+  // Xử lý nạp thêm ảnh
+  const handleLoadMore = () => {
+    setVisibleCount(prev => Math.min(prev + 8, filteredImages.length));
+  };
+
+  // Thu gọn lại số lượng ảnh
+  const handleCollapse = () => {
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+    const galleryEl = document.getElementById('photo-gallery-container');
+    if (galleryEl) {
+      galleryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // Xử lý chọn ảnh upload
   const handlePhotoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadError('');
-    setUploadSuccess('');
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError('Kích thước tệp quá lớn! Vui lòng chọn ảnh dưới 15MB.');
+      return;
+    }
 
     try {
-      const compressedDataUrl = await compressImage(file);
-      setUploadPreview(compressedDataUrl);
+      setUploadError('');
+      const compressed = await compressImage(file);
+      setUploadPreview(compressed);
       if (!uploadCaption) {
-        const defaultName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-        setUploadCaption(defaultName);
+        setUploadCaption(file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '));
       }
-    } catch (err: any) {
-      setUploadError('Lỗi đọc ảnh: ' + (err.message || 'Không thể xử lý ảnh này'));
+    } catch (err) {
+      setUploadError('Không thể xử lý hình ảnh này. Vui lòng thử bức ảnh khác.');
     }
   };
 
-  // Tải ảnh lên Google Drive Folder (1Skmip1HQhmXan-58kwbY_msamP-bWokq)
+  // Submit Upload ảnh lên Google Drive
   const handlePhotoUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadPreview) {
-      setUploadError('Vui lòng chọn một file ảnh!');
+      setUploadError('Vui lòng chọn ảnh trước khi tải lên.');
       return;
     }
 
@@ -209,7 +292,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
     try {
       if (appsScriptUrl) {
-        // Gửi qua Google Apps Script để lưu trực tiếp vào Drive Folder
         const response = await fetch(appsScriptUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -247,7 +329,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           throw new Error(result?.message || 'Lỗi từ máy chủ Apps Script');
         }
       } else {
-        // Fallback lưu cục bộ nếu chưa gắn link Apps Script
         const localPhoto: MemoryImage = {
           id: `local-img-${Date.now()}`,
           url: uploadPreview,
@@ -277,7 +358,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
   };
 
-  // Xử lý thêm Video mới (YouTube / Google Drive)
+  // Submit Video
   const handleAddVideoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVideoUrl.trim()) return;
@@ -321,18 +402,18 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   const handlePrev = useCallback(() => {
     setSelectedImageIndex((prev) => {
       if (prev === null) return null;
-      return prev > 0 ? prev - 1 : images.length - 1;
+      return prev > 0 ? prev - 1 : filteredImages.length - 1;
     });
     setZoomLevel(1);
-  }, [images.length]);
+  }, [filteredImages.length]);
 
   const handleNext = useCallback(() => {
     setSelectedImageIndex((prev) => {
       if (prev === null) return null;
-      return prev < images.length - 1 ? prev + 1 : 0;
+      return prev < filteredImages.length - 1 ? prev + 1 : 0;
     });
     setZoomLevel(1);
-  }, [images.length]);
+  }, [filteredImages.length]);
 
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(Number((prev + 0.3).toFixed(1)), 3));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(Number((prev - 0.3).toFixed(1)), 1));
@@ -353,20 +434,23 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedImageIndex, handlePrev, handleNext]);
 
+  const activeVideo = videoList[activeVideoIndex] || videoList[0];
+  const currentImage = selectedImageIndex !== null ? filteredImages[selectedImageIndex] : null;
+
   return (
     <div id="memory-corner-section" className="space-y-12">
       
       {/* ======================================================== */}
       {/* 🎬 KHỐI 1: THƯỚC PHIM NGÀY ẤY (CINEMATIC THEATER SHOWCASE) */}
       {/* ======================================================== */}
-      <div className="bg-[#1A1613] text-white rounded-2xl p-5 sm:p-8 shadow-2xl border-2 border-amber-500/30 relative overflow-hidden space-y-6">
+      <div className="bg-[#141821] text-white rounded-2xl p-5 sm:p-8 shadow-2xl border-2 border-amber-500/30 relative overflow-hidden space-y-6">
         
         {/* Ambient Warm Cinema Glow */}
-        <div className="absolute top-0 right-1/4 w-72 h-72 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/4 w-72 h-72 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Video Header & Add Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-700/80 pb-4 gap-3 relative z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-700/80 pb-4 gap-3 relative z-10 text-left">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-inner">
               <Film className="w-4 h-4 text-amber-400 animate-pulse" />
@@ -375,7 +459,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <h3 className="font-serif text-lg sm:text-xl font-bold text-amber-100 flex items-center gap-2">
                 <span>Thước Phim Ngày Ấy</span>
                 <span className="text-[10px] font-sans font-bold bg-amber-950/80 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  {videoList.length} Video
+                  {videoList.length} Thước Phim
                 </span>
               </h3>
               <p className="text-xs text-slate-400 font-serif italic">
@@ -394,7 +478,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           </button>
         </div>
 
-        {/* 🌟 MÀN HÌNH CHIẾU RẠP CHÍNH (THEATER SPOTLIGHT) */}
+        {/* MÀN HÌNH CHIẾU RẠP CHÍNH */}
         <div className="space-y-3 relative z-10">
           <div className="relative overflow-hidden rounded-xl bg-black border-2 border-amber-400/40 shadow-2xl aspect-video">
             {activeVideo && activeVideo.embedUrl ? (
@@ -416,8 +500,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             )}
           </div>
 
-          {/* Tiêu đề & Thông tin Video đang chiếu */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 gap-2 text-left">
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest block">
                 ● ĐANG CHIẾU TRÊN MÀN ẢNH
@@ -432,9 +515,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           </div>
         </div>
 
-        {/* 🎞️ DANH SÁCH CUỘN PLAYLIST VIDEO (BENTO VIDEO THUMBNAILS) */}
+        {/* DANH SÁCH CUỘN PLAYLIST VIDEO */}
         {videoList.length > 1 && (
-          <div className="space-y-2 pt-2 relative z-10">
+          <div className="space-y-2 pt-2 relative z-10 text-left">
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span className="font-sans uppercase font-bold tracking-wider text-[11px] text-amber-200/80">
                 Danh Sách Thước Phim Kỷ Niệm:
@@ -451,32 +534,23 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   <div
                     key={vid.id || idx}
                     onClick={() => setActiveVideoIndex(idx)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 relative group overflow-hidden ${
-                      isActive 
-                        ? 'bg-gradient-to-r from-amber-950/80 to-slate-900 border-amber-400 shadow-md ring-1 ring-amber-400/50' 
-                        : 'bg-slate-900/60 border-slate-800 hover:border-amber-500/50 hover:bg-slate-800/80'
+                    className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all duration-200 ${
+                      isActive
+                        ? 'bg-amber-950/60 border-amber-400 shadow-md ring-1 ring-amber-400/50'
+                        : 'bg-slate-900/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-lg bg-black/60 border border-slate-700 flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
-                      {isActive ? (
-                        <div className="w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping" />
-                      ) : (
-                        <Play className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      )}
+                    <div className="w-16 h-11 rounded-lg bg-black shrink-0 relative overflow-hidden flex items-center justify-center border border-slate-700">
+                      <Play className={`w-4 h-4 ${isActive ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+                      <span className="absolute bottom-0.5 right-0.5 text-[8px] font-mono px-1 rounded bg-black/80 text-amber-300">
+                        {type === 'youtube' ? 'YT' : 'DRIVE'}
+                      </span>
                     </div>
-                    
-                    <div className="space-y-0.5 overflow-hidden text-left flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
-                          type === 'youtube' ? 'bg-red-950 text-red-300 border border-red-800' : 'bg-blue-950 text-blue-300 border border-blue-800'
-                        }`}>
-                          {type === 'youtube' ? 'YouTube' : 'Drive'}
-                        </span>
-                        <span className="text-[10px] text-slate-400">Video #{idx + 1}</span>
-                      </div>
-                      <h5 className="font-serif text-xs font-semibold text-slate-200 truncate group-hover:text-amber-200 transition-colors">
+
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-xs font-serif line-clamp-2 ${isActive ? 'text-amber-200 font-bold' : 'text-slate-300'}`}>
                         {vid.title}
-                      </h5>
+                      </p>
                     </div>
                   </div>
                 );
@@ -488,197 +562,503 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       </div>
 
       {/* ======================================================== */}
-      {/* 📸 KHỐI 2: THƯ VIỆN ẢNH LỚP MÌNH (ASYMMETRIC SCRAPBOOK COLLAGE) */}
+      {/* 📸 KHỐI 2: BẢO TÀNG ẢNH KỶ NIỆM (INTERACTIVE MULTI-VIEW GALLERY) */}
       {/* ======================================================== */}
-      <div className="bg-[#FAF8F5] rounded-2xl p-6 sm:p-8 shadow-sm border border-amber-200/80 space-y-6">
+      <div id="photo-gallery-container" className="bg-[#FAF8F5] rounded-2xl p-5 sm:p-8 shadow-sm border border-amber-200/80 space-y-6">
         
-        {/* Header Kho Ảnh & Bộ Lọc */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-300/60 pb-4 gap-4 text-left">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold tracking-[0.2em] font-sans text-amber-800 uppercase flex items-center gap-1.5">
-              <Camera className="w-3.5 h-3.5 text-amber-600" />
-              <span>Kho Kỷ Yếu & Ký Ức Học Trò ({images.length} Bức Ảnh)</span>
-            </span>
-            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-[#1E293B]">
-              Thư Viện Ảnh Lớp K8A1
+        {/* 🌟 HEADER & NÚT GÓP ẢNH DRIVE */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-amber-300/60 pb-5 gap-4 text-left">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold tracking-wider font-sans uppercase">
+              <Camera className="w-3.5 h-3.5 text-amber-700" />
+              <span>Kho Kỷ Yếu & Ký Ức Học Trò K8A1 ({images.length} Bức Ảnh)</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-[#1E293B] tracking-tight">
+              Bảo Tàng Ảnh Lớp K8A1
             </h3>
-            <p className="text-xs text-slate-500 font-serif italic">
-              Đồng bộ trực tiếp từ Google Drive lớp • Nhấp vào từng ảnh để phóng to và thả tim ❤️
+            <p className="text-xs text-slate-500 font-serif italic leading-relaxed">
+              Đồng bộ trực tiếp từ Thư mục Google Drive lớp • Chọn phong cách hiển thị yêu thích và nhấp vào ảnh để xem toàn màn hình HD.
             </p>
           </div>
 
-          {/* Action Buttons for Photo Library */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setIsPhotoUploadModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer transform hover:-translate-y-0.5"
-            >
-              <Upload className="w-3.5 h-3.5 text-amber-200" />
-              <span>Góp Ảnh Kỷ Niệm</span>
-            </button>
-
-            <a
-              href={K8A1_DRIVE_FOLDER_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-amber-300/80 rounded-lg text-xs font-sans font-semibold transition-all cursor-pointer shadow-2xs"
-              title={`Mở thư mục Google Drive (ID: ${K8A1_DRIVE_FOLDER_ID})`}
-            >
-              <Folder className="w-3.5 h-3.5 text-amber-600" />
-              <span className="hidden sm:inline">Folder Drive Lớp</span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
-            </a>
-          </div>
-        </div>
-
-        {/* 🌟 BỘ LỌC CHỦ ĐỀ HOÀI NIỆM */}
-        <div className="flex flex-wrap gap-2 pt-1">
-          {[
-            { id: 'all', label: 'Tất Cả Kỷ Niệm' },
-            { id: 'lop-hoc', label: '🏫 Góc Lớp Thân Thương' },
-            { id: 'hoat-dong', label: '🔥 Hội Trại & Ngoại Khóa' },
-            { id: 'be-giang', label: '🌸 Ngày Bế Giảng & Áo Trắng' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveFilter(tab.id as any)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-semibold transition-all cursor-pointer ${
-                activeFilter === tab.id
-                  ? 'bg-[#1E293B] text-amber-200 shadow-sm border border-slate-700'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* 🌟 BỐ CỤC BENTO / SCRAPBOOK BẤT ĐỐI XỨNG (ASYMMETRIC COLLAGE) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
-          
-          {images.map((img, index) => {
-            const likes = likesMap[img.id] || 28 + (index * 7) % 30;
-            const isHeroSpotlight = index === 0;
-            const isTiltedLeft = index % 3 === 1;
-            const isTiltedRight = index % 3 === 2;
-
-            return (
-              <div
-                key={img.id || index}
-                onClick={() => openFullscreen(index)}
-                className={`group relative bg-white p-3 rounded-xl shadow-md border border-slate-200 hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden ${
-                  isHeroSpotlight ? 'sm:col-span-2 sm:row-span-2 p-4 bg-gradient-to-br from-[#FFFDF9] to-white border-amber-400/80 shadow-lg' : ''
-                } ${
-                  isTiltedLeft ? 'sm:transform sm:-rotate-1 hover:rotate-0' : ''
-                } ${
-                  isTiltedRight ? 'sm:transform sm:rotate-1 hover:rotate-0' : ''
+          {/* Action & View Mode Switcher Buttons */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 self-start md:self-auto">
+            
+            {/* View Mode Tabs */}
+            <div className="flex items-center p-1 bg-white rounded-xl border border-amber-300/80 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('stage')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer ${
+                  viewMode === 'stage'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-amber-800 hover:bg-amber-50'
                 }`}
+                title="Sân Khấu Ký Ức (Tiêu điểm + Cuộn phim)"
               >
-                {/* Giả lập băng dính hoài niệm ở ảnh tiêu điểm */}
-                {isHeroSpotlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-amber-100/80 backdrop-blur-xs border border-amber-300/40 transform -rotate-2 z-20 shadow-xs pointer-events-none" />
-                )}
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Tiêu Điểm</span>
+              </button>
 
-                {/* Khung chứa ảnh */}
-                <div className={`relative overflow-hidden rounded-lg bg-slate-100 ${
-                  isHeroSpotlight ? 'aspect-video sm:aspect-[16/10]' : 'aspect-square sm:aspect-[4/3]'
-                }`}>
-                  <img
-                    src={img.url}
-                    alt={img.caption}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 filter sepia-[0.10] group-hover:sepia-0"
-                    loading="lazy"
-                    onError={(e) => {
-                      // Fallback nếu ảnh drive cần thời gian load
-                      const target = e.target as HTMLImageElement;
-                      if (img.id && !target.src.includes('thumbnail')) {
-                        target.src = `https://drive.google.com/thumbnail?authuser=0&sz=w800&id=${img.id}`;
-                      }
-                    }}
-                  />
+              <button
+                type="button"
+                onClick={() => setViewMode('polaroid')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer ${
+                  viewMode === 'polaroid'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-amber-800 hover:bg-amber-50'
+                }`}
+                title="Sổ Tay Polaroid (Khung ảnh hoài niệm)"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Polaroid</span>
+              </button>
 
-                  {/* Lớp gradient mờ khi hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
-
-                  {/* Nút Thả Tim Góc Trên */}
-                  <button
-                    type="button"
-                    onClick={(e) => handleLikePhoto(img.id, e)}
-                    className="absolute top-2.5 right-2.5 z-20 bg-black/50 hover:bg-rose-600 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 transition-colors shadow"
-                  >
-                    <Heart className="w-3.5 h-3.5 text-rose-400 group-hover:text-white fill-rose-400 group-hover:fill-white transition-colors" />
-                    <span className="font-mono text-[11px] font-bold">{likes}</span>
-                  </button>
-
-                  {/* Date badge */}
-                  {img.date && (
-                    <div className="absolute top-2.5 left-2.5 z-20 bg-amber-950/70 backdrop-blur-md text-amber-200 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/30">
-                      {img.date}
-                    </div>
-                  )}
-
-                  {/* Chú thích trên ảnh */}
-                  <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 text-white text-left">
-                    <p className="font-serif text-xs sm:text-sm font-semibold line-clamp-1 drop-shadow-md">
-                      {img.caption}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Chú thích dưới đáy phong cách Polaroid */}
-                <div className="pt-2.5 pb-0.5 flex items-center justify-between text-xs text-slate-500 font-serif">
-                  <span className="italic truncate max-w-[200px]">“{img.caption}”</span>
-                  <span className="text-[10px] font-sans font-bold text-amber-800 uppercase tracking-wider bg-amber-100/60 px-2 py-0.5 rounded">
-                    Phóng to 🔍
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Ô Khuyến Khích Gửi Thêm Ảnh */}
-          <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100/60 p-6 rounded-xl border-2 border-dashed border-amber-400/80 flex flex-col items-center justify-center text-center space-y-3 shadow-xs min-h-[220px]">
-            <div className="w-12 h-12 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shadow-inner">
-              <Camera className="w-6 h-6 text-amber-700" />
+              <button
+                type="button"
+                onClick={() => setViewMode('filmstrip')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer ${
+                  viewMode === 'filmstrip'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-amber-800 hover:bg-amber-50'
+                }`}
+                title="Dải Phim 35mm (Cuộn ngang nghệ thuật)"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Dải Phim</span>
+              </button>
             </div>
-            <div className="space-y-1">
-              <h4 className="font-serif font-bold text-sm sm:text-base text-amber-950">
-                Bạn Còn Giữ Ảnh Kỷ Niệm?
-              </h4>
-              <p className="text-xs text-slate-600 font-serif italic max-w-xs">
-                Mỗi bức ảnh cũ là một mảnh ghép thanh xuân vô giá được lưu trữ tại Google Drive lớp.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 pt-1 w-full justify-center">
+
+            {/* Upload & Drive Buttons */}
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsPhotoUploadModalOpen(true)}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer transform hover:-translate-y-0.5"
               >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Tải Ảnh Lên Web</span>
+                <Upload className="w-3.5 h-3.5 text-amber-200" />
+                <span>Góp Ảnh</span>
               </button>
 
               <a
                 href={K8A1_DRIVE_FOLDER_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-2 bg-white hover:bg-amber-50 text-slate-700 border border-amber-300 text-xs font-sans font-bold rounded-lg shadow-xs transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
+                className="inline-flex items-center gap-1 px-3 py-2 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-amber-300/80 rounded-lg text-xs font-sans font-semibold transition cursor-pointer shadow-2xs"
+                title={`Mở Thư mục Google Drive (ID: ${K8A1_DRIVE_FOLDER_ID})`}
               >
                 <Folder className="w-3.5 h-3.5 text-amber-600" />
-                <span>Mở Folder Drive</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
               </a>
+            </div>
+
+          </div>
+        </div>
+
+        {/* 🌟 BỘ LỌC CHỦ ĐỀ & THANH TÌM KIẾM NHANH */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          {/* Category Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none text-left">
+            {[
+              { id: 'all', label: 'Tất Cả', count: countsByCategory.all },
+              { id: 'class', label: '🏫 Góc Lớp', count: countsByCategory.class },
+              { id: 'activity', label: '🔥 Hội Trại', count: countsByCategory.activity },
+              { id: 'graduation', label: '🌸 Bế Giảng', count: countsByCategory.graduation },
+              { id: 'uploads', label: '📸 Bạn Bè Gửi', count: countsByCategory.uploads },
+            ].map((tab) => {
+              const isActive = activeFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFilter(tab.id as FilterCategory)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-sans font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#1E293B] text-amber-200 shadow-xs border border-slate-700 font-bold'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-400 hover:bg-amber-50/50'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    isActive ? 'bg-amber-400/20 text-amber-300' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick Search */}
+          <div className="relative w-full sm:w-60">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder="Tìm theo chú thích, năm..."
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-700"
+            />
+            {searchKeyword && (
+              <button
+                onClick={() => setSearchKeyword('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Empty State */}
+        {filteredImages.length === 0 && (
+          <div className="p-10 text-center bg-white rounded-xl border border-dashed border-amber-300 space-y-3">
+            <ImageIcon className="w-10 h-10 text-amber-400 mx-auto" />
+            <p className="font-serif text-slate-600 text-sm">Không tìm thấy bức ảnh nào phù hợp với bộ lọc hiện tại.</p>
+            <button
+              onClick={() => { setActiveFilter('all'); setSearchKeyword(''); }}
+              className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold font-sans cursor-pointer hover:bg-amber-700"
+            >
+              Xem Tất Cả Ảnh Kỷ Niệm
+            </button>
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 🌟 LAYOUT 1: SÂN KHẤU TIÊU ĐIỂM + CUỘN PHIM (SPOTLIGHT STAGE) */}
+        {/* =================================================================== */}
+        {viewMode === 'stage' && filteredImages.length > 0 && currentStageImage && (
+          <div className="space-y-4 pt-1">
+            <div className="relative bg-gradient-to-b from-stone-900 to-[#1c1917] rounded-2xl p-3 sm:p-6 shadow-xl border-2 border-amber-500/30 overflow-hidden text-left">
+              
+              <div className="absolute top-4 right-4 z-20 hidden sm:flex items-center gap-1 px-3 py-1 bg-amber-950/80 backdrop-blur-md rounded-full border border-amber-400/40 text-amber-200 font-mono text-[10px]">
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span>ẢNH {stageIndex + 1} / {filteredImages.length}</span>
+              </div>
+
+              {/* Central Main Stage Display */}
+              <div 
+                onClick={() => openFullscreen(stageIndex)}
+                className="relative aspect-[16/10] sm:aspect-[16/9] max-h-[500px] rounded-xl overflow-hidden bg-black/60 flex items-center justify-center cursor-pointer group shadow-2xl"
+              >
+                <img
+                  src={currentStageImage.url}
+                  alt={currentStageImage.caption}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-contain sm:object-cover group-hover:scale-103 transition-transform duration-700 filter sepia-[0.08]"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (currentStageImage.id && !target.src.includes('thumbnail')) {
+                      target.src = `https://drive.google.com/thumbnail?authuser=0&sz=w1200&id=${currentStageImage.id}`;
+                    }
+                  }}
+                />
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
+
+                {/* Like Button */}
+                <button
+                  type="button"
+                  onClick={(e) => handleLikePhoto(currentStageImage.id, e)}
+                  className="absolute top-3 left-3 z-30 bg-black/60 hover:bg-rose-600 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-white/20 flex items-center gap-1.5 transition-colors shadow"
+                >
+                  <Heart className="w-4 h-4 text-rose-400 group-hover:text-white fill-rose-400 group-hover:fill-white transition-colors" />
+                  <span className="font-mono text-xs font-bold">
+                    {likesMap[currentStageImage.id] || 32 + (stageIndex * 5) % 25}
+                  </span>
+                </button>
+
+                {/* Zoom indicator on hover */}
+                <div className="absolute top-3 right-3 sm:top-auto sm:bottom-4 sm:right-4 z-30 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 opacity-90 transition">
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Phóng To HD</span>
+                </div>
+
+                {/* Navigation Arrows */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setStageIndex(prev => prev > 0 ? prev - 1 : filteredImages.length - 1);
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-black/60 hover:bg-amber-600 text-white border border-white/20 backdrop-blur-xs transition shadow-lg cursor-pointer"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setStageIndex(prev => prev < filteredImages.length - 1 ? prev + 1 : 0);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-black/60 hover:bg-amber-600 text-white border border-white/20 backdrop-blur-xs transition shadow-lg cursor-pointer"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                {/* Main Caption Card */}
+                <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-32 z-20 text-white">
+                  <p className="text-[11px] font-mono text-amber-300 font-semibold mb-0.5">
+                    {currentStageImage.date || 'Niên khóa 2003 – 2006'}
+                  </p>
+                  <h4 className="font-serif font-bold text-sm sm:text-lg text-white line-clamp-2 drop-shadow-md">
+                    “{currentStageImage.caption}”
+                  </h4>
+                </div>
+              </div>
+
+              {/* Dải Cuộn Thumbnail Phim Nhỏ Dưới Sân Khấu (Interactive Filmstrip) */}
+              <div className="pt-3">
+                <div className="flex items-center justify-between text-[11px] text-amber-200/70 pb-2 px-1">
+                  <span>Dải Phim Kỷ Niệm (Cuộn để chọn nhanh ảnh):</span>
+                  <span className="italic font-mono">{stageIndex + 1} / {filteredImages.length}</span>
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                  {filteredImages.map((img, idx) => {
+                    const isSelected = idx === stageIndex;
+                    return (
+                      <button
+                        key={img.id || idx}
+                        type="button"
+                        onClick={() => setStageIndex(idx)}
+                        className={`relative w-20 sm:w-24 aspect-[4/3] rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-amber-400 shadow-md ring-2 ring-amber-400/60 scale-105'
+                            : 'border-white/20 opacity-60 hover:opacity-100 hover:border-amber-300/80'
+                        }`}
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.caption}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-amber-500/15" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 🌟 LAYOUT 2: SỔ TAY POLAROID KỶ NIỆM (POLAROID ALBUM WITH PROGRESSIVE LOAD) */}
+        {/* =================================================================== */}
+        {viewMode === 'polaroid' && filteredImages.length > 0 && (
+          <div className="space-y-6 pt-1">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+              {displayedImages.map((img, index) => {
+                const likes = likesMap[img.id] || 26 + (index * 7) % 35;
+                const isTiltLeft = index % 4 === 1;
+                const isTiltRight = index % 4 === 3;
+
+                return (
+                  <div
+                    key={img.id || index}
+                    onClick={() => openFullscreen(index)}
+                    className={`group relative bg-white p-3 pb-4 rounded-xl shadow-md border border-slate-200 hover:shadow-xl hover:border-amber-400/80 transition-all duration-300 cursor-pointer overflow-hidden text-left flex flex-col justify-between ${
+                      isTiltLeft ? 'sm:transform sm:-rotate-1 hover:rotate-0' : ''
+                    } ${
+                      isTiltRight ? 'sm:transform sm:rotate-1 hover:rotate-0' : ''
+                    }`}
+                  >
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-16 h-5 bg-amber-100/90 border border-amber-300/50 transform rotate-1 z-20 shadow-2xs pointer-events-none" />
+
+                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 shadow-inner">
+                      <img
+                        src={img.url}
+                        alt={img.caption}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-500 filter sepia-[0.08] group-hover:sepia-0"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (img.id && !target.src.includes('thumbnail')) {
+                            target.src = `https://drive.google.com/thumbnail?authuser=0&sz=w600&id=${img.id}`;
+                          }
+                        }}
+                      />
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleLikePhoto(img.id, e)}
+                        className="absolute top-2 right-2 z-20 bg-black/50 hover:bg-rose-600 backdrop-blur-md text-white text-[11px] px-2 py-0.5 rounded-full border border-white/20 flex items-center gap-1 transition-colors shadow"
+                      >
+                        <Heart className="w-3 h-3 text-rose-400 group-hover:text-white fill-rose-400 group-hover:fill-white" />
+                        <span className="font-mono font-bold">{likes}</span>
+                      </button>
+
+                      {img.date && (
+                        <span className="absolute bottom-2 left-2 z-20 bg-amber-950/80 backdrop-blur-md text-amber-200 text-[9px] font-mono px-1.5 py-0.5 rounded border border-amber-500/30">
+                          {img.date}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="pt-3 px-1 space-y-1">
+                      <p className="font-serif italic text-xs text-slate-800 font-semibold line-clamp-2 group-hover:text-amber-900 transition-colors">
+                        “{img.caption}”
+                      </p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-sans pt-1 border-t border-slate-100">
+                        <span>Lớp K8A1</span>
+                        <span className="text-amber-700 font-bold group-hover:underline flex items-center gap-0.5">
+                          Xem HD 🔍
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* NÚT TẢI THÊM & THU GỌN ẢNH */}
+            <div className="pt-2 flex flex-col items-center justify-center gap-3">
+              <div className="text-xs font-sans text-slate-500 font-medium">
+                Đang hiển thị <span className="font-bold text-amber-800">{displayedImages.length}</span> trên tổng số <span className="font-bold text-amber-800">{filteredImages.length}</span> bức ảnh kỷ niệm
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap justify-center">
+                {hasMore && (
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-full text-xs font-sans font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-0.5"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                    <span>Khám Phá Thêm ({filteredImages.length - visibleCount} ảnh còn lại)</span>
+                  </button>
+                )}
+
+                {visibleCount > INITIAL_VISIBLE_COUNT && (
+                  <button
+                    type="button"
+                    onClick={handleCollapse}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-full text-xs font-sans font-bold border border-slate-300 shadow-2xs transition cursor-pointer"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Thu Gọn Lại</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* 🌟 LAYOUT 3: BĂNG RÔN CUỘN PHIM 35MM (35MM FILMSTRIP CAROUSEL) */}
+        {/* =================================================================== */}
+        {viewMode === 'filmstrip' && filteredImages.length > 0 && (
+          <div className="space-y-4 pt-1">
+            <div className="bg-[#18181b] p-4 sm:p-6 rounded-2xl border-2 border-amber-500/40 shadow-xl overflow-hidden relative text-left">
+              
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800 text-amber-200">
+                <div className="flex items-center gap-2">
+                  <Film className="w-4 h-4 text-amber-400" />
+                  <span className="font-serif font-bold text-sm">Cuộn Phim Nhựa 35mm Thanh Xuân K8A1</span>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400">Trượt ngang để xem toàn bộ cuộn phim</span>
+              </div>
+
+              <div className="relative py-4">
+                <div className="flex gap-2.5 pb-2 overflow-hidden opacity-40">
+                  {Array.from({ length: 40 }).map((_, i) => (
+                    <div key={i} className="w-3 h-2 bg-zinc-400 rounded-2xs shrink-0" />
+                  ))}
+                </div>
+
+                <div className="flex gap-4 overflow-x-auto py-2 scrollbar-thin scroll-smooth">
+                  {filteredImages.map((img, idx) => (
+                    <div
+                      key={img.id || idx}
+                      onClick={() => openFullscreen(idx)}
+                      className="group relative w-64 sm:w-80 shrink-0 bg-zinc-900 rounded-lg p-2 border border-zinc-700 hover:border-amber-400 transition-all cursor-pointer shadow-lg hover:scale-102"
+                    >
+                      <div className="relative aspect-[16/10] rounded overflow-hidden bg-black">
+                        <img
+                          src={img.url}
+                          alt={img.caption}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-70 group-hover:opacity-90" />
+                        
+                        <span className="absolute top-2 left-2 text-[9px] font-mono bg-black/70 text-amber-300 px-1.5 py-0.5 rounded border border-white/20">
+                          #{idx + 1}
+                        </span>
+
+                        <div className="absolute bottom-2 left-2 right-2 text-white">
+                          <p className="font-serif text-xs font-bold line-clamp-1">{img.caption}</p>
+                          <p className="text-[9px] text-zinc-400 font-mono">{img.date || '2003 – 2006'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2.5 pt-2 overflow-hidden opacity-40">
+                  {Array.from({ length: 40 }).map((_, i) => (
+                    <div key={i} className="w-3 h-2 bg-zinc-400 rounded-2xs shrink-0" />
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* 🌟 Ô KHUYẾN KHÍCH GÓP THÊM ẢNH DRIVE */}
+        <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100/60 p-5 sm:p-6 rounded-xl border-2 border-dashed border-amber-400/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-2xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shrink-0 shadow-inner">
+              <Camera className="w-5 h-5 text-amber-800" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm sm:text-base text-amber-950">
+                Bạn Còn Giữ Những Bức Ảnh Kỷ Niệm Xưa?
+              </h4>
+              <p className="text-xs text-slate-600 font-serif italic">
+                Mỗi bức ảnh cũ là một mảnh ghép thanh xuân vô giá được lưu trữ tại Thư mục Google Drive của lớp.
+              </p>
             </div>
           </div>
 
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsPhotoUploadModalOpen(true)}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Tải Ảnh Lên</span>
+            </button>
+
+            <a
+              href={K8A1_DRIVE_FOLDER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 bg-white hover:bg-amber-50 text-slate-700 border border-amber-300 text-xs font-sans font-bold rounded-lg shadow-2xs transition cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <Folder className="w-3.5 h-3.5 text-amber-600" />
+              <span>Drive Lớp</span>
+            </a>
+          </div>
         </div>
 
       </div>
 
       {/* ======================================================== */}
-      {/* 📸 MODAL TẢI ẢNH LÊN GOOGLE DRIVE (ID: 1Skmip1HQhmXan-58kwbY_msamP-bWokq) */}
+      {/* 📸 MODAL TẢI ẢNH LÊN GOOGLE DRIVE */}
       {/* ======================================================== */}
       {isPhotoUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -725,7 +1105,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             )}
 
             <form onSubmit={handlePhotoUploadSubmit} className="space-y-4 text-xs">
-              {/* Vùng chọn ảnh */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1.5">
                   Chọn ảnh từ máy tính / điện thoại: <span className="text-rose-500">*</span>
@@ -773,7 +1152,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 )}
               </div>
 
-              {/* Chú thích ảnh */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
                   Chú thích / Tiêu đề bức ảnh: <span className="text-rose-500">*</span>
@@ -788,7 +1166,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 />
               </div>
 
-              {/* Năm / Thời gian chụp */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
                   Thời gian / Niên khóa:
@@ -802,7 +1179,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 />
               </div>
 
-              {/* Action buttons */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                 <a
                   href={K8A1_DRIVE_FOLDER_URL}
@@ -887,7 +1263,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 font-mono text-xs"
                 />
                 <p className="text-[10px] text-slate-500 mt-1 font-sans italic">
-                  * Hỗ trợ mọi định dạng link YouTube (watch, youtu.be, shorts) và link chia sẻ công khai từ Google Drive.
+                  * Hỗ trợ mọi định dạng link YouTube (watch, youtu.be, shorts) và link chia sẻ từ Google Drive.
                 </p>
               </div>
 
@@ -926,7 +1302,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       )}
 
       {/* ======================================================== */}
-      {/* 🖼️ FULLSCREEN PHOTO LIGHTBOX MODAL WITH ZOOM */}
+      {/* 🖼️ FULLSCREEN PHOTO LIGHTBOX MODAL WITH ZOOM & FILMSTRIP */}
       {/* ======================================================== */}
       {currentImage && (
         <div
@@ -935,13 +1311,13 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between select-none"
         >
           {/* Top Bar */}
-          <div className="p-4 md:px-6 bg-black/60 border-b border-white/10 flex items-center justify-between z-20">
+          <div className="p-4 md:px-6 bg-black/70 border-b border-white/10 flex items-center justify-between z-20">
             <div className="flex items-center gap-3 text-white">
               <span className="text-[11px] font-sans uppercase tracking-[0.15em] text-amber-400 font-bold">
-                ẢNH {selectedImageIndex! + 1} / {images.length}
+                ẢNH {selectedImageIndex! + 1} / {filteredImages.length}
               </span>
               <span className="hidden sm:inline-block text-white/30 text-xs">|</span>
-              <span className="hidden sm:inline-block text-xs font-serif text-white/80 truncate max-w-[280px]">
+              <span className="hidden sm:inline-block text-xs font-serif text-white/80 truncate max-w-[320px]">
                 {currentImage.caption}
               </span>
             </div>
@@ -981,10 +1357,11 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 href={currentImage.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                download
                 className="p-2 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer inline-flex items-center"
-                title="Mở ảnh gốc trong tab mới"
+                title="Mở ảnh gốc trong tab mới / Tải về"
               >
-                <ExternalLink className="w-4 h-4" />
+                <Download className="w-4 h-4" />
               </a>
 
               <a
@@ -1038,7 +1415,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </button>
 
             <div 
-              className="max-w-full max-h-[75vh] flex items-center justify-center transition-transform duration-200 ease-out cursor-zoom-in"
+              className="max-w-full max-h-[70vh] flex items-center justify-center transition-transform duration-200 ease-out cursor-zoom-in"
               style={{
                 transform: `scale(${zoomLevel})`,
                 cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
@@ -1051,15 +1428,15 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <img
                 src={currentImage.url}
                 alt={currentImage.caption}
-                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/10 select-none"
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl border border-white/10 select-none"
                 referrerPolicy="no-referrer"
                 draggable={false}
               />
             </div>
           </div>
 
-          {/* Bottom Info Bar */}
-          <div className="p-4 md:px-8 bg-black/75 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white z-20">
+          {/* Bottom Info Bar with mini thumbnail navigator */}
+          <div className="p-3 md:px-8 bg-black/80 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white z-20">
             <div className="space-y-0.5 text-left">
               <p className="text-sm md:text-base font-serif italic text-white font-medium">
                 “{currentImage.caption}”
@@ -1069,6 +1446,25 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   Thời gian: {currentImage.date}
                 </p>
               )}
+            </div>
+
+            {/* Thumbnail Navigator */}
+            <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto max-w-md py-1">
+              {filteredImages.map((tImg, tIdx) => (
+                <button
+                  key={tImg.id || tIdx}
+                  type="button"
+                  onClick={() => {
+                    setSelectedImageIndex(tIdx);
+                    setZoomLevel(1);
+                  }}
+                  className={`w-10 h-8 rounded overflow-hidden shrink-0 border transition ${
+                    tIdx === selectedImageIndex ? 'border-amber-400 scale-110' : 'border-white/20 opacity-50 hover:opacity-100'
+                  }`}
+                >
+                  <img src={tImg.url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
 
             <div className="flex items-center gap-3 text-[10px] text-white/50 font-sans">
