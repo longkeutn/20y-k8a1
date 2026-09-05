@@ -67,7 +67,9 @@ import {
   TrendingUp,
   TrendingDown,
   Scale,
-  Maximize2
+  Maximize2,
+  Landmark,
+  QrCode
 } from 'lucide-react';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from '../types';
 import { 
@@ -392,6 +394,9 @@ export default function AdminManagementHub({
   // Search & Filters for Fund Reconciliation Tab
   const [fundSearch, setFundSearch] = useState('');
   const [fundStatusFilter, setFundStatusFilter] = useState<'all' | 'paid' | 'unpaid' | 'pending' | 'extra' | 'has_receipt' | 'no_receipt' | 'bank_transfer' | 'cash'>('all');
+  const [fundDateFilter, setFundDateFilter] = useState<'all' | 'today' | '7days' | 'this_month' | 'year_2026' | 'custom'>('all');
+  const [fundCustomStartDate, setFundCustomStartDate] = useState('');
+  const [fundCustomEndDate, setFundCustomEndDate] = useState('');
 
   // Modals for CRUD operations
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -459,6 +464,75 @@ export default function AdminManagementHub({
   const [fundSubTab, setFundSubTab] = useState<'income' | 'expense'>('income');
   const [expenseSearch, setExpenseSearch] = useState('');
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<string>('all');
+  const [expenseDateFilter, setExpenseDateFilter] = useState<'all' | 'today' | '7days' | 'this_month' | 'year_2026' | 'custom'>('all');
+  const [expenseCustomStartDate, setExpenseCustomStartDate] = useState('');
+  const [expenseCustomEndDate, setExpenseCustomEndDate] = useState('');
+
+  // Helper lọc thời gian cho cả 2 phân hệ Thu Quỹ và Chi Tiêu Quỹ
+  const isDateInFilter = useCallback((dateStr: string | undefined, filterType: 'all' | 'today' | '7days' | 'this_month' | 'year_2026' | 'custom', customStart?: string, customEnd?: string): boolean => {
+    if (filterType === 'all') return true;
+    if (!dateStr || !String(dateStr).trim()) return false;
+
+    const s = String(dateStr).trim();
+    let itemDate: Date | null = null;
+
+    // Phân tích các dạng ngày phổ biến: DD/MM/YYYY hoặc DD-MM-YYYY hoặc YYYY-MM-DD
+    const dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1;
+      const year = parseInt(dmyMatch[3], 10);
+      itemDate = new Date(year, month, day);
+    } else {
+      const parsed = new Date(s);
+      if (!isNaN(parsed.getTime())) {
+        itemDate = parsed;
+      }
+    }
+
+    if (!itemDate || isNaN(itemDate.getTime())) return false;
+
+    const now = new Date();
+    const itemDay = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()).getTime();
+    const todayDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    if (filterType === 'today') {
+      return itemDay === todayDay;
+    }
+
+    if (filterType === '7days') {
+      const sevenDaysAgo = todayDay - 7 * 24 * 60 * 60 * 1000;
+      return itemDay >= sevenDaysAgo && itemDay <= todayDay + 24 * 60 * 60 * 1000;
+    }
+
+    if (filterType === 'this_month') {
+      return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+    }
+
+    if (filterType === 'year_2026') {
+      return itemDate.getFullYear() === 2026;
+    }
+
+    if (filterType === 'custom') {
+      if (customStart && customStart.trim()) {
+        const start = new Date(customStart);
+        if (!isNaN(start.getTime())) {
+          const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+          if (itemDay < startDay) return false;
+        }
+      }
+      if (customEnd && customEnd.trim()) {
+        const end = new Date(customEnd);
+        if (!isNaN(end.getTime())) {
+          const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
+          if (itemDay > endDay) return false;
+        }
+      }
+      return true;
+    }
+
+    return true;
+  }, []);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [expenseFormData, setExpenseFormData] = useState<Partial<ExpenseItem>>({
@@ -594,6 +668,9 @@ export default function AdminManagementHub({
     const term = (expenseSearch || '').toLowerCase().trim();
     return effectiveExpenses.filter(item => {
       if (expenseCategoryFilter !== 'all' && item.category !== expenseCategoryFilter) return false;
+      if (!isDateInFilter(item.date || item.createdAt, expenseDateFilter, expenseCustomStartDate, expenseCustomEndDate)) {
+        return false;
+      }
       if (term) {
         const matchTitle = (item.title || '').toLowerCase().includes(term);
         const matchSpender = (item.spender || '').toLowerCase().includes(term);
@@ -604,7 +681,11 @@ export default function AdminManagementHub({
       }
       return true;
     });
-  }, [effectiveExpenses, expenseSearch, expenseCategoryFilter]);
+  }, [effectiveExpenses, expenseSearch, expenseCategoryFilter, expenseDateFilter, expenseCustomStartDate, expenseCustomEndDate, isDateInFilter]);
+
+  const filteredExpensesTotal = useMemo(() => {
+    return filteredExpensesList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [filteredExpensesList]);
 
   const handleOpenAddExpense = (preset?: Partial<ExpenseItem>) => {
     if (!canAuditAndSpend) {
@@ -2163,9 +2244,22 @@ export default function AdminManagementHub({
         (fundStatusFilter === 'bank_transfer' && (item.fundPaymentMethod === 'bank_transfer' || !item.fundPaymentMethod)) ||
         (fundStatusFilter === 'cash' && item.fundPaymentMethod === 'cash');
 
-      return matchQuery && matchFundStatus;
+      // Check date filter
+      const paymentDate = item.fundPaidAt || item.submittedAt || (isPaid ? '2026-09-01' : undefined);
+      const matchDate = isDateInFilter(paymentDate, fundDateFilter, fundCustomStartDate, fundCustomEndDate);
+
+      return matchQuery && matchFundStatus && matchDate;
     });
-  }, [rsvpList, fundSearch, fundStatusFilter]);
+  }, [rsvpList, fundSearch, fundStatusFilter, fundDateFilter, fundCustomStartDate, fundCustomEndDate, isDateInFilter]);
+
+  const filteredFundCollected = useMemo(() => {
+    return filteredFundList.reduce((sum, item) => {
+      if (item.fundStatus === 'paid') {
+        return sum + (item.fundAmount !== undefined ? item.fundAmount : 500000);
+      }
+      return sum;
+    }, 0);
+  }, [filteredFundList]);
 
   if (!isOpen) return null;
 
@@ -3187,7 +3281,7 @@ export default function AdminManagementHub({
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={fundStatusFilter}
                       onChange={(e) => setFundStatusFilter(e.target.value as any)}
@@ -3203,10 +3297,63 @@ export default function AdminManagementHub({
                       <option value="bank_transfer">Chuyển khoản Ngân hàng</option>
                       <option value="cash">Tiền mặt bàn đón tiếp</option>
                     </select>
+
+                    <div className="flex items-center gap-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-sans">
+                      <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <select
+                        value={fundDateFilter}
+                        onChange={(e) => setFundDateFilter(e.target.value as any)}
+                        className="bg-transparent focus:outline-none cursor-pointer text-slate-700 font-medium"
+                      >
+                        <option value="all">Toàn bộ thời gian</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="7days">7 ngày qua</option>
+                        <option value="this_month">Tháng này</option>
+                        <option value="year_2026">Năm 2026 (Họp lớp)</option>
+                        <option value="custom">Tùy chọn khoảng ngày...</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* Quick Filter Chips */}
+                {/* Custom Date Range Picker for Income */}
+                {fundDateFilter === 'custom' && (
+                  <div className="flex flex-wrap items-center gap-2 p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg text-xs font-sans">
+                    <span className="font-bold text-amber-900 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                      Khoảng ngày nộp:
+                    </span>
+                    <label className="flex items-center gap-1 text-slate-600">
+                      <span>Từ:</span>
+                      <input
+                        type="date"
+                        value={fundCustomStartDate}
+                        onChange={(e) => setFundCustomStartDate(e.target.value)}
+                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1 text-slate-600">
+                      <span>Đến:</span>
+                      <input
+                        type="date"
+                        value={fundCustomEndDate}
+                        onChange={(e) => setFundCustomEndDate(e.target.value)}
+                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                      />
+                    </label>
+                    {(fundCustomStartDate || fundCustomEndDate) && (
+                      <button
+                        type="button"
+                        onClick={() => { setFundCustomStartDate(''); setFundCustomEndDate(''); }}
+                        className="px-2 py-1 text-[11px] text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                      >
+                        Xóa mốc
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Quick Status Filter Chips */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
                   <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Lọc nhanh:</span>
                   <button
@@ -3278,6 +3425,41 @@ export default function AdminManagementHub({
                   >
                     + Ủng hộ thêm ({extraMembersCount})
                   </button>
+                </div>
+
+                {/* Time Quick Chips */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[11px] font-sans">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Thời gian:</span>
+                    {(['all', 'today', '7days', 'this_month', 'year_2026'] as const).map(f => {
+                      const labels = {
+                        all: 'Tất cả',
+                        today: 'Hôm nay',
+                        '7days': '7 ngày qua',
+                        this_month: 'Tháng này',
+                        year_2026: 'Năm 2026'
+                      };
+                      const isActive = fundDateFilter === f;
+                      return (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setFundDateFilter(f)}
+                          className={`px-2.5 py-0.5 rounded-full transition cursor-pointer ${
+                            isActive
+                              ? 'bg-amber-600 text-white font-bold shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {labels[f]}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <span className="text-[11px] font-sans text-slate-600">
+                    Hiển thị: <strong>{filteredFundList.length}</strong> bạn • Thu: <strong className="text-emerald-700 font-mono">{filteredFundCollected.toLocaleString('vi-VN')} đ</strong>
+                  </span>
                 </div>
               </div>
 
@@ -3659,7 +3841,7 @@ export default function AdminManagementHub({
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={expenseCategoryFilter}
                       onChange={(e) => setExpenseCategoryFilter(e.target.value)}
@@ -3671,16 +3853,71 @@ export default function AdminManagementHub({
                       ))}
                     </select>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer whitespace-nowrap"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Thêm Chi</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-sans">
+                      <Calendar className="w-3.5 h-3.5 text-rose-700 shrink-0" />
+                      <select
+                        value={expenseDateFilter}
+                        onChange={(e) => setExpenseDateFilter(e.target.value as any)}
+                        className="bg-transparent focus:outline-none cursor-pointer text-slate-700 font-medium"
+                      >
+                        <option value="all">Toàn bộ thời gian</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="7days">7 ngày qua</option>
+                        <option value="this_month">Tháng này</option>
+                        <option value="year_2026">Năm 2026 (Họp lớp)</option>
+                        <option value="custom">Tùy chọn khoảng ngày...</option>
+                      </select>
+                    </div>
+
+                    {canAuditAndSpend && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddExpense()}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer whitespace-nowrap"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Thêm Chi</span>
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {/* Custom Date Range Inputs for Expense */}
+                {expenseDateFilter === 'custom' && (
+                  <div className="flex flex-wrap items-center gap-2 p-2.5 bg-rose-50/70 border border-rose-200 rounded-lg text-xs font-sans">
+                    <span className="font-bold text-rose-900 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-rose-700" />
+                      Khoảng ngày chi:
+                    </span>
+                    <label className="flex items-center gap-1 text-slate-600">
+                      <span>Từ:</span>
+                      <input
+                        type="date"
+                        value={expenseCustomStartDate}
+                        onChange={(e) => setExpenseCustomStartDate(e.target.value)}
+                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1 text-slate-600">
+                      <span>Đến:</span>
+                      <input
+                        type="date"
+                        value={expenseCustomEndDate}
+                        onChange={(e) => setExpenseCustomEndDate(e.target.value)}
+                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                      />
+                    </label>
+                    {(expenseCustomStartDate || expenseCustomEndDate) && (
+                      <button
+                        type="button"
+                        onClick={() => { setExpenseCustomStartDate(''); setExpenseCustomEndDate(''); }}
+                        className="px-2 py-1 text-[11px] text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                      >
+                        Xóa mốc
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Quick Category Filter Badges */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
@@ -3715,6 +3952,41 @@ export default function AdminManagementHub({
                       </button>
                     );
                   })}
+                </div>
+
+                {/* Time Quick Chips for Expense */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[11px] font-sans">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Thời gian:</span>
+                    {(['all', 'today', '7days', 'this_month', 'year_2026'] as const).map(f => {
+                      const labels = {
+                        all: 'Tất cả',
+                        today: 'Hôm nay',
+                        '7days': '7 ngày qua',
+                        this_month: 'Tháng này',
+                        year_2026: 'Năm 2026'
+                      };
+                      const isActive = expenseDateFilter === f;
+                      return (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setExpenseDateFilter(f)}
+                          className={`px-2.5 py-0.5 rounded-full transition cursor-pointer ${
+                            isActive
+                              ? 'bg-rose-700 text-white font-bold shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {labels[f]}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <span className="text-[11px] font-sans text-slate-600">
+                    Hiển thị: <strong>{filteredExpensesList.length}</strong> khoản • Tổng chi: <strong className="text-rose-700 font-mono">-{filteredExpensesTotal.toLocaleString('vi-VN')} đ</strong>
+                  </span>
                 </div>
               </div>
 
