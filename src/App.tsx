@@ -1032,12 +1032,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#334155] flex flex-col items-center pb-20 selection:bg-amber-200 selection:text-amber-900 relative overflow-x-hidden font-sans">
       
-      {/* 📌 THANH ĐIỀU HƯỚNG CỐ ĐỊNH (ELEGANT GLASS NAVBAR) */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#161B26]/95 border-b border-amber-500/30 text-white shadow-md transition-all">
+      {/* 📌 THANH TIÊU ĐỀ CỐ ĐỊNH & TINH GỌN (PREMIUM FIXED NAVBAR) */}
+      <header className="fixed top-0 inset-x-0 z-50 w-full backdrop-blur-md bg-[#161B26]/90 border-b border-amber-500/25 text-white shadow-md transition-all">
         <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 sm:h-15 flex items-center justify-between">
           
           {/* Brand Logo & Class Name */}
-          <a href="#hero" className="flex items-center space-x-2.5 group">
+          <a href="#hero" className="flex items-center space-x-2 sm:space-x-2.5 group">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-300 flex items-center justify-center font-serif font-bold text-[#1A1613] shadow-md group-hover:scale-105 transition">
               20
             </div>
@@ -1053,55 +1053,56 @@ export default function App() {
 
           {/* Navigation Links & Action Buttons */}
           <nav className="flex items-center space-x-1 sm:space-x-2 text-xs font-medium">
-            <a href="#dia-diem" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
-              <MapPin className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden lg:inline">Địa Điểm</span>
-            </a>
-            <a href="#diem-danh" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
-              <CheckCircle className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden lg:inline">Điểm Danh</span>
-            </a>
-            <a href="#danh-sach-diem-danh" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1" title="Danh sách bạn bè đã xác nhận">
+            {/* Bạn Bè (Danh sách đã xác nhận) */}
+            <a 
+              href="#danh-sach-diem-danh" 
+              className="hidden md:flex items-center space-x-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-lg hover:bg-white/10"
+              title="Danh sách bạn bè đã xác nhận"
+            >
               <Users className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden lg:inline">Bạn Bè</span>
+              <span>Bạn Bè</span>
               {confirmedCount > 0 && (
                 <span className="bg-amber-500/30 text-amber-200 text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold leading-none">
                   {confirmedCount}
                 </span>
               )}
             </a>
-            <a href="#bank-transfer-card" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1" title="Sổ quỹ lớp & Cổng đóng góp">
+
+            {/* Sổ Quỹ Lớp */}
+            <a 
+              href="#bank-transfer-card" 
+              className="hidden md:flex items-center space-x-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-lg hover:bg-white/10"
+              title="Sổ quỹ lớp & Cổng đóng góp"
+            >
               <Coins className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden lg:inline">Quỹ Lớp</span>
-            </a>
-            <a href="#ky-uc" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1">
-              <Camera className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden lg:inline">Ký Ức</span>
+              <span>Quỹ Lớp</span>
             </a>
 
-            {/* Role Guide Modal trigger */}
+            {/* Cẩm Nang Hoạt Động & Vận Hành K8A1 */}
             <button
+              type="button"
               onClick={() => handleOpenGuideModal()}
-              className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1 cursor-pointer"
+              className="flex items-center space-x-1 text-slate-300 hover:text-amber-300 transition px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
               title="Cẩm nang hướng dẫn vận hành & nghiệp vụ K8A1"
             >
               <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden xl:inline">Cẩm Nang</span>
+              <span className="hidden sm:inline">Cẩm Nang</span>
             </button>
 
-            {/* Background Audio Player integrated into navbar (YouTube Audio-Only) */}
+            {/* Background Audio Player (YouTube Audio-Only) */}
             <AudioPlayer variant="navbar" customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" />
 
-            {/* Primary Action Button */}
+            {/* Primary Action Button Duy Nhất: Điểm Danh */}
             <a 
               href="#diem-danh" 
               className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs"
+              title="Xác nhận tham dự họp lớp"
             >
               <CheckCircle className="w-3.5 h-3.5 text-amber-200" />
-              <span>Xác Nhận</span>
+              <span>Điểm Danh</span>
             </a>
 
-            {/* Discrete Mini Admin Button in Navbar (Subtle icon with tooltip) */}
+            {/* Discrete Mini Admin Button */}
             <button
               onClick={() => setIsAdminHubOpen(true)}
               className={`p-1.5 sm:p-2 rounded-full transition-all duration-200 cursor-pointer ${
@@ -1134,37 +1135,6 @@ export default function App() {
               )}
             </button>
           </nav>
-        </div>
-
-        {/* 📱 MOBILE QUICK JUMP RIBBON (Thanh điều hướng nhanh 1-chạm trượt ngang cho điện thoại) */}
-        <div className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 overflow-x-auto scrollbar-none bg-[#0D121D]/90 border-t border-amber-500/20 text-[11px] font-sans">
-          <a href="#dia-diem" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 shrink-0 border border-slate-700/60">
-            <MapPin className="w-3 h-3 text-amber-400" />
-            <span>Địa Điểm</span>
-          </a>
-          <a href="#diem-danh" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-rose-900/60 to-red-900/60 text-rose-200 shrink-0 border border-rose-500/60 font-bold">
-            <CheckCircle className="w-3 h-3 text-amber-300" />
-            <span>Điểm Danh</span>
-          </a>
-          <a href="#danh-sach-diem-danh" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 shrink-0 border border-slate-700/60">
-            <Users className="w-3 h-3 text-amber-400" />
-            <span>Bạn Bè ({confirmedCount})</span>
-          </a>
-          <a href="#bank-transfer-card" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 shrink-0 border border-slate-700/60">
-            <Coins className="w-3 h-3 text-emerald-400" />
-            <span>Quỹ Lớp</span>
-          </a>
-          <a href="#ky-uc" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 shrink-0 border border-slate-700/60">
-            <Camera className="w-3 h-3 text-amber-400" />
-            <span>Ký Ức</span>
-          </a>
-          <button
-            onClick={() => handleOpenGuideModal()}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 shrink-0 border border-slate-700/60 cursor-pointer"
-          >
-            <BookOpen className="w-3 h-3 text-amber-400" />
-            <span>Cẩm Nang</span>
-          </button>
         </div>
       </header>
 
@@ -1240,7 +1210,7 @@ export default function App() {
         </div>
 
         {/* 2. Overlaid Hero Content (Đè nội dung lên ảnh, căn giữa trong max-w-4xl) */}
-        <div className="max-w-4xl mx-auto px-4 pt-10 pb-16 sm:pt-14 sm:pb-24 md:pt-16 md:pb-28 relative z-10 space-y-6 text-left">
+        <div className="max-w-4xl mx-auto px-4 pt-20 pb-16 sm:pt-24 sm:pb-24 md:pt-26 md:pb-28 relative z-10 space-y-6 text-left">
           
           {/* Top Badge Strip */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
