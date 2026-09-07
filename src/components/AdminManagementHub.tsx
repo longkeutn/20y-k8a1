@@ -323,20 +323,32 @@ export default function AdminManagementHub({
 
   // Đồng bộ mỗi thành viên trong danh bạ với dữ liệu RSVP thực tế
   const enrichedRoster = useMemo(() => {
+    // Tập hợp các ID/Khóa RSVP đã được ghép để đảm bảo mỗi phản hồi RSVP chỉ ghép 1-1 với 1 thành viên, chống nhân đôi số lượng
+    const claimedRsvpKeys = new Set<string>();
+
     return rosterList.map((m, idx) => {
-      const matchedRsvp = rsvpList.find((r) => {
+      const mP = normPhoneRoster(m.phone);
+      const mN = normNameRoster(m.fullName);
+
+      const matchedRsvp = rsvpList.find((r, rIdx) => {
         if (!r) return false;
+        const rKey = r.id ? String(r.id) : `${normPhoneRoster(r.phone)}_${normNameRoster(r.fullName)}_${rIdx}`;
+        if (claimedRsvpKeys.has(rKey)) return false;
+
         const rP = normPhoneRoster(r.phone);
         const rN = normNameRoster(r.fullName);
-        const mP = normPhoneRoster(m.phone);
-        const mN = normNameRoster(m.fullName);
+
+        // 1. Ưu tiên khớp cả số điện thoại (nếu cả 2 bên đều có SĐT)
         if (mP && rP && mP === rP) return true;
+        // 2. Khớp theo họ tên chính xác
         if (mN && rN && mN === rN) return true;
         return false;
       });
 
       let rosterStatus: 'confirmed' | 'declined' | 'pending' = 'pending';
       if (matchedRsvp) {
+        const rKey = matchedRsvp.id ? String(matchedRsvp.id) : `${normPhoneRoster(matchedRsvp.phone)}_${normNameRoster(matchedRsvp.fullName)}`;
+        claimedRsvpKeys.add(rKey);
         rosterStatus = matchedRsvp.status === 'yes' ? 'confirmed' : 'declined';
       }
 
@@ -1035,7 +1047,7 @@ export default function AdminManagementHub({
         }
         return item;
       });
-      setRosterFeedbackMsg(`✓ Đã cập nhật bạn "${cleanName}" vào Google Sheet tab Danh_Sach_Lop!`);
+      setRosterFeedbackMsg(`✓ Đã cập nhật thông tin bạn "${cleanName}" thành công!`);
     } else {
       const newId = 'm' + (rosterList.length + 1 < 10 ? '0' + (rosterList.length + 1) : (rosterList.length + 1));
       const newMember: ClassMember = {
@@ -1049,7 +1061,7 @@ export default function AdminManagementHub({
         note: String(rosterFormData.note || '').trim()
       };
       updatedList = [...rosterList, newMember];
-      setRosterFeedbackMsg(`✓ Đã thêm bạn "${cleanName}" vào Google Sheet tab Danh_Sach_Lop!`);
+      setRosterFeedbackMsg(`✓ Đã thêm bạn "${cleanName}" vào danh bạ lớp thành công!`);
     }
 
     if (onUpdateClassRoster) {
@@ -1065,7 +1077,7 @@ export default function AdminManagementHub({
       return;
     }
 
-    if (confirm(`Bạn có chắc chắn muốn xóa bạn "${member.fullName}" khỏi Danh Bạ Lớp (tab Danh_Sach_Lop trên Google Sheet)?`)) {
+    if (confirm(`Bạn có chắc chắn muốn xóa bạn "${member.fullName}" khỏi Danh Bạ Lớp K8A1?`)) {
       const updatedList = rosterList.filter(item => item.id !== member.id);
       if (onUpdateClassRoster) {
         onUpdateClassRoster(updatedList);
@@ -1300,7 +1312,7 @@ export default function AdminManagementHub({
           const json = await res.json();
           if (json.status === 'success' && json.url) {
             setFundAdjustReceiptUrl(json.url);
-            setReceiptUploadSuccessMsg('Đã lưu bill vào thư mục Drive ChungTu_QuyLop_K8A1!');
+            setReceiptUploadSuccessMsg('Đã lưu ảnh chứng từ vào Google Drive an toàn!');
             setIsUploadingReceipt(false);
             return;
           }
@@ -2605,8 +2617,8 @@ export default function AdminManagementHub({
                 <div className="flex items-center gap-2 text-xs font-sans text-amber-900">
                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    Xác nhận có mặt: <strong className="text-emerald-700">{rosterConfirmedCount}</strong> / {rosterList.length} bạn
-                    <span className="text-slate-500 font-mono ml-1">({Math.round((rosterConfirmedCount / (rosterList.length || 1)) * 100)}%)</span>
+                    Xác nhận có mặt: <strong className="text-emerald-700">{confirmedCount}</strong> / {rosterList.length} bạn
+                    <span className="text-slate-500 font-mono ml-1">({Math.round((confirmedCount / (rosterList.length || 1)) * 100)}%)</span>
                   </span>
                 </div>
               </div>
@@ -2642,7 +2654,7 @@ export default function AdminManagementHub({
                       <FileSpreadsheet className="w-4 h-4 text-emerald-700 shrink-0" />
                       <div>
                         <span>
-                          Quản lý danh sách thành viên trực tiếp trên Google Sheet: tab <strong>"Danh_Sach_Lop"</strong> ({rosterList.length} bạn).
+                          Quản lý danh bạ thành viên chính thức đồng bộ với Google Sheets ({rosterList.length} bạn).
                         </span>
                         {rosterFeedbackMsg && (
                           <span className="block sm:inline sm:ml-2 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded text-[11px] animate-pulse">
@@ -2835,7 +2847,7 @@ export default function AdminManagementHub({
                                      <button
                                        onClick={() => handleOpenEditRosterMember(m)}
                                        className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-100/60 rounded transition cursor-pointer"
-                                       title={`Sửa thông tin bạn ${m.fullName} trong Danh Bạ Lớp (Sheet Danh_Sach_Lop)`}
+                                       title={`Sửa thông tin bạn ${m.fullName}`}
                                      >
                                        <Edit className="w-3.5 h-3.5" />
                                      </button>
@@ -3328,8 +3340,8 @@ export default function AdminManagementHub({
                     <span>{hasReceiptCount} / {paidMembersCount}</span>
                     <span className="text-xs font-normal text-slate-500">bill</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block truncate" title="Lưu trong folder ChungTu_QuyLop_K8A1">
-                    Folder: ChungTu_QuyLop_K8A1
+                  <span className="text-[10px] text-slate-500 mt-0.5 block truncate" title="Lưu trữ chứng từ an toàn trên Google Drive">
+                    Lưu trữ Google Drive an toàn
                   </span>
                 </div>
 
@@ -4373,7 +4385,7 @@ export default function AdminManagementHub({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-sans font-semibold transition cursor-pointer"
-                      title={`Mở thư mục Google Drive (ID: ${K8A1_DRIVE_FOLDER_ID})`}
+                      title="Mở thư mục Google Drive ảnh lớp K8A1"
                     >
                       <Folder className="w-3.5 h-3.5 text-amber-600" />
                       <span>Folder Drive Lớp</span>
@@ -5630,7 +5642,7 @@ export default function AdminManagementHub({
                           <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-amber-200/80">
                             <p className="text-[11px] text-amber-900/80 flex items-center gap-1">
                               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Mã PIN được băm mật mã và đồng bộ trực tiếp lên Google Sheets (Sheet: Bao_Mat_PIN)</span>
+                              <span>Mã PIN được băm mật mã và đồng bộ bảo mật trực tiếp lên Google Sheets</span>
                             </p>
                             <button
                               type="button"
@@ -5874,7 +5886,7 @@ export default function AdminManagementHub({
                       {editingRosterMember ? 'Chỉnh Sửa Bạn Học Trong Danh Bạ Lớp' : 'Thêm Bạn Học Vào Danh Bạ Lớp'}
                     </h3>
                     <p className="text-[11px] text-emerald-700 font-sans">
-                      Lưu và đồng bộ trực tiếp vào Google Sheet (tab <strong>"Danh_Sach_Lop"</strong>)
+                      Lưu và đồng bộ trực tiếp lên hệ thống Google Sheets
                     </p>
                   </div>
                 </div>
@@ -6396,7 +6408,7 @@ export default function AdminManagementHub({
                       <Receipt className="w-4 h-4 text-blue-600" />
                       <span>Ảnh Chứng Từ / Bill / UNC Giao Dịch:</span>
                     </label>
-                    <span className="text-[10px] text-slate-400">Tự lưu vào folder ChungTu_QuyLop_K8A1</span>
+                    <span className="text-[10px] text-slate-400">Tự động lưu trữ an toàn trên Google Drive</span>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -7157,7 +7169,7 @@ export default function AdminManagementHub({
                     {isUploadingExpenseReceipt ? (
                       <span className="px-3 py-2 bg-amber-50 text-amber-800 border border-amber-300 rounded-xl flex items-center gap-1.5 font-semibold text-xs animate-pulse">
                         <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                        <span>Đang tải hóa đơn lên Drive ChungTu_QuyLop_K8A1...</span>
+                        <span>Đang tải hóa đơn chứng từ lên Google Drive...</span>
                       </span>
                     ) : (
                       <label className="px-3 py-2 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-xl cursor-pointer flex items-center gap-1.5 font-semibold text-xs transition shadow-2xs">
@@ -7194,7 +7206,7 @@ export default function AdminManagementHub({
                         {expenseFormData.receiptUrl.startsWith('http') ? (
                           <span className="text-emerald-700 flex items-center gap-1 font-sans font-semibold">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />
-                            Đã lưu trữ an toàn trên Google Drive (ChungTu_QuyLop_K8A1)
+                            Đã lưu trữ chứng từ an toàn trên Google Drive
                           </span>
                         ) : 'Ảnh đính kèm cục bộ (Base64)'}
                       </p>
