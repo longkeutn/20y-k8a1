@@ -20,6 +20,8 @@ import {
   AlertCircle,
   Download,
   Maximize2,
+  Minimize2,
+  Pause,
   Search,
   ChevronDown,
   ChevronUp,
@@ -115,6 +117,15 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const lightboxRef = useRef<HTMLDivElement | null>(null);
+
+  // Chế độ Trình Chiếu Ảnh Tự Động (Slide Show Mode)
+  const [isSlideshowActive, setIsSlideshowActive] = useState<boolean>(false);
+  const [isSlideshowPlaying, setIsSlideshowPlaying] = useState<boolean>(true);
+  const [slideshowSpeed, setSlideshowSpeed] = useState<number>(4500); // 4.5 giây / ảnh
+  const [slideshowProgress, setSlideshowProgress] = useState<number>(0);
+  const [isControlsVisible, setIsControlsVisible] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const hideControlsTimerRef = useRef<any>(null);
 
   // ---------------------------------------------------------------------------
   // LOGIC THẢ TIM TƯƠNG TÁC (TÍNH TOÁN BASELINE & GIẢM 1 KHI BỎ THÍCH)
@@ -421,10 +432,59 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     setZoomLevel(1);
   };
 
-  const closeFullscreen = () => {
+  const stopSlideshow = useCallback(() => {
+    setIsSlideshowActive(false);
+    setIsSlideshowPlaying(false);
+    setSlideshowProgress(0);
+    setIsControlsVisible(true);
+    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }, []);
+
+  const closeFullscreen = useCallback(() => {
+    stopSlideshow();
     setSelectedImageIndex(null);
     setZoomLevel(1);
+  }, [stopSlideshow]);
+
+  const startSlideshow = (startIndex = 0) => {
+    const targetIndex = selectedImageIndex !== null ? selectedImageIndex : (startIndex || 0);
+    setSelectedImageIndex(targetIndex);
+    setIsSlideshowActive(true);
+    setIsSlideshowPlaying(true);
+    setSlideshowProgress(0);
+    setZoomLevel(1);
   };
+
+  const toggleSlideshowPlay = () => {
+    if (!isSlideshowActive) {
+      setIsSlideshowActive(true);
+      setIsSlideshowPlaying(true);
+    } else {
+      setIsSlideshowPlaying(prev => !prev);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      lightboxRef.current?.requestFullscreen?.().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  // Sync fullscreen change state
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   const handlePrev = useCallback(() => {
     setSelectedImageIndex((prev) => {
@@ -432,6 +492,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       return prev > 0 ? prev - 1 : filteredImages.length - 1;
     });
     setZoomLevel(1);
+    setSlideshowProgress(0);
   }, [filteredImages.length]);
 
   const handleNext = useCallback(() => {
@@ -440,17 +501,68 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       return prev < filteredImages.length - 1 ? prev + 1 : 0;
     });
     setZoomLevel(1);
+    setSlideshowProgress(0);
   }, [filteredImages.length]);
 
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(Number((prev + 0.3).toFixed(1)), 3));
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(Number((prev - 0.3).toFixed(1)), 1));
   const handleResetZoom = () => setZoomLevel(1);
 
+  // Vòng lặp đếm thời gian & auto-advance Slide Show
+  useEffect(() => {
+    if (!isSlideshowActive || !isSlideshowPlaying || selectedImageIndex === null) {
+      setSlideshowProgress(0);
+      return;
+    }
+
+    const intervalStep = 50; // Bước nhảy 50ms
+    const timer = setInterval(() => {
+      setSlideshowProgress((prev) => {
+        const next = prev + (intervalStep / slideshowSpeed) * 100;
+        if (next >= 100) {
+          handleNext();
+          return 0;
+        }
+        return next;
+      });
+    }, intervalStep);
+
+    return () => clearInterval(timer);
+  }, [isSlideshowActive, isSlideshowPlaying, selectedImageIndex, slideshowSpeed, handleNext]);
+
+  // Tự động ẩn thanh công cụ khi trình chiếu
+  const handleUserActivity = useCallback(() => {
+    setIsControlsVisible(true);
+    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    if (isSlideshowActive && isSlideshowPlaying) {
+      hideControlsTimerRef.current = setTimeout(() => {
+        setIsControlsVisible(false);
+      }, 3500);
+    }
+  }, [isSlideshowActive, isSlideshowPlaying]);
+
+  useEffect(() => {
+    if (!isSlideshowActive || !isSlideshowPlaying) {
+      setIsControlsVisible(true);
+      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    } else {
+      handleUserActivity();
+    }
+  }, [isSlideshowActive, isSlideshowPlaying, handleUserActivity]);
+
   // Keyboard navigation
   useEffect(() => {
     if (selectedImageIndex === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeFullscreen();
+      else if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        toggleSlideshowPlay();
+      }
+      else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
       else if (e.key === 'ArrowLeft') handlePrev();
       else if (e.key === 'ArrowRight') handleNext();
       else if (e.key === '+' || e.key === '=') handleZoomIn();
@@ -459,7 +571,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImageIndex, handlePrev, handleNext]);
+  }, [selectedImageIndex, handlePrev, handleNext, closeFullscreen, isSlideshowActive]);
 
   const activeVideo = videoList[activeVideoIndex] || videoList[0];
   const currentImage = selectedImageIndex !== null ? filteredImages[selectedImageIndex] : null;
@@ -612,15 +724,27 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </p>
           </div>
 
-          {/* Action Button: Góp Thêm Ảnh Kỷ Niệm */}
-          <button
-            type="button"
-            onClick={() => setIsPhotoUploadModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer self-start sm:self-auto"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Góp Thêm Ảnh</span>
-          </button>
+          {/* Action Buttons: Trình Chiếu Slide Show & Góp Thêm Ảnh */}
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={() => startSlideshow(0)}
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all cursor-pointer"
+              title="Bật trình chiếu tự động toàn màn hình (rất thích hợp chiếu máy chiếu / TV hội trường)"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Trình Chiếu Slide Show</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsPhotoUploadModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Góp Thêm Ảnh</span>
+            </button>
+          </div>
         </div>
 
         {/* BỘ LỌC CHỦ ĐỀ HOÀI NIỆM & THANH TÌM KIẾM */}
@@ -1110,21 +1234,100 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         <div
           ref={lightboxRef}
           id="photo-lightbox-modal"
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between select-none"
+          onMouseMove={handleUserActivity}
+          onTouchStart={handleUserActivity}
+          onClick={handleUserActivity}
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between select-none overflow-hidden"
         >
+          {/* 🌟 SLIDESHOW PROGRESS BAR (Top Edge) */}
+          {isSlideshowActive && (
+            <div className="absolute top-0 inset-x-0 h-1 bg-white/10 z-40">
+              <div 
+                className="h-full bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 transition-all duration-75 ease-linear shadow-xs"
+                style={{ width: `${slideshowProgress}%` }}
+              />
+            </div>
+          )}
+
           {/* Top Bar */}
-          <div className="p-4 md:px-6 bg-black/70 border-b border-white/10 flex items-center justify-between z-20">
-            <div className="flex items-center gap-3 text-white">
-              <span className="text-[11px] font-sans uppercase tracking-[0.15em] text-amber-400 font-bold">
+          <div className={`p-3 sm:p-4 md:px-6 bg-black/75 backdrop-blur-md border-b border-white/10 flex items-center justify-between z-30 transition-all duration-300 ${
+            isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+          }`}>
+            <div className="flex items-center gap-2 sm:gap-3 text-white min-w-0">
+              <span className="text-[11px] font-sans uppercase tracking-[0.15em] text-amber-400 font-bold shrink-0">
                 ẢNH {selectedImageIndex! + 1} / {filteredImages.length}
               </span>
-              <span className="hidden sm:inline-block text-white/30 text-xs">|</span>
-              <span className="hidden sm:inline-block text-xs font-serif text-white/80 truncate max-w-[320px]">
+              <span className="hidden sm:inline-block text-white/30 text-xs shrink-0">|</span>
+              <span className="hidden sm:inline-block text-xs font-serif text-white/80 truncate max-w-[280px] lg:max-w-[420px]">
                 {currentImage.caption}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              {/* Nút Bật/Tắt Slide Show & Điều chỉnh tốc độ */}
+              <div className="flex items-center gap-1 mr-1">
+                <button
+                  type="button"
+                  onClick={toggleSlideshowPlay}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    isSlideshowActive && isSlideshowPlaying
+                      ? 'bg-amber-400 text-slate-950 shadow-sm'
+                      : isSlideshowActive
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                  title={isSlideshowPlaying ? 'Tạm dừng trình chiếu (Phím Space)' : 'Chạy tiếp trình chiếu (Phím Space)'}
+                >
+                  {isSlideshowActive && isSlideshowPlaying ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5 fill-current" />
+                      <span className="hidden xs:inline">Tạm dừng</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>{isSlideshowActive ? 'Tiếp tục' : 'Slide Show'}</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Chọn tốc độ chạy Slide Show */}
+                {isSlideshowActive && (
+                  <div className="hidden sm:flex items-center gap-0.5 bg-white/10 rounded-lg p-0.5 text-[10.5px] font-mono">
+                    {[
+                      { label: '3s', ms: 3000 },
+                      { label: '4.5s', ms: 4500 },
+                      { label: '8s', ms: 8000 }
+                    ].map(s => (
+                      <button
+                        key={s.ms}
+                        type="button"
+                        onClick={() => setSlideshowSpeed(s.ms)}
+                        className={`px-1.5 py-0.5 rounded cursor-pointer transition ${
+                          slideshowSpeed === s.ms ? 'bg-amber-400 text-slate-950 font-bold' : 'text-white/70 hover:text-white'
+                        }`}
+                        title={`Chuyển ảnh sau mỗi ${s.label}`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Nút Toàn Màn Hình Máy Chiếu */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="p-2 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title={isFullscreen ? 'Thu nhỏ cửa sổ (F)' : 'Toàn màn hình máy chiếu / LED (F)'}
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+
+              <div className="w-px h-4 bg-white/20 mx-0.5 hidden xs:block" />
+
+              {/* Zoom Controls */}
               <button
                 type="button"
                 onClick={handleZoomOut}
@@ -1138,7 +1341,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <button
                 type="button"
                 onClick={handleResetZoom}
-                className="px-2 py-1 rounded text-white/80 hover:text-white hover:bg-white/10 text-[11px] font-mono transition-colors cursor-pointer"
+                className="px-2 py-1 rounded text-white/80 hover:text-white hover:bg-white/10 text-[11px] font-mono transition-colors cursor-pointer hidden xs:inline-block"
               >
                 {Math.round(zoomLevel * 100)}%
               </button>
@@ -1152,8 +1355,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
-
-              <div className="w-px h-4 bg-white/20 mx-1 hidden xs:block" />
 
               <a
                 href={currentImage.url}
@@ -1169,7 +1370,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <button
                 type="button"
                 onClick={closeFullscreen}
-                className="p-2 rounded bg-white/10 text-white hover:bg-rose-600 transition-colors ml-2 cursor-pointer"
+                className="p-2 rounded bg-white/10 text-white hover:bg-rose-600 transition-colors ml-1 cursor-pointer"
                 title="Đóng (Esc)"
               >
                 <X className="w-4 h-4" />
@@ -1179,7 +1380,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
           {/* Central Image Stage */}
           <div 
-            className="flex-1 relative flex items-center justify-center overflow-hidden p-2 md:p-8"
+            className="flex-1 relative flex items-center justify-center overflow-hidden p-2 md:p-6"
             onClick={(e) => {
               if (e.target === e.currentTarget) closeFullscreen();
             }}
@@ -1190,7 +1391,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 e.stopPropagation();
                 handlePrev();
               }}
-              className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white/90 hover:text-white border border-white/20 backdrop-blur-xs transition-all shadow-lg cursor-pointer"
+              className={`absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white/90 hover:text-white border border-white/20 backdrop-blur-xs shadow-lg cursor-pointer transition-opacity duration-300 ${
+                isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              title="Ảnh trước (←)"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
@@ -1201,13 +1405,16 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 e.stopPropagation();
                 handleNext();
               }}
-              className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white/90 hover:text-white border border-white/20 backdrop-blur-xs transition-all shadow-lg cursor-pointer"
+              className={`absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white/90 hover:text-white border border-white/20 backdrop-blur-xs shadow-lg cursor-pointer transition-opacity duration-300 ${
+                isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              title="Ảnh tiếp theo (→)"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
 
             <div 
-              className="max-w-full max-h-[70vh] flex items-center justify-center transition-transform duration-200 ease-out cursor-zoom-in"
+              className="max-w-full max-h-[72vh] sm:max-h-[78vh] flex items-center justify-center transition-transform duration-200 ease-out"
               style={{
                 transform: `scale(${zoomLevel})`,
                 cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
@@ -1220,7 +1427,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <img
                 src={currentImage.url}
                 alt={currentImage.caption}
-                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl border border-white/10 select-none"
+                className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain rounded-xl shadow-2xl border border-white/10 select-none transition-all duration-700 ease-out ${
+                  isSlideshowActive && isSlideshowPlaying ? 'scale-[1.02]' : 'scale-100'
+                }`}
                 referrerPolicy="no-referrer"
                 draggable={false}
               />
@@ -1228,7 +1437,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           </div>
 
           {/* Bottom Info Bar with mini thumbnail navigator */}
-          <div className="p-3 md:px-8 bg-black/80 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white z-20">
+          <div className={`p-3 md:px-8 bg-black/80 backdrop-blur-md border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-white z-30 transition-all duration-300 ${
+            isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          }`}>
             <div className="space-y-0.5 text-left">
               <p className="text-sm md:text-base font-serif italic text-white font-medium">
                 “{currentImage.caption}”
@@ -1249,6 +1460,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   onClick={() => {
                     setSelectedImageIndex(tIdx);
                     setZoomLevel(1);
+                    setSlideshowProgress(0);
                   }}
                   className={`w-10 h-8 rounded overflow-hidden shrink-0 border transition ${
                     tIdx === selectedImageIndex ? 'border-amber-400 scale-110' : 'border-white/20 opacity-50 hover:opacity-100'
@@ -1260,7 +1472,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </div>
 
             <div className="flex items-center gap-3 text-[10px] text-white/50 font-sans">
-              <span className="hidden sm:inline">Phím tắt: ← → chuyển ảnh, +/- phóng to, Esc đóng</span>
+              <span className="hidden sm:inline">Phím tắt: Space (Dừng/Chạy), F (Toàn màn hình), ← → (Tua), Esc (Đóng)</span>
               <button
                 type="button"
                 onClick={closeFullscreen}
