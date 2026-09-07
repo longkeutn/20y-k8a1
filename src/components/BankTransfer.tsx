@@ -973,9 +973,22 @@ export default function BankTransfer({
                                     <span>{formattedDate ? `Ngày nộp: ${formattedDate}` : 'Đã xác nhận đóng quỹ'}</span>
                                   </p>
                                 </div>
-                                <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
-                                  +{amount.toLocaleString('vi-VN')} đ
-                                </span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
+                                    +{amount.toLocaleString('vi-VN')} đ
+                                  </span>
+                                  {att.fundReceiptUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewingPublicReceipt(att.fundReceiptUrl || null)}
+                                      className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-2 py-0.5 rounded-lg border border-amber-300/80 transition cursor-pointer"
+                                      title="Xem ảnh chứng từ / Bill chuyển khoản"
+                                    >
+                                      <ImageIcon className="w-3 h-3 text-amber-700" />
+                                      <span>Chứng từ</span>
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             );
                           })}

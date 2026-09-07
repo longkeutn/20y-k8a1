@@ -803,6 +803,21 @@ export default function App() {
                   return false;
                 });
 
+                // Bảo tồn link ảnh bill đã lưu trong rsvpList trước đó nếu bản ghi từ server trả về chuỗi rỗng
+                let existingLocalReceiptUrl = '';
+                const localMatch = rsvpList.find((prev) => {
+                  if (item.memberId && prev.memberId && item.memberId === prev.memberId) return true;
+                  if (item.id && prev.id && item.id === prev.id) return true;
+                  const prevPhone = normalizePhoneForMatch(prev.phone);
+                  if (itemPhone && prevPhone && itemPhone === prevPhone) return true;
+                  return normalizeNameForMatch(prev.fullName) === itemName;
+                });
+                if (localMatch && localMatch.fundReceiptUrl) {
+                  existingLocalReceiptUrl = localMatch.fundReceiptUrl;
+                }
+
+                const finalReceiptUrl = item.fundReceiptUrl || existingLocalReceiptUrl || '';
+
                 if (existingIdx >= 0) {
                   uniqueRsvp[existingIdx] = {
                     ...uniqueRsvp[existingIdx],
@@ -810,10 +825,13 @@ export default function App() {
                     checkedIn: uniqueRsvp[existingIdx].checkedIn || item.checkedIn,
                     fundStatus: (uniqueRsvp[existingIdx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[existingIdx].fundStatus),
                     fundAmount: Math.max(uniqueRsvp[existingIdx].fundAmount || 0, item.fundAmount || 0),
-                    fundReceiptUrl: item.fundReceiptUrl || uniqueRsvp[existingIdx].fundReceiptUrl
+                    fundReceiptUrl: finalReceiptUrl || uniqueRsvp[existingIdx].fundReceiptUrl
                   };
                 } else {
-                  uniqueRsvp.push(item);
+                  uniqueRsvp.push({
+                    ...item,
+                    fundReceiptUrl: finalReceiptUrl
+                  });
                 }
               }
 
