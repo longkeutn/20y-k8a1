@@ -9,7 +9,6 @@ import {
   Coins,
   Crown,
   CheckCircle2,
-  Lock,
   ArrowRight,
   ExternalLink,
   QrCode,
@@ -19,14 +18,13 @@ import {
   FileCheck,
   Scale,
   Sparkles,
-  HelpCircle,
-  Clock,
-  Award,
   ChevronRight,
   Info,
   Calendar,
   Layers,
-  Upload
+  Upload,
+  Lock,
+  FileText
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -42,6 +40,23 @@ export interface RoleGuideModalProps {
 }
 
 type GuideTab = 'member' | 'bll' | 'treasurer' | 'admin' | 'matrix';
+
+interface GuideCard {
+  id: string;
+  badge?: string;
+  badgeColor?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
+  title: string;
+  description: string;
+  details?: string[];
+  actionLabel?: string;
+  actionIcon?: React.ComponentType<{ className?: string }>;
+  actionFn?: () => void;
+  secondaryActionLabel?: string;
+  secondaryActionFn?: () => void;
+  keywords: string[];
+}
 
 export default function RoleGuideModal({
   isOpen,
@@ -63,11 +78,6 @@ export default function RoleGuideModal({
       setSearchQuery('');
     }
   }, [isOpen, initialTab]);
-
-  // Kiểm tra quyền hạn tương ứng
-  const isAdmin = currentUserRole === 'admin';
-  const isTreasurer = currentUserRole === 'treasurer' || isAdmin;
-  const isBll = currentUserRole === 'bll' || isAdmin;
 
   // Điều hướng nhanh đến section trên WebApp
   const handleJump = (sectionId: string) => {
@@ -92,6 +102,400 @@ export default function RoleGuideModal({
       if (onOpenAdminHub) onOpenAdminHub(tab);
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // DỮ LIỆU CÁC MỤC HƯỚNG DẪN CHI TIẾT THEO VAI TRÒ (CÔNG KHAI 100%)
+  // ---------------------------------------------------------------------------
+
+  // TAB 1: THÀNH VIÊN & CỰU HỌC SINH
+  const memberCards: GuideCard[] = [
+    {
+      id: 'm-rsvp',
+      badge: '1 Chạm',
+      badgeColor: 'bg-amber-100 text-amber-800',
+      icon: CheckCircle2,
+      iconColor: 'text-amber-600',
+      title: '1. Đăng Ký Tham Gia & Báo Danh (RSVP)',
+      description:
+        'Hệ thống tự động nhận diện thành viên theo danh bạ 65 bạn học K8A1. Bạn chỉ cần chọn tên mình, hệ thống sẽ tự động điền thông tin sẵn có. Chọn size áo đồng phục, số lượng người thân đi kèm và gửi gắm lời nhắn nhủ tới tập thể lớp.',
+      details: [
+        'Chọn tên từ danh bạ 65 bạn (không cần gõ lại họ tên)',
+        'Đăng ký size áo đồng phục (S, M, L, XL, XXL, 3XL...)',
+        'Xác nhận số người thân tham dự cùng',
+        'Gửi lời nhắn nhủ hoặc lưu bút kèm theo'
+      ],
+      actionLabel: 'Đến Mục Báo Danh',
+      actionIcon: ArrowRight,
+      actionFn: () => handleJump('diem-danh'),
+      keywords: ['đăng ký', 'rsvp', 'điểm danh', 'báo danh', 'size áo', 'đồng phục', 'tham dự', 'xác nhận', 'người thân']
+    },
+    {
+      id: 'm-pass',
+      badge: 'Check-in',
+      badgeColor: 'bg-amber-100 text-amber-800',
+      icon: QrCode,
+      iconColor: 'text-amber-600',
+      title: '2. Thẻ Học Sinh Kỷ Niệm Điện Tử (Golden Pass)',
+      description:
+        'Sau khi xác nhận báo danh, bạn sẽ nhận được một Thẻ Tham Dự Điện Tử (Golden Pass) sang trọng mang phong cách niên khóa 2003 — 2006, có mã QR định danh cá nhân độc nhất. Bạn có thể lưu ảnh vé vào điện thoại để BTC quét check-in nhanh khi đến ngày hội ngộ.',
+      details: [
+        'Mã QR định danh riêng biệt cho từng bạn',
+        'Thiết kế Boarding Pass sang trọng kỷ niệm niên khóa 2003 — 2006',
+        'Tải ảnh vé về điện thoại chỉ với 1 chạm',
+        'Dùng để quét check-in tại bàn lễ tân tiếp đón'
+      ],
+      actionLabel: 'Xem Danh Sách Bạn Bè',
+      actionIcon: ChevronRight,
+      actionFn: () => handleJump('danh-sach-diem-danh'),
+      keywords: ['golden pass', 'thẻ kỷ niệm', 'vé', 'qr', 'check in', 'boarding pass', 'lễ tân']
+    },
+    {
+      id: 'm-vietqr',
+      badge: 'Tự Động',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      icon: Coins,
+      iconColor: 'text-emerald-600',
+      title: '3. Đóng Quỹ VietQR & Tải Biên Lai Lên Drive',
+      description:
+        'Mở bất kỳ ứng dụng ngân hàng nào quét mã VietQR động: hệ thống tự động điền chính xác số tài khoản lớp, số tiền quy định và cú pháp chuyển tiền chuẩn. Chuyển khoản xong, bấm "Tải Lên Biên Lai" chụp ảnh màn hình giao dịch gửi thẳng vào Google Drive quỹ lớp để Thủ Quỹ đối soát.',
+      details: [
+        'VietQR động điền sẵn STK, số tiền và nội dung chuẩn',
+        'Nút "Tải Lên Biên Lai" gửi ảnh trực tiếp lên Google Drive lớp',
+        'Tự động đánh dấu trạng thái "Chờ thủ quỹ duyệt"',
+        'Thủ quỹ xác nhận là trạng thái chuyển thành "Đã đóng quỹ"'
+      ],
+      actionLabel: 'Đến Cổng Quỹ Lớp',
+      actionIcon: ArrowRight,
+      actionFn: () => handleJump('bank-transfer-card'),
+      keywords: ['đóng quỹ', 'vietqr', 'ngân hàng', 'chuyển khoản', 'biên lai', 'bill', 'drive', 'quỹ lớp']
+    },
+    {
+      id: 'm-transparency',
+      badge: 'Minh Bạch',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      icon: FileSpreadsheet,
+      iconColor: 'text-emerald-600',
+      title: '4. Tra Cứu Sổ Quỹ Thu - Chi Minh Bạch',
+      description:
+        'Mọi thành viên trong lớp đều có thể tra cứu toàn bộ dòng tiền quỹ lớp theo thời gian thực: danh sách ai đã đóng, ai chờ duyệt, và toàn bộ các khoản chi tiêu thực tế (tiệc tùng, may đồng phục, tri ân thầy cô, hiếu hỷ Điều 3...) kèm ảnh chụp hóa đơn chứng từ thực tế.',
+      details: [
+        'Xem công khai Sổ Thu và Sổ Chi của quỹ lớp',
+        'Bấm vào từng khoản chi để mở xem ảnh hóa đơn chứng từ trên Drive',
+        'Thống kê tồn quỹ, tổng thu và tổng chi rõ ràng từng mốc thời gian',
+        'Chuẩn hóa theo Điều 3 & 4 Quy Chế Lớp K8A1'
+      ],
+      actionLabel: 'Xem Quy Chế Lớp (Điều 3 & 4)',
+      actionIcon: Scale,
+      actionFn: () => { if (onOpenCharterModal) onOpenCharterModal(); },
+      keywords: ['sổ quỹ', 'thu chi', 'minh bạch', 'hóa đơn', 'chứng từ', 'quy chế', 'điều 3', 'điều 4', 'tài chính']
+    },
+    {
+      id: 'm-wishes',
+      badge: 'Gắn Kết',
+      badgeColor: 'bg-rose-100 text-rose-800',
+      icon: HeartHandshake,
+      iconColor: 'text-rose-600',
+      title: '5. Lưu Bút & Tri Ân Thầy Cô Giáo',
+      description:
+        'Không gian chia sẻ kỷ niệm, viết lời chúc và tri ân các thầy cô giáo bộ môn. Các bạn học có thể thả tim bài viết của nhau, xem lại danh sách thầy cô chủ nhiệm và bộ môn qua các năm.',
+      details: [
+        'Gửi tâm tình, hồi ức thanh xuân tuổi học trò',
+        'Tương tác thả tim, bình luận lời chúc của bạn bè',
+        'Góc tri ân thầy cô giáo với hình ảnh và lời dạy ngày xưa'
+      ],
+      actionLabel: 'Viết Lưu Bút',
+      actionIcon: ChevronRight,
+      actionFn: () => handleJump('luu-but'),
+      keywords: ['lưu bút', 'thầy cô', 'lời chúc', 'kỷ niệm', 'tri ân', 'hoa niên', 'thanh xuân']
+    },
+    {
+      id: 'm-media',
+      badge: 'Thanh Xuân',
+      badgeColor: 'bg-amber-100 text-amber-800',
+      icon: Camera,
+      iconColor: 'text-amber-600',
+      title: '6. Thước Phim & Kỷ Niệm Xưa',
+      description:
+        'Thưởng thức kho ảnh kỷ yếu, ảnh dã ngoại thời áo trắng và video phóng sự kỷ niệm. Bạn cũng có thể tải thêm những bức ảnh cũ còn lưu giữ trong máy cá nhân lên kho lưu trữ chung của lớp.',
+      details: [
+        'Xem kho ảnh kỷ yếu và ảnh thời học trò',
+        'Xem video kỷ niệm và phóng sự 20 năm',
+        'Tự tải ảnh cá nhân thời đi học lên kho ảnh chung của lớp'
+      ],
+      actionLabel: 'Mở Kho Ảnh & Video',
+      actionIcon: ChevronRight,
+      actionFn: () => handleJump('ky-uc'),
+      keywords: ['kho ảnh', 'video', 'kỷ niệm', 'thước phim', 'dã ngoại', 'kỷ yếu', 'ảnh cũ']
+    }
+  ];
+
+  // TAB 2: BAN LIÊN LẠC (BLL)
+  const bllCards: GuideCard[] = [
+    {
+      id: 'bll-checkin',
+      badge: 'Lễ Tân',
+      badgeColor: 'bg-indigo-100 text-indigo-800',
+      icon: CheckCircle2,
+      iconColor: 'text-indigo-600',
+      title: '1. Tiếp Đón & Check-in Sự Kiện',
+      description:
+        'Tại các buổi gặp mặt hoặc sự kiện họp lớp, Ban Liên Lạc mở Hub Quản Trị > Tab Danh Sách. Khi bạn bè có mặt, bấm nút "ĐÃ ĐẾN" hoặc dùng camera điện thoại quét mã QR trên Thẻ Kỷ Niệm (Golden Pass) của bạn học để xác nhận sĩ số có mặt theo thời gian thực.',
+      details: [
+        'Nút bấm "ĐÃ ĐẾN" tức thì ngay trên dòng danh bạ',
+        'Tính năng quét mã QR Golden Pass trên điện thoại của bạn học',
+        'Tự động thống kê số bạn Đã Có Mặt / Tổng Số Xác Nhận Đi trên thanh KPI',
+        'Phục vụ công tác sắp xếp bàn tiệc và phát kỷ niệm chương'
+      ],
+      actionLabel: 'Mở Cổng Lễ Tân & Điểm Danh',
+      actionIcon: Users,
+      actionFn: () => handleOpenHubTab('members'),
+      keywords: ['tiếp đón', 'check in', 'lễ tân', 'đã đến', 'quét qr', 'sự kiện', 'gặp mặt', 'có mặt']
+    },
+    {
+      id: 'bll-roster',
+      badge: 'Kết Nối',
+      badgeColor: 'bg-indigo-100 text-indigo-800',
+      icon: Users,
+      iconColor: 'text-indigo-600',
+      title: '2. Đôn Đốc Sĩ Số & Báo Danh Hộ',
+      description:
+        'Theo dõi tiến độ phản hồi của toàn bộ 65 bạn học K8A1: phân loại rõ bạn nào Đã xác nhận, bạn nào Báo bận, bạn nào Chưa phản hồi. Với những bạn bận công việc hoặc không tiện thao tác Web, BLL có thể bấm "Thêm / Báo danh hộ" để cập nhật sĩ số và size áo giúp bạn.',
+      details: [
+        'Lọc nhanh danh sách: Đã xác nhận đi / Báo bận / Chưa phản hồi',
+        'Chức năng "Báo danh hộ": Nhập thông tin, size áo thay cho bạn học',
+        'Nhấn gọi điện thoại hoặc gửi tin nhắn Zalo trực tiếp từ danh bạ Web',
+        'Đảm bảo không bỏ sót bất kỳ thành viên nào trong các sự kiện chung'
+      ],
+      actionLabel: 'Xem Sĩ Số & Danh Bạ',
+      actionIcon: ChevronRight,
+      actionFn: () => handleOpenHubTab('members'),
+      keywords: ['đôn đốc', 'báo danh hộ', 'danh bạ', '65 bạn', 'sĩ số', 'liên lạc', 'zalo', 'gọi điện']
+    },
+    {
+      id: 'bll-charter',
+      badge: 'Điều 3 Quy Chế',
+      badgeColor: 'bg-indigo-100 text-indigo-800',
+      icon: HeartHandshake,
+      iconColor: 'text-indigo-600',
+      title: '3. Chăm Lo Việc Hiếu, Việc Hỷ & Thăm Hỏi Ốm Đau',
+      description:
+        'Ban Liên Lạc là đầu mối thông tin khi trong lớp có việc hiếu, việc hỷ hoặc bạn học ốm đau tai nạn. BLL có trách nhiệm thông báo lên nhóm lớp và đại diện tập thể tổ chức phúng viếng, chúc mừng theo định mức chuẩn quy định tại Điều 3 Quy Chế Lớp.',
+      details: [
+        'Việc Hiếu / Việc Hỷ: Định mức chi 500.000 đ (tứ thân phụ mẫu, bản thân thành viên và con đẻ)',
+        'Thăm hỏi ốm đau / rủi ro: Định mức chi 300.000 đ (nằm viện hoặc tai nạn lớn)',
+        'Đầu mối liên hệ với gia đình và phối hợp cùng Thủ Quỹ xuất quỹ kịp thời',
+        'Đăng tin thông báo tình hình tới tập thể lớp trên Zalo'
+      ],
+      actionLabel: 'Tra Cứu Quy Chế Lớp',
+      actionIcon: Scale,
+      actionFn: () => { if (onOpenCharterModal) onOpenCharterModal(); },
+      keywords: ['hiếu hỷ', 'thăm hỏi', 'ốm đau', 'phúng viếng', 'điều 3', 'quy chế', '500k', '300k', 'chăm lo']
+    },
+    {
+      id: 'bll-audit',
+      badge: 'Giám Sát',
+      badgeColor: 'bg-indigo-100 text-indigo-800',
+      icon: Shield,
+      iconColor: 'text-indigo-600',
+      title: '4. Giám Sát Đối Soát Chéo Quỹ Lớp',
+      description:
+        'Ban Liên Lạc có quyền xem toàn bộ sổ thu chi và hình ảnh hóa đơn chứng từ trên Google Drive ở chế độ an toàn (Read-Only) để giám sát đối soát chéo, bảo đảm tính minh bạch, khách quan và bảo vệ uy tín cho Thủ Quỹ.',
+      details: [
+        'Xem chi tiết từng khoản thu và khoản chi của Thủ Quỹ',
+        'Mở xem hóa đơn đỏ, biên nhận lưu trữ trên Google Drive',
+        'Đóng vai trò nhân chứng đối soát độc lập trong các kỳ báo cáo tài chính'
+      ],
+      actionLabel: 'Giám Sát Sổ Quỹ Lớp',
+      actionIcon: Coins,
+      actionFn: () => handleOpenHubTab('fund'),
+      keywords: ['giám sát', 'đối soát chéo', 'sổ quỹ', 'hóa đơn', 'minh bạch', 'an toàn', 'khách quan']
+    }
+  ];
+
+  // TAB 3: THỦ QUỸ LỚP (TREASURER)
+  const treasurerCards: GuideCard[] = [
+    {
+      id: 't-verify',
+      badge: 'Duyệt Thu',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      icon: FileCheck,
+      iconColor: 'text-emerald-600',
+      title: '1. Quy Trình Đối Soát & Soi Biên Lai Đóng Quỹ',
+      description:
+        'Tại Tab Quỹ Lớp trong Hub Quản Trị, những bạn học đã tải biên lai chuyển khoản sẽ có icon kẹp ghim 📎. Thủ Quỹ bấm vào để mở Lightbox zoom soi chi tiết ảnh chụp màn hình chuyển khoản trên Google Drive. Sau khi đối chiếu số dư tài khoản ngân hàng, bấm "Xác Nhận Đã Đóng". Hệ thống tự động ghi nhận tên người duyệt để lưu vết trách nhiệm.',
+      details: [
+        'Icon kẹp ghim 📎 đánh dấu thành viên đã nộp ảnh biên lai',
+        'Lightbox phóng to/thu nhỏ ảnh biên lai trực tiếp trên màn hình',
+        'Nút "Xác Nhận Đã Đóng" 1 chạm, tự động lưu tên người duyệt',
+        'Tự động đồng bộ trạng thái thanh toán lên Google Sheet'
+      ],
+      actionLabel: 'Mở Cổng Duyệt Thu Quỹ',
+      actionIcon: Coins,
+      actionFn: () => handleOpenHubTab('fund'),
+      keywords: ['đối soát', 'soi biên lai', 'lightbox', 'duyệt thu', 'xác nhận đã đóng', 'số dư ngân hàng', 'kẹp ghim']
+    },
+    {
+      id: 't-income',
+      badge: 'Sổ Thu',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      icon: Coins,
+      iconColor: 'text-emerald-600',
+      title: '2. Quản Lý Sổ Thu Đa Danh Mục (Sheet Khoan_Thu)',
+      description:
+        'Ghi nhận các nguồn thu linh hoạt ngoài đóng góp sự kiện: Quỹ thường niên duy trì hàng năm, đóng góp tự nguyện của mạnh thường quân, tiền tài trợ hoặc bán đồ lưu niệm... Tất cả được phân loại chuẩn và lưu trực tiếp vào Google Sheet tab Khoan_Thu.',
+      details: [
+        'Phân loại nguồn thu: Quỹ thường niên, Đóng góp sự kiện, Tài trợ, Khác',
+        'Ghi rõ họ tên người nộp, số tiền, ngày thu, hình thức chuyển khoản/tiền mặt',
+        'Tự động cộng dồn vào Tổng Thu quỹ lớp dài hạn'
+      ],
+      actionLabel: 'Mở Sổ Thu Quỹ',
+      actionIcon: ChevronRight,
+      actionFn: () => handleOpenHubTab('fund'),
+      keywords: ['sổ thu', 'khoan_thu', 'thường niên', 'mạnh thường quân', 'tài trợ', 'nguồn thu', 'đóng góp']
+    },
+    {
+      id: 't-expense',
+      badge: 'Sổ Chi',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      icon: Upload,
+      iconColor: 'text-emerald-600',
+      title: '3. Quản Lý Sổ Chi & Tải Hóa Đơn Lên Drive',
+      description:
+        'Mọi khoản chi tiêu (tiệc, cọc địa điểm, in ấn áo đồng phục, quà kỷ niệm, hiếu hỷ Điều 3, tri ân thầy cô Điều 4...) đều được phân loại danh mục và bắt buộc đính kèm ảnh chụp hóa đơn chứng từ. Ảnh được tự động tải lên thư mục Google Drive ChungTu_QuyLop_K8A1 và tạo link công khai cho cả lớp xem.',
+      details: [
+        'Phân loại chi: Tiệc & Gặp mặt, Áo & Đồng phục, Quà tặng, Hiếu hỷ Điều 3, Tri ân thầy cô Điều 4, Khác',
+        'Tải ảnh hóa đơn đỏ, biên nhận hoặc ảnh chuyển khoản thanh toán',
+        'File tự động lưu vào Google Drive folder ChungTu_QuyLop_K8A1 với tên chuẩn',
+        'Quyền chỉnh sửa, cập nhật thông tin chứng từ khi cần thiết'
+      ],
+      actionLabel: 'Mở Sổ Chi Tiêu Quỹ',
+      actionIcon: ChevronRight,
+      actionFn: () => handleOpenHubTab('fund'),
+      keywords: ['sổ chi', 'khoan_chi', 'chi tiêu', 'hóa đơn', 'chứng từ', 'google drive', 'ChungTu_QuyLop_K8A1', 'upload']
+    },
+    {
+      id: 't-export',
+      badge: 'Báo Cáo',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+      icon: FileSpreadsheet,
+      iconColor: 'text-emerald-600',
+      title: '4. Xuất Báo Cáo Sao Kê Tài Chính (CSV/Excel)',
+      description:
+        'Bấm nút "Xuất Báo Cáo (CSV)" tại Hub Quản Trị để tải toàn bộ bảng sao kê thu - chi chi tiết, sẵn sàng gửi vào nhóm Zalo lớp sau mỗi sự kiện hoặc định kỳ cuối năm.',
+      details: [
+        'Xuất file CSV chuẩn UTF-8 tương thích 100% với Microsoft Excel',
+        'Bao gồm đầy đủ cột: Ngày, Người nộp/chi, Nội dung, Số tiền, Người duyệt, Link chứng từ Drive',
+        'Tiện lợi gửi file vào nhóm Zalo lớp để báo cáo định kỳ'
+      ],
+      actionLabel: 'Đến Mục Xuất Sao Kê',
+      actionIcon: ChevronRight,
+      actionFn: () => handleOpenHubTab('fund'),
+      keywords: ['xuất báo cáo', 'csv', 'excel', 'sao kê', 'zalo', 'tài chính', 'tổng kết']
+    }
+  ];
+
+  // TAB 4: BAN QUẢN TRỊ / KỸ THUẬT (ADMIN)
+  const adminCards: GuideCard[] = [
+    {
+      id: 'a-roster',
+      badge: 'Danh Bạ',
+      badgeColor: 'bg-rose-100 text-rose-800',
+      icon: Users,
+      iconColor: 'text-rose-600',
+      title: '1. Quản Trị Danh Bạ 65 Bạn Học (Sheet Danh_Sach_Lop)',
+      description:
+        'Thêm mới, sửa thông tin bạn học, cập nhật số điện thoại, nơi ở hiện tại, chức vụ ban cán sự. Toàn bộ thay đổi đồng bộ 2 chiều tức thì với Google Sheet tab Danh_Sach_Lop.',
+      details: [
+        'Quản trị sĩ số lớp (chuẩn hóa 65 bạn học)',
+        'Cập nhật số điện thoại, nơi sinh sống (Thái Nguyên, Hà Nội, TP.HCM, nước ngoài...)',
+        'Phân quyền chức vụ ban cán sự (Lớp trưởng, Bí thư, Thủ quỹ, Thành viên)',
+        'Đồng bộ 2 chiều tức thì với Google Sheets'
+      ],
+      actionLabel: 'Quản Trị Danh Bạ 65 Bạn',
+      actionIcon: Users,
+      actionFn: () => handleOpenHubTab('members'),
+      keywords: ['danh bạ', '65 bạn', 'thêm bạn', 'sửa thông tin', 'ban cán sự', 'Danh_Sach_Lop', 'sĩ số']
+    },
+    {
+      id: 'a-config',
+      badge: 'Dài Hạn',
+      badgeColor: 'bg-rose-100 text-rose-800',
+      icon: Calendar,
+      iconColor: 'text-rose-600',
+      title: '2. Cấu Hình Sự Kiện Linh Hoạt Cho Tương Lai (Sheet Cau_Hinh)',
+      description:
+        'Khi lớp tổ chức các sự kiện tiếp theo (Gặp mặt 2027, Họp lớp 25 năm, dã ngoại hè...), Admin chỉ cần vào Tab Cài Đặt để đổi tên sự kiện, thời gian, địa điểm, link Google Maps, kinh phí dự kiến và tài khoản ngân hàng nhận tiền. Giao diện WebApp sẽ tự động cập nhật toàn bộ theo sự kiện mới mà không cần lập trình lại code!',
+      details: [
+        'Đổi tên sự kiện, thư ngỏ và khẩu hiệu họp lớp',
+        'Cập nhật ngày giờ, tên địa điểm tổ chức mới và link Google Maps',
+        'Thiết lập mức kinh phí dự kiến thu mỗi người',
+        'Thay đổi số tài khoản ngân hàng và cú pháp chuyển tiền VietQR',
+        'Không cần viết lại code, dữ liệu lưu vĩnh viễn trên Google Sheet Cau_Hinh'
+      ],
+      actionLabel: 'Mở Cài Đặt Sự Kiện',
+      actionIcon: Crown,
+      actionFn: () => handleOpenHubTab('settings'),
+      keywords: ['cấu hình', 'sự kiện mới', 'tương lai', 'địa điểm', 'thời gian', 'kinh phí', 'google maps', 'Cau_Hinh', 'họp lớp']
+    },
+    {
+      id: 'a-media',
+      badge: 'Hình Ảnh',
+      badgeColor: 'bg-rose-100 text-rose-800',
+      icon: Camera,
+      iconColor: 'text-rose-600',
+      title: '3. Quản Trị Hero Banner & Kho Video Phóng Sự',
+      description:
+        'Tải ảnh bìa mới lên Google Drive, dán link vào hệ thống và kéo thanh trượt định vị khung hình (trục Y từ 0% đến 100%) để ảnh luôn hiển thị đẹp nhất trên cả điện thoại và máy tính. Quản lý danh sách video YouTube kỷ niệm.',
+      details: [
+        'Thay đổi ảnh bìa sự kiện mới trực tiếp trên giao diện',
+        'Thanh trượt định vị hiển thị trục Y (0 - 100%) tránh bị cắt mặt',
+        'Thêm / sửa danh sách video YouTube phóng sự kỷ niệm',
+        'Tự động lưu vào Google Sheet và bộ nhớ thiết bị'
+      ],
+      actionLabel: 'Quản Trị Banner & Video',
+      actionIcon: ChevronRight,
+      actionFn: () => handleOpenHubTab('media'),
+      keywords: ['hero banner', 'ảnh bìa', 'video', 'trục y', 'slider', 'media', 'drive', 'youtube']
+    },
+    {
+      id: 'a-security',
+      badge: 'Bảo Mật',
+      badgeColor: 'bg-rose-100 text-rose-800',
+      icon: Lock,
+      iconColor: 'text-rose-600',
+      title: '4. Đổi Mã PIN Bảo Mật & Dọn Dẹp Dữ Liệu',
+      description:
+        'Đổi mã PIN định kỳ cho cả 3 vai trò (BLL, Thủ Quỹ, Admin) trực tiếp trên Web. Mã PIN được mã hóa SHA-256 an toàn lưu trên Google Sheet tab Bao_Mat_PIN. Sử dụng công cụ Deduplicate để dọn sạch các bản ghi gửi trùng lặp nếu có.',
+      details: [
+        'Đổi mã PIN cho từng vai trò ngay tại Tab Cài Đặt',
+        'Mã hóa bảo mật SHA-256 một chiều trên Google Sheet tab Bao_Mat_PIN',
+        'Công cụ Deduplicate loại bỏ các bản ghi gửi trùng',
+        'Kiểm tra kết nối và tính sẵn sàng của Google Apps Script WebApp'
+      ],
+      actionLabel: 'Mở Cài Đặt Bảo Mật',
+      actionIcon: ChevronRight,
+      actionFn: () => handleOpenHubTab('settings'),
+      keywords: ['đổi pin', 'bảo mật', 'sha-256', 'deduplicate', 'trùng lặp', 'Bao_Mat_PIN', 'kỹ thuật']
+    }
+  ];
+
+  // Helper lọc danh sách card theo từ khóa tìm kiếm
+  const filterCards = (cards: GuideCard[]) => {
+    if (!searchQuery.trim()) return cards;
+    const q = searchQuery.toLowerCase().trim();
+    return cards.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.keywords.some((k) => k.toLowerCase().includes(q)) ||
+        (c.details && c.details.some((d) => d.toLowerCase().includes(q)))
+    );
+  };
+
+  const filteredMemberCards = useMemo(() => filterCards(memberCards), [searchQuery]);
+  const filteredBllCards = useMemo(() => filterCards(bllCards), [searchQuery]);
+  const filteredTreasurerCards = useMemo(() => filterCards(treasurerCards), [searchQuery]);
+  const filteredAdminCards = useMemo(() => filterCards(adminCards), [searchQuery]);
 
   if (!isOpen) return null;
 
@@ -133,7 +537,7 @@ export default function RoleGuideModal({
                   </span>
                 </div>
                 <p className="text-[11px] sm:text-xs text-amber-200/80 mt-0.5">
-                  Hướng dẫn chi tiết quy trình, thẩm quyền và cách thức sử dụng cho từng vai trò
+                  Hướng dẫn công khai toàn diện quy trình vận hành, thẩm quyền và cách sử dụng cho từng vai trò
                 </p>
               </div>
             </div>
@@ -163,7 +567,7 @@ export default function RoleGuideModal({
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -202,7 +606,7 @@ export default function RoleGuideModal({
           </div>
 
           {/* ================================================================= */}
-          {/* TAB ĐIỀU HƯỚNG THEO VAI TRÒ */}
+          {/* TAB ĐIỀU HƯỚNG THEO VAI TRÒ (CÔNG KHAI 100% - KHÔNG CÓ ICON KHÓA) */}
           {/* ================================================================= */}
           <nav className="flex items-center px-3 sm:px-6 bg-white border-b border-slate-200 overflow-x-auto scrollbar-none shrink-0 gap-1 sm:gap-2">
             <button
@@ -227,7 +631,6 @@ export default function RoleGuideModal({
             >
               <Shield className="w-4 h-4 text-indigo-600" />
               <span>2. Ban Liên Lạc</span>
-              {!isBll && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
             </button>
 
             <button
@@ -240,7 +643,6 @@ export default function RoleGuideModal({
             >
               <Coins className="w-4 h-4 text-emerald-600" />
               <span>3. Thủ Quỹ Lớp</span>
-              {!isTreasurer && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
             </button>
 
             <button
@@ -253,7 +655,6 @@ export default function RoleGuideModal({
             >
               <Crown className="w-4 h-4 text-rose-600" />
               <span>4. Ban Quản Trị / Kỹ Thuật</span>
-              {!isAdmin && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
             </button>
 
             <button
@@ -294,152 +695,60 @@ export default function RoleGuideModal({
                   </div>
                 </div>
 
-                {/* Các tính năng chính */}
+                {/* Danh sách thẻ hướng dẫn */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Mục 1: Đăng ký & Điểm danh */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-amber-300 transition space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-amber-800 font-bold">
-                        <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                        <span>1. Đăng Ký & Báo Danh (RSVP)</span>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">1 chạm</span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Chọn họ tên từ danh bạ 65 bạn (hệ thống tự động điền thông tin, không phải gõ lại). Chọn size áo đồng phục, số người thân đi kèm và gửi gắm tâm sự.
-                    </p>
-                    <div className="pt-1 flex items-center gap-2">
-                      <button
-                        onClick={() => handleJump('diem-danh')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+                  {filteredMemberCards.map((card) => {
+                    const Icon = card.icon;
+                    const ActionIcon = card.actionIcon;
+                    return (
+                      <div
+                        key={card.id}
+                        className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-amber-300 transition space-y-3 flex flex-col justify-between"
                       >
-                        <span>Đến Mục Báo Danh</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-bold text-slate-900 text-xs sm:text-sm">
+                              <Icon className={`w-4 h-4 ${card.iconColor}`} />
+                              <span>{card.title}</span>
+                            </div>
+                            {card.badge && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.badgeColor}`}>
+                                {card.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">{card.description}</p>
+                          {card.details && (
+                            <ul className="space-y-1 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                              {card.details.map((d, i) => (
+                                <li key={i} className="flex items-start gap-1.5">
+                                  <span className="text-amber-500 font-bold">•</span>
+                                  <span>{d}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
 
-                  {/* Mục 2: Thẻ Kỷ Niệm Điện Tử (Golden Pass) */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-amber-300 transition space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-amber-800 font-bold">
-                        <QrCode className="w-4 h-4 text-amber-600" />
-                        <span>2. Thẻ Học Sinh Kỷ Niệm (Golden Pass)</span>
+                        {card.actionLabel && card.actionFn && (
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                            <button
+                              onClick={card.actionFn}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs cursor-pointer transition"
+                            >
+                              <span>{card.actionLabel}</span>
+                              {ActionIcon && <ActionIcon className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Check-in</span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Sau khi báo danh, bạn nhận ngay một thẻ tham dự điện tử sang trọng có mã QR định danh cá nhân. Hãy lưu thẻ vào điện thoại để BTC quét check-in nhanh khi đến ngày hội ngộ.
-                    </p>
-                    <div className="pt-1 flex items-center gap-2">
-                      <button
-                        onClick={() => handleJump('danh-sach-diem-danh')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold cursor-pointer"
-                      >
-                        <span>Xem Danh Sách Bạn Bè</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Mục 3: Đóng quỹ VietQR & Tải biên lai */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-emerald-300 transition space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                        <Coins className="w-4 h-4 text-emerald-600" />
-                        <span>3. Đóng Quỹ VietQR & Tải Biên Lai</span>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">Tự động</span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Mở app ngân hàng quét mã VietQR đã điền sẵn số tiền và cú pháp chuẩn. Sau khi chuyển khoản xong, bấm <strong>"Tải Lên Biên Lai"</strong> chụp ảnh xác nhận gửi thẳng vào Google Drive lớp để Thủ Quỹ duyệt.
-                    </p>
-                    <div className="pt-1 flex items-center gap-2">
-                      <button
-                        onClick={() => handleJump('bank-transfer-card')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
-                      >
-                        <span>Đến Cổng Quỹ Lớp</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Mục 4: Minh bạch tài chính & Hóa đơn */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-emerald-300 transition space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                        <span>4. Sổ Quỹ Thu - Chi Công Khai</span>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">Minh bạch</span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Bất kỳ thành viên nào cũng có thể theo dõi chi tiết từng khoản thu và từng khoản chi (tiệc tùng, may đồng phục, quà tặng, hiếu hỷ Điều 3...) kèm ảnh chụp hóa đơn chứng từ thực tế.
-                    </p>
-                    <div className="pt-1 flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          if (onOpenCharterModal) onOpenCharterModal();
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold cursor-pointer"
-                      >
-                        <Scale className="w-3 h-3 text-amber-700" />
-                        <span>Xem Quy Chế Lớp (Điều 3 & 4)</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Mục 5: Lưu bút & Kỷ niệm */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-rose-300 transition space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-rose-800 font-bold">
-                        <HeartHandshake className="w-4 h-4 text-rose-600" />
-                        <span>5. Lưu Bút & Tri Ân Thầy Cô</span>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-medium">Gắn kết</span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Gửi gắm lời chúc, những ký ức thời hoa niên niên khóa 2003 — 2006, thả tim cho bài viết của bạn bè và chia sẻ tình cảm tới các thầy cô giáo cũ.
-                    </p>
-                    <div className="pt-1 flex items-center gap-2">
-                      <button
-                        onClick={() => handleJump('luu-but')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold cursor-pointer"
-                      >
-                        <span>Viết Lưu Bút</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Mục 6: Kho ảnh & Video xưa */}
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-amber-300 transition space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-amber-800 font-bold">
-                        <Camera className="w-4 h-4 text-amber-600" />
-                        <span>6. Thước Phim & Kỷ Niệm Xưa</span>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Thanh xuân</span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Ngắm lại album ảnh chụp kỷ yếu, các buổi dã ngoại và video phóng sự thanh xuân. Bạn cũng có thể tải thêm những bức ảnh cũ trong máy của mình lên kho kỷ niệm chung của lớp.
-                    </p>
-                    <div className="pt-1 flex items-center gap-2">
-                      <button
-                        onClick={() => handleJump('ky-uc')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold cursor-pointer"
-                      >
-                        <span>Mở Kho Ảnh & Video</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* TAB 2: BAN LIÊN LẠC (BLL) */}
+            {/* TAB 2: BAN LIÊN LẠC (BLL) - CÔNG KHAI 100% */}
             {activeTab === 'bll' && (
               <div className="space-y-6">
                 {/* Intro Card */}
@@ -450,7 +759,7 @@ export default function RoleGuideModal({
                     </div>
                     <div>
                       <h3 className="text-base font-serif font-bold text-indigo-950">
-                        Vai Trò & Nhiệm Vụ Của Ban Liên Lạc (BLL)
+                        Quy Trình Nghiệp Vụ Của Ban Liên Lạc (BLL)
                       </h3>
                       <p className="text-xs sm:text-sm text-slate-600 mt-1">
                         Ban Liên Lạc là cầu nối gắn kết 65 bạn học K8A1, điều phối các buổi họp mặt định kỳ, đón tiếp bạn bè và phụ trách công tác hiếu hỷ, thăm hỏi ốm đau theo Điều 3 Quy Chế.
@@ -459,116 +768,97 @@ export default function RoleGuideModal({
                   </div>
                 </div>
 
-                {/* Khóa bảo mật nếu chưa xác thực vai trò BLL */}
-                {!isBll ? (
-                  <div className="p-5 rounded-2xl bg-white border border-indigo-200 shadow-sm text-center space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 mx-auto flex items-center justify-center">
-                      <Lock className="w-6 h-6" />
-                    </div>
-                    <div className="max-w-md mx-auto space-y-1">
-                      <h4 className="font-bold text-slate-900 text-sm sm:text-base">
-                        Khu Vực Dành Riêng Cho Ban Liên Lạc
-                      </h4>
-                      <p className="text-xs text-slate-600">
-                        Để mở khóa quy trình tác nghiệp nội bộ (Check-in sự kiện, quản lý danh bạ kết nối, kiểm soát đối soát chéo quỹ), vui lòng xác thực mã PIN vai trò Ban Liên Lạc.
-                      </p>
-                    </div>
-                    <div className="pt-2">
-                      <button
-                        onClick={() => {
-                          onClose();
-                          if (onOpenAuthModal) onOpenAuthModal();
-                        }}
-                        className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md transition cursor-pointer"
-                      >
-                        <Shield className="w-4 h-4" />
-                        <span>Nhập Mã PIN Ban Liên Lạc</span>
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400 italic">
-                      * Mã PIN được Ban Tổ Chức cấp nội bộ. Nếu bạn là thành viên BLL mà chưa có PIN, vui lòng liên hệ Trưởng Ban.
+                {/* Ghi chú bảo mật nhẹ nhàng, không chặn xem nội dung */}
+                <div className="p-3.5 rounded-xl bg-indigo-50/80 border border-indigo-200/80 text-indigo-950 text-xs flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      Toàn bộ quy trình tác nghiệp của BLL được công khai minh bạch để cả lớp cùng nắm rõ.
+                    </p>
+                    <p className="text-[11px] text-indigo-800/90 leading-relaxed">
+                      Để thực hiện các thao tác quản trị trực tiếp (bấm điểm danh, báo danh hộ), thành viên phụ trách xác thực mã PIN Ban Liên Lạc. Mã PIN được Ban Tổ Chức bàn giao riêng qua tin nhắn.
                     </p>
                   </div>
-                ) : (
-                  /* Nội dung mở khóa khi đã có quyền BLL */
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
-                      <span className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span>Bạn đã được cấp quyền: <strong>Ban Liên Lạc (BLL)</strong></span>
-                      </span>
-                      <button
-                        onClick={() => handleOpenHubTab('members')}
-                        className="text-indigo-700 hover:underline font-bold"
+                </div>
+
+                {/* Danh sách thẻ hướng dẫn BLL */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredBllCards.map((card) => {
+                    const Icon = card.icon;
+                    const ActionIcon = card.actionIcon;
+                    return (
+                      <div
+                        key={card.id}
+                        className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-indigo-300 transition space-y-3 flex flex-col justify-between"
                       >
-                        Vào Cổng Lễ Tân & Danh Bạ →
-                      </button>
-                    </div>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-bold text-indigo-950 text-xs sm:text-sm">
+                              <Icon className={`w-4 h-4 ${card.iconColor}`} />
+                              <span>{card.title}</span>
+                            </div>
+                            {card.badge && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.badgeColor}`}>
+                                {card.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">{card.description}</p>
+                          {card.details && (
+                            <ul className="space-y-1 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                              {card.details.map((d, i) => (
+                                <li key={i} className="flex items-start gap-1.5">
+                                  <span className="text-indigo-500 font-bold">•</span>
+                                  <span>{d}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                          <span>1. Tiếp Đón & Check-in Sự Kiện</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Tại buổi gặp mặt, BLL mở Hub Quản Trị &gt; Tab Danh Sách. Khi bạn bè đến, bấm nút <strong>"ĐÃ ĐẾN"</strong> (hoặc soi mã QR trên Thẻ Kỷ Niệm của bạn) để xác nhận sĩ số có mặt realtime.
-                        </p>
+                        {card.actionLabel && card.actionFn && (
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                            <button
+                              onClick={card.actionFn}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs cursor-pointer transition"
+                            >
+                              <span>{card.actionLabel}</span>
+                              {ActionIcon && <ActionIcon className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        )}
                       </div>
+                    );
+                  })}
+                </div>
 
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Users className="w-4 h-4 text-indigo-600" />
-                          <span>2. Đôn Đốc & Báo Danh Hộ</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Theo dõi danh bạ 65 bạn xem ai chưa báo danh. Với các bạn ở xa hoặc không tiện dùng điện thoại, BLL có thể bấm <strong>"Thêm / Báo danh hộ"</strong> để cập nhật thông tin và size áo vào hệ thống.
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <HeartHandshake className="w-4 h-4 text-indigo-600" />
-                          <span>3. Chăm Lo Hiếu Hỷ (Điều 3 Quy Chế)</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Khi trong lớp có việc hiếu, việc hỷ, hoặc bạn bè ốm đau tai nạn, BLL là đầu mối thông báo, nắm tình hình và đại diện lớp tổ chức thăm viếng kịp thời theo định mức quy định (500k hiếu hỷ / 300k ốm đau).
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Coins className="w-4 h-4 text-indigo-600" />
-                          <span>4. Giám Sát Đối Soát Chéo Quỹ Lớp</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          BLL có quyền xem toàn bộ sổ thu chi và hình ảnh hóa đơn chứng từ trên Drive ở chế độ an toàn để đảm bảo tính khách quan và minh bạch cao nhất.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex flex-wrap items-center gap-3">
-                      <button
-                        onClick={() => handleOpenHubTab('members')}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm cursor-pointer"
-                      >
-                        <Users className="w-4 h-4" />
-                        <span>Mở Cổng Lễ Tân Điểm Danh</span>
-                      </button>
-                      <button
-                        onClick={() => handleOpenHubTab('fund')}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-indigo-900 border border-indigo-300 text-xs font-bold cursor-pointer"
-                      >
-                        <Coins className="w-4 h-4 text-indigo-600" />
-                        <span>Giám Sát Sổ Quỹ Lớp</span>
-                      </button>
-                    </div>
+                {/* Thanh điều hướng thao tác nhanh */}
+                <div className="p-4 rounded-2xl bg-white border border-indigo-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-indigo-900 font-medium">
+                    <Shield className="w-4 h-4 text-indigo-600" />
+                    <span>Lối tắt truy cập các phân hệ điều hành BLL:</span>
                   </div>
-                )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => handleOpenHubTab('members')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold cursor-pointer transition shadow-xs"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>Cổng Lễ Tân & Danh Bạ</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenHubTab('fund')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50 text-indigo-900 border border-indigo-300 font-bold cursor-pointer transition"
+                    >
+                      <Coins className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Sổ Quỹ Đối Soát</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* TAB 3: THỦ QUỸ LỚP */}
+            {/* TAB 3: THỦ QUỸ LỚP (TREASURER) - CÔNG KHAI 100% */}
             {activeTab === 'treasurer' && (
               <div className="space-y-6">
                 {/* Intro Card */}
@@ -579,131 +869,106 @@ export default function RoleGuideModal({
                     </div>
                     <div>
                       <h3 className="text-base font-serif font-bold text-emerald-950">
-                        Nghiệp Vụ Thủ Quỹ & Quản Trị Sổ Quỹ Lớp K8A1
+                        Quy Trình Nghiệp Vụ Thủ Quỹ & Quản Trị Sổ Quỹ K8A1
                       </h3>
                       <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                        Thủ Quỹ chịu trách nhiệm quản lý toàn diện dòng tiền tập thể: duyệt đóng quỹ, soi biên lai chứng từ trên Google Drive, ghi nhận Sổ Thu / Sổ Chi và xuất báo cáo sao kê định kỳ.
+                        Thủ Quỹ chịu trách nhiệm toàn diện về dòng tiền tập thể: duyệt đóng quỹ, soi biên lai chứng từ trên Google Drive, ghi nhận Sổ Thu / Sổ Chi và xuất báo cáo sao kê định kỳ.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Khóa bảo mật nếu chưa xác thực vai trò Thủ Quỹ */}
-                {!isTreasurer ? (
-                  <div className="p-5 rounded-2xl bg-white border border-emerald-200 shadow-sm text-center space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center">
-                      <Lock className="w-6 h-6" />
-                    </div>
-                    <div className="max-w-md mx-auto space-y-1">
-                      <h4 className="font-bold text-slate-900 text-sm sm:text-base">
-                        Khu Vực Dành Riêng Cho Thủ Quỹ Lớp
-                      </h4>
-                      <p className="text-xs text-slate-600">
-                        Để mở khóa quy trình duyệt thu, tải chứng từ chi tiêu lên Drive và quản lý Sổ Quỹ, vui lòng xác thực mã PIN vai trò Thủ Quỹ.
-                      </p>
-                    </div>
-                    <div className="pt-2">
-                      <button
-                        onClick={() => {
-                          onClose();
-                          if (onOpenAuthModal) onOpenAuthModal();
-                        }}
-                        className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition cursor-pointer"
-                      >
-                        <Coins className="w-4 h-4" />
-                        <span>Nhập Mã PIN Thủ Quỹ</span>
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400 italic">
-                      * Mã PIN được cấp nội bộ để bảo mật tài chính lớp.
+                {/* Ghi chú nhẹ nhàng */}
+                <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 text-emerald-950 text-xs flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      Toàn bộ quy trình thu chi được công khai minh bạch để mọi thành viên cùng giám sát.
+                    </p>
+                    <p className="text-[11px] text-emerald-800/90 leading-relaxed">
+                      Để thực hiện thao tác duyệt thu, thêm khoản chi và tải chứng từ hóa đơn, Thủ Quỹ xác thực mã PIN Thủ Quỹ. Mã PIN được Ban Cán Sự bàn giao riêng qua tin nhắn.
                     </p>
                   </div>
-                ) : (
-                  /* Nội dung mở khóa khi đã có quyền Thủ Quỹ */
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
-                      <span className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span>Bạn đã được cấp quyền: <strong>Thủ Quỹ Lớp (Treasurer)</strong></span>
-                      </span>
-                      <button
-                        onClick={() => handleOpenHubTab('fund')}
-                        className="text-emerald-800 hover:underline font-bold"
+                </div>
+
+                {/* Danh sách thẻ hướng dẫn Thủ Quỹ */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredTreasurerCards.map((card) => {
+                    const Icon = card.icon;
+                    const ActionIcon = card.actionIcon;
+                    return (
+                      <div
+                        key={card.id}
+                        className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-emerald-300 transition space-y-3 flex flex-col justify-between"
                       >
-                        Mở Sổ Quỹ Thu - Chi →
-                      </button>
-                    </div>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-bold text-emerald-950 text-xs sm:text-sm">
+                              <Icon className={`w-4 h-4 ${card.iconColor}`} />
+                              <span>{card.title}</span>
+                            </div>
+                            {card.badge && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.badgeColor}`}>
+                                {card.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">{card.description}</p>
+                          {card.details && (
+                            <ul className="space-y-1 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                              {card.details.map((d, i) => (
+                                <li key={i} className="flex items-start gap-1.5">
+                                  <span className="text-emerald-500 font-bold">•</span>
+                                  <span>{d}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Bước 1: Duyệt Thu */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-emerald-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <FileCheck className="w-4 h-4 text-emerald-600" />
-                          <span>1. Đối Soát & Soi Biên Lai Đóng Quỹ</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Tại Tab Thu Quỹ, thành viên nộp bill sẽ có icon kẹp ghim 📎. Bấm vào để mở <strong>Lightbox soi chi tiết ảnh biên lai chuyển khoản</strong> lưu trên Drive. Sau khi đối chiếu số dư ngân hàng, bấm <strong>"Xác Nhận Đã Đóng"</strong>. Hệ thống tự động ghi nhận tên người duyệt để lưu vết trách nhiệm.
-                        </p>
+                        {card.actionLabel && card.actionFn && (
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                            <button
+                              onClick={card.actionFn}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs cursor-pointer transition"
+                            >
+                              <span>{card.actionLabel}</span>
+                              {ActionIcon && <ActionIcon className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        )}
                       </div>
+                    );
+                  })}
+                </div>
 
-                      {/* Bước 2: Sổ Thu đa nguồn */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-emerald-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Coins className="w-4 h-4 text-emerald-600" />
-                          <span>2. Quản Lý Sổ Thu Đa Danh Mục (Khoan_Thu)</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Ghi nhận các nguồn thu linh hoạt ngoài đóng góp sự kiện: Quỹ thường niên duy trì hàng năm, đóng góp tự nguyện của mạnh thường quân, bán đồ lưu niệm... Tất cả được lưu trực tiếp vào Google Sheet tab <code>Khoan_Thu</code>.
-                        </p>
-                      </div>
-
-                      {/* Bước 3: Sổ Chi & Upload chứng từ */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-emerald-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Upload className="w-4 h-4 text-emerald-600" />
-                          <span>3. Quản Lý Sổ Chi & Tải Hóa Đơn Lên Drive</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Mọi khoản chi (tiệc, cọc, in ấn, hiếu hỷ Điều 3, tri ân thầy cô Điều 4...) đều được phân loại danh mục và <strong>bắt buộc đính kèm ảnh chụp hóa đơn chứng từ</strong>. Ảnh tự động tải lên thư mục Google Drive <code>ChungTu_QuyLop_K8A1</code> và sinh link minh bạch cho cả lớp xem.
-                        </p>
-                      </div>
-
-                      {/* Bước 4: Xuất báo cáo sao kê */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-emerald-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                          <span>4. Xuất Báo Cáo Sao Kê Tài Chính (CSV/Excel)</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Bấm nút <strong>"Xuất Báo Cáo (CSV)"</strong> tại Hub Quản Trị để tải toàn bộ bảng sao kê thu - chi chi tiết, sẵn sàng gửi vào nhóm Zalo lớp sau mỗi sự kiện hoặc định kỳ cuối năm.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex flex-wrap items-center gap-3">
-                      <button
-                        onClick={() => handleOpenHubTab('fund')}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm cursor-pointer"
-                      >
-                        <Coins className="w-4 h-4" />
-                        <span>Mở Sổ Quỹ Lớp (Thu & Chi)</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (onOpenCharterModal) onOpenCharterModal();
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-emerald-900 border border-emerald-300 text-xs font-bold cursor-pointer"
-                      >
-                        <Scale className="w-4 h-4 text-emerald-600" />
-                        <span>Tra Cứu Định Mức Chi (Điều 3 & 4)</span>
-                      </button>
-                    </div>
+                {/* Thanh điều hướng thao tác nhanh */}
+                <div className="p-4 rounded-2xl bg-white border border-emerald-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-900 font-medium">
+                    <Coins className="w-4 h-4 text-emerald-600" />
+                    <span>Lối tắt quản lý nghiệp vụ tài chính:</span>
                   </div>
-                )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => handleOpenHubTab('fund')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer transition shadow-xs"
+                    >
+                      <Coins className="w-3.5 h-3.5" />
+                      <span>Mở Sổ Quỹ Thu - Chi</span>
+                    </button>
+                    <button
+                      onClick={() => { if (onOpenCharterModal) onOpenCharterModal(); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold cursor-pointer transition"
+                    >
+                      <Scale className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Định Mức Chi (Điều 3 & 4)</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* TAB 4: BAN QUẢN TRỊ / KỸ THUẬT */}
+            {/* TAB 4: BAN QUẢN TRỊ / KỸ THUẬT (ADMIN) - CÔNG KHAI 100% */}
             {activeTab === 'admin' && (
               <div className="space-y-6">
                 {/* Intro Card */}
@@ -714,122 +979,102 @@ export default function RoleGuideModal({
                     </div>
                     <div>
                       <h3 className="text-base font-serif font-bold text-rose-950">
-                        Toàn Quyền Quản Trị Kỹ Thuật & Cấu Hình Dữ Liệu Lớp K8A1
+                        Nghiệp Vụ Quản Trị Kỹ Thuật & Cấu Hình Dữ Liệu K8A1
                       </h3>
                       <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                        Admin nắm toàn quyền hạ tầng: quản trị danh bạ 65 bạn cựu học sinh, cấu hình linh hoạt các sự kiện trong tương lai (không cần sửa code), quản lý kho ảnh bìa & media, và quản lý mã PIN bảo mật.
+                        Admin nắm toàn quyền hạ tầng số: quản trị danh bạ 65 bạn học, cấu hình linh hoạt các sự kiện trong tương lai (không cần sửa code), quản trị kho ảnh bìa & media, và quản lý mã PIN bảo mật.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Khóa bảo mật nếu chưa xác thực vai trò Admin */}
-                {!isAdmin ? (
-                  <div className="p-5 rounded-2xl bg-white border border-rose-200 shadow-sm text-center space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-700 mx-auto flex items-center justify-center">
-                      <Lock className="w-6 h-6" />
-                    </div>
-                    <div className="max-w-md mx-auto space-y-1">
-                      <h4 className="font-bold text-slate-900 text-sm sm:text-base">
-                        Khu Vực Quản Trị Cấp Cao (Admin)
-                      </h4>
-                      <p className="text-xs text-slate-600">
-                        Vui lòng xác thực mã PIN Quản Trị Viên để tiếp cận cấu hình hệ thống, danh bạ lớp và cài đặt bảo mật.
-                      </p>
-                    </div>
-                    <div className="pt-2">
-                      <button
-                        onClick={() => {
-                          onClose();
-                          if (onOpenAuthModal) onOpenAuthModal();
-                        }}
-                        className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md transition cursor-pointer"
-                      >
-                        <Crown className="w-4 h-4" />
-                        <span>Nhập Mã PIN Ban Quản Trị</span>
-                      </button>
-                    </div>
+                {/* Ghi chú nhẹ nhàng */}
+                <div className="p-3.5 rounded-xl bg-rose-50/80 border border-rose-200/80 text-rose-950 text-xs flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      Toàn bộ cấu trúc vận hành kỹ thuật được công khai minh bạch.
+                    </p>
+                    <p className="text-[11px] text-rose-800/90 leading-relaxed">
+                      Để thực hiện các thay đổi cấu hình sự kiện mới, sửa danh bạ hoặc đổi mã PIN hệ thống, Quản Trị Viên xác thực mã PIN Admin. Mã PIN được bàn giao riêng qua tin nhắn nội bộ.
+                    </p>
                   </div>
-                ) : (
-                  /* Nội dung mở khóa khi đã có quyền Admin */
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-medium">
-                      <span className="flex items-center gap-1.5">
-                        <Crown className="w-4 h-4 text-rose-600" />
-                        <span>Bạn đã đăng nhập với vai trò: <strong>Ban Quản Trị Tối Cao (Admin)</strong></span>
-                      </span>
-                      <button
-                        onClick={() => handleOpenHubTab('settings')}
-                        className="text-rose-800 hover:underline font-bold"
+                </div>
+
+                {/* Danh sách thẻ hướng dẫn Admin */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredAdminCards.map((card) => {
+                    const Icon = card.icon;
+                    const ActionIcon = card.actionIcon;
+                    return (
+                      <div
+                        key={card.id}
+                        className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-rose-300 transition space-y-3 flex flex-col justify-between"
                       >
-                        Cài Đặt Hệ Thống →
-                      </button>
-                    </div>
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-bold text-rose-950 text-xs sm:text-sm">
+                              <Icon className={`w-4 h-4 ${card.iconColor}`} />
+                              <span>{card.title}</span>
+                            </div>
+                            {card.badge && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${card.badgeColor}`}>
+                                {card.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">{card.description}</p>
+                          {card.details && (
+                            <ul className="space-y-1 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                              {card.details.map((d, i) => (
+                                <li key={i} className="flex items-start gap-1.5">
+                                  <span className="text-rose-500 font-bold">•</span>
+                                  <span>{d}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Mục 1: Quản trị Danh Bạ 65 bạn */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-rose-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Users className="w-4 h-4 text-rose-600" />
-                          <span>1. Quản Trị Danh Bạ 65 Bạn (Danh_Sach_Lop)</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Thêm mới, sửa thông tin bạn học, cập nhật số điện thoại, nơi ở hiện tại, chức vụ ban cán sự. Toàn bộ thay đổi đồng bộ 2 chiều tức thì với Google Sheet tab <code>Danh_Sach_Lop</code>.
-                        </p>
+                        {card.actionLabel && card.actionFn && (
+                          <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                            <button
+                              onClick={card.actionFn}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs cursor-pointer transition"
+                            >
+                              <span>{card.actionLabel}</span>
+                              {ActionIcon && <ActionIcon className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        )}
                       </div>
+                    );
+                  })}
+                </div>
 
-                      {/* Mục 2: Cấu hình linh hoạt các sự kiện tương lai */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-rose-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Calendar className="w-4 h-4 text-rose-600" />
-                          <span>2. Cấu Hình Sự Kiện Linh Hoạt Cho Tương Lai</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Khi lớp tổ chức các sự kiện tiếp theo (Gặp mặt 2027, Họp lớp 25 năm, dã ngoại hè...), Admin chỉ cần vào Tab Cài Đặt để đổi tên sự kiện, thời gian, địa điểm, link Google Maps, kinh phí dự kiến và tài khoản ngân hàng. <strong>Giao diện WebApp sẽ tự động thay đổi theo sự kiện mới mà không cần lập trình lại code!</strong>
-                        </p>
-                      </div>
-
-                      {/* Mục 3: Quản trị Media & Banner */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-rose-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Camera className="w-4 h-4 text-rose-600" />
-                          <span>3. Quản Trị Hero Banner & Kho Video</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Tải ảnh bìa mới lên Google Drive, dán link vào hệ thống và kéo thanh trượt định vị khung hình (trục Y từ 0% đến 100%) để ảnh luôn hiển thị đẹp nhất trên cả điện thoại và máy tính.
-                        </p>
-                      </div>
-
-                      {/* Mục 4: Bảo mật & Đổi mã PIN */}
-                      <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
-                        <h4 className="font-bold text-rose-900 flex items-center gap-2 text-xs sm:text-sm">
-                          <Lock className="w-4 h-4 text-rose-600" />
-                          <span>4. Đổi Mã PIN & Dọn Dẹp Dữ Liệu</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          Đổi mã PIN định kỳ cho cả 3 vai trò (BLL, Thủ Quỹ, Admin) trực tiếp trên Web. Mã PIN được mã hóa SHA-256 an toàn lưu trên Google Sheet tab <code>Bao_Mat_PIN</code>. Sử dụng công cụ Deduplicate để dọn sạch các bản ghi gửi trùng lặp.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex flex-wrap items-center gap-3">
-                      <button
-                        onClick={() => handleOpenHubTab('settings')}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
-                      >
-                        <Crown className="w-4 h-4" />
-                        <span>Mở Cài Đặt Hệ Thống & Cấu Hình</span>
-                      </button>
-                      <button
-                        onClick={() => handleOpenHubTab('members')}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-rose-900 border border-rose-300 text-xs font-bold cursor-pointer"
-                      >
-                        <Users className="w-4 h-4 text-rose-600" />
-                        <span>Quản Trị Danh Bạ 65 Bạn</span>
-                      </button>
-                    </div>
+                {/* Thanh điều hướng thao tác nhanh */}
+                <div className="p-4 rounded-2xl bg-white border border-rose-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-rose-900 font-medium">
+                    <Crown className="w-4 h-4 text-rose-600" />
+                    <span>Lối tắt quản trị hệ thống kỹ thuật:</span>
                   </div>
-                )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => handleOpenHubTab('settings')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer transition shadow-xs"
+                    >
+                      <Crown className="w-3.5 h-3.5" />
+                      <span>Cài Đặt Hệ Thống</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenHubTab('members')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-900 border border-rose-300 font-bold cursor-pointer transition"
+                    >
+                      <Users className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Danh Bạ 65 Bạn</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -844,10 +1089,10 @@ export default function RoleGuideModal({
                     </div>
                     <div>
                       <h3 className="text-base font-serif font-bold text-slate-900">
-                        Ma Trận Phân Quyền & Quy Chế Hoạt Động Lớp K8A1
+                        Ma Trận Phân Quyền & Quy Chế Hoạt Động K8A1
                       </h3>
                       <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                        Bảng so sánh chi tiết thẩm quyền 4 vai trò trên nền tảng kỹ thuật số và tóm tắt các định mức chi tiêu trọng yếu theo Quy chế lớp.
+                        Bảng so sánh chi tiết thẩm quyền 4 vai trò trên nền tảng số K8A1 và tóm tắt các định mức chi tiêu trọng yếu theo Quy chế lớp.
                       </p>
                     </div>
                   </div>
@@ -948,9 +1193,7 @@ export default function RoleGuideModal({
                       <span>Định Mức Chi Tiêu Trọng Yếu Theo Quy Chế Lớp (Điều 3 & 4)</span>
                     </h4>
                     <button
-                      onClick={() => {
-                        if (onOpenCharterModal) onOpenCharterModal();
-                      }}
+                      onClick={() => { if (onOpenCharterModal) onOpenCharterModal(); }}
                       className="text-xs font-bold text-amber-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
                     >
                       <span>Xem toàn văn bản quy chế</span>
@@ -985,14 +1228,12 @@ export default function RoleGuideModal({
           <footer className="bg-slate-50 border-t border-slate-200 px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0 text-xs">
             <div className="flex items-center gap-1 text-slate-500 text-[11px]">
               <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span>Cẩm nang dùng chung cho mọi hoạt động thường niên & sự kiện của Lớp K8A1.</span>
+              <span>Cẩm nang công khai dùng chung cho mọi hoạt động thường niên & sự kiện của Lớp K8A1.</span>
             </div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
-                onClick={() => {
-                  if (onOpenCharterModal) onOpenCharterModal();
-                }}
+                onClick={() => { if (onOpenCharterModal) onOpenCharterModal(); }}
                 className="px-3 py-1.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-white transition cursor-pointer font-medium"
               >
                 Quy Chế Lớp
