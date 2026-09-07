@@ -3075,3 +3075,26 @@ export async function initSecuritySheetViaBackend(
     return { success: false, message: 'Lỗi kết nối máy chủ: ' + (err?.message || err) };
   }
 }
+
+/**
+ * Chuẩn hóa chuỗi bỏ dấu tiếng Việt để tìm kiếm thông minh
+ */
+export function removeVietnameseAccents(str: string): string {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase();
+}
+
+/**
+ * Tách tên gọi cuối cùng của người Việt để sắp xếp A-Z (VD: Nguyễn Tuấn Anh -> Anh)
+ */
+export function getVietnameseGivenName(fullName: string): string {
+  if (!fullName) return '';
+  const parts = fullName.trim().split(/\s+/);
+  return parts[parts.length - 1] || fullName;
+}
+

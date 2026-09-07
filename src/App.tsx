@@ -1718,6 +1718,8 @@ export default function App() {
           setRsvpList(updated);
           localStorage.setItem('rsvp_list', JSON.stringify(updated));
         }}
+        incomes={incomes}
+        onAddIncome={handleAddIncome}
       />
 
       {/* Sổ Tay Quy Chế Tổ Chức & Hoạt Động Lớp K8A1 */}
