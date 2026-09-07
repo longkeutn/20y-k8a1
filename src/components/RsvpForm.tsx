@@ -644,17 +644,17 @@ export default function RsvpForm({
                 </button>
               </div>
 
-              {/* Nút Chuyển Khoản Đóng Quỹ Lớp (VietQR) */}
+              {/* Nút Chuyển Khoản Đóng Quỹ Họp Lớp */}
               {currentPassAttendee.status === 'yes' && (
                 <div className="pt-2 border-t border-amber-200/80 space-y-1.5">
                   <button
                     type="button"
                     onClick={handleGoToVietQrPayment}
                     className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-md hover:shadow-lg active:scale-[0.99]"
-                    title="Chuyển đến khối thanh toán quét mã VietQR và thông tin số tài khoản"
+                    title="Chuyển đến khối thông tin số tài khoản và quét mã đóng quỹ"
                   >
                     <Coins className="w-4 h-4 text-emerald-200" />
-                    <span>Đóng Quỹ Lớp ({standardFundAmount.toLocaleString('vi-VN')}đ) Qua VietQR ➔</span>
+                    <span>Đóng Quỹ Họp Lớp ({standardFundAmount.toLocaleString('vi-VN')}đ) ➔</span>
                   </button>
 
                   {/* Nút phụ: Nếu thành viên đã chuyển khoản trước đó và chỉ cần gửi ảnh biên lai */}

@@ -856,7 +856,7 @@ export default function ConfirmedAttendees({
             className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-950 border border-amber-400/60 font-bold transition cursor-pointer"
           >
             <Coins className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>💰 Đóng Quỹ Lớp (VietQR)</span>
+            <span>💰 Đóng Quỹ Lớp</span>
           </button>
 
           {/* Nút 3: Xuống kho ký ức */}

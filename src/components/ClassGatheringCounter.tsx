@@ -296,7 +296,7 @@ export default function ClassGatheringCounter({
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 transition cursor-pointer font-medium shadow-2xs"
             >
               <Coins className="w-3 h-3 text-emerald-600" />
-              <span>Đóng Quỹ (VietQR)</span>
+              <span>Đóng Quỹ Lớp</span>
             </button>
             <button
               type="button"
@@ -304,7 +304,7 @@ export default function ClassGatheringCounter({
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 transition cursor-pointer font-medium shadow-2xs"
             >
               <MapPin className="w-3 h-3 text-amber-600" />
-              <span>Địa Điểm Prime</span>
+              <span>Địa Điểm Họp Lớp</span>
             </button>
             <button
               type="button"

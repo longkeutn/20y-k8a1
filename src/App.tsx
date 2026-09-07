@@ -911,7 +911,7 @@ export default function App() {
                 </span>
               )}
             </a>
-            <a href="#bank-transfer-card" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1" title="Sổ quỹ lớp & Cổng VietQR">
+            <a href="#bank-transfer-card" className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1" title="Sổ quỹ lớp & Cổng đóng góp">
               <Coins className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden lg:inline">Quỹ Lớp</span>
             </a>
@@ -1161,7 +1161,7 @@ export default function App() {
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
               >
                 <MapPin className="w-3 h-3 text-amber-400" />
-                <span>Địa Điểm Prime</span>
+                <span>Địa Điểm Họp Lớp</span>
               </button>
               <button
                 type="button"
@@ -1169,7 +1169,7 @@ export default function App() {
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
               >
                 <Coins className="w-3 h-3 text-emerald-400" />
-                <span>Sổ Quỹ Lớp (VietQR)</span>
+                <span>Sổ Quỹ Lớp</span>
               </button>
               <button
                 type="button"
@@ -1185,7 +1185,7 @@ export default function App() {
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
               >
                 <MailOpen className="w-3 h-3 text-rose-400" />
-                <span>Thư Ngỏ VIP</span>
+                <span>Bức Thư Ngỏ</span>
               </button>
             </div>
           </div>
@@ -1242,7 +1242,7 @@ export default function App() {
               activeMember={activeMember}
             />
 
-            {/* 📜 TẤM THIỆP MỜI VIP DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL ĐỈNH CAO) */}
+            {/* 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}
             <div 
               id="invitation-letter-card" 
               className="bg-[#FFFEFA] border-[3px] border-double border-amber-500/60 rounded-xl p-6 sm:p-9 md:p-12 shadow-xl relative overflow-hidden text-left space-y-6"

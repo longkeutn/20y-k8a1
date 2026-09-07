@@ -503,7 +503,7 @@ export default function BankTransfer({
             <div className="text-center space-y-1">
               <div className="inline-flex items-center gap-1.5 bg-amber-100/80 text-amber-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                 <QrCode className="w-3.5 h-3.5 text-amber-700" />
-                <span>Mã VietQR Chuyển Khoản Đóng Quỹ</span>
+                <span>Mã QR Chuyển Khoản Đóng Quỹ</span>
               </div>
               <h4 className="text-lg font-serif font-bold text-slate-900">
                 Họp Lớp 20 Năm K8A1 THPT Thái Nguyên
@@ -524,7 +524,7 @@ export default function BankTransfer({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Khung VietQR Chuẩn
+                Khung Thẻ Chuẩn
               </button>
               <button
                 type="button"

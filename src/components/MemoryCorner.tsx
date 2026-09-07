@@ -1329,7 +1329,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white hover:bg-amber-50 text-amber-950 border border-amber-300/80 font-bold shadow-2xs cursor-pointer transition"
           >
             <Coins className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>💰 Xem Sổ Quỹ Lớp (VietQR)</span>
+            <span>💰 Xem Sổ Quỹ Lớp</span>
           </button>
         </div>
       </div>
