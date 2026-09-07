@@ -1139,36 +1139,36 @@ export default function App() {
       </header>
 
       {/* 📌 NÚT TRUY CẬP QUẢN TRỊ ẨN GỌN GÀNG GÓC DƯỚI (TINY DISCRETE FAB) */}
-      <div className="fixed bottom-3 right-3 z-40">
+      <div className="fixed bottom-20 sm:bottom-4 right-3 sm:right-4 z-40">
         <button
           onClick={() => setIsAdminHubOpen(true)}
-          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center backdrop-blur-md shadow-lg transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 ${
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center backdrop-blur-md shadow-xl transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 ${
             currentUserRole === 'admin'
               ? 'bg-[#1E293B] text-amber-300 border border-amber-400/60 shadow-amber-950/40 ring-1 ring-amber-400/30'
               : currentUserRole === 'treasurer'
               ? 'bg-[#1E293B] text-emerald-300 border border-emerald-400/60 shadow-emerald-950/40'
               : currentUserRole === 'bll'
               ? 'bg-[#1E293B] text-indigo-300 border border-indigo-400/60 shadow-indigo-950/40'
-              : 'bg-[#1E293B]/70 hover:bg-[#1E293B] text-slate-400 hover:text-amber-300 border border-slate-700/60'
+              : 'bg-[#1E293B]/80 hover:bg-[#1E293B] text-slate-300 hover:text-amber-300 border border-slate-700/60'
           }`}
           title={
             currentUserRole === 'admin' 
-              ? "Quản trị viên" 
+              ? "Quản trị viên (Admin)" 
               : currentUserRole === 'treasurer'
-              ? "Thủ quỹ lớp"
+              ? "Thủ quỹ lớp (Treasurer)"
               : currentUserRole === 'bll' 
-              ? "Ban liên lạc" 
+              ? "Ban liên lạc (BLL)" 
               : "Dành cho Ban Tổ Chức"
           }
         >
           {currentUserRole === 'admin' ? (
-            <Crown className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <Crown className="w-4 h-4 text-amber-300 animate-pulse" />
           ) : currentUserRole === 'treasurer' ? (
-            <Coins className="w-3.5 h-3.5 text-emerald-300" />
+            <Coins className="w-4 h-4 text-emerald-300" />
           ) : currentUserRole === 'bll' ? (
-            <Shield className="w-3.5 h-3.5 text-indigo-300" />
+            <Shield className="w-4 h-4 text-indigo-300" />
           ) : (
-            <Lock className="w-3.5 h-3.5" />
+            <Lock className="w-4 h-4" />
           )}
         </button>
       </div>

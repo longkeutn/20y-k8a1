@@ -141,7 +141,7 @@ export default function QuickNavigation({ confirmedCount = 0 }: QuickNavigationP
   return (
     <aside 
       aria-label="Thanh điều hướng nhanh họp lớp K8A1"
-      className="fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-[96vw] sm:max-w-fit pointer-events-auto select-none transition-all duration-300"
+      className="fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 max-w-[96vw] sm:max-w-fit pointer-events-auto select-none transition-all duration-300"
     >
       {isCollapsed ? (
         /* Trạng thái thu gọn: 1 nút tròn nổi tinh tế cho phép người dùng mở lại */
