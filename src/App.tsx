@@ -293,11 +293,6 @@ export default function App() {
     }
   };
 
-  // Đếm số lượng bạn bè đã xác nhận tham dự ('yes') phục vụ điều hướng nhanh
-  const confirmedCount = React.useMemo(() => {
-    return (rsvpList || []).filter(r => r.status === 'yes').length;
-  }, [rsvpList]);
-
   // RSVP list state
   const [rsvpList, setRsvpList] = useState<RsvpData[]>(() => {
     try {
@@ -313,6 +308,11 @@ export default function App() {
       return INITIAL_RSVP_LIST;
     }
   });
+
+  // Đếm số lượng bạn bè đã xác nhận tham dự ('yes') phục vụ điều hướng nhanh
+  const confirmedCount = React.useMemo(() => {
+    return (rsvpList || []).filter(r => r.status === 'yes').length;
+  }, [rsvpList]);
 
   // Wishes list state
   const [wishesList, setWishesList] = useState<WishData[]>(() => {
