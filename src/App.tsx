@@ -23,7 +23,7 @@ import {
   ScrollText
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from './types';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory } from './types';
 import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
@@ -406,6 +406,39 @@ export default function App() {
     } catch {
       return [];
     }
+  });
+
+  // Helper chuẩn hóa dữ liệu khoản thu quỹ lớp, bảo vệ chống crash
+  const sanitizeIncome = (item: any, idx: number): IncomeItem => ({
+    id: item.id ? String(item.id) : ('inc-' + (Date.now() + idx)),
+    title: String(item.title || '').trim(),
+    category: (item.category || 'other_income') as IncomeCategory,
+    amount: Number(item.amount) || 0,
+    date: formatDateOnlyVi(item.date),
+    payerName: String(item.payerName || '').trim(),
+    payerPhone: item.payerPhone ? String(item.payerPhone).trim() : '',
+    memberId: item.memberId ? String(item.memberId).trim() : undefined,
+    paymentMethod: (item.paymentMethod === 'cash' || item.paymentMethod === 'other') ? item.paymentMethod : 'bank_transfer',
+    auditor: item.auditor ? String(item.auditor).trim() : 'Thủ Quỹ BLL',
+    receiptUrl: item.receiptUrl ? String(item.receiptUrl).trim() : '',
+    eventScope: item.eventScope ? String(item.eventScope).trim() : 'Kỷ niệm 20 năm',
+    note: item.note ? String(item.note).trim() : '',
+    createdAt: item.createdAt ? String(item.createdAt) : new Date().toISOString()
+  });
+
+  // Sổ Thu Quỹ Lớp (Khoan_Thu) - Quản lý thu quỹ đa danh mục minh bạch
+  const [incomes, setIncomes] = useState<IncomeItem[]>(() => {
+    try {
+      const local = localStorage.getItem('k8a1_incomes_list');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) {
+          return parsed.map(sanitizeIncome);
+        }
+      }
+    } catch {
+      return [];
+    }
     return [];
   });
 
@@ -645,6 +678,45 @@ export default function App() {
     syncToBackend('save_expenses', { expenses: clean });
   };
 
+  // Quản lý Sổ Thu Quỹ Lớp (Khoan_Thu)
+  const handleAddIncome = (newIncome: IncomeItem) => {
+    const clean = sanitizeIncome(newIncome, 0);
+    const updated = [clean, ...incomes];
+    setIncomes(updated);
+    try {
+      localStorage.setItem('k8a1_incomes_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_incomes', { incomes: updated });
+  };
+
+  const handleUpdateIncome = (updatedIncome: IncomeItem) => {
+    const clean = sanitizeIncome(updatedIncome, 0);
+    const updated = incomes.map(item => item.id === clean.id ? clean : item);
+    setIncomes(updated);
+    try {
+      localStorage.setItem('k8a1_incomes_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_incomes', { incomes: updated });
+  };
+
+  const handleDeleteIncome = (id: string) => {
+    const updated = incomes.filter(item => item.id !== id);
+    setIncomes(updated);
+    try {
+      localStorage.setItem('k8a1_incomes_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_incomes', { incomes: updated });
+  };
+
+  const handleSaveAllIncomes = (newList: IncomeItem[]) => {
+    const clean = newList.map(sanitizeIncome);
+    setIncomes(clean);
+    try {
+      localStorage.setItem('k8a1_incomes_list', JSON.stringify(clean));
+    } catch (e) {}
+    syncToBackend('save_incomes', { incomes: clean });
+  };
+
   // Nạp toàn bộ dữ liệu từ Google Sheet & Google Drive (Single Source of Truth)
   const hydrateAllData = async (targetUrl: string = activeAppsScriptUrl) => {
     if (!targetUrl || !targetUrl.startsWith('http')) return;
@@ -786,6 +858,13 @@ export default function App() {
               const cleanExp = result.data.expenses.map((item: any, idx: number) => sanitizeExpense(item, idx));
               setExpenses(cleanExp);
               try { localStorage.setItem('k8a1_expenses_list', JSON.stringify(cleanExp)); } catch (e) {}
+            }
+
+            // H. Đồng bộ Sổ Thu Quỹ Lớp từ Google Sheet (tab "Khoan_Thu")
+            if (Array.isArray(result.data.incomes)) {
+              const cleanInc = result.data.incomes.map((item: any, idx: number) => sanitizeIncome(item, idx));
+              setIncomes(cleanInc);
+              try { localStorage.setItem('k8a1_incomes_list', JSON.stringify(cleanInc)); } catch (e) {}
             }
           } else {
             // Dự phòng: Nếu get_all_data trả về lỗi hoặc chưa sẵn sàng, tải riêng cấu hình sự kiện
@@ -1411,6 +1490,7 @@ export default function App() {
                 appsScriptUrl={activeAppsScriptUrl}
                 rsvpList={rsvpList}
                 expenses={expenses}
+                incomes={incomes}
                 activeMember={activeMember}
                 onOpenReceiptModal={handleOpenReceiptModal}
                 onOpenCharterModal={() => setIsCharterModalOpen(true)}
@@ -1597,6 +1677,11 @@ export default function App() {
           onUpdateExpense={handleUpdateExpense}
           onDeleteExpense={handleDeleteExpense}
           onSaveAllExpenses={handleSaveAllExpenses}
+          incomes={incomes}
+          onAddIncome={handleAddIncome}
+          onUpdateIncome={handleUpdateIncome}
+          onDeleteIncome={handleDeleteIncome}
+          onSaveAllIncomes={handleSaveAllIncomes}
           onSaveAppsScriptUrl={(url) => {
             setAppsScriptUrl(url);
             if (url) {

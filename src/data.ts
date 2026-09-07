@@ -1,4 +1,4 @@
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem } from './types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem } from './types';
 
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
@@ -279,6 +279,120 @@ export const EXPENSE_CATEGORIES: ExpenseCategoryMeta[] = [
     description: 'Nước suối, đạo cụ trò chơi, chi phí phát sinh chuẩn bị'
   }
 ];
+
+export interface IncomeCategoryMeta {
+  id: IncomeCategory;
+  label: string;
+  shortLabel: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  icon: string;
+  defaultAmount?: number;
+  description: string;
+  quickTitle: string;
+}
+
+export const INCOME_CATEGORIES: IncomeCategoryMeta[] = [
+  {
+    id: 'event',
+    label: 'Quỹ Họp Lớp 20 Năm',
+    shortLabel: 'Quỹ 20 năm',
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-800',
+    badgeBorder: 'border-emerald-200',
+    icon: '🎓',
+    defaultAmount: 700000,
+    description: 'Đóng quỹ tham gia ngày hội ngộ 20 năm (định mức chuẩn 700.000đ/bạn tham dự)',
+    quickTitle: 'Đóng quỹ họp lớp kỷ niệm 20 năm K8A1'
+  },
+  {
+    id: 'sponsor',
+    label: 'Tài Trợ & Ủng Hộ Lớp',
+    shortLabel: 'Tài trợ / Ủng hộ',
+    badgeBg: 'bg-amber-50',
+    badgeText: 'text-amber-800',
+    badgeBorder: 'border-amber-200',
+    icon: '💎',
+    defaultAmount: 1000000,
+    description: 'Mạnh thường quân, bạn bè và gia đình đóng góp tài trợ thêm để ngày vui thêm chu toàn',
+    quickTitle: 'Tài trợ & ủng hộ quỹ lớp K8A1'
+  },
+  {
+    id: 'extra_shirt',
+    label: 'Mua Thêm Áo Polo',
+    shortLabel: 'Mua thêm áo',
+    badgeBg: 'bg-blue-50',
+    badgeText: 'text-blue-700',
+    badgeBorder: 'border-blue-200',
+    icon: '👕',
+    defaultAmount: 150000,
+    description: 'Đăng ký may thêm áo polo đồng phục 20 năm cho vợ/chồng/con cái/người thân',
+    quickTitle: 'Mua thêm áo polo đồng phục K8A1'
+  },
+  {
+    id: 'guest',
+    label: 'Người Thân / F1 Đi Kèm',
+    shortLabel: 'Người thân đi kèm',
+    badgeBg: 'bg-rose-50',
+    badgeText: 'text-rose-700',
+    badgeBorder: 'border-rose-200',
+    icon: '👨‍👩‍👧',
+    defaultAmount: 350000,
+    description: 'Kinh phí suất ăn và đồ uống cho phu huynh, con nhỏ đi tham dự cùng',
+    quickTitle: 'Đóng kinh phí người thân / F1 đi kèm'
+  },
+  {
+    id: 'teacher_tribute',
+    label: 'Quỹ Tri Ân Thầy Cô',
+    shortLabel: 'Tri ân thầy cô',
+    badgeBg: 'bg-purple-50',
+    badgeText: 'text-purple-700',
+    badgeBorder: 'border-purple-200',
+    icon: '💐',
+    defaultAmount: 500000,
+    description: 'Khoản đóng góp riêng để chuẩn bị hoa tươi, quà tặng kỷ niệm tri ân thầy cô giáo cũ',
+    quickTitle: 'Đóng góp Quỹ tri ân Thầy Cô giáo'
+  },
+  {
+    id: 'alumni_care',
+    label: 'Quỹ Tình Nghĩa & Thăm Hỏi',
+    shortLabel: 'Tình nghĩa K8A1',
+    badgeBg: 'bg-indigo-50',
+    badgeText: 'text-indigo-800',
+    badgeBorder: 'border-indigo-200',
+    icon: '❤️',
+    defaultAmount: 500000,
+    description: 'Quỹ tương trợ, thăm hỏi bạn bè lúc đau ốm, việc hiếu hỷ theo Quy chế tổ chức',
+    quickTitle: 'Đóng góp Quỹ tình nghĩa & thăm hỏi K8A1'
+  },
+  {
+    id: 'annual',
+    label: 'Quỹ Lớp Thường Niên',
+    shortLabel: 'Quỹ thường niên',
+    badgeBg: 'bg-teal-50',
+    badgeText: 'text-teal-800',
+    badgeBorder: 'border-teal-200',
+    icon: '📅',
+    defaultAmount: 100000,
+    description: 'Quỹ hoạt động thường niên 100.000 đ/người/năm theo Điều 4 Quy chế tổ chức',
+    quickTitle: 'Đóng quỹ lớp thường niên theo Quy chế'
+  },
+  {
+    id: 'other_income',
+    label: 'Khoản Thu Khác & Vãng Lai',
+    shortLabel: 'Thu khác',
+    badgeBg: 'bg-slate-100',
+    badgeText: 'text-slate-700',
+    badgeBorder: 'border-slate-200',
+    icon: '📦',
+    defaultAmount: 500000,
+    description: 'Lãi tiền gửi ngân hàng, số dư chuyển kỳ trước, hoặc các khoản thu phát sinh ngoài kế hoạch',
+    quickTitle: 'Ghi nhận khoản thu khác'
+  }
+];
+
+export const INITIAL_INCOMES_LIST: IncomeItem[] = [];
 
 export const INITIAL_EXPENSES_LIST: ExpenseItem[] = [
   {

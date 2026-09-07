@@ -204,10 +204,31 @@ export type ExpenseCategory =
   | 'other';     // Chi khác & Dự phòng (Đạo cụ, nước suối, vật phẩm chung...)
 
 export type IncomeCategory = 
-  | 'event'        // Thu sự kiện họp lớp (mặc định 700k/bạn theo eventConfig)
-  | 'annual'       // Quỹ thường niên định kỳ (100k/người/năm theo Điều 4 Quy chế)
-  | 'sponsor'      // Ủng hộ & Tài trợ của mạnh thường quân
-  | 'other_income';// Thu khác (Lãi ngân hàng, chuyển kỳ trước...)
+  | 'event'           // Thu sự kiện họp lớp 20 năm (mặc định 700k/bạn theo eventConfig)
+  | 'sponsor'         // Ủng hộ & Tài trợ của mạnh thường quân
+  | 'extra_shirt'     // Mua thêm áo đồng phục Polo (cho người thân / con cái)
+  | 'guest'           // Kinh phí người thân / phu huynh / F1 đi kèm
+  | 'teacher_tribute' // Quỹ tri ân Thầy Cô giáo (hoa tươi, quà tặng)
+  | 'alumni_care'     // Quỹ tình nghĩa & Thăm hỏi K8A1 (hiếu hỷ, tương trợ bạn bè)
+  | 'annual'          // Quỹ thường niên định kỳ (100k/người/năm theo Điều 4 Quy chế)
+  | 'other_income';   // Thu khác & Vãng lai (Lãi ngân hàng, chuyển kỳ trước...)
+
+export interface IncomeItem {
+  id: string;                      // Mã khoản thu (vd: 'inc-1725500000000')
+  title: string;                   // Tên / Nội dung khoản thu (vd: "Đóng quỹ họp lớp 20 năm", "Mua thêm 2 áo polo")
+  category: IncomeCategory;        // Phân loại danh mục thu
+  amount: number;                  // Số tiền thu (VNĐ)
+  date: string;                    // Ngày thu (YYYY-MM-DD hoặc DD/MM/YYYY)
+  payerName: string;               // Họ và tên người nộp (thành viên hoặc nhà tài trợ bên ngoài)
+  payerPhone?: string;             // Số điện thoại người nộp
+  memberId?: string;               // Mã liên kết thành viên trong Danh Bạ K8A1 (nếu là học sinh của lớp)
+  paymentMethod: 'bank_transfer' | 'cash' | 'other'; // Hình thức: Chuyển khoản, Tiền mặt, Khác
+  auditor?: string;                // Người tiếp nhận thu / Thủ quỹ đối soát
+  receiptUrl?: string;             // Link ảnh biên lai / UNC / Bill chuyển khoản trên Google Drive
+  eventScope?: string;             // Phạm vi sự kiện (vd: "Kỷ niệm 20 năm", "Thường niên 2026")
+  note?: string;                   // Ghi chú chi tiết
+  createdAt?: string;              // Thời gian tạo bản ghi
+}
 
 export interface ExpenseItem {
   id: string;                      // Mã khoản chi (vd: 'exp-1725500000000')
@@ -222,5 +243,6 @@ export interface ExpenseItem {
   note?: string;                   // Ghi chú chi tiết
   createdAt?: string;              // Thời gian tạo bản ghi
 }
+
 
 

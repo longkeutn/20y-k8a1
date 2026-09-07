@@ -74,7 +74,7 @@ import {
   ShieldCheck,
   Loader2
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory } from '../types';
 import { 
   K8A1_DRIVE_FOLDER_ID, 
   K8A1_DRIVE_FOLDER_URL, 
@@ -91,6 +91,8 @@ import {
   formatDateOnlyVi,
   parseDate,
   EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+  IncomeCategoryMeta,
   updatePinsViaBackend,
   initSecuritySheetViaBackend,
   isOfficialBLLMember
@@ -198,6 +200,13 @@ interface AdminManagementHubProps {
   onUpdateExpense?: (item: ExpenseItem) => void;
   onDeleteExpense?: (id: string) => void;
   onSaveAllExpenses?: (list: ExpenseItem[]) => void;
+
+  // Quản lý Sổ Thu Quỹ Lớp (Khoan_Thu - Đa Dạng Danh Mục)
+  incomes?: IncomeItem[];
+  onAddIncome?: (item: IncomeItem) => void;
+  onUpdateIncome?: (item: IncomeItem) => void;
+  onDeleteIncome?: (id: string) => void;
+  onSaveAllIncomes?: (list: IncomeItem[]) => void;
 }
 
 export default function AdminManagementHub({
@@ -234,7 +243,12 @@ export default function AdminManagementHub({
   onAddExpense,
   onUpdateExpense,
   onDeleteExpense,
-  onSaveAllExpenses
+  onSaveAllExpenses,
+  incomes = [],
+  onAddIncome,
+  onUpdateIncome,
+  onDeleteIncome,
+  onSaveAllIncomes
 }: AdminManagementHubProps) {
   // User Role Helpers (RBAC)
   const isAdmin = currentUserRole === 'admin';
@@ -614,6 +628,42 @@ export default function AdminManagementHub({
   const [isUploadingExpenseReceipt, setIsUploadingExpenseReceipt] = useState<boolean>(false);
   const [viewingExpenseReceipt, setViewingExpenseReceipt] = useState<{ url: string; title: string } | null>(null);
 
+  // ---------------------------------------------------------------------------
+  // SỔ THU QUỸ LỚP K8A1 STATE (KHOAN_THU - ĐA DẠNG DANH MỤC THU)
+  // ---------------------------------------------------------------------------
+  const effectiveIncomes = useMemo(() => {
+    return Array.isArray(incomes) ? incomes : [];
+  }, [incomes]);
+
+  const [fundIncomeViewMode, setFundIncomeViewMode] = useState<'rsvp_members' | 'income_ledger'>('rsvp_members');
+  const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<string>('all');
+  const [incomeSearch, setIncomeSearch] = useState('');
+  const [incomeDateFilter, setIncomeDateFilter] = useState<'all' | 'today' | '7days' | 'this_month' | 'year_2026' | 'custom'>('all');
+  const [incomeCustomStartDate, setIncomeCustomStartDate] = useState('');
+  const [incomeCustomEndDate, setIncomeCustomEndDate] = useState('');
+
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<IncomeItem | null>(null);
+  const [incomeFormData, setIncomeFormData] = useState<Partial<IncomeItem>>({
+    title: '',
+    category: 'event',
+    amount: standardFundAmount,
+    date: new Date().toLocaleDateString('vi-VN'),
+    payerName: '',
+    payerPhone: '',
+    memberId: undefined,
+    paymentMethod: 'bank_transfer',
+    auditor: '',
+    receiptUrl: '',
+    eventScope: 'Kỷ niệm 20 năm',
+    note: ''
+  });
+  const [incomeAmountFormatted, setIncomeAmountFormatted] = useState<string>(standardFundAmount.toLocaleString('vi-VN'));
+  const [incomePayerType, setIncomePayerType] = useState<'roster' | 'external'>('roster');
+  const [incomeSearchMember, setIncomeSearchMember] = useState('');
+  const [isUploadingIncomeReceipt, setIsUploadingIncomeReceipt] = useState<boolean>(false);
+  const [viewingIncomeReceipt, setViewingIncomeReceipt] = useState<{ url: string; title: string } | null>(null);
+
   // Modals for Wishes
   const [isAddWishModalOpen, setIsAddWishModalOpen] = useState(false);
   const [editingWish, setEditingWish] = useState<WishData | null>(null);
@@ -675,15 +725,21 @@ export default function AdminManagementHub({
   // Total expected fund based on standard fee
   const expectedFund = useMemo(() => confirmedCount * standardFundAmount, [confirmedCount, standardFundAmount]);
   
-  // Actual collected fund
+  // Tổng các khoản thu ngoài quỹ sự kiện trong Sổ Thu (áo polo, người thân, tài trợ ngoài, quỹ thường niên...)
+  const totalExtraIncomes = useMemo(() => {
+    return effectiveIncomes.filter(item => item.category !== 'event').reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [effectiveIncomes]);
+
+  // Actual collected fund: gồm Quỹ sự kiện từ RSVP + các nguồn thu ngoài sự kiện trong Sổ Thu
   const collectedFund = useMemo(() => {
-    return rsvpList.reduce((acc, curr) => {
+    const rsvpCollected = rsvpList.reduce((acc, curr) => {
       if (curr.fundStatus === 'paid') {
         return acc + (curr.fundAmount !== undefined ? curr.fundAmount : standardFundAmount);
       }
       return acc;
     }, 0);
-  }, [rsvpList, standardFundAmount]);
+    return rsvpCollected + totalExtraIncomes;
+  }, [rsvpList, standardFundAmount, totalExtraIncomes]);
 
   const paidMembersCount = useMemo(() => rsvpList.filter(a => a.fundStatus === 'paid').length, [rsvpList]);
 
@@ -750,6 +806,31 @@ export default function AdminManagementHub({
   const filteredExpensesTotal = useMemo(() => {
     return filteredExpensesList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   }, [filteredExpensesList]);
+
+  // Sổ Thu Quỹ Lớp - Danh sách & Tổng tiền sau lọc
+  const filteredIncomesList = useMemo(() => {
+    const term = (incomeSearch || '').toLowerCase().trim();
+    return effectiveIncomes.filter(item => {
+      if (incomeCategoryFilter !== 'all' && item.category !== incomeCategoryFilter) return false;
+      if (!isDateInFilter(item.date || item.createdAt, incomeDateFilter, incomeCustomStartDate, incomeCustomEndDate)) {
+        return false;
+      }
+      if (term) {
+        const matchTitle = (item.title || '').toLowerCase().includes(term);
+        const matchPayer = (item.payerName || '').toLowerCase().includes(term);
+        const matchPhone = (item.payerPhone || '').toLowerCase().includes(term);
+        const matchAuditor = (item.auditor || '').toLowerCase().includes(term);
+        const matchNote = (item.note || '').toLowerCase().includes(term);
+        const matchEvent = (item.eventScope || '').toLowerCase().includes(term);
+        return matchTitle || matchPayer || matchPhone || matchAuditor || matchNote || matchEvent;
+      }
+      return true;
+    });
+  }, [effectiveIncomes, incomeSearch, incomeCategoryFilter, incomeDateFilter, incomeCustomStartDate, incomeCustomEndDate, isDateInFilter]);
+
+  const filteredIncomesTotal = useMemo(() => {
+    return filteredIncomesList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [filteredIncomesList]);
 
   const handleOpenAddExpense = (preset?: Partial<ExpenseItem>) => {
     if (!canAuditAndSpend) {
@@ -894,6 +975,279 @@ export default function AdminManagementHub({
       alert('Không thể đọc file ảnh, vui lòng thử lại!');
     } finally {
       setIsUploadingExpenseReceipt(false);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // SỔ THU QUỸ LỚP K8A1 HANDLERS (KHOAN_THU - ĐA DẠNG DANH MỤC THU)
+  // ---------------------------------------------------------------------------
+  const handleOpenAddIncome = (preset?: Partial<IncomeItem>) => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền ghi nhận khoản thu!');
+      return;
+    }
+    const defaultAuditor = (isOfficialBLLMember(activeMember) && activeMember?.fullName) ? `Thủ Quỹ ${activeMember.fullName}` : getDefaultAuditorName();
+    const category = (preset?.category as IncomeCategory) || 'event';
+    const catMeta = INCOME_CATEGORIES.find(c => c.id === category);
+    const amountVal = preset?.amount !== undefined ? Number(preset.amount) : (catMeta?.defaultAmount || standardFundAmount);
+
+    setEditingIncome(null);
+    setIncomePayerType(preset?.payerName && !preset?.memberId ? 'external' : 'roster');
+    setIncomeSearchMember('');
+    setIncomeFormData({
+      title: preset?.title || catMeta?.quickTitle || 'Đóng quỹ họp lớp 20 năm',
+      category: category,
+      amount: amountVal,
+      date: preset?.date || new Date().toISOString().split('T')[0],
+      payerName: preset?.payerName || '',
+      payerPhone: preset?.payerPhone || '',
+      memberId: preset?.memberId || undefined,
+      paymentMethod: preset?.paymentMethod || 'bank_transfer',
+      auditor: preset?.auditor || defaultAuditor,
+      receiptUrl: preset?.receiptUrl || '',
+      eventScope: preset?.eventScope || 'Kỷ niệm 20 năm',
+      note: preset?.note || ''
+    });
+    setIncomeAmountFormatted(amountVal > 0 ? amountVal.toLocaleString('vi-VN') : '');
+    setIsIncomeModalOpen(true);
+  };
+
+  const handleOpenEditIncome = (item: IncomeItem) => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền chỉnh sửa khoản thu!');
+      return;
+    }
+    setEditingIncome(item);
+    setIncomePayerType(item.memberId ? 'roster' : 'external');
+    setIncomeSearchMember('');
+    setIncomeFormData({ ...item });
+    setIncomeAmountFormatted((item.amount || 0).toLocaleString('vi-VN'));
+    setIsIncomeModalOpen(true);
+  };
+
+  const handleSaveIncome = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền lưu khoản thu!');
+      return;
+    }
+    const cleanTitle = String(incomeFormData.title || '').trim();
+    if (!cleanTitle) {
+      alert('Vui lòng nhập tên / nội dung khoản thu!');
+      return;
+    }
+
+    const cleanPayerName = String(incomeFormData.payerName || '').trim();
+    if (!cleanPayerName) {
+      alert('Vui lòng chọn hoặc nhập họ tên người nộp!');
+      return;
+    }
+
+    const cleanAmountStr = String(incomeAmountFormatted || '').replace(/[^0-9]/g, '');
+    const amountNum = parseInt(cleanAmountStr, 10);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      alert('Vui lòng nhập số tiền thu hợp lệ (lớn hơn 0đ)!');
+      return;
+    }
+
+    const itemToSave: IncomeItem = {
+      id: editingIncome?.id || ('inc-' + Date.now()),
+      title: cleanTitle,
+      category: (incomeFormData.category as IncomeCategory) || 'event',
+      amount: amountNum,
+      date: String(incomeFormData.date || '').trim() || new Date().toISOString().split('T')[0],
+      payerName: cleanPayerName,
+      payerPhone: String(incomeFormData.payerPhone || '').trim(),
+      memberId: incomeFormData.memberId,
+      paymentMethod: incomeFormData.paymentMethod || 'bank_transfer',
+      auditor: String(incomeFormData.auditor || '').trim() || getDefaultAuditorName(),
+      receiptUrl: String(incomeFormData.receiptUrl || '').trim(),
+      eventScope: String(incomeFormData.eventScope || '').trim() || 'Kỷ niệm 20 năm',
+      note: String(incomeFormData.note || '').trim(),
+      createdAt: editingIncome?.createdAt || new Date().toISOString()
+    };
+
+    // 1. Lưu vào danh sách Sổ Thu (incomes)
+    if (editingIncome) {
+      if (onUpdateIncome) {
+        onUpdateIncome(itemToSave);
+      } else if (onSaveAllIncomes) {
+        onSaveAllIncomes(effectiveIncomes.map(x => x.id === itemToSave.id ? itemToSave : x));
+      }
+    } else {
+      if (onAddIncome) {
+        onAddIncome(itemToSave);
+      } else if (onSaveAllIncomes) {
+        onSaveAllIncomes([itemToSave, ...effectiveIncomes]);
+      }
+    }
+
+    // 2. NẾU là khoản thu Quỹ Sự Kiện (event) hoặc có liên kết thành viên trong lớp:
+    // Tự động đồng bộ cập nhật trạng thái PAID cho bạn đó trong rsvpList!
+    if (itemToSave.category === 'event' || itemToSave.memberId) {
+      const targetPhone = normPhoneRoster(itemToSave.payerPhone);
+      const targetName = normNameRoster(itemToSave.payerName);
+      const targetMemberId = itemToSave.memberId;
+
+      const foundRsvpIndex = rsvpList.findIndex(r => {
+        if (targetMemberId && r.memberId === targetMemberId) return true;
+        if (targetPhone && normPhoneRoster(r.phone) === targetPhone) return true;
+        if (normNameRoster(r.fullName) === targetName) return true;
+        return false;
+      });
+
+      const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      const auditor = itemToSave.auditor || getDefaultAuditorName();
+
+      if (foundRsvpIndex > -1) {
+        const updated = rsvpList.map((item, idx) => {
+          if (idx === foundRsvpIndex) {
+            return {
+              ...item,
+              fundStatus: 'paid' as const,
+              fundAmount: itemToSave.amount,
+              fundPaidAt: item.fundPaidAt || nowStr,
+              fundPaymentMethod: itemToSave.paymentMethod,
+              fundAuditedBy: auditor,
+              fundReceiptUrl: itemToSave.receiptUrl || item.fundReceiptUrl,
+              fundNote: itemToSave.note || itemToSave.title
+            };
+          }
+          return item;
+        });
+        onUpdateRsvpList(updated);
+        localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+        // Sync to Apps Script
+        if (appsScriptUrl && appsScriptUrl.trim()) {
+          const matchedItem = updated[foundRsvpIndex];
+          fetch(appsScriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'update_fund',
+              pin: getAdminPinToken(),
+              phone: matchedItem.phone,
+              fullName: matchedItem.fullName,
+              fundStatus: 'paid',
+              fundAmount: itemToSave.amount,
+              fundPaidAt: matchedItem.fundPaidAt || nowStr,
+              fundAuditedBy: auditor,
+              fundPaymentMethod: itemToSave.paymentMethod,
+              fundReceiptUrl: itemToSave.receiptUrl || matchedItem.fundReceiptUrl || '',
+              fundNote: itemToSave.note || itemToSave.title
+            })
+          }).catch(err => console.warn('Sync fund to Google Sheets failed:', err));
+        }
+      } else if (itemToSave.category === 'event') {
+        // Nếu chưa có trong RSVP nhưng có trong Roster: Tự tạo bản ghi RSVP mới với fundStatus = 'paid'
+        const rosterMember = rosterList.find(m => {
+          if (targetMemberId && m.id === targetMemberId) return true;
+          if (targetPhone && normPhoneRoster(m.phone) === targetPhone) return true;
+          if (normNameRoster(m.fullName) === targetName) return true;
+          return false;
+        });
+
+        const newRsvp: RsvpData = {
+          id: 'rsvp-' + Date.now(),
+          memberId: rosterMember?.id || targetMemberId,
+          fullName: itemToSave.payerName,
+          nickname: rosterMember?.nickname,
+          phone: itemToSave.payerPhone || rosterMember?.phone || '0900000000',
+          status: 'yes',
+          className: 'K8A1',
+          shirtSize: rosterMember?.shirtSize || 'L',
+          fundStatus: 'paid',
+          fundAmount: itemToSave.amount,
+          fundPaidAt: nowStr,
+          fundPaymentMethod: itemToSave.paymentMethod,
+          fundAuditedBy: auditor,
+          fundReceiptUrl: itemToSave.receiptUrl,
+          fundNote: itemToSave.note || itemToSave.title,
+          submittedAt: nowStr
+        };
+
+        const updated = [newRsvp, ...rsvpList];
+        onUpdateRsvpList(updated);
+        localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+        if (appsScriptUrl && appsScriptUrl.trim()) {
+          fetch(appsScriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'rsvp',
+              pin: getAdminPinToken(),
+              ...newRsvp
+            })
+          }).catch(err => console.warn('Create RSVP sync failed:', err));
+        }
+      }
+    }
+
+    confetti({ particleCount: 45, spread: 60, origin: { y: 0.6 } });
+    setIsIncomeModalOpen(false);
+    setEditingIncome(null);
+  };
+
+  const handleDeleteIncomeItem = (item: IncomeItem) => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền xóa khoản thu!');
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa khoản thu "${item.title}" (${(item.amount || 0).toLocaleString('vi-VN')} đ) của "${item.payerName}" không?`)) {
+      return;
+    }
+    if (onDeleteIncome) {
+      onDeleteIncome(item.id);
+    } else if (onSaveAllIncomes) {
+      onSaveAllIncomes(effectiveIncomes.filter(x => x.id !== item.id));
+    }
+  };
+
+  const handleIncomeReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingIncomeReceipt(true);
+      const base64Jpeg = await compressImageToJpeg(file, 1600, 0.82);
+
+      const targetUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      if (targetUrl && targetUrl.trim()) {
+        try {
+          const payload = {
+            action: 'upload_fund_receipt',
+            receiptType: 'thu',
+            fileData: base64Jpeg,
+            mimeType: 'image/jpeg',
+            fullName: incomeFormData.payerName || 'ThanhVien',
+            phone: incomeFormData.payerPhone || '',
+            category: incomeFormData.category || 'event',
+            title: incomeFormData.title || 'KhoanThu',
+            fundAmount: incomeFormData.amount || standardFundAmount,
+            fundPaymentMethod: incomeFormData.paymentMethod || 'bank_transfer',
+            fundAuditedBy: getDefaultAuditorName(),
+            fundNote: incomeFormData.note || ''
+          };
+
+          const res = await fetch(targetUrl, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (json.status === 'success' && json.url) {
+            setIncomeFormData(prev => ({ ...prev, receiptUrl: json.url }));
+            setIsUploadingIncomeReceipt(false);
+            return;
+          }
+        } catch (fetchErr) {
+          console.warn('Drive upload failed, fallback to local image:', fetchErr);
+        }
+      }
+
+      setIncomeFormData(prev => ({ ...prev, receiptUrl: base64Jpeg }));
+      setIsUploadingIncomeReceipt(false);
+    } catch (err: any) {
+      alert('Lỗi tải ảnh: ' + (err.message || 'Không thể upload ảnh'));
+      setIsUploadingIncomeReceipt(false);
     }
   };
 
@@ -3347,6 +3701,23 @@ export default function AdminManagementHub({
                     </span>
                   )
                 )}
+
+                {fundSubTab === 'income' && (
+                  canAuditAndSpend ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddIncome()}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition cursor-pointer self-start sm:self-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Thêm Khoản Thu Mới</span>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5 self-start sm:self-auto">
+                      👁️ Quyền ghi nhận thu dành cho Thủ Quỹ
+                    </span>
+                  )
+                )}
               </div>
 
               {/* ------------------------------------------------------------- */}
@@ -3370,6 +3741,94 @@ export default function AdminManagementHub({
                         style={{ width: `${expectedFund > 0 ? Math.min(100, Math.round((collectedFund / expectedFund) * 100)) : 0}%` }}
                       />
                     </div>
+                  </div>
+
+                  {/* Dải phím tắt gợi ý thu nhanh theo danh mục (Quick Category Shortcuts) */}
+                  {canAuditAndSpend && (
+                    <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-emerald-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] uppercase tracking-wider font-sans font-bold text-emerald-950 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                          Gợi ý thu nhanh theo danh mục (Bấm để mở form ghi nhận):
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-sans hidden sm:inline">
+                          8 danh mục thu chuẩn K8A1
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-sans">
+                        {INCOME_CATEGORIES.map(cat => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => handleOpenAddIncome({
+                              category: cat.id,
+                              title: cat.quickTitle,
+                              amount: cat.defaultAmount || standardFundAmount,
+                              note: cat.description
+                            })}
+                            className={`px-2.5 py-1.5 ${cat.badgeBg} hover:opacity-90 ${cat.badgeText} border ${cat.badgeBorder} rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-2xs font-medium`}
+                            title={cat.description}
+                          >
+                            <span>{cat.icon}</span>
+                            <span>{cat.shortLabel}</span>
+                            {cat.defaultAmount && (
+                              <span className="text-[10.5px] opacity-75 font-mono">
+                                ({cat.defaultAmount >= 1000000 ? `${cat.defaultAmount / 1000000}tr` : `${cat.defaultAmount / 1000}k`})
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chuyển đổi góc nhìn View Mode Toggle: [📋 Theo Thành Viên Đóng Quỹ] vs [📑 Sổ Thu Chi Tiết Toàn Bộ] */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFundIncomeViewMode('rsvp_members')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                          fundIncomeViewMode === 'rsvp_members'
+                            ? 'bg-amber-700 text-white shadow-2xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Đối Soát Thành Viên Lớp</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/10">
+                          {paidMembersCount}/{confirmedCount}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setFundIncomeViewMode('income_ledger')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                          fundIncomeViewMode === 'income_ledger'
+                            ? 'bg-emerald-700 text-white shadow-2xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <Coins className="w-3.5 h-3.5" />
+                        <span>Sổ Thu Chi Tiết (Toàn Bộ Khoản Thu)</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/10">
+                          {effectiveIncomes.length}
+                        </span>
+                      </button>
+                    </div>
+
+                    {canAuditAndSpend && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddIncome()}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-lg shadow-2xs transition cursor-pointer self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Thêm Khoản Thu</span>
+                      </button>
+                    )}
                   </div>
 
               {/* 4 Financial KPI Summary Cards */}
@@ -3416,8 +3875,13 @@ export default function AdminManagementHub({
                 </div>
               </div>
 
-              {/* Fund Search & Filter Toolbar */}
-              <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3">
+              {/* ------------------------------------------------------------- */}
+              {/* VIEW 1: ĐỐI SOÁT THEO THÀNH VIÊN LỚP (RSVP RECONCILIATION) */}
+              {/* ------------------------------------------------------------- */}
+              {fundIncomeViewMode === 'rsvp_members' && (
+                <div className="space-y-4">
+                  {/* Fund Search & Filter Toolbar */}
+                  <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -3865,6 +4329,301 @@ export default function AdminManagementHub({
               </div>
             </div>
           )}
+
+          {/* ------------------------------------------------------------- */}
+          {/* VIEW 2: SỔ THU CHI TIẾT (TOÀN BỘ CÁC KHOẢN THU K8A1) */}
+          {/* ------------------------------------------------------------- */}
+          {fundIncomeViewMode === 'income_ledger' && (
+            <div className="space-y-3">
+              {/* Toolbar lọc Sổ Thu */}
+              <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={incomeSearch}
+                      onChange={(e) => setIncomeSearch(e.target.value)}
+                      placeholder="Tìm theo nội dung thu, người nộp, SĐT, người nhận tiền, ghi chú..."
+                      className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={incomeCategoryFilter}
+                      onChange={(e) => setIncomeCategoryFilter(e.target.value)}
+                      className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-emerald-600 cursor-pointer"
+                    >
+                      <option value="all">Tất cả danh mục thu ({effectiveIncomes.length})</option>
+                      {INCOME_CATEGORIES.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="flex items-center gap-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-sans">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                      <select
+                        value={incomeDateFilter}
+                        onChange={(e) => setIncomeDateFilter(e.target.value as any)}
+                        className="bg-transparent focus:outline-none cursor-pointer text-slate-700 font-medium"
+                      >
+                        <option value="all">Toàn bộ thời gian</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="7days">7 ngày qua</option>
+                        <option value="this_month">Tháng này</option>
+                        <option value="year_2026">Năm 2026</option>
+                        <option value="custom">Tùy chọn ngày...</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom date range picker if custom */}
+                {incomeDateFilter === 'custom' && (
+                  <div className="flex flex-wrap items-center gap-2 p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-lg text-xs font-sans">
+                    <span className="font-bold text-emerald-950 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                      Khoảng ngày thu:
+                    </span>
+                    <label className="flex items-center gap-1 text-slate-600">
+                      <span>Từ:</span>
+                      <input
+                        type="date"
+                        value={incomeCustomStartDate}
+                        onChange={(e) => setIncomeCustomStartDate(e.target.value)}
+                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1 text-slate-600">
+                      <span>Đến:</span>
+                      <input
+                        type="date"
+                        value={incomeCustomEndDate}
+                        onChange={(e) => setIncomeCustomEndDate(e.target.value)}
+                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                      />
+                    </label>
+                    {(incomeCustomStartDate || incomeCustomEndDate) && (
+                      <button
+                        type="button"
+                        onClick={() => { setIncomeCustomStartDate(''); setIncomeCustomEndDate(''); }}
+                        className="px-2 py-1 text-[11px] text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                      >
+                        Xóa mốc
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Quick Category Chips Filter */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Danh mục:</span>
+                  <button
+                    type="button"
+                    onClick={() => setIncomeCategoryFilter('all')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      incomeCategoryFilter === 'all'
+                        ? 'bg-emerald-700 text-white shadow-2xs font-bold'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    Tất cả ({effectiveIncomes.length})
+                  </button>
+                  {INCOME_CATEGORIES.map(cat => {
+                    const count = effectiveIncomes.filter(i => i.category === cat.id).length;
+                    const isActive = incomeCategoryFilter === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setIncomeCategoryFilter(cat.id)}
+                        className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                          isActive
+                            ? `${cat.badgeBg} ${cat.badgeText} border ${cat.badgeBorder} ring-1 ring-emerald-600 font-bold shadow-2xs`
+                            : `${cat.badgeBg} ${cat.badgeText} border ${cat.badgeBorder} hover:opacity-90`
+                        }`}
+                      >
+                        <span>{cat.icon}</span>
+                        <span>{cat.shortLabel}</span>
+                        <span className="opacity-75 font-mono text-[10px]">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] font-sans text-slate-600">
+                  <span>
+                    Hiển thị: <strong>{filteredIncomesList.length}</strong> khoản thu
+                  </span>
+                  <span>
+                    Tổng tiền: <strong className="text-emerald-700 font-mono text-sm">{filteredIncomesTotal.toLocaleString('vi-VN')} đ</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Sổ Thu Table */}
+              <div className="bg-white rounded-xl border border-emerald-200 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F0FDF4] text-emerald-950 font-sans uppercase text-[10px] tracking-wider border-b border-emerald-200">
+                      <tr>
+                        <th className="py-3 px-3 w-10 text-center">STT</th>
+                        <th className="py-3 px-3">Khoản Thu & Danh Mục</th>
+                        <th className="py-3 px-3">Người Nộp / Đơn Vị</th>
+                        <th className="py-3 px-3">Số Tiền (VNĐ)</th>
+                        <th className="py-3 px-3">Hình Thức & Giờ</th>
+                        <th className="py-3 px-3 text-center">Chứng Từ / Bill</th>
+                        <th className="py-3 px-3">Người Thu & Ghi Chú</th>
+                        <th className="py-3 px-3 text-right">Thao Tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-sans">
+                      {filteredIncomesList.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="py-12 text-center text-slate-400 space-y-2">
+                            <Coins className="w-8 h-8 text-slate-300 mx-auto" />
+                            <p>Chưa có khoản thu nào trong danh sách hoặc không khớp bộ lọc.</p>
+                            {canAuditAndSpend && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAddIncome()}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                              >
+                                + Thêm Khoản Thu Đầu Tiên
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredIncomesList.map((item, idx) => {
+                          const catMeta = INCOME_CATEGORIES.find(c => c.id === item.category);
+                          const hasReceipt = Boolean(item.receiptUrl && item.receiptUrl.trim());
+
+                          return (
+                            <tr key={item.id} className="hover:bg-emerald-50/30 transition">
+                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                                {idx + 1}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div>
+                                  <span className="font-bold text-slate-900 text-xs block">
+                                    {item.title}
+                                  </span>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 mt-0.5 rounded text-[10px] font-bold ${catMeta?.badgeBg || 'bg-slate-100'} ${catMeta?.badgeText || 'text-slate-700'} border ${catMeta?.badgeBorder || 'border-slate-200'}`}>
+                                    <span>{catMeta?.icon || '📦'}</span>
+                                    <span>{catMeta?.label || item.category}</span>
+                                  </span>
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div>
+                                  <span className="font-bold text-slate-900">
+                                    {item.payerName}
+                                  </span>
+                                  {item.payerPhone && (
+                                    <span className="font-mono text-slate-500 text-[11px] block">
+                                      {item.payerPhone}
+                                    </span>
+                                  )}
+                                  {item.memberId && (
+                                    <span className="text-[10px] text-emerald-700 font-medium">
+                                      ✓ Lớp K8A1
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <span className="font-mono font-bold text-xs text-emerald-700">
+                                  +{(Number(item.amount) || 0).toLocaleString('vi-VN')} đ
+                                </span>
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="space-y-0.5">
+                                  <span className={`inline-block px-1.5 py-0.2 text-[10px] font-bold rounded ${
+                                    item.paymentMethod === 'cash' 
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                                      : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                  }`}>
+                                    {item.paymentMethod === 'cash' ? '💵 Tiền mặt' : '🏦 Chuyển khoản'}
+                                  </span>
+                                  <span className="text-[11px] text-slate-500 block font-mono">
+                                    {formatDateOnlyVi(item.date)}
+                                  </span>
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3 text-center">
+                                {hasReceipt ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingIncomeReceipt({ url: item.receiptUrl!, title: `${item.title} - ${item.payerName}` })}
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-semibold transition cursor-pointer"
+                                    title="Xem ảnh chứng từ"
+                                  >
+                                    <ImageIcon className="w-3 h-3 text-emerald-600" />
+                                    <span>Xem bill</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Chưa có</span>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div>
+                                  <span className="text-slate-700 text-[11px] font-semibold block">
+                                    {item.auditor || 'Thủ Quỹ BLL'}
+                                  </span>
+                                  {item.note && (
+                                    <span className="text-[11px] text-slate-500 italic line-clamp-1" title={item.note}>
+                                      "{item.note}"
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3 text-right">
+                                {canAuditAndSpend ? (
+                                  <div className="flex items-center justify-end gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditIncome(item)}
+                                      className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                                      title="Chỉnh sửa khoản thu này"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteIncomeItem(item)}
+                                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                      title="Xóa khoản thu này"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400">Chỉ xem</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
           {/* ------------------------------------------------------------- */}
           {/* PHÂN HỆ 2: CHI TIÊU QUỸ (CÁC KHOẢN CHI LỚP) */}
@@ -7368,6 +8127,514 @@ export default function AdminManagementHub({
                   type="button"
                   onClick={() => setViewingExpenseReceipt(null)}
                   className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-sans font-bold transition cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      {/* =================================================================== */}
+      {/* MODAL: THÊM / CẬP NHẬT KHOẢN THU QUỸ LỚP (INCOME MODAL) */}
+      {/* =================================================================== */}
+      <AnimatePresence>
+        {isIncomeModalOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl border border-emerald-300 shadow-2xl w-full max-w-xl p-5 sm:p-6 space-y-4 text-xs max-h-[92vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 flex items-center justify-center font-bold">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold font-serif text-slate-900">
+                      {editingIncome ? '✏️ Cập Nhật Khoản Thu' : '➕ Ghi Nhận Khoản Thu Mới'}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-sans">
+                      Sổ Thu Quỹ Lớp K8A1 • Đa Dạng Danh Mục Thu & Minh Bạch 100%
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsIncomeModalOpen(false)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSaveIncome} className="space-y-3.5 overflow-y-auto pr-1 flex-1">
+                {/* 1. Chọn Danh Mục Khoản Thu (Lưới 8 danh mục 1-chạm) */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-800 flex items-center justify-between">
+                    <span>1. Danh mục khoản thu (*):</span>
+                    <span className="text-[10.5px] font-normal text-slate-500">Bấm để chọn nhanh định mức</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {INCOME_CATEGORIES.map(cat => {
+                      const isSelected = (incomeFormData.category || 'event') === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            const newCategory = cat.id;
+                            const currentDefault = INCOME_CATEGORIES.find(c => c.id === incomeFormData.category)?.quickTitle;
+                            const shouldUpdateTitle = !incomeFormData.title || incomeFormData.title === currentDefault;
+                            const newAmount = cat.defaultAmount || standardFundAmount;
+                            
+                            setIncomeFormData(prev => ({
+                              ...prev,
+                              category: newCategory,
+                              title: shouldUpdateTitle ? cat.quickTitle : prev.title,
+                              amount: newAmount
+                            }));
+                            setIncomeAmountFormatted(newAmount.toLocaleString('vi-VN'));
+                          }}
+                          className={`p-2 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between min-h-[58px] ${
+                            isSelected
+                              ? `${cat.badgeBg} ${cat.badgeText} border-emerald-500 ring-2 ring-emerald-500/30 font-bold shadow-xs`
+                              : 'bg-[#FAF8F5] border-slate-200 hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">{cat.icon}</span>
+                            <span className="text-[11px] leading-tight font-medium truncate">{cat.shortLabel}</span>
+                          </div>
+                          <span className="text-[10px] opacity-75 font-mono">
+                            {cat.defaultAmount ? `${(cat.defaultAmount >= 1000000 ? (cat.defaultAmount / 1000000) + 'tr' : (cat.defaultAmount / 1000) + 'k')} đ` : 'Tùy ý'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Tiêu đề / Nội dung khoản thu */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">
+                    2. Nội dung / Tên khoản thu (*):
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={incomeFormData.title || ''}
+                    onChange={(e) => setIncomeFormData({ ...incomeFormData, title: e.target.value })}
+                    placeholder="VD: Đóng quỹ họp lớp 20 năm, Mua thêm 2 áo polo, Ủng hộ thêm..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 text-xs font-sans"
+                  />
+                </div>
+
+                {/* 3. Người nộp tiền (Thành viên K8A1 vs Người ngoài / Tài trợ) */}
+                <div className="space-y-2 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800">
+                      3. Người nộp tiền (*):
+                    </label>
+                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200 text-[11px]">
+                      <label className="flex items-center gap-1 cursor-pointer font-medium text-slate-700">
+                        <input
+                          type="radio"
+                          name="payerType"
+                          checked={incomePayerType === 'roster'}
+                          onChange={() => setIncomePayerType('roster')}
+                          className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        />
+                        <span>Bạn cùng lớp K8A1</span>
+                      </label>
+                      <span className="text-slate-300">|</span>
+                      <label className="flex items-center gap-1 cursor-pointer font-medium text-slate-700">
+                        <input
+                          type="radio"
+                          name="payerType"
+                          checked={incomePayerType === 'external'}
+                          onChange={() => {
+                            setIncomePayerType('external');
+                            setIncomeFormData(prev => ({ ...prev, memberId: undefined }));
+                          }}
+                          className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        />
+                        <span>Nhà tài trợ / Ngoài lớp</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {incomePayerType === 'roster' ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={incomeSearchMember}
+                          onChange={(e) => setIncomeSearchMember(e.target.value)}
+                          placeholder="🔍 Gõ tên (có/không dấu), biệt danh hoặc SĐT để chọn bạn..."
+                          className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-sans focus:outline-none focus:border-emerald-600"
+                        />
+                      </div>
+
+                      {/* Dropdown danh sách lọc nhanh */}
+                      <div className="max-h-36 overflow-y-auto space-y-1 bg-white border border-slate-200 rounded-xl p-1.5">
+                        {rosterList
+                          .filter(m => {
+                            if (!incomeSearchMember.trim()) return true;
+                            const term = incomeSearchMember.toLowerCase().trim();
+                            const name = (m.fullName || '').toLowerCase();
+                            const nick = (m.nickname || '').toLowerCase();
+                            const phone = (m.phone || '').replace(/[^0-9]/g, '');
+                            return name.includes(term) || nick.includes(term) || phone.includes(term);
+                          })
+                          .slice(0, 8)
+                          .map(m => {
+                            const isSelected = incomeFormData.memberId === m.id || incomeFormData.payerName === m.fullName;
+                            const matchedRsvp = rsvpList.find(r => r.memberId === m.id || r.phone === m.phone || r.fullName === m.fullName);
+                            const isPaid = matchedRsvp?.fundStatus === 'paid';
+
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  setIncomeFormData(prev => ({
+                                    ...prev,
+                                    payerName: m.fullName,
+                                    payerPhone: m.phone || '',
+                                    memberId: m.id
+                                  }));
+                                  setIncomeSearchMember('');
+                                }}
+                                className={`w-full text-left p-1.5 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                                  isSelected ? 'bg-emerald-100 text-emerald-950 font-bold' : 'hover:bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                    {m.fullName.slice(0, 1)}
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium">{m.fullName}</span>
+                                    {m.nickname && <span className="text-slate-500 text-[10px] ml-1">({m.nickname})</span>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {isPaid ? (
+                                    <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded font-semibold">
+                                      Đã đóng quỹ
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded font-semibold">
+                                      Chưa đóng quỹ
+                                    </span>
+                                  )}
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                      </div>
+
+                      {/* Hiển thị bạn đã chọn */}
+                      {incomeFormData.payerName && (
+                        <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-emerald-700 font-bold">✓ Đã chọn:</span>
+                            <span className="font-bold text-slate-900">{incomeFormData.payerName}</span>
+                            {incomeFormData.payerPhone && (
+                              <span className="text-slate-500 font-mono text-[11px]">({incomeFormData.payerPhone})</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-200/60 px-2 py-0.5 rounded-md">
+                            Thành viên Lớp K8A1
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                          Họ tên người nộp / Nhà tài trợ (*):
+                        </label>
+                        <input
+                          type="text"
+                          required={incomePayerType === 'external'}
+                          value={incomeFormData.payerName || ''}
+                          onChange={(e) => setIncomeFormData({ ...incomeFormData, payerName: e.target.value })}
+                          placeholder="VD: Anh Nam (Bạn lớp A2), Doanh nghiệp X..."
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-sans focus:outline-none focus:border-emerald-600"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                          Số điện thoại (tùy chọn):
+                        </label>
+                        <input
+                          type="text"
+                          value={incomeFormData.payerPhone || ''}
+                          onChange={(e) => setIncomeFormData({ ...incomeFormData, payerPhone: e.target.value })}
+                          placeholder="VD: 0912345678"
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-sans focus:outline-none focus:border-emerald-600"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Số tiền thu (VNĐ) */}
+                <div className="space-y-1.5 bg-emerald-50/60 p-3.5 rounded-2xl border border-emerald-200/90">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 flex items-center gap-1">
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>4. Số tiền thu (VNĐ) (*):</span>
+                    </label>
+                    <span className="text-[11px] font-mono font-bold text-emerald-800">
+                      {incomeAmountFormatted || '0'} VNĐ
+                    </span>
+                  </div>
+
+                  <input
+                    type="text"
+                    required
+                    value={incomeAmountFormatted}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/[^0-9]/g, '');
+                      if (!digits) {
+                        setIncomeAmountFormatted('');
+                        return;
+                      }
+                      const num = parseInt(digits, 10);
+                      setIncomeAmountFormatted(num.toLocaleString('vi-VN'));
+                    }}
+                    placeholder="Nhập số tiền thu..."
+                    className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl font-mono font-bold text-slate-900 text-base focus:outline-none focus:border-emerald-600"
+                  />
+
+                  {/* Nút chọn nhanh số tiền */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-slate-500 font-sans">Chọn nhanh:</span>
+                    {[100000, 150000, 300000, 350000, 700000, 1000000, 2000000, 5000000, 10000000].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setIncomeAmountFormatted(val.toLocaleString('vi-VN'))}
+                        className="px-2 py-0.5 bg-white hover:bg-emerald-100 text-slate-700 border border-slate-200 rounded-md font-mono text-[11px] cursor-pointer transition shadow-2xs"
+                      >
+                        {val >= 1000000 ? `${val / 1000000}tr` : `${val / 1000}k`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. Hình thức thanh toán & Ngày thu */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">5. Hình thức thanh toán (*):</label>
+                    <select
+                      value={incomeFormData.paymentMethod || 'bank_transfer'}
+                      onChange={(e) => setIncomeFormData({ ...incomeFormData, paymentMethod: e.target.value as any })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 text-xs font-sans cursor-pointer bg-white"
+                    >
+                      <option value="bank_transfer">🏦 Chuyển khoản Ngân hàng</option>
+                      <option value="cash">💵 Tiền mặt (Bàn đón tiếp / Gặp mặt)</option>
+                      <option value="other">📱 Ví điện tử / Khác</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Ngày thu (*):</label>
+                    <input
+                      type="text"
+                      required
+                      value={incomeFormData.date || ''}
+                      onChange={(e) => setIncomeFormData({ ...incomeFormData, date: e.target.value })}
+                      placeholder="DD/MM/YYYY hoặc YYYY-MM-DD"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 text-xs font-sans"
+                    />
+                  </div>
+                </div>
+
+                {/* 6. Người thu tiền & Phạm vi */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Người thu tiền / Đối soát (*):</label>
+                    <input
+                      type="text"
+                      value={incomeFormData.auditor || ''}
+                      onChange={(e) => setIncomeFormData({ ...incomeFormData, auditor: e.target.value })}
+                      placeholder="VD: Thủ Quỹ BLL, Bùi Thành Long..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 text-xs font-sans"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Phạm vi sự kiện:</label>
+                    <input
+                      type="text"
+                      value={incomeFormData.eventScope || 'Kỷ niệm 20 năm'}
+                      onChange={(e) => setIncomeFormData({ ...incomeFormData, eventScope: e.target.value })}
+                      placeholder="VD: Kỷ niệm 20 năm, Thường niên..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 text-xs font-sans"
+                    />
+                  </div>
+                </div>
+
+                {/* 7. Ảnh chứng từ / Bill / Giấy nộp tiền */}
+                <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                  <label className="font-bold text-slate-700 flex items-center justify-between">
+                    <span>Ảnh chứng từ / Bill nộp tiền:</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Tùy chọn</span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    {isUploadingIncomeReceipt ? (
+                      <span className="px-3 py-2 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl flex items-center gap-1.5 font-semibold text-xs animate-pulse">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                        <span>Đang tải chứng từ lên Google Drive...</span>
+                      </span>
+                    ) : (
+                      <label className="px-3 py-2 bg-white hover:bg-emerald-50 text-slate-700 border border-slate-300 rounded-xl cursor-pointer flex items-center gap-1.5 font-semibold text-xs transition shadow-2xs">
+                        <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Tải ảnh từ máy / Chụp biên lai</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleIncomeReceiptUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {incomeFormData.receiptUrl && (
+                    <div className="mt-2 space-y-1">
+                      <div className="relative rounded-xl overflow-hidden border border-emerald-300 bg-slate-900 h-28 flex items-center justify-center group">
+                        <img
+                          src={incomeFormData.receiptUrl}
+                          alt="Ảnh chứng từ"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIncomeFormData(prev => ({ ...prev, receiptUrl: '' }))}
+                          className="absolute top-2 right-2 p-1 bg-black/60 hover:bg-rose-600 text-white rounded-full transition cursor-pointer"
+                          title="Xóa ảnh này"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 font-mono truncate">
+                        {incomeFormData.receiptUrl.startsWith('http') ? (
+                          <span className="text-emerald-700 flex items-center gap-1 font-sans font-semibold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />
+                            Đã lưu trữ chứng từ an toàn trên Google Drive
+                          </span>
+                        ) : 'Ảnh đính kèm cục bộ (Base64)'}
+                      </p>
+                    </div>
+                  )}
+
+                  <input
+                    type="text"
+                    value={incomeFormData.receiptUrl || ''}
+                    onChange={(e) => setIncomeFormData({ ...incomeFormData, receiptUrl: e.target.value })}
+                    placeholder="Hoặc dán URL ảnh Drive / Web..."
+                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-mono text-[11px] focus:outline-none focus:border-emerald-600 mt-1"
+                  />
+                </div>
+
+                {/* 8. Ghi chú chi tiết */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Ghi chú thêm:</label>
+                  <textarea
+                    rows={2}
+                    value={incomeFormData.note || ''}
+                    onChange={(e) => setIncomeFormData({ ...incomeFormData, note: e.target.value })}
+                    placeholder="VD: Nộp tiền mặt tại quán cafe họp ban, đặt mua 1 áo polo size XL cho chồng..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 text-xs font-sans resize-none"
+                  />
+                </div>
+
+                {/* Nút hành động */}
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsIncomeModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold rounded-xl shadow-md cursor-pointer transition"
+                  >
+                    {editingIncome ? 'Lưu Cập Nhật' : 'Lưu Khoản Thu'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* =================================================================== */}
+      {/* MODAL: PHÓNG TO XEM ẢNH CHỨNG TỪ THU (INCOME LIGHTBOX) */}
+      {/* =================================================================== */}
+      <AnimatePresence>
+        {viewingIncomeReceipt && (
+          <div
+            className="fixed inset-0 z-70 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-sm"
+            onClick={() => setViewingIncomeReceipt(null)}
+          >
+            <div
+              className="bg-slate-900 rounded-3xl border border-slate-700 max-w-2xl w-full p-4 sm:p-5 shadow-2xl flex flex-col gap-3 relative overflow-hidden text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Coins className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="font-serif font-bold text-sm text-slate-100 truncate">
+                    Chứng Từ Thu: {viewingIncomeReceipt.title}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewingIncomeReceipt(null)}
+                  className="p-1 text-slate-400 hover:text-white rounded-full transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="w-full max-h-[70vh] flex items-center justify-center bg-black/50 rounded-2xl overflow-hidden p-2">
+                <img
+                  src={viewingIncomeReceipt.url}
+                  alt={viewingIncomeReceipt.title}
+                  className="max-h-[65vh] max-w-full object-contain rounded-lg"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <a
+                  href={viewingIncomeReceipt.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition font-sans text-xs"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Mở ảnh gốc</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setViewingIncomeReceipt(null)}
+                  className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-sans font-bold transition cursor-pointer"
                 >
                   Đóng
                 </button>

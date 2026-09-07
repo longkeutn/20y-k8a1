@@ -25,8 +25,8 @@ import {
   ArrowUpRight,
   Filter
 } from 'lucide-react';
-import { RsvpData, ClassMember, ExpenseItem } from '../types';
-import { generateVietQrUrl, EXPENSE_CATEGORIES, formatDateOnlyVi, parseDate } from '../data';
+import { RsvpData, ClassMember, ExpenseItem, IncomeItem } from '../types';
+import { generateVietQrUrl, EXPENSE_CATEGORIES, INCOME_CATEGORIES, formatDateOnlyVi, parseDate } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
@@ -41,6 +41,7 @@ interface BankTransferProps {
   appsScriptUrl?: string;
   rsvpList?: RsvpData[];
   expenses?: ExpenseItem[];
+  incomes?: IncomeItem[];
   activeMember?: ClassMember | null;
   onUpdateRsvpList?: (list: RsvpData[]) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
@@ -59,6 +60,7 @@ export default function BankTransfer({
   appsScriptUrl = "",
   rsvpList = [],
   expenses = [],
+  incomes = [],
   activeMember,
   onUpdateRsvpList,
   onOpenReceiptModal,
@@ -118,16 +120,25 @@ export default function BankTransfer({
     return true;
   };
 
-  // Danh sách các khoản chi (lấy từ prop expenses, mặc định là mảng rỗng nếu chưa có)
+  // Danh sách các khoản chi & khoản thu
   const effectiveExpenses: ExpenseItem[] = Array.isArray(expenses) ? expenses : [];
+  const effectiveIncomes: IncomeItem[] = Array.isArray(incomes) ? incomes : [];
 
   // Tính tổng thu từ rsvpList
   const paidAttendees = (rsvpList || []).filter(r => r.fundStatus === 'paid' || (r as any).paid);
-  const totalIncome = paidAttendees.reduce((sum, r) => {
+  const rsvpIncome = paidAttendees.reduce((sum, r) => {
     const verified = Number(r.fundAmount) || Number((r as any).verifiedAmount);
     if (!isNaN(verified) && verified > 0) return sum + verified;
     return sum + (Number((r as any).paidAmount) || fundAmountNum);
   }, 0);
+
+  // Tổng các khoản thu ngoài quỹ sự kiện trong Sổ Thu (áo polo, người thân, tài trợ, quỹ thường niên...)
+  const totalExtraIncome = effectiveIncomes
+    .filter(item => item.category !== 'event')
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+  // Tổng thu toàn diện = Quỹ sự kiện từ RSVP + các nguồn thu ngoài sự kiện từ Sổ Thu
+  const totalIncome = rsvpIncome + totalExtraIncome;
 
   // Tính tổng chi từ effectiveExpenses
   const totalExpense = effectiveExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -143,6 +154,12 @@ export default function BankTransfer({
   const displayedPaidAttendees = useMemo(() => {
     return paidAttendees.filter(r => isLedgerDateInFilter(r.fundPaidAt || (r as any).paidAt || r.submittedAt, ledgerTimeFilter));
   }, [paidAttendees, ledgerTimeFilter]);
+
+  const displayedExtraIncomes = useMemo(() => {
+    return effectiveIncomes
+      .filter(item => item.category !== 'event')
+      .filter(item => isLedgerDateInFilter(item.date, ledgerTimeFilter));
+  }, [effectiveIncomes, ledgerTimeFilter]);
 
   const copyToClipboard = (text: any, type: 'account' | 'syntax') => {
     navigator.clipboard.writeText(String(text || ''));
@@ -407,7 +424,7 @@ export default function BankTransfer({
           <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-emerald-200/80 shadow-2xs">
             <span className="text-[10px] sm:text-[11px] font-sans font-semibold text-emerald-700 uppercase tracking-wider flex items-center gap-1">
               <TrendingUp className="w-3 h-3 text-emerald-600 shrink-0" />
-              <span className="truncate">Tổng Thu ({paidAttendees.length} bạn)</span>
+              <span className="truncate">Tổng Thu ({paidAttendees.length} bạn{totalExtraIncome > 0 ? ' + ngoài' : ''})</span>
             </span>
             <p className="text-xs sm:text-base font-bold font-mono text-emerald-800 mt-1 truncate">
               {totalIncome.toLocaleString('vi-VN')} <span className="text-[10px] font-normal">đ</span>
@@ -643,7 +660,7 @@ export default function BankTransfer({
                 <p className="text-xs sm:text-sm font-bold font-mono text-emerald-800">
                   {totalIncome.toLocaleString('vi-VN')} đ
                 </p>
-                <span className="text-[10px] text-slate-400">({paidAttendees.length} bạn đã nộp)</span>
+                <span className="text-[10px] text-slate-400">({paidAttendees.length} bạn{effectiveIncomes.filter(i => i.category !== 'event').length > 0 ? ` + ${effectiveIncomes.filter(i => i.category !== 'event').length} mục khác` : ' đã nộp'})</span>
               </div>
               <div className="text-center sm:text-left">
                 <span className="text-[10px] font-sans font-bold uppercase text-rose-700 tracking-wider">Tổng Chi</span>
@@ -687,7 +704,7 @@ export default function BankTransfer({
                   }`}
                 >
                   <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Danh Sách Đóng Quỹ ({displayedPaidAttendees.length})</span>
+                  <span>Danh Sách Khoản Thu ({displayedPaidAttendees.length + displayedExtraIncomes.length})</span>
                 </button>
               </div>
 
@@ -812,36 +829,127 @@ export default function BankTransfer({
                   </div>
                 )
               ) : (
-                displayedPaidAttendees.length === 0 ? (
+                displayedPaidAttendees.length === 0 && displayedExtraIncomes.length === 0 ? (
                   <div className="py-12 text-center text-slate-400 text-sm font-sans">
-                    Chưa có bạn nào đóng quỹ trong kỳ được chọn.
+                    Chưa có khoản thu nào trong kỳ được chọn.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {displayedPaidAttendees.map((att, idx) => {
-                      const amount = Number(att.fundAmount) || Number((att as any).verifiedAmount) || Number((att as any).paidAmount) || fundAmountNum;
-                      const dateDisplay = att.fundPaidAt || (att as any).paidAt || att.submittedAt;
-                      const formattedDate = formatDateOnlyVi(dateDisplay);
-                      return (
-                        <div 
-                          key={att.id || idx}
-                          className="bg-[#FAF9F6] border border-emerald-200/70 rounded-xl p-3 flex items-center justify-between gap-2 shadow-2xs"
-                        >
-                          <div className="min-w-0 space-y-0.5">
-                            <p className="text-xs sm:text-sm font-sans font-bold text-slate-900 truncate">
-                              {idx + 1}. {att.fullName} {att.nickname ? `(“${att.nickname}”)` : ''}
-                            </p>
-                            <p className="text-[11px] text-slate-500 font-sans flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
-                              <span>{formattedDate ? `Ngày nộp: ${formattedDate}` : 'Đã xác nhận đóng quỹ'}</span>
-                            </p>
-                          </div>
-                          <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
-                            +{amount.toLocaleString('vi-VN')} đ
+                  <div className="space-y-4">
+                    {/* Danh sách các khoản thu ngoài / Tài trợ / Áo đồng phục bổ sung */}
+                    {displayedExtraIncomes.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 pb-1 border-b border-slate-200">
+                          <span className="flex items-center gap-1.5 text-amber-900">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                            Tài Trợ & Nguồn Thu Khác ({displayedExtraIncomes.length} khoản)
+                          </span>
+                          <span className="font-mono text-emerald-800">
+                            +{displayedExtraIncomes.reduce((s, i) => s + (Number(i.amount) || 0), 0).toLocaleString('vi-VN')} đ
                           </span>
                         </div>
-                      );
-                    })}
+                        <div className="space-y-2">
+                          {displayedExtraIncomes.map((item, idx) => {
+                            const catMeta = INCOME_CATEGORIES.find(c => c.id === item.category) || {
+                              label: 'Thu khác',
+                              shortLabel: 'Khác',
+                              badgeBg: 'bg-slate-100',
+                              badgeText: 'text-slate-700',
+                              badgeBorder: 'border-slate-200'
+                            };
+                            return (
+                              <div 
+                                key={item.id || idx}
+                                className="bg-[#FAF9F6] border border-amber-200/70 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
+                              >
+                                <div className="min-w-0 space-y-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className={`text-[10px] font-sans font-bold px-2 py-0.2 rounded-full border ${catMeta.badgeBg} ${catMeta.badgeText} ${catMeta.badgeBorder}`}>
+                                      {catMeta.label}
+                                    </span>
+                                    <span className="text-[11px] text-slate-500 font-sans flex items-center gap-1">
+                                      <Calendar className="w-3 h-3 text-amber-600 shrink-0" />
+                                      {formatDateOnlyVi(item.date) || '—'}
+                                    </span>
+                                    {item.eventScope && (
+                                      <span className="text-[10px] font-sans font-medium bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
+                                        {item.eventScope}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs sm:text-sm font-sans font-bold text-slate-900 truncate">
+                                    {item.payerName} — <span className="text-slate-700 font-normal">{item.title}</span>
+                                  </p>
+                                  {item.note && (
+                                    <p className="text-xs text-slate-500 font-sans italic">
+                                      {item.note}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 border-t sm:border-t-0 border-slate-200/60 pt-1.5 sm:pt-0">
+                                  <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800">
+                                    +{Number(item.amount || 0).toLocaleString('vi-VN')} đ
+                                  </span>
+                                  {item.receiptUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewingPublicReceipt(item.receiptUrl || null)}
+                                      className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-2 py-0.5 rounded-lg border border-amber-300/80 transition cursor-pointer"
+                                      title="Xem hóa đơn / chứng từ"
+                                    >
+                                      <ImageIcon className="w-3 h-3 text-amber-700" />
+                                      <span>Chứng từ</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Danh sách thành viên đóng quỹ sự kiện */}
+                    {displayedPaidAttendees.length > 0 && (
+                      <div className="space-y-2">
+                        {displayedExtraIncomes.length > 0 && (
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-700 pb-1 border-b border-slate-200 pt-2">
+                            <span className="flex items-center gap-1.5 text-emerald-900">
+                              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              Quỹ Sự Kiện Họp Lớp 20 Năm ({displayedPaidAttendees.length} bạn)
+                            </span>
+                            <span className="font-mono text-emerald-800">
+                              +{displayedPaidAttendees.reduce((s, att) => s + (Number(att.fundAmount) || Number((att as any).verifiedAmount) || Number((att as any).paidAmount) || fundAmountNum), 0).toLocaleString('vi-VN')} đ
+                            </span>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {displayedPaidAttendees.map((att, idx) => {
+                            const amount = Number(att.fundAmount) || Number((att as any).verifiedAmount) || Number((att as any).paidAmount) || fundAmountNum;
+                            const dateDisplay = att.fundPaidAt || (att as any).paidAt || att.submittedAt;
+                            const formattedDate = formatDateOnlyVi(dateDisplay);
+                            return (
+                              <div 
+                                key={att.id || idx}
+                                className="bg-[#FAF9F6] border border-emerald-200/70 rounded-xl p-3 flex items-center justify-between gap-2 shadow-2xs"
+                              >
+                                <div className="min-w-0 space-y-0.5">
+                                  <p className="text-xs sm:text-sm font-sans font-bold text-slate-900 truncate">
+                                    {idx + 1}. {att.fullName} {att.nickname ? `(“${att.nickname}”)` : ''}
+                                  </p>
+                                  <p className="text-[11px] text-slate-500 font-sans flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
+                                    <span>{formattedDate ? `Ngày nộp: ${formattedDate}` : 'Đã xác nhận đóng quỹ'}</span>
+                                  </p>
+                                </div>
+                                <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
+                                  +{amount.toLocaleString('vi-VN')} đ
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               )}
