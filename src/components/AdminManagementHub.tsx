@@ -142,6 +142,15 @@ export async function compressImageToJpeg(file: File, maxWidth = 1600, quality =
   });
 }
 
+// Lấy mã PIN quản trị đã xác thực từ session để ký các lệnh ghi nhạy cảm
+const getAdminPinToken = (): string => {
+  try {
+    return sessionStorage.getItem('admin_pin_token') || '';
+  } catch {
+    return '';
+  }
+};
+
 interface AdminManagementHubProps {
   isOpen: boolean;
   onClose: () => void;
@@ -1024,6 +1033,7 @@ export default function AdminManagementHub({
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             action: 'delete_rsvp',
+            pin: getAdminPinToken(),
             fullName: attendee.fullName,
             phone: attendee.phone,
             rowId: attendee.rowId
@@ -1214,6 +1224,7 @@ export default function AdminManagementHub({
         method: 'POST',
         body: JSON.stringify({
           action: 'update_fund',
+          pin: getAdminPinToken(),
           phone: attendee.phone,
           fullName: attendee.fullName,
           fundStatus: nextStatus,
@@ -1264,6 +1275,7 @@ export default function AdminManagementHub({
         method: 'POST',
         body: JSON.stringify({
           action: 'update_fund',
+          pin: getAdminPinToken(),
           phone: attendee.phone,
           fullName: attendee.fullName,
           fundStatus: 'paid',
@@ -1410,6 +1422,7 @@ export default function AdminManagementHub({
         method: 'POST',
         body: JSON.stringify({
           action: 'update_fund',
+          pin: getAdminPinToken(),
           phone: adjustFundMember.phone,
           fullName: adjustFundMember.fullName,
           fundStatus: targetStatus,
@@ -2274,7 +2287,9 @@ export default function AdminManagementHub({
     setIsTestingConnection(true);
     setConnectionTestResult(null);
     try {
-      const res = await fetch(`${target}?action=get_all_data&t=${Date.now()}`);
+      const adminPin = getAdminPinToken();
+      const pinQuery = adminPin ? `&pin=${encodeURIComponent(adminPin)}` : '';
+      const res = await fetch(`${target}?action=get_all_data${pinQuery}&t=${Date.now()}`);
       const json = await res.json();
       if (json && json.status === 'success') {
         const rsvpCount = json.data?.rsvp?.length ?? 0;
@@ -2315,7 +2330,9 @@ export default function AdminManagementHub({
 
     setIsCleaningDuplicates(true);
     try {
-      const res = await fetch(`${target}?action=deduplicate_rsvp&t=${Date.now()}`);
+      const adminPin = getAdminPinToken();
+      const pinQuery = adminPin ? `&pin=${encodeURIComponent(adminPin)}` : '';
+      const res = await fetch(`${target}?action=deduplicate_rsvp${pinQuery}&t=${Date.now()}`);
       const data = await res.json();
       if (data && data.status === 'success') {
         alert(data.message || 'Đã dọn dẹp các bản ghi trùng lặp thành công!');

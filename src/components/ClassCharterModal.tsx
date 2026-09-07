@@ -14,6 +14,7 @@ import {
   Copy,
   BookOpen
 } from 'lucide-react';
+import { maskPhone } from '../data';
 
 interface ClassCharterModalProps {
   isOpen: boolean;
@@ -375,7 +376,7 @@ export default function ClassCharterModal({
                             title="Bấm để gọi"
                           >
                             <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                            {m.phone}
+                            {maskPhone(m.phone)}
                           </a>
                           <button
                             type="button"

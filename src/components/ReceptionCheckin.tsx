@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, UserCheck, UserX, CheckCircle, Clock, Shirt, Sparkles, Phone, Users, Filter, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData } from '../types';
+import { maskPhone } from '../data';
 
 interface ReceptionCheckinProps {
   attendees: RsvpData[];
@@ -211,7 +212,7 @@ export default function ReceptionCheckin({
                     </td>
 
                     <td className="py-3 px-4 font-mono text-brand-text-muted text-[11px]">
-                      {attendee.phone}
+                      {maskPhone(attendee.phone)}
                     </td>
 
                     <td className="py-3 px-4">

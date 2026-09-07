@@ -44,6 +44,9 @@ export default function PinAuthModal({
       const result = await verifyPinViaBackend(pinToTest, appsScriptUrl);
       if (result.success && result.role) {
         try {
+          sessionStorage.setItem('admin_pin_token', pinToTest);
+        } catch (e) {}
+        try {
           confetti({ particleCount: 45, spread: 55, origin: { y: 0.5 } });
         } catch (e) {}
         setEnteredPin('');

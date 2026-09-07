@@ -14,6 +14,7 @@ export interface ClassMember {
 
 export interface RsvpData {
   id?: string;
+  rowId?: string;              // Số dòng trong Google Sheet để đối soát chính xác 1-1
   memberId?: string;           // ID thành viên trong Danh Bạ Lớp (VD: 'm01', 'm41') để phân biệt người trùng tên
   fullName: string;
   nickname?: string;
@@ -30,7 +31,8 @@ export interface RsvpData {
   fundStatus?: 'paid' | 'unpaid' | 'pending' | 'exempt';
   fundAmount?: number;
   fundNote?: string;
-  fundReceiptUrl?: string;     // URL ảnh biên lai / UNC / Bill chuyển khoản trên Google Drive
+  fundReceiptUrl?: string;     // URL ảnh biên lai / UNC / Bill chuyển khoản trên Google Drive (Admin Only)
+  hasReceipt?: boolean;        // Cờ đánh dấu đã nộp biên lai (Public an toàn không lộ URL ảnh)
   fundPaidAt?: string;         // Thời gian xác nhận đóng quỹ
   fundPaymentMethod?: 'bank_transfer' | 'cash' | 'other'; // Hình thức đóng
   fundAuditedBy?: string;      // Tên thủ quỹ / Admin đối soát

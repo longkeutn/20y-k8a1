@@ -110,11 +110,13 @@ export default function App() {
   const syncToBackend = async (action: string, payload: any) => {
     if (!activeAppsScriptUrl || !activeAppsScriptUrl.startsWith('http')) return;
     try {
+      const pin = sessionStorage.getItem('admin_pin_token') || undefined;
       await fetch(activeAppsScriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action,
+          pin,
           ...payload
         })
       });
@@ -651,7 +653,9 @@ export default function App() {
       // 1. Tải song song nhưng cập nhật state NGAY LẬP TỨC khi mỗi tiến trình hoàn tất
       const fetchMasterPromise = (async () => {
         try {
-          const res = await fetch(`${targetUrl}?action=get_all_data&t=${Date.now()}`);
+          const adminPinToken = sessionStorage.getItem('admin_pin_token') || '';
+          const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
+          const res = await fetch(`${targetUrl}?action=get_all_data${pinQuery}&t=${Date.now()}`);
           const result = await res.json();
           if (result && result.status === 'success' && result.data) {
             const { rsvp, wishes, config, media, roster, drivePhotos: embeddedDrivePhotos } = result.data;
@@ -1532,6 +1536,7 @@ export default function App() {
           onSuccess={(role) => {
             setCurrentUserRole(role);
             sessionStorage.setItem('user_role', role);
+            hydrateAllData(activeAppsScriptUrl);
           }}
         />
       )}
@@ -1548,10 +1553,13 @@ export default function App() {
           onLoginSuccess={(role) => {
             setCurrentUserRole(role);
             sessionStorage.setItem('user_role', role);
+            hydrateAllData(activeAppsScriptUrl);
           }}
           onLogout={() => {
             setCurrentUserRole('guest');
             sessionStorage.removeItem('user_role');
+            sessionStorage.removeItem('admin_pin_token');
+            hydrateAllData(activeAppsScriptUrl);
           }}
           rsvpList={rsvpList}
           onUpdateRsvpList={(updated) => {

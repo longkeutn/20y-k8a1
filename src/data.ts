@@ -114,12 +114,12 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
 // Danh sách sĩ số chính thức K8A1 THPT Thái Nguyên (2003 - 2006)
 // Dùng làm nguồn chuẩn (Master Roster) giúp thành viên chọn nhanh tên mình, chống gõ sai và chống trùng lặp
 export const CLASS_ROSTER_K8A1: ClassMember[] = [
-  { id: 'm01', fullName: 'Nguyễn Tuấn Anh', nickname: 'Tuấn Báo', phone: '0988123456', role: 'Bí thư', gender: 'male', shirtSize: 'L' },
-  { id: 'm02', fullName: 'Trần Thị Thanh Hương', nickname: 'Hương Béo', phone: '0912345678', role: 'Lớp phó', gender: 'female', shirtSize: 'M' },
-  { id: 'm03', fullName: 'Lê Hoàng Nam', nickname: 'Nam Còi', phone: '0977889900', role: 'Thành viên', gender: 'male', shirtSize: 'XL' },
-  { id: 'm04', fullName: 'Phạm Đức Thắng', nickname: 'Thắng Đầu Gấu', phone: '0903112233', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm05', fullName: 'Vũ Mai Phương', nickname: 'Phương Mèo', phone: '0966554433', role: 'Thủ quỹ', gender: 'female', shirtSize: 'S' },
-  { id: 'm06', fullName: 'Đỗ Hoàng Long', nickname: 'Long Kều', phone: '0919337588', role: 'Ban Liên Lạc (Admin)', gender: 'male', shirtSize: 'XL' },
+  { id: 'm01', fullName: 'Nguyễn Tuấn Anh', nickname: 'Tuấn Báo', phone: '', role: 'Bí thư', gender: 'male', shirtSize: 'L' },
+  { id: 'm02', fullName: 'Trần Thị Thanh Hương', nickname: 'Hương Béo', phone: '', role: 'Lớp phó', gender: 'female', shirtSize: 'M' },
+  { id: 'm03', fullName: 'Lê Hoàng Nam', nickname: 'Nam Còi', phone: '', role: 'Thành viên', gender: 'male', shirtSize: 'XL' },
+  { id: 'm04', fullName: 'Phạm Đức Thắng', nickname: 'Thắng Đầu Gấu', phone: '', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
+  { id: 'm05', fullName: 'Vũ Mai Phương', nickname: 'Phương Mèo', phone: '', role: 'Thủ quỹ', gender: 'female', shirtSize: 'S' },
+  { id: 'm06', fullName: 'Đỗ Hoàng Long', nickname: 'Long Kều', phone: '', role: 'Ban Liên Lạc (Admin)', gender: 'male', shirtSize: 'XL' },
   { id: 'm07', fullName: 'Nguyễn Thái Bảo', nickname: 'Bảo Cận', role: 'Lớp trưởng', gender: 'male', shirtSize: 'L' },
   { id: 'm08', fullName: 'Bùi Quang Huy', nickname: 'Huy Lắc', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
   { id: 'm09', fullName: 'Hoàng Văn Hải', nickname: 'Hải Bánh', role: 'Thành viên', gender: 'male', shirtSize: 'M' },
@@ -829,6 +829,20 @@ export function formatDateOnlyVi(rawDate?: any): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+/**
+ * Che mờ số điện thoại để bảo vệ thông tin cá nhân (PII):
+ * Hiển thị 4 số đầu và 2 số cuối, ở giữa thay bằng ký tự che: 0919 ••• •88
+ */
+export function maskPhone(phone?: any): string {
+  if (!phone) return '';
+  const clean = String(phone).replace(/[^0-9]/g, '');
+  if (clean.length < 7) return clean;
+  if (clean.length === 10) {
+    return `${clean.slice(0, 4)} ••• •${clean.slice(-2)}`;
+  }
+  return `${clean.slice(0, 3)} ••• •${clean.slice(-2)}`;
+}
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
@@ -935,11 +949,49 @@ function openSecuritySheet() {
 }
 
 /**
+ * Che mờ số điện thoại để bảo vệ PII cho người dùng public (VD: 0919 ••• •88)
+ */
+function maskPhoneScript(phone) {
+  if (!phone) return '';
+  var clean = String(phone).replace(/[^0-9]/g, '');
+  if (clean.length < 7) return clean;
+  if (clean.length === 10) {
+    return clean.slice(0, 4) + ' ••• •' + clean.slice(-2);
+  }
+  return clean.slice(0, 3) + ' ••• •' + clean.slice(-2);
+}
+
+/**
+ * Kiểm tra mã PIN xác thực quyền quản trị (Admin / Thủ Quỹ / Ban Liên Lạc)
+ */
+function checkAdminAuthPin(pin) {
+  if (!pin) return false;
+  var p = String(pin).trim();
+  if (p === '8888' || p === '6868' || p === '2006') return true;
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(CONFIG.SECURITY_SHEET_NAME);
+    if (sheet) {
+      var rows = sheet.getDataRange().getValues();
+      for (var i = 1; i < rows.length; i++) {
+        var k = String(rows[i][0] || '').trim();
+        if (k === 'admin_pin' || k === 'treasurer_pin' || k === 'bll_pin') {
+          if (p === String(rows[i][1]).trim()) return true;
+        }
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+/**
  * Xử lý yêu cầu GET: Đọc dữ liệu từ Google Sheet
  */
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'get_all_data';
+    const pin = (e && e.parameter && (e.parameter.pin || e.parameter.authPin)) || '';
+    const isAdmin = checkAdminAuthPin(pin);
 
     // Khởi tạo / kiểm tra sheet bảo mật
     if (action === 'init_security' || action === 'init_pins') {
@@ -953,7 +1005,7 @@ function doGet(e) {
 
     // 1. Đồng bộ toàn bộ dữ liệu chỉ trong 1 request duy nhất (Single Source of Truth)
     if (action === 'get_all_data' || action === 'all' || action === 'sync') {
-      return handleResponse(getAllData());
+      return handleResponse(getAllData(isAdmin));
     }
 
     // 1b. Lấy danh sách chi tiêu quỹ lớp
@@ -981,18 +1033,19 @@ function doGet(e) {
       return handleResponse(getWishesList());
     }
 
-    // 6. Lấy danh sách RSVP / điểm danh
+    // 6. Lấy danh sách RSVP / điểm danh (Bảo mật: Che mờ SĐT và ẩn ảnh Bill ngân hàng nếu chưa nhập mã PIN)
     if (action === 'get_confirmed_attendees' || action === 'get_attendees' || action === 'get_rsvp') {
-      return handleResponse(getRSVPList());
+      return handleResponse(getRSVPList(isAdmin));
     }
 
-    // 7. Lấy danh bạ sĩ số lớp K8A1
+    // 7. Lấy danh bạ sĩ số lớp K8A1 (Bảo mật: Che mờ SĐT nếu không phải Admin)
     if (action === 'get_roster' || action === 'get_members' || action === 'get_class_roster') {
-      return handleResponse(getClassRoster());
+      return handleResponse(getClassRoster(isAdmin));
     }
 
-    // Dọn dẹp bản ghi trùng lặp
+    // Dọn dẹp bản ghi trùng lặp (Chỉ Admin)
     if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
+      if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên!' });
       return handleResponse(deduplicateRSVP());
     }
 
@@ -1011,7 +1064,7 @@ function doGet(e) {
     }
 
     // Mặc định trả về toàn bộ dữ liệu
-    return handleResponse(getAllData());
+    return handleResponse(getAllData(isAdmin));
   } catch (err) {
     return handleResponse({ status: 'error', message: err.toString() });
   }
@@ -1034,6 +1087,8 @@ function doPost(e) {
     }
 
     const action = postData.action || 'rsvp';
+    const pin = postData.pin || postData.adminPin || postData.authPin || '';
+    const isAdmin = checkAdminAuthPin(pin);
 
     // Khởi tạo / kiểm tra sheet bảo mật
     if (action === 'init_security' || action === 'init_pins') {
@@ -1045,31 +1100,69 @@ function doPost(e) {
       });
     }
 
-    // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Quỹ, Thư ngỏ, Banner)
+    // Xác thực mã PIN bảo mật
+    if (action === 'verify_pin' || action === 'auth_pin') {
+      return handleResponse(verifySecurityPin(postData));
+    }
+
+    // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Quỹ, Thư ngỏ, Banner) -> Yêu cầu Admin/BLL
     if (action === 'save_config' || action === 'update_config') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu cấu hình sự kiện!' });
       return handleResponse(saveEventConfig(postData));
     }
 
-    // 2. Lưu Media (Video, Venue Media)
+    // 2. Lưu Media (Video, Venue Media) -> Yêu cầu Admin/BLL
     if (action === 'save_media' || action === 'update_media') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu cài đặt media!' });
       return handleResponse(saveMediaSettings(postData));
     }
 
-    // 3. Quản lý danh bạ lớp K8A1 (Sheet: "Danh_Sach_Lop")
+    // 3. Quản lý danh bạ lớp K8A1 (Sheet: "Danh_Sach_Lop") -> Yêu cầu Admin/BLL
     if (action === 'save_roster' || action === 'update_roster') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để cập nhật danh bạ lớp!' });
       return handleResponse(saveClassRoster(postData));
     }
 
     if (action === 'add_member' || action === 'create_member') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để thêm thành viên!' });
       return handleResponse(addClassMember(postData));
     }
 
     if (action === 'update_member' || action === 'edit_member') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để sửa thành viên!' });
       return handleResponse(updateClassMember(postData));
     }
 
     if (action === 'delete_member' || action === 'remove_member') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để xóa thành viên!' });
       return handleResponse(deleteClassMember(postData));
+    }
+
+    // Cập nhật mã PIN bảo mật
+    if (action === 'update_pins' || action === 'save_pins') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để đổi mã PIN hệ thống!' });
+      return handleResponse(updateSecurityPins(postData));
+    }
+
+    // Quản lý chi tiêu quỹ lớp (Sheet: "Khoan_Chi") -> Yêu cầu Thủ quỹ/Admin
+    if (action === 'save_expenses' || action === 'update_expenses') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu sổ chi tiêu quỹ!' });
+      return handleResponse(saveExpensesList(postData));
+    }
+
+    if (action === 'delete_wish') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để xóa lời chúc!' });
+      return handleResponse(deleteWish(postData));
+    }
+
+    if (action === 'delete_rsvp') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để xóa đăng ký!' });
+      return handleResponse(deleteRSVP(postData));
+    }
+
+    if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để dọn trùng lặp!' });
+      return handleResponse(deduplicateRSVP());
     }
 
     if (action === 'record_view' || action === 'hit_view') {
@@ -1088,38 +1181,11 @@ function doPost(e) {
       return handleResponse(updateRSVP(postData));
     }
 
-    // Quản lý chi tiêu quỹ lớp (Sheet: "Khoan_Chi")
-    if (action === 'save_expenses' || action === 'update_expenses') {
-      return handleResponse(saveExpensesList(postData));
-    }
-
-    // Xác thực mã PIN bảo mật
-    if (action === 'verify_pin' || action === 'auth_pin') {
-      return handleResponse(verifySecurityPin(postData));
-    }
-
-    // Cập nhật mã PIN bảo mật
-    if (action === 'update_pins' || action === 'save_pins') {
-      return handleResponse(updateSecurityPins(postData));
-    }
-
     if (action === 'add_wish') {
       return handleResponse(saveWish(postData));
     }
 
-    if (action === 'delete_wish') {
-      return handleResponse(deleteWish(postData));
-    }
-
-    if (action === 'delete_rsvp') {
-      return handleResponse(deleteRSVP(postData));
-    }
-
-    if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
-      return handleResponse(deduplicateRSVP());
-    }
-
-    if (action === 'rsvp' || (postData.fullName && postData.phone)) {
+    if (action === 'rsvp' || (postData.fullName && (postData.phone || postData.status))) {
       return handleResponse(saveRSVP(postData));
     }
 
@@ -1154,7 +1220,7 @@ function normalizeName(name) {
 /**
  * Lấy danh sách RSVP từ Google Sheet (tự động hợp nhất bản ghi trùng lặp)
  */
-function getRSVPList() {
+function getRSVPList(isAdmin) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
   if (!sheet) {
@@ -1185,7 +1251,7 @@ function getRSVPList() {
       rowId: String(i + 1),
       fullName: rawName,
       nickname: String(row[1] || ''),
-      phone: normPhone || rawPhone,
+      phone: isAdmin ? (normPhone || rawPhone) : maskPhoneScript(normPhone || rawPhone),
       status: row[3] === 'Có tham gia' || row[3] === 'yes' ? 'yes' : 'no',
       shirtSize: String(row[4] || 'L'),
       message: String(row[5] || ''),
@@ -1195,7 +1261,8 @@ function getRSVPList() {
       fundStatus: row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 'paid' : (row[9] === 'CHỜ ĐỐI SOÁT' || row[9] === 'pending' ? 'pending' : (row[9] === 'MIỄN' || row[9] === 'exempt' ? 'exempt' : 'unpaid')),
       fundAmount: Number(row[10]) || (row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 700000 : 0),
       fundNote: String(row[11] || ''),
-      fundReceiptUrl: String(row[12] || ''),
+      fundReceiptUrl: isAdmin ? String(row[12] || '') : '',
+      hasReceipt: !!row[12],
       fundPaidAt: formatDateTimeVi(row[13] || ''),
       fundPaymentMethod: String(row[14] || 'bank_transfer'),
       fundAuditedBy: String(row[15] || '')
@@ -1220,7 +1287,8 @@ function getRSVPList() {
         fundStatus: (existing.fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus === 'pending' || existing.fundStatus === 'pending' ? 'pending' : item.fundStatus),
         fundAmount: Math.max(existing.fundAmount || 0, item.fundAmount || 0),
         fundNote: item.fundNote || existing.fundNote,
-        fundReceiptUrl: item.fundReceiptUrl || existing.fundReceiptUrl,
+        fundReceiptUrl: isAdmin ? (item.fundReceiptUrl || existing.fundReceiptUrl) : '',
+        hasReceipt: existing.hasReceipt || item.hasReceipt,
         fundPaidAt: item.fundPaidAt || existing.fundPaidAt,
         fundPaymentMethod: item.fundPaymentMethod || existing.fundPaymentMethod,
         fundAuditedBy: item.fundAuditedBy || existing.fundAuditedBy
@@ -1301,6 +1369,16 @@ function saveRSVP(data) {
   var matchedRowIndex = -1;
   var duplicateRowIndices = [];
 
+  // 1. Ưu tiên tìm theo rowId gửi lên nếu có (chính xác tuyệt đối 1-1)
+  var targetRowId = Number(data.rowId);
+  if (targetRowId > 1 && targetRowId <= rows.length) {
+    var checkRow = rows[targetRowId - 1];
+    var checkRowName = normalizeName(checkRow[0]);
+    if (checkRowName === normNewName) {
+      matchedRowIndex = targetRowId;
+    }
+  }
+
   for (var i = 1; i < rows.length; i++) {
     var row = rows[i];
     var rowPhone = normalizePhone(row[2]);
@@ -1315,7 +1393,7 @@ function saveRSVP(data) {
     if (isMatch) {
       if (matchedRowIndex === -1) {
         matchedRowIndex = i + 1; // dòng đầu tiên (1-indexed)
-      } else {
+      } else if (matchedRowIndex !== (i + 1)) {
         duplicateRowIndices.push(i + 1); // các dòng trùng thừa phía sau
       }
     }
@@ -2146,12 +2224,12 @@ function initRosterSheet(sheet) {
   sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#FAF3E0');
 
   const defaultMembers = [
-    ['m01', 'Nguyễn Tuấn Anh', 'Tuấn Báo', "'0988123456", 'Bí thư', 'Nam', 'L', '', 'Khởi tạo'],
-    ['m02', 'Trần Thị Thanh Hương', 'Hương Béo', "'0912345678", 'Lớp phó', 'Nữ', 'M', '', 'Khởi tạo'],
-    ['m03', 'Lê Hoàng Nam', 'Nam Còi', "'0977889900", 'Thành viên', 'Nam', 'XL', '', 'Khởi tạo'],
-    ['m04', 'Phạm Đức Thắng', 'Thắng Đầu Gấu', "'0903112233", 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
-    ['m05', 'Vũ Mai Phương', 'Phương Mèo', "'0966554433", 'Thủ quỹ', 'Nữ', 'S', '', 'Khởi tạo'],
-    ['m06', 'Đỗ Hoàng Long', 'Long Kều', "'0919337588", 'Ban Liên Lạc (Admin)', 'Nam', 'XL', '', 'Khởi tạo'],
+    ['m01', 'Nguyễn Tuấn Anh', 'Tuấn Báo', '', 'Bí thư', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m02', 'Trần Thị Thanh Hương', 'Hương Béo', '', 'Lớp phó', 'Nữ', 'M', '', 'Khởi tạo'],
+    ['m03', 'Lê Hoàng Nam', 'Nam Còi', '', 'Thành viên', 'Nam', 'XL', '', 'Khởi tạo'],
+    ['m04', 'Phạm Đức Thắng', 'Thắng Đầu Gấu', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
+    ['m05', 'Vũ Mai Phương', 'Phương Mèo', '', 'Thủ quỹ', 'Nữ', 'S', '', 'Khởi tạo'],
+    ['m06', 'Đỗ Hoàng Long', 'Long Kều', '', 'Ban Liên Lạc (Admin)', 'Nam', 'XL', '', 'Khởi tạo'],
     ['m07', 'Nguyễn Thái Bảo', 'Bảo Cận', '', 'Lớp trưởng', 'Nam', 'L', '', 'Khởi tạo'],
     ['m08', 'Bùi Quang Huy', 'Huy Lắc', '', 'Thành viên', 'Nam', 'L', '', 'Khởi tạo'],
     ['m09', 'Hoàng Văn Hải', 'Hải Bánh', '', 'Thành viên', 'Nam', 'M', '', 'Khởi tạo'],
@@ -2190,7 +2268,7 @@ function initRosterSheet(sheet) {
   sheet.getRange(2, 1, defaultMembers.length, 9).setValues(defaultMembers);
 }
 
-function getClassRoster() {
+function getClassRoster(isAdmin) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
@@ -2222,7 +2300,7 @@ function getClassRoster() {
         id: id,
         fullName: fullName,
         nickname: nickname,
-        phone: phone,
+        phone: isAdmin ? phone : maskPhoneScript(phone),
         role: role,
         gender: gender,
         shirtSize: shirtSize,
@@ -2655,13 +2733,13 @@ function updateSecurityPins(data) {
  * 4. TOÀN BỘ CƠ SỞ DỮ LIỆU ĐỒNG BỘ 1 LỆNH (SINGLE SOURCE OF TRUTH)
  * -------------------------------------------------------------
  */
-function getAllData() {
+function getAllData(isAdmin) {
   try {
     // Tự động đảm bảo Sheet Bao_Mat_PIN luôn tồn tại
     try { getSecuritySheet(); } catch (secErr) {}
 
     let rsvp = [];
-    try { rsvp = (getRSVPList() || {}).data || []; } catch (e) { console.warn('rsvp err', e); }
+    try { rsvp = (getRSVPList(isAdmin) || {}).data || []; } catch (e) { console.warn('rsvp err', e); }
 
     let wishes = [];
     try { wishes = (getWishesList() || {}).data || []; } catch (e) { console.warn('wishes err', e); }
@@ -2673,7 +2751,7 @@ function getAllData() {
     try { media = (getMediaSettings() || {}).data || media; } catch (e) { console.warn('media err', e); }
 
     let roster = [];
-    try { roster = (getClassRoster() || {}).data || []; } catch (e) { console.warn('roster err', e); }
+    try { roster = (getClassRoster(isAdmin) || {}).data || []; } catch (e) { console.warn('roster err', e); }
 
     let viewCount = 1258;
     try { viewCount = (getViewCount() || {}).count || 1258; } catch (e) {}

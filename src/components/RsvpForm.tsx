@@ -23,7 +23,7 @@ import {
   Copy
 } from 'lucide-react';
 import { RsvpData, ClassMember, EventConfig } from '../types';
-import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS } from '../data';
+import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, maskPhone } from '../data';
 import LiveGoldenPass from './LiveGoldenPass';
 
 interface RsvpFormProps {
@@ -64,6 +64,8 @@ export default function RsvpForm({
   const [fullName, setFullName] = useState('');
   const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
+  const [savedExistingPhone, setSavedExistingPhone] = useState('');
+  const [useSavedPhone, setUseSavedPhone] = useState(false);
   const [shirtSize, setShirtSize] = useState('L');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [showSmartSizer, setShowSmartSizer] = useState(false);
@@ -105,7 +107,8 @@ export default function RsvpForm({
 
   // Tìm kiếm xem bạn này đã từng đăng ký trong rsvpList chưa (chống gộp nhầm người trùng tên)
   const matchedExistingAttendee = useMemo(() => {
-    const p = normalizePhone(phone);
+    const activePhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
+    const p = normalizePhone(activePhone);
     const n = normalizeName(fullName);
     if (!p && !n) return null;
 
@@ -147,7 +150,7 @@ export default function RsvpForm({
 
       return false;
     });
-  }, [phone, fullName, rsvpList, activeMember, nameCounts]);
+  }, [phone, savedExistingPhone, useSavedPhone, fullName, rsvpList, activeMember, nameCounts]);
 
   // Đồng bộ thông tin khi activeMember thay đổi từ bất kỳ đâu (nhận diện chuẩn xác từng người, không đè người trùng tên)
   useEffect(() => {
@@ -160,7 +163,6 @@ export default function RsvpForm({
       } else {
         setShirtSize('L');
       }
-      setPhone(activeMember.phone ? String(activeMember.phone) : '');
       setIsCustomMode(false);
 
       const mP = normalizePhone(activeMember.phone);
@@ -191,8 +193,19 @@ export default function RsvpForm({
         return false;
       });
 
+      // Xác định SĐT đã lưu (nếu có): bảo mật PII bằng cách không in số rõ ra input text
+      const existingPhone = existing?.phone ? String(existing.phone).trim() : (activeMember.phone ? String(activeMember.phone).trim() : '');
+      if (existingPhone) {
+        setSavedExistingPhone(existingPhone);
+        setUseSavedPhone(true);
+      } else {
+        setSavedExistingPhone('');
+        setUseSavedPhone(false);
+      }
+      // Ô nhập để trống sẵn sàng để gõ số mới nếu người dùng đã đổi SĐT sau 20 năm
+      setPhone('');
+
       if (existing) {
-        if (existing.phone) setPhone(String(existing.phone));
         if (existing.shirtSize) {
           const normSize = existing.shirtSize.toUpperCase() === 'XXL' ? '2XL' : existing.shirtSize.toUpperCase();
           setShirtSize(normSize);
@@ -209,6 +222,8 @@ export default function RsvpForm({
       setFullName('');
       setNickname('');
       setPhone('');
+      setSavedExistingPhone('');
+      setUseSavedPhone(false);
       setMessage('');
       setStatus('yes');
     }
@@ -222,6 +237,8 @@ export default function RsvpForm({
       setFullName('');
       setNickname('');
       setPhone('');
+      setSavedExistingPhone('');
+      setUseSavedPhone(false);
       return;
     }
 
@@ -230,6 +247,8 @@ export default function RsvpForm({
       setFullName('');
       setNickname('');
       setPhone('');
+      setSavedExistingPhone('');
+      setUseSavedPhone(false);
       return;
     }
 
@@ -245,7 +264,10 @@ export default function RsvpForm({
           const normSize = member.shirtSize.toUpperCase() === 'XXL' ? '2XL' : member.shirtSize.toUpperCase();
           setShirtSize(normSize);
         }
-        if (member.phone) setPhone(String(member.phone));
+        const mPhone = member.phone ? String(member.phone).trim() : '';
+        setSavedExistingPhone(mPhone);
+        setUseSavedPhone(!!mPhone);
+        setPhone('');
       }
     }
   };
@@ -256,6 +278,8 @@ export default function RsvpForm({
     setFullName('');
     setNickname('');
     setPhone('');
+    setSavedExistingPhone('');
+    setUseSavedPhone(false);
     setMessage('');
     setStatus('yes');
     setSubmitSuccess(null);
@@ -300,7 +324,8 @@ export default function RsvpForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !phone.trim()) {
+    const finalPhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
+    if (!fullName.trim() || !finalPhone) {
       setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
       return;
     }
@@ -311,10 +336,11 @@ export default function RsvpForm({
 
     const rsvpPayload: RsvpData = {
       id: matchedExistingAttendee ? matchedExistingAttendee.id : `rsvp-${Date.now()}`,
+      rowId: matchedExistingAttendee?.rowId,
       memberId: activeMember?.id,
       fullName: fullName.trim(),
       nickname: nickname.trim() || undefined,
-      phone: phone.trim(),
+      phone: finalPhone,
       className: 'K8A1',
       shirtSize: status === 'yes' ? shirtSize : undefined,
       status,
@@ -328,6 +354,7 @@ export default function RsvpForm({
         fundAmount: matchedExistingAttendee.fundAmount,
         fundNote: matchedExistingAttendee.fundNote,
         fundReceiptUrl: matchedExistingAttendee.fundReceiptUrl,
+        hasReceipt: matchedExistingAttendee.hasReceipt,
         fundPaidAt: matchedExistingAttendee.fundPaidAt,
         fundPaymentMethod: matchedExistingAttendee.fundPaymentMethod,
         fundAuditedBy: matchedExistingAttendee.fundAuditedBy
@@ -335,6 +362,9 @@ export default function RsvpForm({
     };
 
     setLastSubmittedAttendee(rsvpPayload);
+    setSavedExistingPhone(finalPhone);
+    setUseSavedPhone(true);
+    setPhone('');
 
     // Gửi trực tiếp lên Google Apps Script
     if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
@@ -747,22 +777,73 @@ export default function RsvpForm({
                 />
               </div>
 
-              {/* Số điện thoại */}
-              <div className="space-y-1">
-                <label htmlFor="rsvp-phone" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-amber-700" />
-                  <span>Số điện thoại</span>
-                  <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  id="rsvp-phone"
-                  placeholder="090x xxx xxx"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-mono outline-none transition"
-                />
+              {/* Số điện thoại (Bảo mật PII - Zero-Block) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="rsvp-phone" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
+                    <Phone className="w-3 h-3 text-amber-700" />
+                    <span>Số điện thoại liên hệ</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  {savedExistingPhone && (
+                    <span className="text-[10px] text-slate-500 font-sans flex items-center gap-1">
+                      Đã có: <span className="font-mono font-bold text-amber-900">{maskPhone(savedExistingPhone)}</span>
+                    </span>
+                  )}
+                </div>
+
+                {savedExistingPhone && useSavedPhone ? (
+                  <div className="p-2.5 bg-gradient-to-r from-amber-50 to-amber-100/60 border border-amber-200/80 rounded-lg flex items-center justify-between gap-2 shadow-2xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                      <div className="text-[11px] text-slate-700 font-sans truncate">
+                        Sử dụng SĐT đã lưu: <strong className="font-mono text-amber-900">{maskPhone(savedExistingPhone)}</strong>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseSavedPhone(false);
+                        setPhone('');
+                      }}
+                      className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
+                    >
+                      Đổi số mới
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <input
+                      type="tel"
+                      id="rsvp-phone"
+                      placeholder={savedExistingPhone ? `Để trống sẽ dùng ${maskPhone(savedExistingPhone)} hoặc gõ số mới` : "090x xxx xxx"}
+                      required={!savedExistingPhone}
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        if (e.target.value.trim()) {
+                          setUseSavedPhone(false);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-mono outline-none transition"
+                    />
+                    {savedExistingPhone && !useSavedPhone && (
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
+                        <span className="text-amber-700">Đang nhập số mới</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUseSavedPhone(true);
+                            setPhone('');
+                          }}
+                          className="text-amber-800 hover:text-amber-950 font-medium underline cursor-pointer"
+                        >
+                          Dùng lại số đã lưu ({maskPhone(savedExistingPhone)})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
