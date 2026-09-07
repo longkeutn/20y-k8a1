@@ -861,10 +861,21 @@ export default function App() {
             }
 
             // H. Đồng bộ Sổ Thu Quỹ Lớp từ Google Sheet (tab "Khoan_Thu")
-            if (Array.isArray(result.data.incomes)) {
+            if (Array.isArray(result.data?.incomes)) {
               const cleanInc = result.data.incomes.map((item: any, idx: number) => sanitizeIncome(item, idx));
               setIncomes(cleanInc);
               try { localStorage.setItem('k8a1_incomes_list', JSON.stringify(cleanInc)); } catch (e) {}
+            } else {
+              // Dự phòng: Nếu Apps Script phiên bản cũ chưa nhúng incomes trong get_all_data, gọi riêng action=get_incomes
+              try {
+                const incRes = await fetch(`${targetUrl}?action=get_incomes&t=${Date.now()}`);
+                const incJson = await incRes.json();
+                if (incJson && incJson.status === 'success' && Array.isArray(incJson.data)) {
+                  const cleanInc = incJson.data.map((item: any, idx: number) => sanitizeIncome(item, idx));
+                  setIncomes(cleanInc);
+                  try { localStorage.setItem('k8a1_incomes_list', JSON.stringify(cleanInc)); } catch (e) {}
+                }
+              } catch (errInc) {}
             }
           } else {
             // Dự phòng: Nếu get_all_data trả về lỗi hoặc chưa sẵn sàng, tải riêng cấu hình sự kiện
@@ -1528,6 +1539,9 @@ export default function App() {
                 expenses={expenses}
                 incomes={incomes}
                 activeMember={activeMember}
+                currentUserRole={currentUserRole}
+                onDeleteIncome={handleDeleteIncome}
+                onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
                 onOpenReceiptModal={handleOpenReceiptModal}
                 onOpenCharterModal={() => setIsCharterModalOpen(true)}
                 onUpdateRsvpList={(updated) => {

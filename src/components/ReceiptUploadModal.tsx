@@ -406,8 +406,9 @@ export default function ReceiptUploadModal({
       }
     }
 
-    // 2. Cập nhật rsvpList nếu là thành viên lớp hoặc khoản thu họp lớp 20 năm
-    if (onUpdateRsvpList) {
+    // 2. CHỈ cập nhật rsvpList nếu khoản thu này là Đóng Quỹ Sự Kiện Họp Lớp 20 Năm ('event')
+    // Tuyệt đối không ghi đè rsvpList nếu là Quỹ Thường Niên (100k), Mua Áo Polo, Tài Trợ, v.v.
+    if (onUpdateRsvpList && selectedCategory === 'event') {
       const existingIdx = rsvpList.findIndex((r) => {
         if (selectedMemberId && r.memberId && selectedMemberId === r.memberId) return true;
         if (defaultAttendee?.id && r.id && defaultAttendee.id === r.id) return true;

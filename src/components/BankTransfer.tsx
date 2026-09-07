@@ -23,9 +23,11 @@ import {
   FileText,
   Image as ImageIcon,
   ArrowUpRight,
-  Filter
+  Filter,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
-import { RsvpData, ClassMember, ExpenseItem, IncomeItem } from '../types';
+import { RsvpData, ClassMember, ExpenseItem, IncomeItem, UserRole } from '../types';
 import { generateVietQrUrl, EXPENSE_CATEGORIES, INCOME_CATEGORIES, formatDateOnlyVi, parseDate } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
@@ -43,6 +45,9 @@ interface BankTransferProps {
   expenses?: ExpenseItem[];
   incomes?: IncomeItem[];
   activeMember?: ClassMember | null;
+  currentUserRole?: UserRole;
+  onDeleteIncome?: (id: string) => void;
+  onRefreshData?: () => void;
   onUpdateRsvpList?: (list: RsvpData[]) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
   onOpenCharterModal?: () => void;
@@ -62,6 +67,9 @@ export default function BankTransfer({
   expenses = [],
   incomes = [],
   activeMember,
+  currentUserRole = 'guest',
+  onDeleteIncome,
+  onRefreshData,
   onUpdateRsvpList,
   onOpenReceiptModal,
   onOpenCharterModal
@@ -746,6 +754,16 @@ export default function BankTransfer({
                 >
                   Năm 2026
                 </button>
+                {onRefreshData && (
+                  <button
+                    type="button"
+                    onClick={() => onRefreshData()}
+                    className="p-1.5 text-slate-500 hover:text-amber-800 hover:bg-slate-100 rounded-lg transition cursor-pointer border border-slate-200"
+                    title="Đồng bộ / Làm mới dữ liệu từ Google Sheet"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -898,6 +916,20 @@ export default function BankTransfer({
                                     >
                                       <ImageIcon className="w-3 h-3 text-amber-700" />
                                       <span>Chứng từ</span>
+                                    </button>
+                                  )}
+                                  {(currentUserRole === 'admin' || currentUserRole === 'treasurer') && onDeleteIncome && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (window.confirm(`Bạn có chắc chắn muốn xóa khoản thu "${item.title}" (${Number(item.amount || 0).toLocaleString('vi-VN')} đ) của "${item.payerName}" khỏi sổ thu và đồng bộ lên Google Sheet?`)) {
+                                          onDeleteIncome(item.id);
+                                        }
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer border border-transparent hover:border-rose-200"
+                                      title="Xóa khoản thu này (Dành cho Thủ quỹ/Admin)"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                 </div>
