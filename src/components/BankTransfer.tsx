@@ -208,7 +208,7 @@ export default function BankTransfer({
   };
 
   return (
-    <div id="bank-transfer-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
+    <div id="bank-transfer-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden scroll-mt-20">
       {/* HEADER QUỸ LỚP */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/80 pb-3.5 gap-3">
         <div className="space-y-1 min-w-0">

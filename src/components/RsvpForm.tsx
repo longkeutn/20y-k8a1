@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Award,
   Receipt,
+  Coins,
   User,
   Phone,
   MessageSquare,
@@ -436,6 +437,31 @@ export default function RsvpForm({
     return null;
   }, [lastSubmittedAttendee, matchedExistingAttendee, fullName, nickname, shirtSize, status, phone, activeMember]);
 
+  // Cuộn mượt mà xuống khối thanh toán VietQR & Thông tin quỹ lớp (#bank-transfer-card)
+  const handleGoToVietQrPayment = () => {
+    // Tự động nhận diện activeMember nếu chưa có để khối BankTransfer tự động sinh cú pháp chuyển khoản & mã VietQR chính xác
+    if (!activeMember && currentPassAttendee && onSelectActiveMember && classRoster) {
+      const matched = classRoster.find(m => {
+        if (currentPassAttendee.memberId && m.id === currentPassAttendee.memberId) return true;
+        return m.fullName.toLowerCase().trim() === currentPassAttendee.fullName.toLowerCase().trim();
+      });
+      if (matched) {
+        onSelectActiveMember(matched);
+      }
+    }
+
+    const el = document.getElementById('bank-transfer-card');
+    if (el) {
+      const navOffset = 64;
+      const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = Math.max(0, elementPosition - navOffset);
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <div id="rsvp-form-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-5 text-left relative overflow-hidden">
       
@@ -618,26 +644,30 @@ export default function RsvpForm({
                 </button>
               </div>
 
-              {/* Nút Nộp Quỹ Lớp */}
+              {/* Nút Chuyển Khoản Đóng Quỹ Lớp (VietQR) */}
               {currentPassAttendee.status === 'yes' && (
-                <div className="pt-2 border-t border-amber-200/80">
-                  {onOpenReceiptModal ? (
+                <div className="pt-2 border-t border-amber-200/80 space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={handleGoToVietQrPayment}
+                    className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-md hover:shadow-lg active:scale-[0.99]"
+                    title="Chuyển đến khối thanh toán quét mã VietQR và thông tin số tài khoản"
+                  >
+                    <Coins className="w-4 h-4 text-emerald-200" />
+                    <span>Đóng Quỹ Lớp ({standardFundAmount.toLocaleString('vi-VN')}đ) Qua VietQR ➔</span>
+                  </button>
+
+                  {/* Nút phụ: Nếu thành viên đã chuyển khoản trước đó và chỉ cần gửi ảnh biên lai */}
+                  {onOpenReceiptModal && (
                     <button
                       type="button"
                       onClick={() => onOpenReceiptModal(currentPassAttendee)}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-2xs"
+                      className="w-full text-center text-[11px] text-amber-900 hover:text-amber-950 font-medium hover:underline cursor-pointer py-1 flex items-center justify-center gap-1 transition-colors"
+                      title="Tải lên ảnh chụp biên lai giao dịch ngân hàng gửi Ban Liên Lạc"
                     >
-                      <Receipt className="w-3.5 h-3.5" />
-                      <span>Đóng Quỹ Lớp ({standardFundAmount.toLocaleString('vi-VN')}đ) ➔</span>
+                      <Receipt className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Đã chuyển khoản rồi? Bấm vào đây để tải ảnh biên lai</span>
                     </button>
-                  ) : (
-                    <a
-                      href="#bank-transfer-card"
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-lg text-xs"
-                    >
-                      <Receipt className="w-3.5 h-3.5" />
-                      <span>Đóng Quỹ Lớp ({standardFundAmount.toLocaleString('vi-VN')}đ) ➔</span>
-                    </a>
                   )}
                 </div>
               )}
