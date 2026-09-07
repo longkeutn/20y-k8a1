@@ -213,10 +213,14 @@ export default function ReceiptUploadModal({
 
     // Synchronize to state & localStorage
     if (onUpdateRsvpList) {
-      const existingIdx = rsvpList.findIndex(r => 
-        (finalPhone && r.phone && r.phone === finalPhone) || 
-        r.fullName.toLowerCase().trim() === finalName.toLowerCase().trim()
-      );
+      const existingIdx = rsvpList.findIndex((r) => {
+        if (defaultAttendee?.id && r.id && defaultAttendee.id === r.id) return true;
+        if (defaultAttendee?.memberId && r.memberId && defaultAttendee.memberId === r.memberId) return true;
+        const p1 = (finalPhone || '').replace(/[^0-9]/g, '');
+        const p2 = (r.phone || '').replace(/[^0-9]/g, '');
+        if (p1 && p2) return p1 === p2;
+        return false;
+      });
       let updatedList: RsvpData[];
       if (existingIdx >= 0) {
         updatedList = rsvpList.map((r, i) => {

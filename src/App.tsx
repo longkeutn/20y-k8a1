@@ -685,29 +685,52 @@ export default function App() {
               }
             }
 
-            // C. Đồng bộ RSVP từ Google Sheet (lọc trùng lặp thông minh)
+            // C. Đồng bộ RSVP từ Google Sheet (bảo toàn tuyệt đối người trùng tên, chỉ gộp nếu cùng SĐT hoặc cùng memberId)
             if (Array.isArray(rsvp) && rsvp.length > 0) {
               const uniqueRsvp: RsvpData[] = [];
-              const seen = new Set<string>();
 
               for (const rawItem of rsvp) {
                 if (!rawItem) continue;
                 const item = sanitizeRsvp(rawItem);
-                const key = normalizePhoneForMatch(item.phone) || normalizeNameForMatch(item.fullName);
-                if (key && seen.has(key)) {
-                  const idx = uniqueRsvp.findIndex(x => (normalizePhoneForMatch(x.phone) || normalizeNameForMatch(x.fullName)) === key);
-                  if (idx >= 0) {
-                    uniqueRsvp[idx] = {
-                      ...uniqueRsvp[idx],
-                      ...item,
-                      checkedIn: uniqueRsvp[idx].checkedIn || item.checkedIn,
-                      fundStatus: (uniqueRsvp[idx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[idx].fundStatus),
-                      fundAmount: Math.max(uniqueRsvp[idx].fundAmount || 0, item.fundAmount || 0),
-                      fundReceiptUrl: item.fundReceiptUrl || uniqueRsvp[idx].fundReceiptUrl
-                    };
+                const itemPhone = normalizePhoneForMatch(item.phone);
+                const itemName = normalizeNameForMatch(item.fullName);
+
+                // Kiểm tra xem trong uniqueRsvp đã có bản ghi của CHÍNH người này chưa
+                const existingIdx = uniqueRsvp.findIndex((x) => {
+                  // 1. Khớp theo memberId nếu cả 2 bên đều có
+                  if (item.memberId && x.memberId) {
+                    return item.memberId === x.memberId;
                   }
+                  // 2. Khớp theo ID bản ghi nếu cả 2 bên có ID trùng nhau
+                  if (item.id && x.id && item.id === x.id) {
+                    return true;
+                  }
+
+                  const xPhone = normalizePhoneForMatch(x.phone);
+                  const xName = normalizeNameForMatch(x.fullName);
+
+                  // 3. Nếu cả 2 đều có SĐT:
+                  if (itemPhone && xPhone) {
+                    // Nếu khác SĐT => chắc chắn là 2 bạn khác nhau dù cùng họ tên!
+                    if (itemPhone !== xPhone) return false;
+                    return itemName === xName;
+                  }
+
+                  // 4. Nếu thiếu SĐT hoặc không có memberId: Tuyệt đối KHÔNG gộp theo họ tên
+                  // vì trong lớp hoàn toàn có thể có 2 bạn trùng họ tên!
+                  return false;
+                });
+
+                if (existingIdx >= 0) {
+                  uniqueRsvp[existingIdx] = {
+                    ...uniqueRsvp[existingIdx],
+                    ...item,
+                    checkedIn: uniqueRsvp[existingIdx].checkedIn || item.checkedIn,
+                    fundStatus: (uniqueRsvp[existingIdx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[existingIdx].fundStatus),
+                    fundAmount: Math.max(uniqueRsvp[existingIdx].fundAmount || 0, item.fundAmount || 0),
+                    fundReceiptUrl: item.fundReceiptUrl || uniqueRsvp[existingIdx].fundReceiptUrl
+                  };
                 } else {
-                  if (key) seen.add(key);
                   uniqueRsvp.push(item);
                 }
               }

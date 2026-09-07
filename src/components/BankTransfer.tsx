@@ -170,7 +170,13 @@ export default function BankTransfer({
   const handleOpenUpload = () => {
     if (onOpenReceiptModal) {
       if (activeMember) {
-        const matched = (rsvpList || []).find(r => r.fullName.toLowerCase() === activeMember.fullName.toLowerCase());
+        const matched = (rsvpList || []).find(r => {
+          if (activeMember.id && r.memberId) return r.memberId === activeMember.id;
+          const p1 = String(activeMember.phone || '').replace(/[^0-9]/g, '');
+          const p2 = String(r.phone || '').replace(/[^0-9]/g, '');
+          if (p1 && p2) return p1 === p2;
+          return r.fullName.toLowerCase().trim() === activeMember.fullName.toLowerCase().trim();
+        });
         onOpenReceiptModal(matched || {
           id: `temp-${Date.now()}`,
           fullName: activeMember.fullName,

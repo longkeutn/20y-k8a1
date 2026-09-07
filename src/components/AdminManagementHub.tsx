@@ -336,33 +336,76 @@ export default function AdminManagementHub({
     return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
   };
 
-  // Đồng bộ mỗi thành viên trong danh bạ với dữ liệu RSVP thực tế
+  // Đếm số lượng thành viên cùng họ tên trong danh bạ để nhận diện các bạn trùng tên
+  const rosterNameCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    rosterList.forEach((m) => {
+      const n = normNameRoster(m.fullName);
+      if (n) counts[n] = (counts[n] || 0) + 1;
+    });
+    return counts;
+  }, [rosterList]);
+
+  // Đồng bộ mỗi thành viên trong danh bạ với dữ liệu RSVP thực tế (bảo toàn 1-1, không gộp nhầm người trùng tên)
   const enrichedRoster = useMemo(() => {
-    // Tập hợp các ID/Khóa RSVP đã được ghép để đảm bảo mỗi phản hồi RSVP chỉ ghép 1-1 với 1 thành viên, chống nhân đôi số lượng
     const claimedRsvpKeys = new Set<string>();
+
+    const getRsvpKey = (r: RsvpData, index: number) => {
+      if (r.id) return `id_${r.id}`;
+      if (r.memberId) return `mid_${r.memberId}`;
+      return `p_${normPhoneRoster(r.phone)}_n_${normNameRoster(r.fullName)}_idx_${index}`;
+    };
 
     return rosterList.map((m, idx) => {
       const mP = normPhoneRoster(m.phone);
       const mN = normNameRoster(m.fullName);
+      const isDupName = mN ? (rosterNameCounts[mN] || 0) > 1 : false;
 
+      let matchedIndex = -1;
       const matchedRsvp = rsvpList.find((r, rIdx) => {
         if (!r) return false;
-        const rKey = r.id ? String(r.id) : `${normPhoneRoster(r.phone)}_${normNameRoster(r.fullName)}_${rIdx}`;
+        const rKey = getRsvpKey(r, rIdx);
         if (claimedRsvpKeys.has(rKey)) return false;
+
+        // 1. Ưu tiên khớp chính xác theo memberId
+        if (m.id && r.memberId) {
+          if (m.id === r.memberId) {
+            matchedIndex = rIdx;
+            return true;
+          }
+          return false; // Khác memberId => chắc chắn không phải bạn này dù trùng tên
+        }
 
         const rP = normPhoneRoster(r.phone);
         const rN = normNameRoster(r.fullName);
 
-        // 1. Ưu tiên khớp cả số điện thoại (nếu cả 2 bên đều có SĐT)
-        if (mP && rP && mP === rP) return true;
-        // 2. Khớp theo họ tên chính xác
-        if (mN && rN && mN === rN) return true;
+        // 2. Nếu cả 2 đều có SĐT và khác nhau => Tuyệt đối không khớp!
+        if (mP && rP && mP !== rP) {
+          return false;
+        }
+
+        // 3. Nếu SĐT khớp nhau
+        if (mP && rP && mP === rP) {
+          matchedIndex = rIdx;
+          return true;
+        }
+
+        // 4. Nếu họ tên trùng nhau:
+        if (mN && rN && mN === rN) {
+          // Nếu danh bạ có >= 2 bạn trùng tên mà không có SĐT khớp => Không ghép bừa!
+          if (isDupName) {
+            return false;
+          }
+          matchedIndex = rIdx;
+          return true;
+        }
+
         return false;
       });
 
       let rosterStatus: 'confirmed' | 'declined' | 'pending' = 'pending';
-      if (matchedRsvp) {
-        const rKey = matchedRsvp.id ? String(matchedRsvp.id) : `${normPhoneRoster(matchedRsvp.phone)}_${normNameRoster(matchedRsvp.fullName)}`;
+      if (matchedRsvp && matchedIndex >= 0) {
+        const rKey = getRsvpKey(matchedRsvp, matchedIndex);
         claimedRsvpKeys.add(rKey);
         rosterStatus = matchedRsvp.status === 'yes' ? 'confirmed' : 'declined';
       }
@@ -374,7 +417,7 @@ export default function AdminManagementHub({
         rosterStatus
       };
     });
-  }, [rosterList, rsvpList]);
+  }, [rosterList, rsvpList, rosterNameCounts]);
 
   const rosterConfirmedCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'confirmed').length, [enrichedRoster]);
   const rosterDeclinedCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'declined').length, [enrichedRoster]);

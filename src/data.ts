@@ -1139,7 +1139,8 @@ function getRSVPList() {
     var rawPhone = String(row[2] || '').trim();
     var normPhone = normalizePhone(rawPhone);
     var normName = normalizeName(rawName);
-    var uniqueKey = normPhone || normName;
+    // Chỉ hợp nhất nếu có cùng SĐT hợp lệ. Tuyệt đối không gộp chỉ vì trùng họ tên!
+    var uniqueKey = normPhone ? ('phone_' + normPhone) : '';
 
     var item = {
       id: String(i),
@@ -1268,11 +1269,8 @@ function saveRSVP(data) {
     var rowName = normalizeName(row[0]);
 
     var isMatch = false;
+    // Chỉ khớp và cập nhật dòng cũ nếu trùng SĐT hợp lệ (tuyệt đối không đè bạn trùng họ tên)
     if (normNewPhone && rowPhone && normNewPhone === rowPhone) {
-      isMatch = true;
-    } else if (!normNewPhone && normNewName && rowName && normNewName === rowName) {
-      isMatch = true;
-    } else if (normNewName && rowName && normNewName === rowName && (!rowPhone || !normNewPhone || rowPhone === normNewPhone)) {
       isMatch = true;
     }
 
@@ -1459,7 +1457,9 @@ function deduplicateRSVP() {
 
     var normP = normalizePhone(rawPhone);
     var normN = normalizeName(rawName);
-    var key = normP || normN;
+    // Chỉ dọn dẹp các dòng trùng nếu có cùng số điện thoại hợp lệ. Tuyệt đối không xóa bạn trùng tên!
+    if (!normP) continue;
+    var key = 'phone_' + normP;
 
     if (!uniqueMap[key]) {
       uniqueMap[key] = {
