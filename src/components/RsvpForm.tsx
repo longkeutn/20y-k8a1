@@ -39,13 +39,22 @@ interface RsvpFormProps {
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
 }
 
-// Bộ lời nhắn cảm xúc nhanh 1-chạm tuổi học trò
+// Bộ lời nhắn cảm xúc nhanh 1-chạm tuổi học trò khi CÓ THAM GIA
 const QUICK_EMOTION_TAGS = [
   { label: 'Hội bàn cuối', emoji: '👋', text: 'Hẹn gặp lại đầy đủ anh em hội bàn cuối ngày xưa nhé!' },
   { label: 'Không say không về', emoji: '🍻', text: '20 năm rồi chớp mắt một cái, hôm đó nhất định không say không về!' },
   { label: 'Chúc thầy cô', emoji: '❤️', text: 'Kính chúc các thầy cô giáo luôn dồi dào sức khỏe, nhớ lớp K8A1 nhiều!' },
   { label: 'Sân bóng xưa', emoji: '⚽', text: 'Vẫn nhớ những buổi trốn học đá bóng, bơi sông Cầu năm ấy...' },
   { label: 'Ghép xe Hà Nội', emoji: '🚗', text: 'Mình xuất phát từ Hà Nội, bạn nào đi cùng thì ới mình đi chung xe nhé!' },
+];
+
+// Bộ lời nhắn cảm xúc nhanh phù hợp khi RẤT TIẾC VẮNG MẶT
+const QUICK_ABSENT_TAGS = [
+  { label: 'Gửi lời chúc', emoji: '❤️', text: 'Chúc tập thể K8A1 có một buổi hội ngộ 20 năm thật vui vẻ, xúc động và trọn vẹn!' },
+  { label: 'Trùng lịch công tác', emoji: '✈️', text: 'Rất tiếc đúng dịp này mình lại vướng lịch công tác xa không về kịp, nhớ lớp mình nhiều!' },
+  { label: 'Hẹn dịp tới', emoji: '🤝', text: 'Tiếc quá không về dự được lần này, hẹn gặp lại các bạn vào dịp gần nhất nhé!' },
+  { label: 'Nhớ thầy cô & lớp', emoji: '💌', text: 'Dù ở xa không về trực tiếp, trái tim mình vẫn luôn hướng về thầy cô và tập thể K8A1 thân yêu.' },
+  { label: 'Hóng ảnh kỷ yếu', emoji: '📸', text: 'Chúc buổi họp lớp đại thành công! Các bạn nhớ livestream và chụp thật nhiều ảnh để mình ngắm với nhé!' },
 ];
 
 export default function RsvpForm({
@@ -72,6 +81,7 @@ export default function RsvpForm({
   const [status, setStatus] = useState<'yes' | 'no'>('yes');
   const [message, setMessage] = useState('');
   const [isCustomMode, setIsCustomMode] = useState(false);
+  const [showReconsiderModal, setShowReconsiderModal] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
@@ -315,8 +325,7 @@ export default function RsvpForm({
     window.open(zaloUrl, '_blank');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSubmitRsvp = async (targetStatus: 'yes' | 'no') => {
     const finalPhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
     if (!fullName.trim() || !finalPhone) {
       setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
@@ -335,8 +344,8 @@ export default function RsvpForm({
       nickname: nickname.trim() || undefined,
       phone: finalPhone,
       className: 'K8A1',
-      shirtSize: status === 'yes' ? shirtSize : undefined,
-      status,
+      shirtSize: targetStatus === 'yes' ? shirtSize : undefined,
+      status: targetStatus,
       message: message.trim(),
       submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
       ...(matchedExistingAttendee ? {
@@ -375,24 +384,24 @@ export default function RsvpForm({
 
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
-          ? (status === 'yes'
+          ? (targetStatus === 'yes'
               ? 'Đã cập nhật thông tin tham dự thành công vào Google Sheet! Tấm vé hội ngộ của bạn đã được làm mới.'
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
-          : (status === 'yes'
+          : (targetStatus === 'yes'
               ? 'Xác nhận tham dự thành công! Tấm vé kỷ niệm 20 năm của bạn đã được đóng dấu chính thức.'
               : 'Đã lưu phản hồi. Dù không thể đến trực tiếp, tập thể K8A1 vẫn luôn lưu giữ kỷ niệm về bạn.');
         
         setSubmitSuccess(successMsg);
         onAddRsvp(rsvpPayload);
 
-        if (status === 'yes') {
+        if (targetStatus === 'yes') {
           triggerCelebration();
         }
       } catch (error) {
         console.error('Lỗi khi gửi lên Apps Script:', error);
         setSubmitError('Đã lưu đăng ký cục bộ. Vui lòng kiểm tra lại kết nối mạng.');
         onAddRsvp(rsvpPayload);
-        if (status === 'yes') {
+        if (targetStatus === 'yes') {
           triggerCelebration();
         }
       } finally {
@@ -403,21 +412,38 @@ export default function RsvpForm({
         onAddRsvp(rsvpPayload);
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
-          ? (status === 'yes'
+          ? (targetStatus === 'yes'
               ? 'Đã cập nhật thông tin tham dự thành công! Hẹn gặp bạn tại Ngày Họp Lớp 20 Năm Lớp K8A1.'
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
-          : (status === 'yes'
+          : (targetStatus === 'yes'
               ? 'Xác nhận tham dự thành công! Tấm vé kỷ niệm 20 năm của bạn đã được đóng dấu chính thức.'
               : 'Đã lưu phản hồi. Cảm ơn bạn!');
         
         setSubmitSuccess(successMsg);
         setIsSubmitting(false);
 
-        if (status === 'yes') {
+        if (targetStatus === 'yes') {
           triggerCelebration();
         }
       }, 400);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalPhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
+    if (!fullName.trim() || !finalPhone) {
+      setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
+      return;
+    }
+
+    // Nếu thành viên chọn VẮNG MẶT, hiển thị Modal kêu gọi tâm tình nghĩ lại trước khi gửi
+    if (status === 'no') {
+      setShowReconsiderModal(true);
+      return;
+    }
+
+    await executeSubmitRsvp('yes');
   };
 
   const confirmedCount = useMemo(() => {
@@ -626,7 +652,9 @@ export default function RsvpForm({
           {/* DÒNG HƯỚNG DẪN KHI CHƯA XÁC NHẬN */}
           {!isPassConfirmed && (
             <p className="text-[11px] text-slate-500 font-serif italic text-center px-2">
-              ✨ Điền thông tin bên dưới, bạn sẽ nhận được tấm vé kỷ niệm này với con dấu sáp đỏ chính thức của Lớp K8A1.
+              {status === 'yes'
+                ? '✨ Điền thông tin bên dưới, bạn sẽ nhận được tấm vé kỷ niệm này với con dấu sáp đỏ chính thức của Lớp K8A1.'
+                : '✨ Dù ở xa không thể về dự trực tiếp, tấm vé kỷ niệm này vẫn sẽ lưu giữ tấm lòng hướng về ngày hội ngộ 20 năm của bạn.'}
             </p>
           )}
 
@@ -939,7 +967,11 @@ export default function RsvpForm({
               <div className="flex items-center justify-between">
                 <label htmlFor="rsvp-message" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
                   <MessageSquare className="w-3 h-3 text-amber-700" />
-                  <span>Trang Lưu Bút K8A1 (Lời nhắn gửi bạn bè & thầy cô):</span>
+                  <span>
+                    {status === 'yes'
+                      ? 'Trang Lưu Bút K8A1 (Lời nhắn gửi bạn bè & thầy cô):'
+                      : 'Lời Nhắn Gửi Đến Lớp K8A1 & Thầy Cô:'}
+                  </span>
                 </label>
                 <span className="text-[10px] text-slate-400 font-sans">Tùy chọn</span>
               </div>
@@ -949,7 +981,7 @@ export default function RsvpForm({
                 <span className="text-[10px] text-slate-400 font-serif italic shrink-0">
                   Gợi ý nhanh:
                 </span>
-                {QUICK_EMOTION_TAGS.map((tag) => (
+                {(status === 'yes' ? QUICK_EMOTION_TAGS : QUICK_ABSENT_TAGS).map((tag) => (
                   <button
                     key={tag.label}
                     type="button"
@@ -967,7 +999,11 @@ export default function RsvpForm({
                 <textarea
                   id="rsvp-message"
                   rows={2}
-                  placeholder="Gửi lời chào, kỷ niệm xưa, thông tin đi chung xe hoặc lý do nếu bạn vắng mặt..."
+                  placeholder={
+                    status === 'yes'
+                      ? 'Gửi lời chào, kỷ niệm xưa, thông tin đi chung xe...'
+                      : 'Gửi lời chúc đến tập thể lớp hoặc lý do nếu bạn vắng mặt (ở xa, bận công tác...)...'
+                  }
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[#FCFAF7] focus:bg-white border border-amber-300/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-xl text-xs sm:text-[13px] text-slate-800 resize-none font-serif leading-relaxed outline-none transition shadow-2xs"
@@ -993,21 +1029,31 @@ export default function RsvpForm({
               </div>
             )}
 
-            {/* NÚT GỬI ĐIỂM DANH */}
+            {/* NÚT GỬI ĐIỂM DANH HOẶC BÁO VẮNG */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider py-3.5 px-4 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-lg active:scale-[0.99]"
+              className={`w-full text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider py-3.5 px-4 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-lg active:scale-[0.99] ${
+                status === 'yes'
+                  ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 hover:from-amber-500 hover:to-amber-600'
+                  : 'bg-gradient-to-r from-slate-700 via-slate-600 to-slate-800 hover:from-slate-600 hover:to-slate-700'
+              }`}
             >
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Đang ghi nhận điểm danh...</span>
+                  <span>{status === 'yes' ? 'Đang ghi nhận điểm danh...' : 'Đang lưu phản hồi báo vắng...'}</span>
                 </>
-              ) : (
+              ) : status === 'yes' ? (
                 <>
                   <Sparkles className="w-4 h-4 text-amber-200" />
                   <span>{matchedExistingAttendee ? 'Cập Nhật Điểm Danh' : 'Xác Nhận Tham Dự Ngay'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <HeartHandshake className="w-4 h-4 text-amber-300" />
+                  <span>{matchedExistingAttendee ? 'Cập Nhật: Báo Bận Vắng Mặt' : 'Gửi Lời Nhắn & Báo Vắng Mặt'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -1015,6 +1061,89 @@ export default function RsvpForm({
           </form>
         </div>
       </div>
+
+      {/* MODAL KÊU GỌI TÂM TÌNH NGHĨ LẠI KHI BÁO VẮNG MẶT */}
+      {showReconsiderModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#FFFDF9] border border-amber-300/80 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-scaleUp relative">
+            {/* Header hoài niệm trường xưa */}
+            <div className="bg-gradient-to-r from-[#8B1E2F] via-[#A82B3E] to-[#731826] p-5 text-white text-center relative">
+              <button
+                type="button"
+                onClick={() => setShowReconsiderModal(false)}
+                className="absolute top-3 right-3 text-white/70 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                title="Đóng"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-13 h-13 mx-auto mb-2 rounded-full bg-amber-400/20 border border-amber-300/40 flex items-center justify-center shadow-inner">
+                <HeartHandshake className="w-7 h-7 text-amber-200" />
+              </div>
+
+              <h3 className="font-serif font-bold text-base sm:text-lg text-amber-100 leading-snug">
+                Bạn ơi, 20 năm hội ngộ chỉ có một lần! 🎓
+              </h3>
+              <p className="text-[11px] font-sans text-amber-200/90 mt-1">
+                K8A1 (2003 — 2006) • Mái trường THPT Thái Nguyên xưa
+              </p>
+            </div>
+
+            {/* Nội dung tâm tình ấm áp */}
+            <div className="p-5 space-y-3.5 text-slate-700 font-serif text-xs sm:text-[13px] leading-relaxed">
+              <p>
+                Gửi bạn <strong className="text-amber-900 font-sans font-bold">{fullName.trim() || 'bạn tôi'}</strong>{nickname.trim() ? ` ("${nickname.trim()}")` : ''},
+              </p>
+              
+              <p className="italic text-slate-600">
+                &ldquo;Hai mươi năm trôi qua nhanh như một cái chớp mắt. Chúng ta ai cũng có những bộn bề, lo toan của công việc và gia đình... Nhưng ngày hội ngộ 20 năm là dịp hiếm hoi nhất để cả tập thể K8A1 được ngồi lại đông đủ cùng nhau, tìm lại những ký ức thanh xuân trong sáng nhất của cuộc đời.&rdquo;
+              </p>
+
+              <div className="p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl space-y-1.5 font-sans">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Lớp mình sẽ thiếu đi một nụ cười nếu vắng bạn!</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Nhiều bạn ở rất xa cũng đang cố gắng sắp xếp để về. Bạn có thể thu xếp lại một chút để về sum vầy cùng thầy cô và bạn bè lớp mình không?
+                </p>
+              </div>
+
+              {/* Nút hành động */}
+              <div className="space-y-2 pt-2 font-sans">
+                {/* NÚT CHÍNH: NGHĨ LẠI -> ĐI CÙNG LỚP */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatus('yes');
+                    setShowReconsiderModal(false);
+                    triggerCelebration();
+                  }}
+                  className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 text-xs sm:text-sm active:scale-[0.99]"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-200" />
+                  <span>Để mình sắp xếp lại để đi cùng lớp! 🎉</span>
+                </button>
+
+                {/* NÚT PHỤ: VẪN XÁC NHẬN VẮNG MẶT NẾU BẤT KHẢ KHÁNG */}
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={async () => {
+                    setShowReconsiderModal(false);
+                    await executeSubmitRsvp('no');
+                  }}
+                  className="w-full py-2.5 px-3 text-slate-500 hover:text-slate-800 text-[11px] font-medium hover:underline transition-colors text-center cursor-pointer block"
+                >
+                  {isSubmitting
+                    ? 'Đang lưu báo bận...'
+                    : 'Mình thực sự kẹt lịch không về được, xin phép gửi lời chúc từ phương xa'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
