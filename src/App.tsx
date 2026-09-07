@@ -729,16 +729,94 @@ export default function App() {
     syncToBackend('save_incomes', { incomes: clean });
   };
 
+  // Helper chuẩn hóa & chống trùng lặp danh sách RSVP (bảo toàn người trùng tên, đối soát chính xác theo SĐT hoặc memberId)
+  const processRsvpList = (rawRsvpList: any[], prevRsvpList: RsvpData[] = rsvpList): RsvpData[] => {
+    if (!Array.isArray(rawRsvpList) || rawRsvpList.length === 0) return [];
+    const uniqueRsvp: RsvpData[] = [];
+    const currentRoster = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+
+    for (const rawItem of rawRsvpList) {
+      if (!rawItem) continue;
+      const item = sanitizeRsvp(rawItem);
+      const itemName = normalizeNameForMatch(item.fullName);
+
+      // Kiểm tra xem trong uniqueRsvp đã có bản ghi của CHÍNH người này chưa
+      const existingIdx = uniqueRsvp.findIndex((x) => {
+        if (item.memberId && x.memberId) return item.memberId === x.memberId;
+        if (item.id && x.id && item.id === x.id) return true;
+        if (isPhoneMatch(item.phone, x.phone)) return true;
+        if (itemName && normalizeNameForMatch(x.fullName) === itemName) {
+          const sameNameCount = currentRoster.filter(
+            (r) => normalizeNameForMatch(r.fullName) === itemName
+          ).length;
+          if (sameNameCount <= 1) return true;
+        }
+        return false;
+      });
+
+      // Bảo tồn link ảnh bill đã lưu trong rsvpList trước đó nếu bản ghi từ server trả về chuỗi rỗng
+      let existingLocalReceiptUrl = '';
+      const localMatch = (prevRsvpList || []).find((prev) => {
+        if (item.memberId && prev.memberId && item.memberId === prev.memberId) return true;
+        if (item.id && prev.id && item.id === prev.id) return true;
+        if (isPhoneMatch(item.phone, prev.phone)) return true;
+        return normalizeNameForMatch(prev.fullName) === itemName;
+      });
+      if (localMatch && localMatch.fundReceiptUrl) {
+        existingLocalReceiptUrl = localMatch.fundReceiptUrl;
+      }
+
+      const finalReceiptUrl = item.fundReceiptUrl || existingLocalReceiptUrl || '';
+
+      if (existingIdx >= 0) {
+        uniqueRsvp[existingIdx] = {
+          ...uniqueRsvp[existingIdx],
+          ...item,
+          checkedIn: uniqueRsvp[existingIdx].checkedIn || item.checkedIn,
+          fundStatus: (uniqueRsvp[existingIdx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[existingIdx].fundStatus),
+          fundAmount: Math.max(uniqueRsvp[existingIdx].fundAmount || 0, item.fundAmount || 0),
+          fundReceiptUrl: finalReceiptUrl || uniqueRsvp[existingIdx].fundReceiptUrl
+        };
+      } else {
+        uniqueRsvp.push({
+          ...item,
+          fundReceiptUrl: finalReceiptUrl
+        });
+      }
+    }
+
+    return uniqueRsvp;
+  };
+
   // Nạp toàn bộ dữ liệu từ Google Sheet & Google Drive (Single Source of Truth)
   const hydrateAllData = async (targetUrl: string = activeAppsScriptUrl) => {
     if (!targetUrl || !targetUrl.startsWith('http')) return;
     setIsRefreshing(true);
     try {
-      // 1. Tải song song nhưng cập nhật state NGAY LẬP TỨC khi mỗi tiến trình hoàn tất
+      const adminPinToken = sessionStorage.getItem('admin_pin_token') || '';
+      const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
+
+      // ⚡ FAST-TRACK RSVP: Tải siêu tốc danh sách điểm danh trước tiên (chỉ ~1-2 giây)
+      // Giúp số người tham gia (34 bạn) cập nhật ngay lập tức khi mở web, không để người dùng chờ 10-15s
+      const fetchRsvpFastPromise = (async () => {
+        try {
+          const res = await fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`);
+          const result = await res.json();
+          if (result && result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
+            setRsvpList((prev) => {
+              const sanitized = processRsvpList(result.data, prev);
+              try { localStorage.setItem('rsvp_list', JSON.stringify(sanitized)); } catch (e) {}
+              return sanitized;
+            });
+          }
+        } catch (fastRsvpErr) {
+          console.warn('Lỗi tải nhanh get_rsvp:', fastRsvpErr);
+        }
+      })();
+
+      // 📦 MASTER DATA: Tải toàn bộ cấu hình, lưu bút, quỹ, videos, danh bạ
       const fetchMasterPromise = (async () => {
         try {
-          const adminPinToken = sessionStorage.getItem('admin_pin_token') || '';
-          const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
           const res = await fetch(`${targetUrl}?action=get_all_data${pinQuery}&t=${Date.now()}`);
           const result = await res.json();
           if (result && result.status === 'success' && result.data) {
@@ -779,82 +857,13 @@ export default function App() {
               }
             }
 
-            // C. Đồng bộ RSVP từ Google Sheet (bảo toàn tuyệt đối người trùng tên, chỉ gộp nếu cùng SĐT hoặc cùng memberId)
+            // C. Đồng bộ RSVP từ Google Sheet
             if (Array.isArray(rsvp) && rsvp.length > 0) {
-              const uniqueRsvp: RsvpData[] = [];
-
-              for (const rawItem of rsvp) {
-                if (!rawItem) continue;
-                const item = sanitizeRsvp(rawItem);
-                const itemPhone = normalizePhoneForMatch(item.phone);
-                const itemName = normalizeNameForMatch(item.fullName);
-
-                // Kiểm tra xem trong uniqueRsvp đã có bản ghi của CHÍNH người này chưa
-                const existingIdx = uniqueRsvp.findIndex((x) => {
-                  // 1. Khớp theo memberId nếu cả 2 bên đều có
-                  if (item.memberId && x.memberId) {
-                    return item.memberId === x.memberId;
-                  }
-                  // 2. Khớp theo ID bản ghi nếu cả 2 bên có ID trùng nhau
-                  if (item.id && x.id && item.id === x.id) {
-                    return true;
-                  }
-
-                  const xPhone = normalizePhoneForMatch(x.phone);
-                  const xName = normalizeNameForMatch(x.fullName);
-
-                  // 3. Nếu SĐT khớp nhau:
-                  if (isPhoneMatch(item.phone, x.phone)) {
-                    return true;
-                  }
-
-                  // 4. Nếu họ tên khớp và là tên duy nhất trong danh bạ:
-                  if (itemName && xName && itemName === xName) {
-                    const currentRoster = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
-                    const sameNameCount = currentRoster.filter(
-                      (r) => normalizeNameForMatch(r.fullName) === itemName
-                    ).length;
-                    if (sameNameCount <= 1) {
-                      return true;
-                    }
-                  }
-
-                  return false;
-                });
-
-                // Bảo tồn link ảnh bill đã lưu trong rsvpList trước đó nếu bản ghi từ server trả về chuỗi rỗng
-                let existingLocalReceiptUrl = '';
-                const localMatch = rsvpList.find((prev) => {
-                  if (item.memberId && prev.memberId && item.memberId === prev.memberId) return true;
-                  if (item.id && prev.id && item.id === prev.id) return true;
-                  if (isPhoneMatch(item.phone, prev.phone)) return true;
-                  return normalizeNameForMatch(prev.fullName) === itemName;
-                });
-                if (localMatch && localMatch.fundReceiptUrl) {
-                  existingLocalReceiptUrl = localMatch.fundReceiptUrl;
-                }
-
-                const finalReceiptUrl = item.fundReceiptUrl || existingLocalReceiptUrl || '';
-
-                if (existingIdx >= 0) {
-                  uniqueRsvp[existingIdx] = {
-                    ...uniqueRsvp[existingIdx],
-                    ...item,
-                    checkedIn: uniqueRsvp[existingIdx].checkedIn || item.checkedIn,
-                    fundStatus: (uniqueRsvp[existingIdx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[existingIdx].fundStatus),
-                    fundAmount: Math.max(uniqueRsvp[existingIdx].fundAmount || 0, item.fundAmount || 0),
-                    fundReceiptUrl: finalReceiptUrl || uniqueRsvp[existingIdx].fundReceiptUrl
-                  };
-                } else {
-                  uniqueRsvp.push({
-                    ...item,
-                    fundReceiptUrl: finalReceiptUrl
-                  });
-                }
-              }
-
-              setRsvpList(uniqueRsvp);
-              try { localStorage.setItem('rsvp_list', JSON.stringify(uniqueRsvp)); } catch (e) {}
+              setRsvpList((prev) => {
+                const uniqueRsvp = processRsvpList(rsvp, prev);
+                try { localStorage.setItem('rsvp_list', JSON.stringify(uniqueRsvp)); } catch (e) {}
+                return uniqueRsvp;
+              });
             }
 
             // D. Đồng bộ Lời chúc từ Google Sheet
@@ -901,88 +910,48 @@ export default function App() {
               const cleanInc = result.data.incomes.map((item: any, idx: number) => sanitizeIncome(item, idx));
               setIncomes(cleanInc);
               try { localStorage.setItem('k8a1_incomes_list', JSON.stringify(cleanInc)); } catch (e) {}
-            } else {
-              // Dự phòng: Nếu Apps Script phiên bản cũ chưa nhúng incomes trong get_all_data, gọi riêng action=get_incomes
-              try {
-                const incRes = await fetch(`${targetUrl}?action=get_incomes&t=${Date.now()}`);
-                const incJson = await incRes.json();
-                if (incJson && incJson.status === 'success' && Array.isArray(incJson.data)) {
-                  const cleanInc = incJson.data.map((item: any, idx: number) => sanitizeIncome(item, idx));
-                  setIncomes(cleanInc);
-                  try { localStorage.setItem('k8a1_incomes_list', JSON.stringify(cleanInc)); } catch (e) {}
-                }
-              } catch (errInc) {}
             }
           } else {
-            // Dự phòng: Nếu get_all_data trả về lỗi hoặc chưa sẵn sàng, tải riêng cấu hình sự kiện
+            // Dự phòng hai lớp: Nếu get_all_data trả về lỗi, nạp fallback cả config và rsvp
             try {
-              const cfgRes = await fetch(`${targetUrl}?action=get_config&t=${Date.now()}`);
-              const cfgResult = await cfgRes.json();
-              if (cfgResult?.status === 'success' && cfgResult.data && Object.keys(cfgResult.data).length > 0) {
-                setEventConfig((prev) => {
-                  const updated = sanitizeEventConfig({ ...prev, ...cfgResult.data });
-                  try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
-                  return updated;
-                });
-                if (cfgResult.data.heroBannerUrl) {
-                  const cleanBanner = normalizeImageUrl(cfgResult.data.heroBannerUrl);
-                  setHeroBannerUrl(cleanBanner);
-                  try { localStorage.setItem('k8a1_hero_banner_url', cleanBanner); } catch (e) {}
-                }
+              const [cfgRes, rsvpRes] = await Promise.allSettled([
+                fetch(`${targetUrl}?action=get_config&t=${Date.now()}`).then(r => r.json()),
+                fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`).then(r => r.json())
+              ]);
+              if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
+                setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
               }
-            } catch (errCfg) {}
+              if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data)) {
+                setRsvpList((prev) => {
+                  const sanitized = processRsvpList(rsvpRes.value.data, prev);
+                  try { localStorage.setItem('rsvp_list', JSON.stringify(sanitized)); } catch (e) {}
+                  return sanitized;
+                });
+              }
+            } catch (errFallback) {}
           }
         } catch (err) {
           console.warn('Lỗi nạp Master Data từ Google Sheet:', err);
           try {
-            const cfgRes = await fetch(`${targetUrl}?action=get_config&t=${Date.now()}`);
-            const cfgResult = await cfgRes.json();
-            if (cfgResult?.status === 'success' && cfgResult.data && Object.keys(cfgResult.data).length > 0) {
-              setEventConfig((prev) => {
-                const updated = sanitizeEventConfig({ ...prev, ...cfgResult.data });
-                try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
-                return updated;
+            const [cfgRes, rsvpRes] = await Promise.allSettled([
+              fetch(`${targetUrl}?action=get_config&t=${Date.now()}`).then(r => r.json()),
+              fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`).then(r => r.json())
+            ]);
+            if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
+              setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
+            }
+            if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data)) {
+              setRsvpList((prev) => {
+                const sanitized = processRsvpList(rsvpRes.value.data, prev);
+                try { localStorage.setItem('rsvp_list', JSON.stringify(sanitized)); } catch (e) {}
+                return sanitized;
               });
             }
           } catch (e) {}
         }
       })();
 
-      // 2. Tải Thư viện ảnh Google Drive (Kho Kỷ Yếu & Kỷ Niệm của Lớp)
-      const fetchPhotosPromise = (async () => {
-        try {
-          const res = await fetch(`${targetUrl}?action=get_photos&t=${Date.now()}`);
-          const photosJson = await res.json();
-          if (photosJson && photosJson.status === 'success' && Array.isArray(photosJson.data) && photosJson.data.length > 0) {
-            const drivePhotos: MemoryImage[] = photosJson.data
-              .filter((p: any) => {
-                const cap = (p.caption || '').toLowerCase();
-                return !cap.includes('hero banner') && 
-                       !cap.includes('hero_banner') && 
-                       !cap.includes('test upload') && 
-                       !cap.includes('bill_');
-              })
-              .map((p: any) => ({
-                id: p.id || `drive-${Date.now()}`,
-                url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
-                thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
-                caption: p.caption || 'Kỷ niệm Lớp K8A1',
-                date: p.date || '2006',
-                isUserUploaded: true,
-                driveUrl: p.driveUrl
-              }));
-
-            if (drivePhotos.length > 0) {
-              setImages(drivePhotos);
-              try { localStorage.setItem('uploaded_images', JSON.stringify(drivePhotos)); } catch (e) {}
-            }
-          }
-        } catch (err) {
-          console.warn('Lỗi nạp ảnh Drive:', err);
-        }
-      })();
-
-      await Promise.allSettled([fetchMasterPromise, fetchPhotosPromise]);
+      await Promise.allSettled([fetchRsvpFastPromise, fetchMasterPromise]);
     } catch (err) {
       console.warn('Lỗi đồng bộ từ Google Sheet & Drive:', err);
     } finally {
@@ -1400,6 +1369,7 @@ export default function App() {
               rsvpList={rsvpList}
               classRoster={classRoster}
               activeMember={activeMember}
+              isSyncing={isRefreshing}
             />
 
             {/* 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}

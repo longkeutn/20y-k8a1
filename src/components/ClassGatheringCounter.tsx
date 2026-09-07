@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Sparkles, Users, CheckCircle2, ArrowRight, Eye, Heart, Coins, MapPin, Camera } from 'lucide-react';
+import { Sparkles, Users, CheckCircle2, ArrowRight, Eye, Heart, Coins, MapPin, Camera, Loader2 } from 'lucide-react';
 import { RsvpData, ClassMember } from '../types';
 import { CLASS_ROSTER_K8A1, isPhoneMatch } from '../data';
 
@@ -7,6 +7,7 @@ interface ClassGatheringCounterProps {
   rsvpList: RsvpData[];
   classRoster?: ClassMember[];
   activeMember?: ClassMember | null;
+  isSyncing?: boolean;
 }
 
 // Bảng màu avatar luân phiên ấm áp
@@ -24,7 +25,8 @@ const AVATAR_COLORS = [
 export default function ClassGatheringCounter({
   rsvpList,
   classRoster,
-  activeMember
+  activeMember,
+  isSyncing = false
 }: ClassGatheringCounterProps) {
   // Lọc danh sách các bạn đã xác nhận tham gia ('yes')
   const confirmedAttendees = useMemo(() => {
@@ -137,14 +139,23 @@ export default function ClassGatheringCounter({
         {/* HÀNG 1: HUY HIỆU LIVE & TIÊU ĐỀ CHÍNH */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-amber-200/70 pb-3.5">
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-300/60 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-600" />
-              Điểm danh trực tiếp
-            </span>
+            {isSyncing ? (
+              <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full border border-amber-300/80 flex items-center gap-1.5 shadow-2xs animate-pulse">
+                <Loader2 className="w-3 h-3 text-amber-700 animate-spin" />
+                <span>Đang đồng bộ số liệu mới nhất...</span>
+              </span>
+            ) : (
+              <>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-300/60 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                  Điểm danh trực tiếp
+                </span>
+              </>
+            )}
           </div>
 
           <div className="text-xs sm:text-sm font-sans font-semibold text-amber-900/80">
