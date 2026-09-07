@@ -20,7 +20,8 @@ import {
   Coins,
   Music,
   Edit3,
-  ScrollText
+  ScrollText,
+  BookOpen
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory } from './types';
@@ -44,6 +45,7 @@ import AdminManagementHub from './components/AdminManagementHub';
 import PinAuthModal from './components/PinAuthModal';
 import ReceiptUploadModal from './components/ReceiptUploadModal';
 import ClassCharterModal from './components/ClassCharterModal';
+import RoleGuideModal from './components/RoleGuideModal';
 import QuickNavigation from './components/QuickNavigation';
 
 export default function App() {
@@ -189,6 +191,15 @@ export default function App() {
 
   // Class Charter / Quy Chế Modal state
   const [isCharterModalOpen, setIsCharterModalOpen] = useState(false);
+
+  // Role Guide / Cẩm Nang Vận Hành K8A1 Modal state
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [guideInitialTab, setGuideInitialTab] = useState<'member' | 'bll' | 'treasurer' | 'admin' | 'matrix'>('member');
+
+  const handleOpenGuideModal = (tab: 'member' | 'bll' | 'treasurer' | 'admin' | 'matrix' = 'member') => {
+    setGuideInitialTab(tab);
+    setIsGuideModalOpen(true);
+  };
 
   // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
   const [heroBannerUrl, setHeroBannerUrl] = useState<string>(() => {
@@ -1068,6 +1079,16 @@ export default function App() {
               <span className="hidden lg:inline">Ký Ức</span>
             </a>
 
+            {/* Role Guide Modal trigger */}
+            <button
+              onClick={() => handleOpenGuideModal()}
+              className="text-slate-300 hover:text-amber-300 transition px-2 py-1 rounded hover:bg-white/10 flex items-center space-x-1 cursor-pointer"
+              title="Cẩm nang hướng dẫn vận hành & nghiệp vụ K8A1"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden xl:inline">Cẩm Nang</span>
+            </button>
+
             {/* Background Audio Player integrated into navbar (YouTube Audio-Only) */}
             <AudioPlayer variant="navbar" customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" />
 
@@ -1080,7 +1101,6 @@ export default function App() {
               <span>Xác Nhận</span>
             </a>
 
-            {/* Discrete Mini Admin Button in Navbar (Subtle icon with tooltip) */}
             {/* Discrete Mini Admin Button in Navbar (Subtle icon with tooltip) */}
             <button
               onClick={() => setIsAdminHubOpen(true)}
@@ -1138,6 +1158,13 @@ export default function App() {
             <Camera className="w-3 h-3 text-amber-400" />
             <span>Ký Ức</span>
           </a>
+          <button
+            onClick={() => handleOpenGuideModal()}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 shrink-0 border border-slate-700/60 cursor-pointer"
+          >
+            <BookOpen className="w-3 h-3 text-amber-400" />
+            <span>Cẩm Nang</span>
+          </button>
         </div>
       </header>
 
@@ -1341,6 +1368,14 @@ export default function App() {
               >
                 <MailOpen className="w-3 h-3 text-rose-400" />
                 <span>Bức Thư Ngỏ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOpenGuideModal()}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 hover:text-amber-100 border border-amber-400/50 backdrop-blur-md transition cursor-pointer font-medium"
+              >
+                <BookOpen className="w-3 h-3 text-amber-300" />
+                <span>Cẩm Nang Hoạt Động</span>
               </button>
             </div>
           </div>
@@ -1670,6 +1705,14 @@ export default function App() {
                       <ScrollText className="w-3 h-3 text-amber-700" />
                       Quy chế & Điều lệ lớp
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenGuideModal()}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-900 hover:bg-amber-50 hover:border-amber-300 transition-colors font-medium shadow-2xs cursor-pointer"
+                    >
+                      <BookOpen className="w-3 h-3 text-amber-700" />
+                      Cẩm nang K8A1
+                    </button>
                     <QuickShare 
                       variant="secondary"
                       eventConfig={eventConfig}
@@ -1782,6 +1825,15 @@ export default function App() {
           }}
           onRefreshData={handleRefreshData}
           onOpenPassModal={handleOpenPass}
+          onOpenGuideModal={() => handleOpenGuideModal(
+            currentUserRole === 'admin' 
+              ? 'admin' 
+              : currentUserRole === 'treasurer' 
+              ? 'treasurer' 
+              : currentUserRole === 'bll' 
+              ? 'bll' 
+              : 'member'
+          )}
         />
       )}
 
@@ -1815,6 +1867,27 @@ export default function App() {
       <ClassCharterModal
         isOpen={isCharterModalOpen}
         onClose={() => setIsCharterModalOpen(false)}
+      />
+
+      {/* 📖 CẨM NANG HƯỚNG DẪN VẬN HÀNH & QUẢN LÝ HOẠT ĐỘNG K8A1 */}
+      <RoleGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        currentUserRole={currentUserRole}
+        initialTab={guideInitialTab}
+        onOpenAuthModal={() => {
+          setIsAdminHubOpen(true);
+        }}
+        onNavigateToSection={(sectionId) => {
+          setTimeout(() => {
+            const el = document.getElementById(sectionId);
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }}
+        onOpenCharterModal={() => setIsCharterModalOpen(true)}
+        onOpenAdminHub={(tab) => {
+          handleOpenAdminHub(tab || 'members');
+        }}
       />
 
       {/* 🚀 THANH ĐIỀU HƯỚNG NỔI THÔNG MINH & BACK TO TOP */}

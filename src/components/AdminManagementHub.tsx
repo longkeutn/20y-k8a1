@@ -209,6 +209,9 @@ interface AdminManagementHubProps {
   onUpdateIncome?: (item: IncomeItem) => void;
   onDeleteIncome?: (id: string) => void;
   onSaveAllIncomes?: (list: IncomeItem[]) => void;
+
+  // Cẩm Nang Hướng Dẫn Vận Hành & Nghiệp Vụ
+  onOpenGuideModal?: () => void;
 }
 
 export default function AdminManagementHub({
@@ -250,7 +253,8 @@ export default function AdminManagementHub({
   onAddIncome,
   onUpdateIncome,
   onDeleteIncome,
-  onSaveAllIncomes
+  onSaveAllIncomes,
+  onOpenGuideModal
 }: AdminManagementHubProps) {
   // User Role Helpers (RBAC)
   const isAdmin = currentUserRole === 'admin';
@@ -2828,6 +2832,18 @@ export default function AdminManagementHub({
           </div>
 
           <div className="flex items-center gap-2">
+            {onOpenGuideModal && (
+              <button
+                type="button"
+                onClick={onOpenGuideModal}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/40 transition cursor-pointer"
+                title="Mở Cẩm nang hoạt động & Hướng dẫn nghiệp vụ K8A1"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-amber-300" />
+                <span className="hidden sm:inline">Cẩm Nang</span>
+              </button>
+            )}
+
             {onRefreshData && (
               <button
                 onClick={onRefreshData}
