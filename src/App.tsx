@@ -313,6 +313,11 @@ export default function App() {
       if (!local) return INITIAL_RSVP_LIST;
       const parsed = JSON.parse(local);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // Tự động dọn cache cũ nếu người dùng từng lưu danh sách lỗi ít hơn số lượng chuẩn hiện tại
+        if (parsed.length < INITIAL_RSVP_LIST.length) {
+          try { localStorage.setItem('rsvp_list', JSON.stringify(INITIAL_RSVP_LIST)); } catch (e) {}
+          return INITIAL_RSVP_LIST;
+        }
         return parsed.map(sanitizeRsvp);
       }
       return INITIAL_RSVP_LIST;
@@ -500,7 +505,12 @@ export default function App() {
         const itemName = normalizeNameForMatch(item.fullName);
         const itemNick = normalizeNameForMatch(item.nickname);
 
-        // 3. Nếu SĐT khớp nhau:
+        // NGUYÊN TẮC THÉP: Nếu 2 bản ghi có 2 họ tên khác nhau thì TUYỆT ĐỐI không gộp vào nhau
+        if (normNewName && itemName && normNewName !== itemName) {
+          return false;
+        }
+
+        // 3. Nếu SĐT khớp nhau (chỉ xét khi họ tên không mâu thuẫn):
         if (isPhoneMatch(newRsvp.phone, item.phone)) {
           return true;
         }
@@ -743,13 +753,25 @@ export default function App() {
       // Kiểm tra xem trong uniqueRsvp đã có bản ghi của CHÍNH người này chưa
       const existingIdx = uniqueRsvp.findIndex((x) => {
         if (item.memberId && x.memberId) return item.memberId === x.memberId;
-        if (item.id && x.id && item.id === x.id) return true;
+        if (item.id && x.id && String(item.id) === String(x.id)) return true;
+
+        const xName = normalizeNameForMatch(x.fullName);
+
+        // NGUYÊN TẮC THÉP: Hai bạn có 2 họ tên khác nhau thì TUYỆT ĐỐI không bao giờ gộp vào nhau
+        if (itemName && xName && itemName !== xName) {
+          return false;
+        }
+
+        // 3. Trùng SĐT (chỉ xét khi họ tên không mâu thuẫn):
         if (isPhoneMatch(item.phone, x.phone)) return true;
-        if (itemName && normalizeNameForMatch(x.fullName) === itemName) {
+
+        // 4. Trùng họ tên:
+        if (itemName && xName && itemName === xName) {
           const sameNameCount = currentRoster.filter(
             (r) => normalizeNameForMatch(r.fullName) === itemName
           ).length;
           if (sameNameCount <= 1) return true;
+          if (isPhoneMatch(item.phone, x.phone)) return true;
         }
         return false;
       });
@@ -758,9 +780,11 @@ export default function App() {
       let existingLocalReceiptUrl = '';
       const localMatch = (prevRsvpList || []).find((prev) => {
         if (item.memberId && prev.memberId && item.memberId === prev.memberId) return true;
-        if (item.id && prev.id && item.id === prev.id) return true;
+        if (item.id && prev.id && String(item.id) === String(prev.id)) return true;
+        const prevName = normalizeNameForMatch(prev.fullName);
+        if (itemName && prevName && itemName !== prevName) return false;
         if (isPhoneMatch(item.phone, prev.phone)) return true;
-        return normalizeNameForMatch(prev.fullName) === itemName;
+        return prevName === itemName;
       });
       if (localMatch && localMatch.fundReceiptUrl) {
         existingLocalReceiptUrl = localMatch.fundReceiptUrl;
