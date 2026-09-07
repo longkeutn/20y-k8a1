@@ -29,6 +29,7 @@ import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
 import CountdownTimer from './components/CountdownTimer';
+import ClassGatheringCounter from './components/ClassGatheringCounter';
 import RsvpForm from './components/RsvpForm';
 import ConfirmedAttendees from './components/ConfirmedAttendees';
 import BankTransfer from './components/BankTransfer';
@@ -1090,6 +1091,13 @@ export default function App() {
               />
             </div>
 
+            {/* KHỐI TÌNH HÌNH BẠN BÈ ĐIỂM DANH HỌP LỚP (GẦN GŨI, ĐỜI THƯỜNG) */}
+            <ClassGatheringCounter
+              rsvpList={rsvpList}
+              classRoster={classRoster}
+              activeMember={activeMember}
+            />
+
             {/* 📜 TẤM THIỆP MỜI VIP DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL ĐỈNH CAO) */}
             <div 
               id="invitation-letter-card" 
@@ -1230,15 +1238,17 @@ export default function App() {
               />
 
               {/* Danh Sách Thành Viên Đã Xác Nhận */}
-              <ConfirmedAttendees
-                appsScriptUrl={activeAppsScriptUrl}
-                rsvpList={rsvpList}
-                eventConfig={eventConfig}
-                onRefresh={handleRefreshData}
-                isRefreshing={isRefreshing}
-                onOpenPassModal={handleOpenPass}
-                onOpenReceiptModal={handleOpenReceiptModal}
-              />
+              <div id="danh-sach-diem-danh" className="scroll-mt-20">
+                <ConfirmedAttendees
+                  appsScriptUrl={activeAppsScriptUrl}
+                  rsvpList={rsvpList}
+                  eventConfig={eventConfig}
+                  onRefresh={handleRefreshData}
+                  isRefreshing={isRefreshing}
+                  onOpenPassModal={handleOpenPass}
+                  onOpenReceiptModal={handleOpenReceiptModal}
+                />
+              </div>
 
               {/* Thông Tin Quỹ Lớp Minh Bạch */}
               <BankTransfer 
