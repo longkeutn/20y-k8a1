@@ -400,6 +400,42 @@ export default function RsvpForm({
     return (rsvpList || []).filter(r => r.status === 'yes').length;
   }, [rsvpList]);
 
+  // Tự động nhận diện thành viên đã xác nhận tham gia hay chưa (từ Google Sheet/danh sách đã lưu hoặc vừa nộp xong)
+  const isPassConfirmed = useMemo(() => {
+    // Nếu người dùng đang bấm chuyển sang 'no' (báo bận) trong form thì không hiển thị dấu đã có mặt
+    if (status === 'no') return false;
+
+    // 1. Vừa gửi thành công xác nhận có mặt trong phiên này
+    if (submitSuccess && lastSubmittedAttendee && lastSubmittedAttendee.status === 'yes') {
+      return true;
+    }
+
+    // 2. Hoặc thành viên này đã từng xác nhận có mặt trong rsvpList
+    if (matchedExistingAttendee && matchedExistingAttendee.status === 'yes') {
+      return true;
+    }
+
+    return false;
+  }, [status, submitSuccess, lastSubmittedAttendee, matchedExistingAttendee]);
+
+  // Thông tin đối tượng tham dự dùng để mở Modal Thẻ Học Sinh hoặc Nộp Quỹ
+  const currentPassAttendee = useMemo(() => {
+    if (lastSubmittedAttendee) return lastSubmittedAttendee;
+    if (matchedExistingAttendee) return matchedExistingAttendee;
+    if (fullName && fullName.trim()) {
+      return {
+        id: activeMember?.id || 'temp',
+        fullName: fullName.trim(),
+        nickname: nickname ? nickname.trim() : '',
+        shirtSize: shirtSize || 'L',
+        status: status,
+        phone: phone ? phone.trim() : '',
+        className: 'K8A1'
+      } as RsvpData;
+    }
+    return null;
+  }, [lastSubmittedAttendee, matchedExistingAttendee, fullName, nickname, shirtSize, status, phone, activeMember]);
+
   return (
     <div id="rsvp-form-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-5 text-left relative overflow-hidden">
       
@@ -515,8 +551,15 @@ export default function RsvpForm({
               <Award className="w-3.5 h-3.5 text-amber-700" />
               <span>Tấm Vé Kỷ Niệm Của Bạn</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-serif italic">
-              {submitSuccess ? '✓ Đã đóng dấu' : 'Tự cập nhật realtime'}
+            <span className="text-[10px] font-serif italic text-slate-500">
+              {isPassConfirmed ? (
+                <span className="text-emerald-700 font-sans font-bold inline-flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span>Đã niêm phong sáp đỏ</span>
+                </span>
+              ) : (
+                'Tự cập nhật realtime'
+              )}
             </span>
           </div>
 
@@ -527,23 +570,27 @@ export default function RsvpForm({
             status={status}
             className="K8A1"
             memberId={activeMember?.id}
-            isConfirmed={Boolean(submitSuccess && lastSubmittedAttendee)}
-            onOpenPassModal={lastSubmittedAttendee ? () => onOpenPassModal && onOpenPassModal(lastSubmittedAttendee) : undefined}
+            isConfirmed={isPassConfirmed}
+            onOpenPassModal={currentPassAttendee ? () => onOpenPassModal && onOpenPassModal(currentPassAttendee) : undefined}
           />
 
-          {/* DÒNG HƯỚNG DẪN KHI CHƯA GỬI */}
-          {!submitSuccess && (
+          {/* DÒNG HƯỚNG DẪN KHI CHƯA XÁC NHẬN */}
+          {!isPassConfirmed && (
             <p className="text-[11px] text-slate-500 font-serif italic text-center px-2">
               ✨ Điền thông tin bên dưới, bạn sẽ nhận được tấm vé kỷ niệm này với con dấu sáp đỏ chính thức của Lớp K8A1.
             </p>
           )}
 
-          {/* HỘP HÀNH ĐỘNG SAU KHI GỬI THÀNH CÔNG */}
-          {submitSuccess && lastSubmittedAttendee && (
+          {/* HỘP HÀNH ĐỘNG KHI ĐÃ XÁC NHẬN (CẢ KHI VỪA GỬI XONG HOẶC ĐÃ CÓ TRONG DANH SÁCH) */}
+          {isPassConfirmed && currentPassAttendee && (
             <div className="p-3 bg-white border border-amber-300 rounded-xl shadow-xs space-y-2.5 animate-fadeIn">
-              <div className="flex items-center gap-1.5 text-amber-900 font-bold font-sans text-xs">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>Bạn muốn làm gì tiếp theo?</span>
+              <div className="flex items-center justify-between text-amber-900 font-bold font-sans text-xs">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  <span>
+                    {submitSuccess ? 'Điểm danh thành công! Bạn muốn làm gì tiếp theo?' : 'Tấm vé của bạn đã được đóng dấu chính thức!'}
+                  </span>
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -551,7 +598,7 @@ export default function RsvpForm({
                 {onOpenPassModal && (
                   <button
                     type="button"
-                    onClick={() => onOpenPassModal(lastSubmittedAttendee)}
+                    onClick={() => onOpenPassModal(currentPassAttendee)}
                     className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-2xs"
                   >
                     <Award className="w-3.5 h-3.5 text-amber-300" />
@@ -571,13 +618,13 @@ export default function RsvpForm({
                 </button>
               </div>
 
-              {/* Nút Nộp Quỹ Lớp 700.000đ */}
-              {lastSubmittedAttendee.status === 'yes' && (
+              {/* Nút Nộp Quỹ Lớp */}
+              {currentPassAttendee.status === 'yes' && (
                 <div className="pt-2 border-t border-amber-200/80">
                   {onOpenReceiptModal ? (
                     <button
                       type="button"
-                      onClick={() => onOpenReceiptModal(lastSubmittedAttendee)}
+                      onClick={() => onOpenReceiptModal(currentPassAttendee)}
                       className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-2xs"
                     >
                       <Receipt className="w-3.5 h-3.5" />
