@@ -23,7 +23,10 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Sparkle
+  Sparkle,
+  Users,
+  Coins,
+  ArrowUp
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
@@ -1269,6 +1272,67 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           </div>
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* 🚀 CỤM NÚT ĐIỀU HƯỚNG NHANH CUỐI PHÂN VÙNG KÝ ỨC */}
+      {/* ======================================================== */}
+      <div className="p-4 sm:p-6 bg-gradient-to-r from-[#FAF8F5] via-[#FFFDF8] to-[#FAF8F5] border border-amber-300/80 rounded-2xl space-y-3.5 text-left shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5">
+          <div className="space-y-0.5">
+            <h4 className="font-serif font-bold text-sm sm:text-base text-[#1E293B]">
+              Đại Gia Đình K8A1 — Hẹn Ngày Trở Về 20 Năm
+            </h4>
+            <p className="text-xs text-slate-500 font-serif italic">
+              Hai mươi năm một chặng đường — Hãy cùng gặp lại để thanh xuân một lần nữa rực sáng!
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1E293B] hover:bg-slate-900 text-amber-300 text-xs font-sans font-bold rounded-xl transition cursor-pointer self-start sm:self-auto shrink-0 shadow-xs"
+            title="Cuộn lên đầu trang"
+          >
+            <ArrowUp className="w-3.5 h-3.5 text-amber-400" />
+            <span>Lên Đầu Trang</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-sans text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('diem-danh') || document.getElementById('rsvp-form-card');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#8B1E2D] to-[#9B2234] hover:from-rose-700 hover:to-red-700 text-white font-bold shadow-xs cursor-pointer transition"
+          >
+            <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+            <span>✍️ Điểm Danh Báo Có Mặt</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById('danh-sach-diem-danh')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white hover:bg-amber-50 text-amber-950 border border-amber-300/80 font-bold shadow-2xs cursor-pointer transition"
+          >
+            <Users className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>👥 Xem Danh Sách Bạn Bè</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById('bank-transfer-card')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white hover:bg-amber-50 text-amber-950 border border-amber-300/80 font-bold shadow-2xs cursor-pointer transition"
+          >
+            <Coins className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>💰 Xem Sổ Quỹ Lớp (VietQR)</span>
+          </button>
+        </div>
+      </div>
 
     </div>
   );

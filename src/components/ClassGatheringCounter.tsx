@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Sparkles, Users, CheckCircle2, ArrowRight, Eye, Heart } from 'lucide-react';
+import { Sparkles, Users, CheckCircle2, ArrowRight, Eye, Heart, Coins, MapPin, Camera } from 'lucide-react';
 import { RsvpData, ClassMember } from '../types';
 import { CLASS_ROSTER_K8A1 } from '../data';
 
@@ -284,6 +284,37 @@ export default function ClassGatheringCounter({
             <Eye className="w-4 h-4 text-amber-700" />
             <span>Xem ai đã đi rồi ({confirmedCount})</span>
           </button>
+        </div>
+
+        {/* HÀNG 6: CÁC NÚT ĐIỀU HƯỚNG NHANH BỔ TRỢ */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-amber-200/60 text-[11px] font-sans text-slate-500">
+          <span className="italic font-serif">Chuyển nhanh:</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => document.getElementById('bank-transfer-card')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 transition cursor-pointer font-medium shadow-2xs"
+            >
+              <Coins className="w-3 h-3 text-emerald-600" />
+              <span>Đóng Quỹ (VietQR)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById('dia-diem')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 transition cursor-pointer font-medium shadow-2xs"
+            >
+              <MapPin className="w-3 h-3 text-amber-600" />
+              <span>Địa Điểm Prime</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById('ky-uc')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 transition cursor-pointer font-medium shadow-2xs"
+            >
+              <Camera className="w-3 h-3 text-amber-600" />
+              <span>Ký Ức 20 Năm</span>
+            </button>
+          </div>
         </div>
 
       </div>

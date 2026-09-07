@@ -16,7 +16,10 @@ import {
   ChevronDown,
   LayoutList,
   LayoutGrid,
-  X
+  X,
+  Coins,
+  Camera,
+  ArrowUp
 } from 'lucide-react';
 import { RsvpData, EventConfig } from '../types';
 
@@ -808,17 +811,66 @@ export default function ConfirmedAttendees({
         </div>
       )}
 
-      {/* Footer prompt */}
-      <div className="p-3 bg-[#FAF8F5] border border-amber-200/80 rounded-xl text-[11px] text-slate-600 font-serif italic flex items-center justify-between shadow-2xs">
-        <span>
-          💡 Danh sách cập nhật tự động. Các bạn có thể tìm nhanh tên mình hoặc kiểm tra size áo.
-        </span>
-        <a 
-          href="#rsvp-form-card" 
-          className="font-sans font-bold uppercase text-[10px] text-amber-800 hover:text-amber-950 hover:underline shrink-0 ml-2"
-        >
-          Tôi chưa đăng ký →
-        </a>
+      {/* 🚀 CỤM NÚT ĐIỀU HƯỚNG NHANH Ở CUỐI DANH SÁCH BẠN BÈ */}
+      <div className="p-4 sm:p-5 bg-gradient-to-r from-[#FAF8F5] via-[#FFFDF8] to-[#FAF8F5] border-2 border-dashed border-amber-300/80 rounded-2xl space-y-3 text-left shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5">
+          <div>
+            <p className="text-xs sm:text-sm font-serif font-bold text-[#1E293B]">
+              Bạn chưa có tên trong danh sách hoặc muốn điều chỉnh thông tin?
+            </p>
+            <p className="text-[11px] text-slate-500 font-serif italic">
+              Danh sách được cập nhật trực tiếp. Bạn có thể báo danh ngay hoặc chuyển tiếp sang đóng quỹ lớp.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[11px] font-sans font-medium transition cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
+            title="Cuộn lên đầu trang"
+          >
+            <ArrowUp className="w-3 h-3 text-slate-600" />
+            <span>Lên Đầu Trang</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 font-sans text-xs">
+          {/* Nút 1: Lên form điểm danh */}
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('diem-danh') || document.getElementById('rsvp-form-card');
+              el?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#8B1E2D] to-[#9B2234] hover:from-rose-700 hover:to-red-700 text-white font-bold shadow-xs hover:shadow-md transition cursor-pointer"
+          >
+            <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+            <span>✍️ Điểm Danh Báo Có Mặt</span>
+          </button>
+
+          {/* Nút 2: Xuống sổ quỹ lớp */}
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById('bank-transfer-card')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-950 border border-amber-400/60 font-bold transition cursor-pointer"
+          >
+            <Coins className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>💰 Đóng Quỹ Lớp (VietQR)</span>
+          </button>
+
+          {/* Nút 3: Xuống kho ký ức */}
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById('ky-uc')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300/80 font-medium transition cursor-pointer"
+          >
+            <Camera className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>📸 Xem Kỷ Niệm 20 Năm</span>
+          </button>
+        </div>
       </div>
 
     </div>
