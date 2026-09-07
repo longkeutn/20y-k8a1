@@ -294,6 +294,9 @@ export default function AdminManagementHub({
     }
   }, [eventConfig]);
 
+  // Chuẩn hóa số tiền đóng quỹ sự kiện K8A1 động theo cấu hình (mặc định 700.000đ)
+  const standardFundAmount = Number(eventConfigForm?.fundAmountPerPerson) || 700000;
+
   const [settingsSection, setSettingsSection] = useState<'all' | 'venue' | 'date' | 'letter' | 'bank' | 'security'>('all');
 
   // Search & Filters for Member Tab
@@ -381,7 +384,7 @@ export default function AdminManagementHub({
         shirtSize: m.shirtSize || 'L',
         message: 'Ban Liên Lạc ghi nhận thông tin tham dự',
         fundStatus: 'unpaid',
-        fundAmount: 500000,
+        fundAmount: standardFundAmount,
         fundNote: ''
       });
       setIsAddMemberModalOpen(true);
@@ -407,7 +410,7 @@ export default function AdminManagementHub({
     shirtSize: 'L',
     message: '',
     fundStatus: 'unpaid',
-    fundAmount: 500000,
+    fundAmount: standardFundAmount,
     fundNote: ''
   });
 
@@ -428,7 +431,7 @@ export default function AdminManagementHub({
 
   // Comprehensive Fund Reconciliation & Proof Modal States
   const [adjustFundMember, setAdjustFundMember] = useState<RsvpData | null>(null);
-  const [fundAdjustAmount, setFundAdjustAmount] = useState<number>(500000);
+  const [fundAdjustAmount, setFundAdjustAmount] = useState<number>(standardFundAmount);
   const [fundAdjustStatus, setFundAdjustStatus] = useState<'paid' | 'unpaid' | 'pending' | 'exempt'>('paid');
   const [fundAdjustPaymentMethod, setFundAdjustPaymentMethod] = useState<'bank_transfer' | 'cash' | 'other'>('bank_transfer');
   const [fundAdjustReceiptUrl, setFundAdjustReceiptUrl] = useState<string>('');
@@ -605,34 +608,34 @@ export default function AdminManagementHub({
   const confirmedCount = useMemo(() => rsvpList.filter(a => a.status === 'yes').length, [rsvpList]);
   const checkedInCount = useMemo(() => rsvpList.filter(a => a.status === 'yes' && a.checkedIn).length, [rsvpList]);
   
-  // Total expected fund (500,000đ per attending member)
-  const expectedFund = useMemo(() => confirmedCount * 500000, [confirmedCount]);
+  // Total expected fund based on standard fee
+  const expectedFund = useMemo(() => confirmedCount * standardFundAmount, [confirmedCount, standardFundAmount]);
   
   // Actual collected fund
   const collectedFund = useMemo(() => {
     return rsvpList.reduce((acc, curr) => {
       if (curr.fundStatus === 'paid') {
-        return acc + (curr.fundAmount !== undefined ? curr.fundAmount : 500000);
+        return acc + (curr.fundAmount !== undefined ? curr.fundAmount : standardFundAmount);
       }
       return acc;
     }, 0);
-  }, [rsvpList]);
+  }, [rsvpList, standardFundAmount]);
 
   const paidMembersCount = useMemo(() => rsvpList.filter(a => a.fundStatus === 'paid').length, [rsvpList]);
 
-  // Extra sponsorship fund (> 500,000đ)
+  // Extra sponsorship fund (> standardFundAmount)
   const totalExtraFund = useMemo(() => {
     return rsvpList.reduce((acc, curr) => {
-      if (curr.fundStatus === 'paid' && (curr.fundAmount || 0) > 500000) {
-        return acc + ((curr.fundAmount || 0) - 500000);
+      if (curr.fundStatus === 'paid' && (curr.fundAmount || 0) > standardFundAmount) {
+        return acc + ((curr.fundAmount || 0) - standardFundAmount);
       }
       return acc;
     }, 0);
-  }, [rsvpList]);
+  }, [rsvpList, standardFundAmount]);
 
   const extraMembersCount = useMemo(() => {
-    return rsvpList.filter(a => a.fundStatus === 'paid' && (a.fundAmount || 0) > 500000).length;
-  }, [rsvpList]);
+    return rsvpList.filter(a => a.fundStatus === 'paid' && (a.fundAmount || 0) > standardFundAmount).length;
+  }, [rsvpList, standardFundAmount]);
 
   const hasReceiptCount = useMemo(() => {
     return rsvpList.filter(a => Boolean(a.fundReceiptUrl && a.fundReceiptUrl.trim())).length;
@@ -865,7 +868,7 @@ export default function AdminManagementHub({
       shirtSize: 'L',
       message: '',
       fundStatus: 'unpaid',
-      fundAmount: 500000,
+      fundAmount: standardFundAmount,
       fundNote: ''
     });
     setIsAddMemberModalOpen(true);
@@ -878,7 +881,7 @@ export default function AdminManagementHub({
       fullName: String(attendee.fullName || ''),
       nickname: String(attendee.nickname || ''),
       phone: String(attendee.phone || ''),
-      fundAmount: attendee.fundAmount || 500000,
+      fundAmount: attendee.fundAmount !== undefined ? attendee.fundAmount : standardFundAmount,
       fundStatus: attendee.fundStatus || 'unpaid'
     });
     setIsAddMemberModalOpen(true);
@@ -901,7 +904,7 @@ export default function AdminManagementHub({
       shirtSize: memberFormData.shirtSize || 'L',
       status: memberFormData.status || 'yes',
       fundStatus: memberFormData.fundStatus || 'unpaid',
-      fundAmount: memberFormData.fundAmount || 500000,
+      fundAmount: memberFormData.fundAmount !== undefined ? memberFormData.fundAmount : standardFundAmount,
       fundNote: memberFormData.fundNote || '',
       message: memberFormData.message || ''
     };
@@ -1092,7 +1095,7 @@ export default function AdminManagementHub({
 
   // Export CSV
   const handleExportRsvpCsv = () => {
-    const headers = ['STT', 'Họ và Tên', 'Biệt Danh', 'Số Điện Thoại', 'Lớp', 'Tham Gia', 'Size Áo', 'Điểm Danh Đến', 'Thời Gian Đến', 'Trạng Thái Quỹ 500k', 'Số Tiền Đóng', 'Ghi Chú Quỹ', 'Lời Nhắn'];
+    const headers = ['STT', 'Họ và Tên', 'Biệt Danh', 'Số Điện Thoại', 'Lớp', 'Tham Gia', 'Size Áo', 'Điểm Danh Đến', 'Thời Gian Đến', `Trạng Thái Quỹ (${standardFundAmount.toLocaleString('vi-VN')}đ)`, 'Số Tiền Đóng', 'Ghi Chú Quỹ', 'Lời Nhắn'];
     const rows = rsvpList.map((a, idx) => [
       idx + 1,
       `"${a.fullName || ''}"`,
@@ -1104,7 +1107,7 @@ export default function AdminManagementHub({
       a.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
       `"${a.checkedInAt || ''}"`,
       a.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : 'CHƯA ĐÓNG',
-      a.fundAmount || (a.fundStatus === 'paid' ? 500000 : 0),
+      a.fundAmount || (a.fundStatus === 'paid' ? standardFundAmount : 0),
       `"${a.fundNote || ''}"`,
       `"${String(a.message || '').replace(/"/g, '""')}"`
     ]);
@@ -1129,7 +1132,7 @@ export default function AdminManagementHub({
     }
     const isCurrentlyPaid = attendee.fundStatus === 'paid';
     const nextStatus = isCurrentlyPaid ? 'unpaid' : 'paid';
-    const nextAmount = nextStatus === 'paid' ? (attendee.fundAmount || 500000) : 0;
+    const nextAmount = nextStatus === 'paid' ? (attendee.fundAmount || standardFundAmount) : 0;
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     const auditor = getDefaultAuditorName();
 
@@ -1142,7 +1145,7 @@ export default function AdminManagementHub({
           fundPaidAt: nextStatus === 'paid' ? (item.fundPaidAt || nowStr) : undefined,
           fundAuditedBy: nextStatus === 'paid' ? (item.fundAuditedBy || auditor) : undefined,
           fundPaymentMethod: nextStatus === 'paid' ? (item.fundPaymentMethod || 'bank_transfer') : item.fundPaymentMethod,
-          fundNote: nextStatus === 'paid' ? (item.fundNote || 'Đã nộp 500.000đ') : ''
+          fundNote: nextStatus === 'paid' ? (item.fundNote || `Đã nộp ${standardFundAmount.toLocaleString('vi-VN')}đ`) : ''
         };
       }
       return item;
@@ -1163,7 +1166,7 @@ export default function AdminManagementHub({
           fundPaidAt: nextStatus === 'paid' ? nowStr : '',
           fundAuditedBy: nextStatus === 'paid' ? auditor : '',
           fundPaymentMethod: attendee.fundPaymentMethod || 'bank_transfer',
-          fundNote: nextStatus === 'paid' ? (attendee.fundNote || 'Đã nộp 500.000đ') : ''
+          fundNote: nextStatus === 'paid' ? (attendee.fundNote || `Đã nộp ${standardFundAmount.toLocaleString('vi-VN')}đ`) : ''
         })
       }).catch(err => console.warn('Toggle fund sync failed:', err));
     }
@@ -1173,14 +1176,14 @@ export default function AdminManagementHub({
     }
   };
 
-  const handleApproveFundDirect = (attendee: RsvpData, customAmount: number = 500000, note?: string) => {
+  const handleApproveFundDirect = (attendee: RsvpData, customAmount: number = standardFundAmount, note?: string) => {
     if (!canAuditAndSpend) {
       alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền đối soát và duyệt tiền quỹ!');
       return;
     }
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     const auditor = getDefaultAuditorName();
-    const finalAmount = customAmount || 500000;
+    const finalAmount = customAmount || standardFundAmount;
     const finalNote = note || (attendee.fundNote ? `${attendee.fundNote} (BLL đã khớp lệnh)` : 'BLL đã đối soát khớp bill');
 
     const updated = rsvpList.map(item => {
@@ -1227,7 +1230,7 @@ export default function AdminManagementHub({
     const foundAttendee = viewReceiptModal.attendee || rsvpList.find(r => r.phone === targetPhone || r.fullName === viewReceiptModal.memberName);
     
     if (foundAttendee) {
-      handleApproveFundDirect(foundAttendee, viewReceiptModal.amount || 500000);
+      handleApproveFundDirect(foundAttendee, viewReceiptModal.amount || standardFundAmount);
     }
 
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -1245,7 +1248,7 @@ export default function AdminManagementHub({
   const handleOpenAdjustFund = (attendee: RsvpData) => {
     setAdjustFundMember(attendee);
     const isPaid = attendee.fundStatus === 'paid';
-    setFundAdjustAmount(attendee.fundAmount !== undefined ? attendee.fundAmount : (isPaid ? 500000 : 0));
+    setFundAdjustAmount(attendee.fundAmount !== undefined ? attendee.fundAmount : (isPaid ? standardFundAmount : 0));
     setFundAdjustStatus(attendee.fundStatus || (isPaid ? 'paid' : 'unpaid'));
     setFundAdjustNote(attendee.fundNote || '');
     setFundAdjustPaymentMethod(attendee.fundPaymentMethod || 'bank_transfer');
@@ -1452,8 +1455,8 @@ export default function AdminManagementHub({
 
     const incomeRows = rsvpList.map((a, idx) => {
       const isPaid = a.fundStatus === 'paid';
-      const amount = isPaid ? (a.fundAmount !== undefined ? a.fundAmount : 500000) : 0;
-      const extra = isPaid && amount > 500000 ? amount - 500000 : 0;
+      const amount = isPaid ? (a.fundAmount !== undefined ? a.fundAmount : standardFundAmount) : 0;
+      const extra = isPaid && amount > standardFundAmount ? amount - standardFundAmount : 0;
       const methodText = a.fundPaymentMethod === 'cash' ? 'Tiền mặt bàn đón tiếp' : (a.fundPaymentMethod === 'other' ? 'Khác' : 'Chuyển khoản Ngân hàng');
       const statusText = a.fundStatus === 'paid' ? 'ĐÃ NỘP TIỀN' : (a.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : (a.fundStatus === 'exempt' ? 'MIỄN ĐÓNG' : 'CHƯA NỘP'));
 
@@ -2314,7 +2317,7 @@ export default function AdminManagementHub({
         (fundStatusFilter === 'paid' && isPaid) ||
         (fundStatusFilter === 'unpaid' && (item.fundStatus === 'unpaid' || !item.fundStatus)) ||
         (fundStatusFilter === 'pending' && item.fundStatus === 'pending') ||
-        (fundStatusFilter === 'extra' && isPaid && (item.fundAmount || 0) > 500000) ||
+        (fundStatusFilter === 'extra' && isPaid && (item.fundAmount || 0) > standardFundAmount) ||
         (fundStatusFilter === 'has_receipt' && hasReceipt) ||
         (fundStatusFilter === 'no_receipt' && !hasReceipt && isPaid) ||
         (fundStatusFilter === 'bank_transfer' && (item.fundPaymentMethod === 'bank_transfer' || !item.fundPaymentMethod)) ||
@@ -2326,16 +2329,16 @@ export default function AdminManagementHub({
 
       return matchQuery && matchFundStatus && matchDate;
     });
-  }, [rsvpList, fundSearch, fundStatusFilter, fundDateFilter, fundCustomStartDate, fundCustomEndDate, isDateInFilter]);
+  }, [rsvpList, fundSearch, fundStatusFilter, fundDateFilter, fundCustomStartDate, fundCustomEndDate, isDateInFilter, standardFundAmount]);
 
   const filteredFundCollected = useMemo(() => {
     return filteredFundList.reduce((sum, item) => {
       if (item.fundStatus === 'paid') {
-        return sum + (item.fundAmount !== undefined ? item.fundAmount : 500000);
+        return sum + (item.fundAmount !== undefined ? item.fundAmount : standardFundAmount);
       }
       return sum;
     }, 0);
-  }, [filteredFundList]);
+  }, [filteredFundList, standardFundAmount]);
 
   if (!isOpen) return null;
 
@@ -2464,7 +2467,7 @@ export default function AdminManagementHub({
               <Receipt className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Đã Đóng Quỹ 500k</p>
+              <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Đã Đóng Quỹ ({standardFundAmount.toLocaleString('vi-VN')}đ)</p>
               <p className="font-serif font-bold text-blue-800 text-sm">{paidMembersCount} / {confirmedCount} bạn</p>
             </div>
           </div>
@@ -2954,7 +2957,7 @@ export default function AdminManagementHub({
                         <th className="py-3 px-3">Số Điện Thoại</th>
                         <th className="py-3 px-3">Size Áo</th>
                         <th className="py-3 px-3">Điểm Danh Đến</th>
-                        <th className="py-3 px-3">Quỹ 500k</th>
+                        <th className="py-3 px-3">Quỹ {standardFundAmount.toLocaleString('vi-VN')}đ</th>
                         <th className="py-3 px-3 text-right">Thao Tác</th>
                       </tr>
                     </thead>
@@ -3036,7 +3039,7 @@ export default function AdminManagementHub({
                                 {item.fundStatus === 'paid' ? (
                                   <>
                                     <Check className="w-3 h-3 text-blue-700" />
-                                    <span>Đã nộp {(item.fundAmount || 500000).toLocaleString('vi-VN')}đ</span>
+                                    <span>Đã nộp {(item.fundAmount || standardFundAmount).toLocaleString('vi-VN')}đ</span>
                                   </>
                                 ) : (
                                   <>
@@ -3564,9 +3567,9 @@ export default function AdminManagementHub({
                       ) : (
                         filteredFundList.map((item, idx) => {
                           const isPaid = item.fundStatus === 'paid';
-                          const amount = item.fundAmount !== undefined ? item.fundAmount : (isPaid ? 500000 : 0);
+                          const amount = item.fundAmount !== undefined ? item.fundAmount : (isPaid ? standardFundAmount : 0);
                           const hasReceipt = Boolean(item.fundReceiptUrl && item.fundReceiptUrl.trim());
-                          const isExtra = isPaid && amount > 500000;
+                          const isExtra = isPaid && amount > standardFundAmount;
 
                           return (
                             <tr key={item.id || item.phone} className="hover:bg-amber-50/40 transition">
@@ -3613,7 +3616,7 @@ export default function AdminManagementHub({
                                 </span>
                                 {isExtra && (
                                   <span className="block text-[10px] font-sans font-bold text-amber-700 uppercase">
-                                    + Ủng hộ {(amount - 500000).toLocaleString('vi-VN')}đ
+                                    + Ủng hộ {(amount - standardFundAmount).toLocaleString('vi-VN')}đ
                                   </span>
                                 )}
                               </td>
@@ -3711,12 +3714,12 @@ export default function AdminManagementHub({
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => handleApproveFundDirect(item, item.fundAmount || 500000)}
+                                      onClick={() => handleApproveFundDirect(item, item.fundAmount || standardFundAmount)}
                                       className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold shadow-2xs transition cursor-pointer"
-                                      title={`Khớp lệnh duyệt ${(item.fundAmount || 500000).toLocaleString('vi-VN')}đ cho bạn này`}
+                                      title={`Khớp lệnh duyệt ${(item.fundAmount || standardFundAmount).toLocaleString('vi-VN')}đ cho bạn này`}
                                     >
                                       <Check className="w-3 h-3" />
-                                      <span>Duyệt {(item.fundAmount || 500000).toLocaleString('vi-VN')}đ</span>
+                                      <span>Duyệt {(item.fundAmount || standardFundAmount).toLocaleString('vi-VN')}đ</span>
                                     </button>
                                   </div>
                                 ) : isPaid ? (
@@ -3734,7 +3737,7 @@ export default function AdminManagementHub({
                                     type="button"
                                     onClick={() => handleToggleFundPaid(item)}
                                     className="inline-flex items-center gap-1 px-2.5 py-1.2 rounded-full text-[11px] font-bold bg-rose-50 hover:bg-emerald-50 text-rose-700 hover:text-emerald-700 border border-rose-200 transition cursor-pointer"
-                                    title="Bấm để đánh dấu Đã Thu Tiền 500k"
+                                    title={`Bấm để đánh dấu Đã Thu Tiền ${standardFundAmount.toLocaleString('vi-VN')}đ`}
                                   >
                                     <Clock className="w-3.5 h-3.5 text-rose-500" />
                                     <span>Chưa Nộp</span>
@@ -3746,7 +3749,7 @@ export default function AdminManagementHub({
                               <td className="py-2.5 px-3 text-slate-600 text-xs">
                                 <div className="space-y-0.5">
                                   <p className="italic text-slate-700 line-clamp-2">
-                                    {item.fundNote || (isPaid ? 'Đã thu đủ 500k' : 'Chưa nộp')}
+                                    {item.fundNote || (isPaid ? `Đã thu đủ ${standardFundAmount.toLocaleString('vi-VN')}đ` : 'Chưa nộp')}
                                   </p>
                                   {item.fundAuditedBy && (
                                     <span className="text-[10px] text-amber-800 font-sans font-semibold block">
@@ -5286,12 +5289,12 @@ export default function AdminManagementHub({
                                 type="number"
                                 step={50000}
                                 value={eventConfigForm.fundAmountPerPerson}
-                                onChange={(e) => setEventConfigForm({ ...eventConfigForm, fundAmountPerPerson: Number(e.target.value) || 500000 })}
-                                placeholder="500000"
+                                onChange={(e) => setEventConfigForm({ ...eventConfigForm, fundAmountPerPerson: Number(e.target.value) || 700000 })}
+                                placeholder="700000"
                                 className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-amber-800 focus:outline-none focus:border-amber-500"
                               />
                               <div className="flex items-center gap-1.5">
-                                {[300000, 500000, 1000000].map((amt) => (
+                                {[500000, 700000, 1000000, 1500000].map((amt) => (
                                   <button
                                     key={amt}
                                     type="button"
@@ -6105,14 +6108,14 @@ export default function AdminManagementHub({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Trạng Thái Quỹ 500k:</label>
+                    <label className="font-bold text-slate-700">Trạng Thái Đóng Quỹ ({standardFundAmount.toLocaleString('vi-VN')}đ):</label>
                     <select
                       value={memberFormData.fundStatus || 'unpaid'}
                       onChange={(e) => setMemberFormData({ ...memberFormData, fundStatus: e.target.value as any })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
                       <option value="unpaid">Chưa đóng</option>
-                      <option value="paid">Đã đóng 500.000đ</option>
+                      <option value="paid">Đã đóng {standardFundAmount.toLocaleString('vi-VN')}đ</option>
                     </select>
                   </div>
                 </div>
@@ -6214,7 +6217,7 @@ export default function AdminManagementHub({
                       <DollarSign className="w-4 h-4 text-emerald-600" />
                       <span>Số Tiền Thực Nộp (VNĐ):</span>
                     </label>
-                    <span className="text-[11px] font-mono text-slate-500">Chuẩn: 500.000 đ</span>
+                    <span className="text-[11px] font-mono text-slate-500">Chuẩn: {standardFundAmount.toLocaleString('vi-VN')} đ</span>
                   </div>
 
                   <input
@@ -6239,12 +6242,12 @@ export default function AdminManagementHub({
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       <button
                         type="button"
-                        onClick={() => { setFundAdjustAmount(500000); setFundAdjustStatus('paid'); }}
+                        onClick={() => { setFundAdjustAmount(standardFundAmount); setFundAdjustStatus('paid'); }}
                         className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
-                          fundAdjustAmount === 500000 ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          fundAdjustAmount === standardFundAmount ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200'
                         }`}
                       >
-                        500k Chuẩn
+                        {standardFundAmount.toLocaleString('vi-VN')}đ Chuẩn
                       </button>
                       <button
                         type="button"
@@ -6294,11 +6297,11 @@ export default function AdminManagementHub({
                     </div>
                   )}
 
-                  {fundAdjustAmount > 500000 && (
+                  {fundAdjustAmount > standardFundAmount && (
                     <div className="p-2 bg-amber-100 text-amber-900 rounded-lg text-[11px] font-sans font-medium flex items-center gap-1.5 mt-2">
                       <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>
-                        Ủng hộ thêm: <strong>{(fundAdjustAmount - 500000).toLocaleString('vi-VN')} đ</strong> vào quỹ chung K8A1!
+                        Ủng hộ thêm: <strong>{(fundAdjustAmount - standardFundAmount).toLocaleString('vi-VN')} đ</strong> vào quỹ chung K8A1!
                       </span>
                     </div>
                   )}
@@ -6661,7 +6664,7 @@ export default function AdminManagementHub({
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition cursor-pointer hover:scale-105 active:scale-95"
                     >
                       <Check className="w-4 h-4" />
-                      <span>✅ Duyệt Khớp Lệnh ({(viewReceiptModal.amount || 500000).toLocaleString('vi-VN')} đ)</span>
+                      <span>✅ Duyệt Khớp Lệnh ({(viewReceiptModal.amount || standardFundAmount).toLocaleString('vi-VN')} đ)</span>
                     </button>
 
                     {viewReceiptModal.attendee && (

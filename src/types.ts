@@ -201,7 +201,7 @@ export type ExpenseCategory =
   | 'other';     // Chi khác & Dự phòng (Đạo cụ, nước suối, vật phẩm chung...)
 
 export type IncomeCategory = 
-  | 'event'        // Thu sự kiện họp lớp (500k/bạn)
+  | 'event'        // Thu sự kiện họp lớp (mặc định 700k/bạn theo eventConfig)
   | 'annual'       // Quỹ thường niên định kỳ (100k/người/năm theo Điều 4 Quy chế)
   | 'sponsor'      // Ủng hộ & Tài trợ của mạnh thường quân
   | 'other_income';// Thu khác (Lãi ngân hàng, chuyển kỳ trước...)

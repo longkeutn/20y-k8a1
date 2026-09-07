@@ -15,7 +15,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { RsvpData, ClassMember } from '../types';
+import { RsvpData, ClassMember, EventConfig } from '../types';
 
 interface ReceiptUploadModalProps {
   isOpen: boolean;
@@ -23,6 +23,7 @@ interface ReceiptUploadModalProps {
   appsScriptUrl?: string;
   rsvpList?: RsvpData[];
   classRoster?: ClassMember[];
+  eventConfig?: EventConfig;
   defaultAttendee?: RsvpData | null;
   onUpdateRsvpList?: (list: RsvpData[]) => void;
 }
@@ -33,15 +34,18 @@ export default function ReceiptUploadModal({
   appsScriptUrl = '',
   rsvpList = [],
   classRoster = [],
+  eventConfig,
   defaultAttendee,
   onUpdateRsvpList
 }: ReceiptUploadModalProps) {
+  const standardAmount = Number(eventConfig?.fundAmountPerPerson) || 700000;
+
   const [selectedMemberPhone, setSelectedMemberPhone] = useState<string>('');
   const [customFullName, setCustomFullName] = useState<string>('');
   const [customPhone, setCustomPhone] = useState<string>('');
-  const [transferAmount, setTransferAmount] = useState<number>(500000);
-  const [customAmountInput, setCustomAmountInput] = useState<string>('500.000');
-  const [selectedPreset, setSelectedPreset] = useState<'500k' | '1m' | '2m' | 'custom'>('500k');
+  const [transferAmount, setTransferAmount] = useState<number>(standardAmount);
+  const [customAmountInput, setCustomAmountInput] = useState<string>(standardAmount.toLocaleString('vi-VN'));
+  const [selectedPreset, setSelectedPreset] = useState<'standard' | '1m' | '2m' | 'custom'>('standard');
   const [transferNote, setTransferNote] = useState<string>('');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -95,9 +99,9 @@ export default function ReceiptUploadModal({
       setUploadError(null);
       setReceiptImage(null);
       setTransferNote('');
-      setTransferAmount(500000);
-      setCustomAmountInput('500.000');
-      setSelectedPreset('500k');
+      setTransferAmount(standardAmount);
+      setCustomAmountInput(standardAmount.toLocaleString('vi-VN'));
+      setSelectedPreset('standard');
 
       if (defaultAttendee) {
         setSelectedMemberPhone(defaultAttendee.phone || defaultAttendee.fullName || '');
@@ -276,7 +280,7 @@ export default function ReceiptUploadModal({
                 Gửi Ảnh Biên Lai / Bill Nộp Quỹ
               </h3>
               <p className="text-[10px] sm:text-[11px] text-slate-300 font-sans">
-                Họp Lớp 20 Năm K8A1 • Mức đóng tạm ứng 500.000 VNĐ
+                Họp Lớp 20 Năm K8A1 • Mức đóng tạm ứng {standardAmount.toLocaleString('vi-VN')} VNĐ
               </p>
             </div>
           </div>
@@ -361,9 +365,9 @@ export default function ReceiptUploadModal({
                 <span className="font-mono font-bold text-emerald-700 text-sm sm:text-base">
                   {transferAmount > 0 ? `${transferAmount.toLocaleString('vi-VN')} đ` : '0 đ'}
                 </span>
-                {transferAmount > 500000 && (
+                {transferAmount > standardAmount && (
                   <span className="block text-[9px] font-sans font-bold text-amber-800 uppercase">
-                    + Ủng hộ {(transferAmount - 500000).toLocaleString('vi-VN')}đ
+                    + Ủng hộ {(transferAmount - standardAmount).toLocaleString('vi-VN')}đ
                   </span>
                 )}
               </div>
@@ -374,17 +378,18 @@ export default function ReceiptUploadModal({
               <button
                 type="button"
                 onClick={() => {
-                  setTransferAmount(500000);
-                  setCustomAmountInput('500.000');
-                  setSelectedPreset('500k');
+                  setTransferAmount(standardAmount);
+                  setCustomAmountInput(standardAmount.toLocaleString('vi-VN'));
+                  setSelectedPreset('standard');
                 }}
                 className={`py-2 px-1 rounded-lg font-sans text-xs text-center transition cursor-pointer font-bold ${
-                  selectedPreset === '500k'
+                  selectedPreset === 'standard'
                     ? 'bg-emerald-600 text-white shadow-2xs ring-2 ring-emerald-400/50'
                     : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                 }`}
               >
-                500.000đ
+                {standardAmount.toLocaleString('vi-VN')}đ
+                <span className="block text-[9px] font-normal opacity-90">(Chuẩn)</span>
               </button>
               <button
                 type="button"
@@ -445,12 +450,12 @@ export default function ReceiptUploadModal({
                   const num = raw ? parseInt(raw, 10) : 0;
                   setTransferAmount(num);
                   setCustomAmountInput(raw ? num.toLocaleString('vi-VN') : '');
-                  if (num === 500000) setSelectedPreset('500k');
+                  if (num === standardAmount) setSelectedPreset('standard');
                   else if (num === 1000000) setSelectedPreset('1m');
                   else if (num === 2000000) setSelectedPreset('2m');
                   else setSelectedPreset('custom');
                 }}
-                placeholder="Nhập số tiền bạn đã chuyển (VD: 700.000, 1.500.000...)"
+                placeholder={`Nhập số tiền bạn đã chuyển (VD: ${standardAmount.toLocaleString('vi-VN')}, 1.000.000...)`}
                 className="w-full pl-8 pr-14 py-2 bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-xs font-mono font-bold text-slate-900 shadow-2xs placeholder:font-sans placeholder:font-normal placeholder:text-slate-400"
               />
               <div className="absolute inset-y-0 right-0 pr-3 pt-0.5 flex items-center pointer-events-none text-[11px] font-sans font-bold text-slate-400">

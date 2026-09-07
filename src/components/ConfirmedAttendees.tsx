@@ -39,6 +39,7 @@ export default function ConfirmedAttendees({
   onOpenPassModal,
   onOpenReceiptModal
 }: ConfirmedAttendeesProps) {
+  const standardFundAmount = Number(eventConfig?.fundAmountPerPerson) || 700000;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'yes' | 'all' | 'no'>('yes');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
@@ -425,7 +426,10 @@ export default function ConfirmedAttendees({
                       <td className="py-3 px-3 text-center">
                         {attendee.status === 'yes' ? (
                           attendee.fundStatus === 'paid' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap" title="Đã nộp quỹ tạm ứng 500k">
+                            <span 
+                              className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap" 
+                              title={attendee.fundAmount ? `Đã nộp ${attendee.fundAmount.toLocaleString('vi-VN')}đ` : `Đã nộp quỹ tạm ứng ${standardFundAmount.toLocaleString('vi-VN')}đ`}
+                            >
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                               <span>Đã đóng</span>
                             </span>
@@ -546,7 +550,10 @@ export default function ConfirmedAttendees({
 
                     {attendee.status === 'yes' && (
                       attendee.fundStatus === 'paid' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300">
+                        <span 
+                          className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300"
+                          title={attendee.fundAmount ? `Đã nộp ${attendee.fundAmount.toLocaleString('vi-VN')}đ` : `Đã nộp quỹ tạm ứng ${standardFundAmount.toLocaleString('vi-VN')}đ`}
+                        >
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                           <span>Đã đóng</span>
                         </span>

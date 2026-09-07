@@ -1220,6 +1220,7 @@ export default function App() {
               <RsvpForm 
                 appsScriptUrl={activeAppsScriptUrl} 
                 rsvpList={rsvpList} 
+                eventConfig={eventConfig}
                 classRoster={classRoster}
                 activeMember={activeMember}
                 onSelectActiveMember={handleSelectActiveMember}
@@ -1464,6 +1465,7 @@ export default function App() {
         appsScriptUrl={activeAppsScriptUrl}
         rsvpList={rsvpList}
         classRoster={classRoster}
+        eventConfig={eventConfig}
         defaultAttendee={selectedReceiptAttendee}
         onUpdateRsvpList={(updated) => {
           setRsvpList(updated);

@@ -16,12 +16,13 @@ import {
   Phone,
   MessageSquare
 } from 'lucide-react';
-import { RsvpData, ClassMember } from '../types';
+import { RsvpData, ClassMember, EventConfig } from '../types';
 import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS } from '../data';
 
 interface RsvpFormProps {
   appsScriptUrl: string;
   rsvpList: RsvpData[];
+  eventConfig?: EventConfig;
   classRoster?: ClassMember[];
   activeMember?: ClassMember | null;
   onSelectActiveMember?: (member: ClassMember | null) => void;
@@ -33,6 +34,7 @@ interface RsvpFormProps {
 export default function RsvpForm({
   appsScriptUrl,
   rsvpList,
+  eventConfig,
   classRoster,
   activeMember,
   onSelectActiveMember,
@@ -40,6 +42,7 @@ export default function RsvpForm({
   onOpenPassModal,
   onOpenReceiptModal
 }: RsvpFormProps) {
+  const standardFundAmount = Number(eventConfig?.fundAmountPerPerson) || 700000;
   const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
 
   const [fullName, setFullName] = useState('');
@@ -536,7 +539,7 @@ export default function RsvpForm({
             {lastSubmittedAttendee && lastSubmittedAttendee.status === 'yes' && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-emerald-200 text-xs">
                 <span className="text-slate-700">
-                  Đóng quỹ họp lớp K8A1 <strong>(tạm ứng 500.000đ)</strong>:
+                  Đóng quỹ họp lớp K8A1 <strong>(tạm ứng {standardFundAmount.toLocaleString('vi-VN')}đ)</strong>:
                 </span>
                 <div className="flex items-center gap-2">
                   {onOpenReceiptModal ? (

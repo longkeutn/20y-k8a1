@@ -53,7 +53,7 @@ export default function BankTransfer({
   bankAccount = "10123456789",
   bankHolder = "NGUYEN VAN BAN TO CHUC",
   transferSyntax = "KY NIEM 20 NAM K8A1",
-  fundAmount = 500000,
+  fundAmount = 700000,
   bankCode = "vietcombank",
   qrTemplate = "compact",
   appsScriptUrl = "",
@@ -81,7 +81,7 @@ export default function BankTransfer({
   const bankNameStr = String(bankName || 'Vietcombank (VCB)');
   const bankHolderStr = String(bankHolder || 'NGUYEN VAN BAN TO CHUC');
   const transferSyntaxStr = String(transferSyntax || 'KY NIEM 20 NAM K8A1');
-  const fundAmountNum = Number(fundAmount) || 500000;
+  const fundAmountNum = Number(fundAmount) || 700000;
   const bankCodeStr = String(bankCode || 'vietcombank');
 
   // Tự động cá nhân hóa cú pháp chuyển khoản khi đã nhận diện thành viên
@@ -210,7 +210,7 @@ export default function BankTransfer({
             Đóng Quỹ Họp Lớp K8A1
           </span>
           <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
-            Thông Tin Quỹ Lớp (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'}đ / Bạn)
+            Thông Tin Quỹ Lớp (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '700.000'}đ / Bạn)
           </h3>
           <p className="text-xs text-slate-500 font-serif italic">
             Kinh phí bao gồm: Tiệc trưa giao lưu hội ngộ, Áo polo đồng phục 20 năm, Thẻ học sinh & quà lưu niệm
@@ -560,7 +560,7 @@ export default function BankTransfer({
               <div className="flex justify-between items-center text-slate-600">
                 <span>Số tiền:</span>
                 <span className="font-bold text-amber-800">
-                  {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '500.000'} VNĐ
+                  {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '700.000'} VNĐ
                 </span>
               </div>
               <div className="flex justify-between items-start text-slate-600 pt-1 border-t border-amber-100">
