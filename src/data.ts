@@ -704,91 +704,129 @@ export function normalizeImageUrl(rawUrl?: string): string {
 }
 
 /**
+ * Chuyển đổi an toàn bất kỳ định dạng ngày nào thành đối tượng Date hợp lệ
+ * Xử lý: "09:30 • 01/09/2026", "01/09/2026 09:30", "01/09/2026", ISO, Timestamp, Date object...
+ * Trả về null nếu không hợp lệ hoặc nếu gặp "Invalid Date" (chống triệt để lỗi hiển thị Invalid Date)
+ */
+export function parseDate(rawDate?: any): Date | null {
+  if (!rawDate) return null;
+  if (rawDate instanceof Date) {
+    return isNaN(rawDate.getTime()) ? null : rawDate;
+  }
+  const str = String(rawDate).trim();
+  if (!str || str.toLowerCase() === 'invalid date' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
+    return null;
+  }
+
+  // Nếu là số timestamp mili-giây dạng chuỗi hoặc số
+  if (/^\d{10,14}$/.test(str)) {
+    const d = new Date(Number(str));
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // Dạng HH:mm • DD/MM/YYYY hoặc HH:mm:ss • DD/MM/YYYY
+  const bulletMatch = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*•\s*(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (bulletMatch) {
+    const [, h, min, s, d, m, y] = bulletMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(h), Number(min), Number(s || 0));
+  }
+
+  // Dạng DD/MM/YYYY • HH:mm
+  const bulletMatch2 = str.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s*•\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (bulletMatch2) {
+    const [, d, m, y, h, min, s] = bulletMatch2;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(h), Number(min), Number(s || 0));
+  }
+
+  // Dạng DD/MM/YYYY HH:mm:ss hoặc DD/MM/YYYY
+  const dmyTimeMatch = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (dmyTimeMatch) {
+    const [, d, m, y, h, min, s] = dmyTimeMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0), Number(s || 0));
+  }
+
+  // Dạng ISO YYYY-MM-DD hoặc YYYY-MM-DD HH:mm:ss
+  const ymdTimeMatch = str.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[\sT](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (ymdTimeMatch) {
+    const [, y, m, d, h, min, s] = ymdTimeMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0), Number(s || 0));
+  }
+
+  // Thử parse qua Date tiêu chuẩn
+  const fallback = new Date(str);
+  if (!isNaN(fallback.getTime())) {
+    return fallback;
+  }
+
+  return null;
+}
+
+/**
  * Định dạng thời gian chuẩn tiếng Việt cho giao diện:
  * - Chuyển đổi các chuỗi Date rườm rà (ví dụ: "Sat Sep 05 2026 16:24:00 GMT+0700 (Indochina Time)", ISO, Timestamp)
  *   thành dạng gọn gàng, trang trọng: "16:24 • 05/09/2026"
  * - Chuẩn hóa các dạng DD/MM/YYYY HH:mm
+ * - Tuyệt đối không bao giờ trả về chuỗi "Invalid Date"
  */
 export function formatDateTimeVi(rawDate?: any): string {
   if (!rawDate) return '';
   const str = String(rawDate).trim();
-  if (!str) return '';
-
-  const dmyHms = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::\d{2})?$/);
-  if (dmyHms) {
-    const [, d, m, y, h, min] = dmyHms;
-    const pad = (n: string) => n.length === 1 ? '0' + n : n;
-    return `${pad(h)}:${pad(min)} • ${pad(d)}/${pad(m)}/${y}`;
+  if (!str || str.toLowerCase() === 'invalid date' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
+    return '';
   }
 
+  // Nếu đã là định dạng chuẩn "HH:mm • DD/MM/YYYY" thì giữ nguyên
   if (/^\d{2}:\d{2}\s*•\s*\d{2}\/\d{2}\/\d{4}$/.test(str)) {
     return str;
   }
 
-  // Dạng chỉ có ngày VN: "05/09/2026" hoặc "5/9/2026"
-  const dmy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmy) {
-    const [, d, m, y] = dmy;
-    const pad = (n: string) => n.length === 1 ? '0' + n : n;
-    return `${pad(d)}/${pad(m)}/${y}`;
+  const d = parseDate(rawDate);
+  if (!d) {
+    return '';
   }
 
-  // Dạng chỉ có ngày ISO: "2026-09-05"
-  const ymd = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (ymd) {
-    const [, y, m, d] = ymd;
-    const pad = (n: string) => n.length === 1 ? '0' + n : n;
-    return `${pad(d)}/${pad(m)}/${y}`;
+  const pad = (n: number) => n < 10 ? '0' + n : String(n);
+  const day = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+  const year = d.getFullYear();
+
+  // Nếu không có thành phần giờ phút trong chuỗi gốc và giờ phút bằng 0 thì chỉ trả về ngày
+  if (d.getHours() === 0 && d.getMinutes() === 0 && !str.includes(':')) {
+    return `${day}/${month}/${year}`;
   }
 
-  const d = new Date(str);
-  if (!isNaN(d.getTime())) {
-    const pad = (n: number) => n < 10 ? '0' + n : String(n);
-    const day = pad(d.getDate());
-    const month = pad(d.getMonth() + 1);
-    const year = d.getFullYear();
-    const hours = pad(d.getHours());
-    const minutes = pad(d.getMinutes());
-    return `${hours}:${minutes} • ${day}/${month}/${year}`;
-  }
-
-  return str;
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  return `${hours}:${minutes} • ${day}/${month}/${year}`;
 }
 
 /**
  * Định dạng ngày chuẩn tiếng Việt (DD/MM/YYYY):
- * - Xử lý triệt để các chuỗi Date từ Google Sheets như "Sat Aug 15 2026 00:00:00 GMT+0700 (Indochina Time)"
- *   hoặc ISO "2026-08-15" thành "15/08/2026"
+ * - Xử lý triệt để các chuỗi Date từ Google Sheets như "Sat Aug 15 2026 00:00:00 GMT+0700 (Indochina Time)",
+ *   "09:30 • 01/09/2026", ISO "2026-08-15" thành "15/08/2026"
+ * - Tuyệt đối không bao giờ trả về chuỗi "Invalid Date"
  */
 export function formatDateOnlyVi(rawDate?: any): string {
   if (!rawDate) return '';
   const str = String(rawDate).trim();
-  if (!str) return '';
-
-  // Đã là chuẩn DD/MM/YYYY
-  const dmy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (dmy) {
-    const [, d, m, y] = dmy;
-    const pad = (n: string) => n.length === 1 ? '0' + n : n;
-    return `${pad(d)}/${pad(m)}/${y}`;
+  if (!str || str.toLowerCase() === 'invalid date' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
+    return '';
   }
 
-  // Dạng ISO YYYY-MM-DD
-  const ymd = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (ymd) {
-    const [, y, m, d] = ymd;
-    const pad = (n: string) => n.length === 1 ? '0' + n : n;
-    return `${pad(d)}/${pad(m)}/${y}`;
+  const d = parseDate(rawDate);
+  if (!d) {
+    // Dự phòng: trích xuất cụm DD/MM/YYYY nếu có trong chuỗi
+    const dmy = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dmy) {
+      const [, dStr, mStr, yStr] = dmy;
+      const pad = (n: string) => n.length === 1 ? '0' + n : n;
+      return `${pad(dStr)}/${pad(mStr)}/${yStr}`;
+    }
+    return '';
   }
 
-  // Chuỗi Date đầy đủ của JavaScript: Sat Aug 15 2026 00:00:00 GMT+0700...
-  const d = new Date(str);
-  if (!isNaN(d.getTime())) {
-    const pad = (n: number) => n < 10 ? '0' + n : String(n);
-    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-  }
-
-  return str;
+  const pad = (n: number) => n < 10 ? '0' + n : String(n);
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
 export const DEFAULT_EVENT_CONFIG: EventConfig = {

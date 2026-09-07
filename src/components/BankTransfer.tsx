@@ -26,7 +26,7 @@ import {
   Filter
 } from 'lucide-react';
 import { RsvpData, ClassMember, ExpenseItem } from '../types';
-import { generateVietQrUrl, EXPENSE_CATEGORIES, formatDateOnlyVi } from '../data';
+import { generateVietQrUrl, EXPENSE_CATEGORIES, formatDateOnlyVi, parseDate } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
@@ -104,21 +104,9 @@ export default function BankTransfer({
 
   // Helper lọc thời gian cho Sổ quỹ minh bạch
   const isLedgerDateInFilter = (dateStr: string | undefined, filter: 'all' | 'this_month' | 'year_2026') => {
-    if (filter === 'all' || !dateStr) return true;
-    let d: Date | null = null;
-    const s = String(dateStr).trim();
-    const dmyMatch = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-    if (dmyMatch) {
-      const day = parseInt(dmyMatch[1], 10);
-      const month = parseInt(dmyMatch[2], 10) - 1;
-      const year = parseInt(dmyMatch[3], 10);
-      d = new Date(year, month, day);
-    } else {
-      const parsed = new Date(s);
-      if (!isNaN(parsed.getTime())) {
-        d = parsed;
-      }
-    }
+    if (filter === 'all') return true;
+    if (!dateStr) return true;
+    const d = parseDate(dateStr);
     if (!d) return true;
     const now = new Date();
     if (filter === 'this_month') {
@@ -833,6 +821,7 @@ export default function BankTransfer({
                     {displayedPaidAttendees.map((att, idx) => {
                       const amount = Number(att.fundAmount) || Number((att as any).verifiedAmount) || Number((att as any).paidAmount) || fundAmountNum;
                       const dateDisplay = att.fundPaidAt || (att as any).paidAt || att.submittedAt;
+                      const formattedDate = formatDateOnlyVi(dateDisplay);
                       return (
                         <div 
                           key={att.id || idx}
@@ -842,8 +831,9 @@ export default function BankTransfer({
                             <p className="text-xs sm:text-sm font-sans font-bold text-slate-900 truncate">
                               {idx + 1}. {att.fullName} {att.nickname ? `(“${att.nickname}”)` : ''}
                             </p>
-                            <p className="text-[11px] text-slate-500 font-sans">
-                              {dateDisplay ? new Date(dateDisplay).toLocaleDateString('vi-VN') : 'Đã xác nhận'}
+                            <p className="text-[11px] text-slate-500 font-sans flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span>{formattedDate ? `Ngày nộp: ${formattedDate}` : 'Đã xác nhận đóng quỹ'}</span>
                             </p>
                           </div>
                           <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">

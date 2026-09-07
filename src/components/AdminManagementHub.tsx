@@ -89,6 +89,7 @@ import {
   SHIRT_SIZE_OPTIONS,
   formatDateTimeVi,
   formatDateOnlyVi,
+  parseDate,
   EXPENSE_CATEGORIES,
   updatePinsViaBackend,
   initSecuritySheetViaBackend,
@@ -543,23 +544,7 @@ export default function AdminManagementHub({
     if (filterType === 'all') return true;
     if (!dateStr || !String(dateStr).trim()) return false;
 
-    const s = String(dateStr).trim();
-    let itemDate: Date | null = null;
-
-    // Phân tích các dạng ngày phổ biến: DD/MM/YYYY hoặc DD-MM-YYYY hoặc YYYY-MM-DD
-    const dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    if (dmyMatch) {
-      const day = parseInt(dmyMatch[1], 10);
-      const month = parseInt(dmyMatch[2], 10) - 1;
-      const year = parseInt(dmyMatch[3], 10);
-      itemDate = new Date(year, month, day);
-    } else {
-      const parsed = new Date(s);
-      if (!isNaN(parsed.getTime())) {
-        itemDate = parsed;
-      }
-    }
-
+    const itemDate = parseDate(dateStr);
     if (!itemDate || isNaN(itemDate.getTime())) return false;
 
     const now = new Date();
