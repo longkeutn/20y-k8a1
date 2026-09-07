@@ -14,6 +14,7 @@ export interface ClassMember {
 
 export interface RsvpData {
   id?: string;
+  memberId?: string;           // ID thành viên trong Danh Bạ Lớp (VD: 'm01', 'm41') để phân biệt người trùng tên
   fullName: string;
   nickname?: string;
   phone: string;

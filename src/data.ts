@@ -156,6 +156,22 @@ export const CLASS_ROSTER_K8A1: ClassMember[] = [
   { id: 'm40', fullName: 'Triệu Văn Đạt', nickname: 'Đạt Chuẩn', role: 'Thành viên', gender: 'male', shirtSize: 'L' }
 ];
 
+// Kiểm tra xem một thành viên có thuộc Ban Tổ Chức / Ban Liên Lạc hay không
+export const isOfficialBLLMember = (member?: ClassMember | null): boolean => {
+  if (!member || !member.role) return false;
+  const r = member.role.toLowerCase().trim();
+  return (
+    r.includes('ban liên lạc') ||
+    r.includes('admin') ||
+    r.includes('thủ quỹ') ||
+    r.includes('bí thư') ||
+    r.includes('lớp trưởng') ||
+    r.includes('lớp phó') ||
+    r.includes('trưởng ban') ||
+    r.includes('bll')
+  );
+};
+
 export const INITIAL_WISHES_LIST: WishData[] = [
   {
     id: 'w1',

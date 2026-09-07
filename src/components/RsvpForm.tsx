@@ -74,42 +74,101 @@ export default function RsvpForm({
     return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
   };
 
-  // Tìm kiếm xem bạn này đã từng đăng ký trong rsvpList chưa
+  // Đếm số lượng họ tên trong danh bạ để nhận diện các bạn trùng tên
+  const nameCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    rosterList.forEach((m) => {
+      const n = normalizeName(m.fullName);
+      if (n) counts[n] = (counts[n] || 0) + 1;
+    });
+    return counts;
+  }, [rosterList]);
+
+  // Tìm kiếm xem bạn này đã từng đăng ký trong rsvpList chưa (chống gộp nhầm người trùng tên)
   const matchedExistingAttendee = useMemo(() => {
     const p = normalizePhone(phone);
     const n = normalizeName(fullName);
     if (!p && !n) return null;
+
+    const duplicateNameInRoster = n ? (nameCounts[n] || 0) > 1 : false;
+
     return (rsvpList || []).find((item) => {
       if (!item) return false;
+
+      // 1. Ưu tiên khớp theo memberId nếu có (từ Danh Bạ Lớp)
+      if (activeMember?.id && item.memberId) {
+        if (item.memberId === activeMember.id) return true;
+        return false; // Khác memberId => chắc chắn không phải bạn này, dù trùng họ tên!
+      }
+
       const itemP = normalizePhone(item.phone);
       const itemN = normalizeName(item.fullName);
-      if (p && itemP && p === itemP) return true;
-      if (!p && n && itemN && n === itemN) return true;
-      if (n && itemN && n === itemN && (!itemP || !p || p === itemP)) return true;
+
+      // 2. Nếu cả 2 đều có SĐT và SĐT khác nhau => Tuyệt đối không khớp
+      if (p && itemP && p !== itemP) {
+        return false;
+      }
+
+      // 3. Nếu SĐT khớp nhau
+      if (p && itemP && p === itemP) {
+        return true;
+      }
+
+      // 4. Nếu họ tên trùng khớp:
+      if (n && itemN && n === itemN) {
+        // Nếu trong danh bạ có >= 2 bạn trùng họ tên mà không có SĐT khớp => Không gộp bừa
+        if (duplicateNameInRoster) {
+          return false;
+        }
+        // Nếu chỉ có duy nhất 1 bạn mang họ tên này và không xung đột SĐT
+        if (!p || !itemP || p === itemP) {
+          return true;
+        }
+      }
+
       return false;
     });
-  }, [phone, fullName, rsvpList]);
+  }, [phone, fullName, rsvpList, activeMember, nameCounts]);
 
-  // Đồng bộ thông tin khi activeMember thay đổi từ bất kỳ đâu
+  // Đồng bộ thông tin khi activeMember thay đổi từ bất kỳ đâu (nhận diện chuẩn xác từng người, không đè người trùng tên)
   useEffect(() => {
     if (activeMember) {
       setFullName(activeMember.fullName);
-      if (activeMember.nickname) setNickname(activeMember.nickname);
+      setNickname(activeMember.nickname || '');
       if (activeMember.shirtSize) {
         const normalizedSize = activeMember.shirtSize.toUpperCase() === 'XXL' ? '2XL' : activeMember.shirtSize.toUpperCase();
         setShirtSize(normalizedSize);
+      } else {
+        setShirtSize('L');
       }
-      if (activeMember.phone) setPhone(String(activeMember.phone));
+      setPhone(activeMember.phone ? String(activeMember.phone) : '');
       setIsCustomMode(false);
 
+      const mP = normalizePhone(activeMember.phone);
+      const mN = normalizeName(activeMember.fullName);
+      const isDupName = mN ? (nameCounts[mN] || 0) > 1 : false;
+
+      // Tìm phản hồi ĐÃ CÓ của CHÍNH activeMember này:
       const existing = (rsvpList || []).find((item) => {
         if (!item) return false;
+        // Khớp theo memberId nếu có
+        if (item.memberId && activeMember.id) {
+          return item.memberId === activeMember.id;
+        }
         const itemP = normalizePhone(item.phone);
         const itemN = normalizeName(item.fullName);
-        const mP = normalizePhone(activeMember.phone);
-        const mN = normalizeName(activeMember.fullName);
+
+        // Nếu khác SĐT thì bỏ qua
+        if (mP && itemP && mP !== itemP) return false;
+
+        // Nếu trùng SĐT
         if (mP && itemP && mP === itemP) return true;
-        if (mN && itemN && mN === itemN) return true;
+
+        // Nếu trùng họ tên nhưng trong danh bạ có nhiều người cùng tên => không lấy bừa
+        if (mN && itemN && mN === itemN) {
+          if (isDupName) return false;
+          return true;
+        }
         return false;
       });
 
@@ -122,6 +181,10 @@ export default function RsvpForm({
         if (existing.status) setStatus(existing.status);
         if (existing.message) setMessage(String(existing.message));
         if (existing.nickname) setNickname(String(existing.nickname));
+      } else {
+        // Bạn này chưa từng đăng ký => khởi tạo form mới sạch sẽ, không giữ message hay status của bạn khác
+        setStatus('yes');
+        setMessage('');
       }
     } else if (!isCustomMode) {
       setFullName('');
@@ -130,7 +193,7 @@ export default function RsvpForm({
       setMessage('');
       setStatus('yes');
     }
-  }, [activeMember, isCustomMode, rsvpList]);
+  }, [activeMember, isCustomMode, rsvpList, nameCounts]);
 
   // Chọn thành viên từ dropdown
   const handleSelectMember = (memberId: string) => {
@@ -197,6 +260,7 @@ export default function RsvpForm({
 
     const rsvpPayload: RsvpData = {
       id: matchedExistingAttendee ? matchedExistingAttendee.id : `rsvp-${Date.now()}`,
+      memberId: activeMember?.id,
       fullName: fullName.trim(),
       nickname: nickname.trim() || undefined,
       phone: phone.trim(),
@@ -204,7 +268,19 @@ export default function RsvpForm({
       shirtSize: status === 'yes' ? shirtSize : undefined,
       status,
       message: message.trim(),
-      submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      ...(matchedExistingAttendee ? {
+        checkedIn: matchedExistingAttendee.checkedIn,
+        checkedInAt: matchedExistingAttendee.checkedInAt,
+        avatarUrl: matchedExistingAttendee.avatarUrl,
+        fundStatus: matchedExistingAttendee.fundStatus,
+        fundAmount: matchedExistingAttendee.fundAmount,
+        fundNote: matchedExistingAttendee.fundNote,
+        fundReceiptUrl: matchedExistingAttendee.fundReceiptUrl,
+        fundPaidAt: matchedExistingAttendee.fundPaidAt,
+        fundPaymentMethod: matchedExistingAttendee.fundPaymentMethod,
+        fundAuditedBy: matchedExistingAttendee.fundAuditedBy
+      } : {})
     };
 
     setLastSubmittedAttendee(rsvpPayload);
@@ -355,11 +431,21 @@ export default function RsvpForm({
                   className="w-full bg-white border border-amber-300 rounded-lg py-2 pl-3 pr-8 text-xs sm:text-[13px] text-slate-800 font-sans cursor-pointer focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400/50 shadow-2xs font-medium appearance-none"
                 >
                   <option value="">-- Chọn tên bạn trong Danh Bạ K8A1 để tự điền thông tin --</option>
-                  {rosterList.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.fullName} {m.nickname ? `(${m.nickname})` : ''} {m.role && m.role !== 'Thành viên' ? `— [${m.role}]` : ''}
-                    </option>
-                  ))}
+                  {rosterList.map((m) => {
+                    const isDuplicate = (nameCounts[normalizeName(m.fullName)] || 0) > 1;
+                    const details: string[] = [];
+                    if (m.nickname) details.push(`"${m.nickname}"`);
+                    if (isDuplicate && m.phone) details.push(`SĐT đuôi ...${String(m.phone).replace(/[^0-9]/g, '').slice(-4)}`);
+                    if (isDuplicate && m.province) details.push(m.province);
+                    if (m.role && m.role !== 'Thành viên') details.push(`[${m.role}]`);
+                    const detailText = details.length > 0 ? ` (${details.join(' • ')})` : '';
+
+                    return (
+                      <option key={m.id} value={m.id}>
+                        {m.fullName}{detailText}
+                      </option>
+                    );
+                  })}
                   <option value="custom">✏️ Tự nhập họ tên khác...</option>
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -431,18 +431,45 @@ export default function App() {
   };
 
   // Synchronize new RSVP entries (Upsert thông minh chống trùng lặp)
+  // Synchronize new RSVP entries (Upsert thông minh chống trùng lặp và phân biệt người trùng tên)
   const handleAddRsvp = (newRsvp: RsvpData) => {
     let wasExisting = false;
     setRsvpList((prev) => {
       const normNewPhone = normalizePhoneForMatch(newRsvp.phone);
       const normNewName = normalizeNameForMatch(newRsvp.fullName);
+      const normNewNick = normalizeNameForMatch(newRsvp.nickname);
 
       const existingIndex = prev.findIndex((item) => {
+        // 1. Khớp chính xác theo ID thành viên danh bạ nếu cả 2 bên đều có
+        if (newRsvp.memberId && item.memberId && newRsvp.memberId === item.memberId) return true;
+        // 2. Khớp theo ID bản ghi nếu có
+        if (newRsvp.id && item.id && newRsvp.id === item.id) return true;
+
         const itemPhone = normalizePhoneForMatch(item.phone);
         const itemName = normalizeNameForMatch(item.fullName);
-        if (normNewPhone && itemPhone && normNewPhone === itemPhone) return true;
-        if (!normNewPhone && normNewName && itemName && normNewName === itemName) return true;
-        if (normNewName && itemName && normNewName === itemName && (!itemPhone || !normNewPhone || normNewPhone === itemPhone)) return true;
+        const itemNick = normalizeNameForMatch(item.nickname);
+
+        // 3. Nếu cả 2 đều có SĐT:
+        if (normNewPhone && itemPhone) {
+          // Nếu khác SĐT => chắc chắn là 2 người khác nhau dù cùng họ tên!
+          if (normNewPhone !== itemPhone) return false;
+          return normNewName === itemName;
+        }
+
+        // 4. Nếu có nickname: khớp cả họ tên và biệt danh
+        if (normNewNick && itemNick) {
+          return normNewName === itemName && normNewNick === itemNick;
+        }
+
+        // 5. Nếu chỉ có họ tên và thiếu 1 bên SĐT: Chỉ cho phép khớp nếu trong danh bạ CHỈ CÓ DUY NHẤT 1 người mang tên này
+        const currentRoster = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+        const sameNameCount = currentRoster.filter(
+          (r) => normalizeNameForMatch(r.fullName) === normNewName
+        ).length;
+        if (sameNameCount <= 1 && normNewName && itemName && normNewName === itemName) {
+          return true;
+        }
+
         return false;
       });
 
@@ -1398,7 +1425,7 @@ export default function App() {
           isOpen={isAdminHubOpen}
           onClose={() => setIsAdminHubOpen(false)}
           currentUserRole={currentUserRole}
-          activeMember={activeMember}
+          activeMember={isOfficialBLLMember(activeMember) ? activeMember : null}
           initialTab={adminHubInitialTab}
           initialMediaSubTab={adminHubInitialMediaSubTab}
           onLoginSuccess={(role) => {

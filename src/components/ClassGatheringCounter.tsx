@@ -41,16 +41,60 @@ export default function ClassGatheringCounter({
   // Tỷ lệ % tham gia
   const percent = Math.min(100, Math.round((confirmedCount / Math.max(totalRoster, 1)) * 100));
 
-  // Kiểm tra thành viên đang tương tác đã điểm danh có mặt chưa
+  // Chuẩn hóa họ tên & SĐT để đối soát chính xác
+  const normalizeName = (n?: any) => {
+    if (!n) return '';
+    return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
+  };
+  const normalizePhone = (p?: any) => {
+    if (!p) return '';
+    let clean = String(p).replace(/[^0-9]/g, '');
+    if (clean.startsWith('84') && clean.length > 9) clean = '0' + clean.slice(2);
+    else if (!clean.startsWith('0') && clean.length === 9) clean = '0' + clean;
+    return clean;
+  };
+
+  const currentRoster = useMemo(() => {
+    return classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+  }, [classRoster]);
+
+  // Kiểm tra thành viên đang tương tác đã điểm danh có mặt chưa (phân biệt chính xác người trùng tên)
   const isActiveMemberConfirmed = useMemo(() => {
     if (!activeMember) return false;
-    return confirmedAttendees.some(a => {
-      const matchName = a.fullName && a.fullName.toLowerCase().trim() === activeMember.fullName.toLowerCase().trim();
-      const matchPhone = activeMember.phone && a.phone && a.phone.trim() === activeMember.phone.trim();
-      const matchNick = activeMember.nickname && a.nickname && a.nickname.toLowerCase().trim() === activeMember.nickname.toLowerCase().trim();
-      return matchName || matchPhone || matchNick;
+
+    const mName = normalizeName(activeMember.fullName);
+    const mPhone = normalizePhone(activeMember.phone);
+
+    // Kiểm tra số lượng bạn trùng họ tên trong danh bạ
+    const sameNameCount = currentRoster.filter(
+      (r) => normalizeName(r.fullName) === mName
+    ).length;
+
+    return confirmedAttendees.some((a) => {
+      // 1. Khớp chính xác theo memberId
+      if (a.memberId && activeMember.id) {
+        return a.memberId === activeMember.id;
+      }
+
+      const aPhone = normalizePhone(a.phone);
+      const aName = normalizeName(a.fullName);
+
+      // 2. Nếu cả 2 đều có SĐT và SĐT khác nhau => chắc chắn không phải
+      if (mPhone && aPhone && mPhone !== aPhone) return false;
+
+      // 3. Nếu SĐT trùng nhau
+      if (mPhone && aPhone && mPhone === aPhone) return true;
+
+      // 4. Nếu họ tên trùng nhau:
+      if (mName && aName && mName === aName) {
+        // Nếu trong danh bạ có nhiều bạn trùng tên này => không nhận vơ nếu không có SĐT khớp
+        if (sameNameCount > 1) return false;
+        return true;
+      }
+
+      return false;
     });
-  }, [activeMember, confirmedAttendees]);
+  }, [activeMember, confirmedAttendees, currentRoster]);
 
   // Lấy danh sách 8 bạn báo có mặt gần nhất để xếp lớp avatar
   const recentConfirmed = useMemo(() => {

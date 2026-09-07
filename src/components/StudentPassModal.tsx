@@ -78,18 +78,22 @@ export default function StudentPassModal({
 
   if (!isOpen) return null;
 
-  // Find current nickname based on name
-  const currentAttendee = allAttendees.find(
-    (a) => a.fullName.trim().toLowerCase() === name.trim().toLowerCase()
-  ) || defaultAttendee;
+  // Find current attendee & nickname based on name (ưu tiên đúng defaultAttendee khi có người trùng tên)
+  const currentAttendee = (defaultAttendee && defaultAttendee.fullName.trim().toLowerCase() === name.trim().toLowerCase())
+    ? defaultAttendee
+    : allAttendees.find(
+        (a) => a.fullName.trim().toLowerCase() === name.trim().toLowerCase()
+      ) || defaultAttendee;
   const currentNickname = currentAttendee?.nickname;
 
   // Handle changing attendee name
   const handleNameChange = (newName: string) => {
     setName(newName);
-    const matched = allAttendees.find(
-      (a) => a.fullName.trim().toLowerCase() === newName.trim().toLowerCase()
-    );
+    const matched = (defaultAttendee && defaultAttendee.fullName.trim().toLowerCase() === newName.trim().toLowerCase())
+      ? defaultAttendee
+      : allAttendees.find(
+          (a) => a.fullName.trim().toLowerCase() === newName.trim().toLowerCase()
+        );
     if (matched) {
       if (matched.className) setClassName(matched.className);
       if (matched.shirtSize) setShirtSize(matched.shirtSize);
@@ -273,8 +277,8 @@ export default function StudentPassModal({
               />
               <datalist id="k8a1-attendees-list">
                 {allAttendees.map((att, idx) => (
-                  <option key={idx} value={att.fullName}>
-                    {att.nickname ? `Biệt danh: ${att.nickname}` : att.className || 'K8A1'}
+                  <option key={att.id || idx} value={att.fullName}>
+                    {att.nickname ? `Biệt danh: ${att.nickname}` : (att.phone ? `SĐT: ...${String(att.phone).slice(-4)}` : (att.className || 'K8A1'))}
                   </option>
                 ))}
               </datalist>

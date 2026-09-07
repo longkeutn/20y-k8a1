@@ -91,7 +91,8 @@ import {
   formatDateOnlyVi,
   EXPENSE_CATEGORIES,
   updatePinsViaBackend,
-  initSecuritySheetViaBackend
+  initSecuritySheetViaBackend,
+  isOfficialBLLMember
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
@@ -232,15 +233,29 @@ export default function AdminManagementHub({
   const isAuthorized = isAdmin || isTreasurer || isBll;
   const canAuditAndSpend = isTreasurer || isAdmin; // Chỉ Thủ Quỹ hoặc Admin mới có quyền đối soát và nhập liệu chi
 
-  // Helper tính tên người đối soát tự động theo vai trò và danh tính
+  // Helper tính tên người đối soát tự động theo vai trò và danh tính chính thức
   const getDefaultAuditorName = useCallback(() => {
+    // Chỉ cho phép gắn tên cá nhân nếu thành viên này thực sự thuộc Ban Liên Lạc / Ban Tổ Chức
+    const isBllOfficer = isOfficialBLLMember(activeMember);
+
     if (isTreasurer) {
-      return activeMember?.fullName ? `Thủ Quỹ ${activeMember.fullName}` : 'Thủ Quỹ BLL';
+      if (isBllOfficer && activeMember?.role?.toLowerCase().includes('thủ quỹ')) {
+        return `Thủ Quỹ ${activeMember.fullName}`;
+      }
+      return 'Thủ Quỹ BLL';
     }
+
     if (isAdmin) {
-      return activeMember?.fullName ? `Admin (${activeMember.fullName})` : 'Trưởng Ban (Admin)';
+      if (isBllOfficer && activeMember?.fullName) {
+        return `Admin (${activeMember.fullName})`;
+      }
+      return 'Trưởng Ban (Admin)';
     }
-    return 'Ban Liên Lạc';
+
+    if (isBllOfficer && activeMember?.fullName) {
+      return `${activeMember.fullName} (BLL)`;
+    }
+    return 'Ban Liên Lạc K8A1';
   }, [isTreasurer, isAdmin, activeMember]);
 
   // Navigation tabs
@@ -704,7 +719,7 @@ export default function AdminManagementHub({
       alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền tạo khoản chi tiêu!');
       return;
     }
-    const defaultSpender = activeMember?.fullName || (classRoster && classRoster.length > 0 ? classRoster[0].fullName : 'Thủ Quỹ BLL');
+    const defaultSpender = (isOfficialBLLMember(activeMember) && activeMember?.fullName) ? activeMember.fullName : 'Thủ Quỹ BLL';
     const amountVal = preset?.amount !== undefined ? Number(preset.amount) : 500000;
     setEditingExpense(null);
     setExpenseFormData({
@@ -758,7 +773,7 @@ export default function AdminManagementHub({
       category: (expenseFormData.category as ExpenseCategory) || 'party',
       amount: amountNum,
       date: String(expenseFormData.date || '').trim() || new Date().toISOString().split('T')[0],
-      spender: String(expenseFormData.spender || '').trim() || (activeMember?.fullName || 'Thủ Quỹ BLL'),
+      spender: String(expenseFormData.spender || '').trim() || ((isOfficialBLLMember(activeMember) && activeMember?.fullName) ? activeMember.fullName : 'Thủ Quỹ BLL'),
       recipient: String(expenseFormData.recipient || '').trim(),
       receiptUrl: String(expenseFormData.receiptUrl || '').trim(),
       eventScope: String(expenseFormData.eventScope || '').trim() || 'Kỷ niệm 20 năm',
