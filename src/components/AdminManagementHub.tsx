@@ -8134,6 +8134,8 @@ export default function AdminManagementHub({
             </div>
           </div>
         )}
+      </AnimatePresence>
+
       {/* =================================================================== */}
       {/* MODAL: THÊM / CẬP NHẬT KHOẢN THU QUỸ LỚP (INCOME MODAL) */}
       {/* =================================================================== */}
