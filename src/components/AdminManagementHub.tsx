@@ -2915,7 +2915,7 @@ export default function AdminManagementHub({
             <div>
               <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Tổng Quỹ Đã Thu</p>
               <p className="font-serif font-bold text-amber-900 text-sm">
-                {(collectedFund / 1000000).toFixed(1)} triệu VNĐ
+                {collectedFund.toLocaleString('vi-VN')} đ
               </p>
             </div>
           </div>
