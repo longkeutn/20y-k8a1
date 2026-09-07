@@ -583,15 +583,17 @@ export default function App() {
     });
   };
 
-  // Synchronize new image uploads with direct Google Sheet sync
-  const handleAddImage = (newImg: MemoryImage) => {
+  // Synchronize new image uploads with direct Google Sheet sync (supports single or batch uploads)
+  const handleAddImage = (newImgOrImgs: MemoryImage | MemoryImage[]) => {
+    const newItems = Array.isArray(newImgOrImgs) ? newImgOrImgs : [newImgOrImgs];
+    if (newItems.length === 0) return;
     const local = localStorage.getItem('uploaded_images');
     const uploaded = local ? JSON.parse(local) : [];
-    const updatedUploaded = [newImg, ...uploaded];
+    const updatedUploaded = [...newItems, ...uploaded];
     try {
       localStorage.setItem('uploaded_images', JSON.stringify(updatedUploaded));
     } catch (e) {}
-    setImages([newImg, ...images]);
+    setImages(prev => [...newItems, ...prev]);
     syncToBackend('save_media', { 
       photos: updatedUploaded, 
       videos, 

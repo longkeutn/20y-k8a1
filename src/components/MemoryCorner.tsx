@@ -29,7 +29,9 @@ import {
   Sparkle,
   Users,
   Coins,
-  ArrowUp
+  ArrowUp,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
@@ -38,7 +40,7 @@ interface MemoryCornerProps {
   appsScriptUrl?: string;
   images: MemoryImage[];
   videos?: MemoryVideo[];
-  onAddImage?: (newImage: MemoryImage) => void;
+  onAddImage?: (newImage: MemoryImage | MemoryImage[]) => void;
 }
 
 // Chuẩn hóa link video YouTube hoặc Google Drive sang Embed URL
@@ -96,12 +98,19 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
 
-  // Photo Upload Modal State
+  // Photo Multi-Upload Modal State
   const [isPhotoUploadModalOpen, setIsPhotoUploadModalOpen] = useState(false);
-  const [uploadPreview, setUploadPreview] = useState<string>('');
-  const [uploadCaption, setUploadCaption] = useState<string>('');
+  const [pendingPhotos, setPendingPhotos] = useState<{
+    id: string;
+    file: File;
+    preview: string;
+    caption: string;
+    size: number;
+  }[]>([]);
   const [uploadDate, setUploadDate] = useState<string>('2006');
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; percent: number }>({ current: 0, total: 0, percent: 0 });
   const [uploadError, setUploadError] = useState<string>('');
   const [uploadSuccess, setUploadSuccess] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -345,33 +354,91 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
   };
 
-  // Upload file select
+  // ---------------------------------------------------------------------------
+  // XỬ LÝ CHỌN & UPLOAD NHIỀU ẢNH KỶ NIỆM (MULTI-PHOTO BATCH UPLOAD)
+  // ---------------------------------------------------------------------------
   const handlePhotoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      setUploadError('Kích thước tệp quá lớn! Vui lòng chọn ảnh dưới 15MB.');
-      return;
-    }
+    setUploadError('');
+    setUploadSuccess('');
+    setIsProcessingFiles(true);
 
     try {
-      setUploadError('');
-      const compressed = await compressImage(file);
-      setUploadPreview(compressed);
-      if (!uploadCaption) {
-        setUploadCaption(file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '));
+      const newItems: {
+        id: string;
+        file: File;
+        preview: string;
+        caption: string;
+        size: number;
+      }[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 25 * 1024 * 1024) {
+          continue; // Bỏ qua tệp quá 25MB
+        }
+        try {
+          const compressed = await compressImage(file);
+          const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+          newItems.push({
+            id: `pending-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
+            file,
+            preview: compressed,
+            caption: cleanName || 'Kỷ niệm lớp K8A1',
+            size: file.size
+          });
+        } catch (err) {
+          console.warn('Lỗi nén ảnh:', file.name, err);
+        }
+      }
+
+      if (newItems.length === 0) {
+        setUploadError('Không thể xử lý các tệp ảnh vừa chọn. Vui lòng kiểm tra lại định dạng ảnh.');
+      } else {
+        setPendingPhotos(prev => [...prev, ...newItems]);
       }
     } catch (err) {
-      setUploadError('Không thể xử lý hình ảnh này. Vui lòng thử bức ảnh khác.');
+      setUploadError('Có lỗi xảy ra khi nạp ảnh. Vui lòng thử lại.');
+    } finally {
+      setIsProcessingFiles(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  // Submit Upload ảnh
+  const handleRemovePendingPhoto = (id: string) => {
+    setPendingPhotos(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleUpdatePendingCaption = (id: string, newCaption: string) => {
+    setPendingPhotos(prev => prev.map(p => p.id === id ? { ...p, caption: newCaption } : p));
+  };
+
+  const handleApplyBatchCaption = (batchCaption: string) => {
+    if (!batchCaption.trim()) return;
+    setPendingPhotos(prev => prev.map((p, idx) => ({
+      ...p,
+      caption: prev.length > 1 ? `${batchCaption.trim()} (${idx + 1})` : batchCaption.trim()
+    })));
+  };
+
+  const handleClosePhotoModal = () => {
+    if (isUploading) return;
+    setIsPhotoUploadModalOpen(false);
+    setPendingPhotos([]);
+    setUploadError('');
+    setUploadSuccess('');
+    setUploadProgress({ current: 0, total: 0, percent: 0 });
+  };
+
+  // Submit Upload toàn bộ ảnh đã chọn lên Google Drive
   const handlePhotoUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadPreview) {
-      setUploadError('Vui lòng chọn ảnh trước khi tải lên.');
+    if (pendingPhotos.length === 0) {
+      setUploadError('Vui lòng chọn ít nhất một bức ảnh trước khi tải lên.');
       return;
     }
 
@@ -379,74 +446,86 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     setUploadError('');
     setUploadSuccess('');
 
-    const finalCaption = uploadCaption.trim() || 'Kỷ niệm lớp K8A1';
+    const total = pendingPhotos.length;
+    let successCount = 0;
+    let failCount = 0;
     const finalDate = uploadDate.trim() || '2006';
+    const successfullyAdded: MemoryImage[] = [];
 
-    try {
-      if (appsScriptUrl) {
-        const response = await fetch(appsScriptUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'upload_photo',
-            fileData: uploadPreview,
-            caption: finalCaption
-          })
-        });
+    for (let i = 0; i < total; i++) {
+      const item = pendingPhotos[i];
+      setUploadProgress({
+        current: i + 1,
+        total,
+        percent: Math.round(((i) / total) * 100)
+      });
 
-        const result = await response.json();
+      const finalCaption = item.caption.trim() || 'Kỷ niệm lớp K8A1';
 
-        if (result && result.status === 'success') {
-          const newPhoto: MemoryImage = {
-            id: result.fileId || `drive-img-${Date.now()}`,
-            url: result.data?.url || `https://lh3.googleusercontent.com/d/${result.fileId}=w1600`,
+      try {
+        if (appsScriptUrl) {
+          const response = await fetch(appsScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'upload_photo',
+              fileData: item.preview,
+              caption: finalCaption
+            })
+          });
+
+          const result = await response.json();
+
+          if (result && result.status === 'success') {
+            successCount++;
+            const newPhoto: MemoryImage = {
+              id: result.fileId || `drive-img-${Date.now()}-${i}`,
+              url: result.data?.url || `https://lh3.googleusercontent.com/d/${result.fileId}=w1600`,
+              caption: finalCaption,
+              date: finalDate,
+              isUserUploaded: true
+            };
+            successfullyAdded.push(newPhoto);
+          } else {
+            failCount++;
+          }
+        } else {
+          // Local fallback
+          successCount++;
+          const localPhoto: MemoryImage = {
+            id: `local-img-${Date.now()}-${i}`,
+            url: item.preview,
             caption: finalCaption,
             date: finalDate,
             isUserUploaded: true
           };
-
-          if (onAddImage) {
-            onAddImage(newPhoto);
-          }
-
-          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-          setUploadSuccess('Góp ảnh kỷ niệm vào thư viện lớp thành công! 🎉');
-          setTimeout(() => {
-            setIsPhotoUploadModalOpen(false);
-            setUploadPreview('');
-            setUploadCaption('');
-            setUploadSuccess('');
-          }, 1500);
-        } else {
-          throw new Error(result?.message || 'Lỗi từ máy chủ lưu trữ');
+          successfullyAdded.push(localPhoto);
         }
-      } else {
-        const localPhoto: MemoryImage = {
-          id: `local-img-${Date.now()}`,
-          url: uploadPreview,
-          caption: finalCaption,
-          date: finalDate,
-          isUserUploaded: true
-        };
-
-        if (onAddImage) {
-          onAddImage(localPhoto);
-        }
-
-        confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
-        setUploadSuccess('Đã thêm ảnh vào thư viện kỷ niệm! (Lưu cục bộ) 🎉');
-        setTimeout(() => {
-          setIsPhotoUploadModalOpen(false);
-          setUploadPreview('');
-          setUploadCaption('');
-          setUploadSuccess('');
-        }, 1500);
+      } catch (err: any) {
+        console.error('Lỗi upload từng ảnh:', err);
+        failCount++;
       }
-    } catch (err: any) {
-      console.error('Lỗi upload ảnh:', err);
-      setUploadError(`Lỗi khi tải ảnh: ${err.message || 'Không thể kết nối máy chủ'}`);
-    } finally {
-      setIsUploading(false);
+    }
+
+    setUploadProgress({ current: total, total, percent: 100 });
+    setIsUploading(false);
+
+    if (successfullyAdded.length > 0 && onAddImage) {
+      onAddImage(successfullyAdded);
+    }
+
+    if (successCount > 0) {
+      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+      if (failCount === 0) {
+        setUploadSuccess(`Đã tải lên thành công toàn bộ ${successCount} bức ảnh kỷ niệm vào thư viện lớp! 🎉`);
+      } else {
+        setUploadSuccess(`Đã tải lên thành công ${successCount}/${total} bức ảnh (${failCount} ảnh bị lỗi). 🎉`);
+      }
+      setTimeout(() => {
+        handleClosePhotoModal();
+      }, 2000);
+    } else {
+      setUploadError('Không thể tải ảnh lên Google Drive. Vui lòng kiểm tra lại kết nối mạng và thử lại.');
     }
   };
 
@@ -1090,19 +1169,19 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       {/* ======================================================== */}
       {/* 📸 MODAL GÓP ẢNH KỶ NIỆM (IN-APP DIRECT UPLOAD) */}
       {/* ======================================================== */}
+      {/* ======================================================== */}
+      {/* 📸 MODAL GÓP ẢNH KỶ NIỆM (CHO PHÉP CHỌN & UPLOAD NHIỀU ẢNH) */}
+      {/* ======================================================== */}
       {isPhotoUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-amber-200 relative text-left space-y-5">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg sm:max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-amber-200 relative text-left space-y-4 my-8">
             
             <button
               type="button"
-              onClick={() => {
-                setIsPhotoUploadModalOpen(false);
-                setUploadPreview('');
-                setUploadError('');
-                setUploadSuccess('');
-              }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              disabled={isUploading}
+              onClick={handleClosePhotoModal}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 cursor-pointer disabled:opacity-30"
+              title="Đóng cửa sổ"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1116,7 +1195,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 Góp Thêm Ảnh Vào Kho Kỷ Yếu Lớp
               </h3>
               <p className="text-xs text-slate-500 font-serif italic">
-                Ảnh sẽ được tự động đồng bộ trực tiếp vào cuốn kỷ yếu chung của tập thể lớp K8A1.
+                Hỗ trợ chọn và tải lên nhiều ảnh cùng lúc. Ảnh sẽ tự động đồng bộ trực tiếp vào Google Drive & kỷ yếu chung của lớp.
               </p>
             </div>
 
@@ -1136,83 +1215,190 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
             <form onSubmit={handlePhotoUploadSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1.5">
-                  Chọn ảnh từ máy tính hoặc điện thoại: <span className="text-rose-500">*</span>
-                </label>
-                
+                {/* Ẩn input file, cho phép chọn multiple ảnh */}
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
+                  disabled={isUploading || isProcessingFiles}
                   onChange={handlePhotoFileSelect}
                   className="hidden"
                   id="photo-file-upload-input"
                 />
 
-                {uploadPreview ? (
-                  <div className="relative rounded-xl overflow-hidden border-2 border-amber-400 bg-slate-900 group aspect-[16/10] flex items-center justify-center">
-                    <img
-                      src={uploadPreview}
-                      alt="Ảnh xem trước"
-                      className="max-h-full max-w-full object-contain"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-3 py-1.5 bg-white text-slate-800 rounded-lg text-xs font-bold hover:bg-amber-50 cursor-pointer shadow"
-                      >
-                        Đổi ảnh khác
-                      </button>
+                {isProcessingFiles && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs flex items-center justify-center gap-2 text-amber-800 mb-3">
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                    <span className="font-semibold">Đang xử lý và tối ưu hóa dung lượng ảnh đã chọn...</span>
+                  </div>
+                )}
+
+                {pendingPhotos.length === 0 ? (
+                  <div
+                    onClick={() => !isProcessingFiles && !isUploading && fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/40 hover:bg-amber-50/80 rounded-2xl p-7 sm:p-9 text-center cursor-pointer transition-all space-y-2.5 group"
+                  >
+                    <div className="w-13 h-13 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                      <Upload className="w-6 h-6 text-amber-800" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-serif font-bold text-slate-800 text-sm sm:text-base">
+                        Bấm vào đây để chọn ảnh từ thiết bị
+                      </p>
+                      <p className="text-xs text-amber-800 font-sans font-medium">
+                        ✨ Bạn có thể chọn một hoặc nhiều ảnh cùng lúc
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-sans">
+                        Hỗ trợ JPG, PNG, WEBP • Hệ thống tự động nén giữ độ nét HD
+                      </p>
                     </div>
                   </div>
                 ) : (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50 hover:bg-amber-50/40 rounded-xl p-6 text-center cursor-pointer transition-colors space-y-2"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 mx-auto flex items-center justify-center">
-                      <Upload className="w-5 h-5" />
+                  <div className="space-y-3">
+                    {/* Thanh thông tin & nút thao tác danh sách ảnh đã chọn */}
+                    <div className="flex items-center justify-between gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+                      <span className="text-xs font-bold text-slate-700">
+                        📸 Đã chọn: <span className="text-amber-700 font-mono text-sm">{pendingPhotos.length}</span> ảnh
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={isUploading}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-2.5 py-1 bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-amber-900 rounded-lg text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Thêm ảnh nữa</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isUploading}
+                          onClick={() => setPendingPhotos([])}
+                          className="px-2 py-1 text-slate-400 hover:text-rose-600 rounded-lg text-xs font-sans inline-flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                          title="Xóa danh sách ảnh vừa chọn"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Xóa hết</span>
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-700 text-xs">Bấm vào đây để chọn ảnh</p>
-                      <p className="text-[11px] text-slate-400 font-sans">Hỗ trợ JPG, PNG, WEBP (Tự động tối ưu chất lượng HD)</p>
+
+                    {/* Danh sách cuộn lưới các ảnh đã chọn */}
+                    <div className="max-h-60 sm:max-h-64 overflow-y-auto pr-1 border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {pendingPhotos.map((item, idx) => (
+                          <div key={item.id} className="relative group bg-white border border-slate-200 rounded-lg overflow-hidden p-1.5 flex flex-col gap-1 shadow-2xs">
+                            <div className="aspect-[4/3] rounded-md overflow-hidden bg-slate-900 relative">
+                              <img
+                                src={item.preview}
+                                alt={`Ảnh ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-xs text-[9px] text-white px-1.5 py-0.2 rounded font-mono">
+                                #{idx + 1}
+                              </span>
+                              {!isUploading && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemovePendingPhoto(item.id)}
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center transition-colors cursor-pointer"
+                                  title="Bỏ ảnh này"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              disabled={isUploading}
+                              value={item.caption}
+                              onChange={(e) => handleUpdatePendingCaption(item.id, e.target.value)}
+                              placeholder="Chú thích ảnh..."
+                              className="w-full px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded text-[10px] focus:outline-none focus:border-amber-500 text-slate-700 font-serif"
+                              title="Bấm để sửa chú thích riêng cho ảnh này"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Chú thích / Tên bức ảnh: <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={uploadCaption}
-                  onChange={(e) => setUploadCaption(e.target.value)}
-                  placeholder="VD: Lễ bế giảng năm 2006, Chuyến dã ngoại Hồ Núi Cốc..."
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
-                />
-              </div>
+              {pendingPhotos.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1 text-[11px]">
+                      Thời gian / Niên khóa:
+                    </label>
+                    <input
+                      type="text"
+                      disabled={isUploading}
+                      value={uploadDate}
+                      onChange={(e) => setUploadDate(e.target.value)}
+                      placeholder="VD: 2006, hoặc Họp lớp 10 năm..."
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
+                    />
+                  </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Thời gian / Niên khóa:
-                </label>
-                <input
-                  type="text"
-                  value={uploadDate}
-                  onChange={(e) => setUploadDate(e.target.value)}
-                  placeholder="VD: 2003, 2004, 2005, 2006, hoặc Họp lớp 10 năm..."
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
-                />
-              </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1 text-[11px]">
+                      Đặt chú thích chung (tùy chọn):
+                    </label>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        disabled={isUploading}
+                        id="batch-caption-input"
+                        placeholder="VD: Hội trại K8A1 2005..."
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => {
+                          const el = document.getElementById('batch-caption-input') as HTMLInputElement;
+                          if (el && el.value.trim()) {
+                            handleApplyBatchCaption(el.value.trim());
+                          }
+                        }}
+                        className="px-2.5 py-1.5 bg-slate-200 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-lg text-[11px] font-sans font-semibold cursor-pointer shrink-0 transition"
+                        title="Áp dụng tên này cho tất cả các ảnh ở trên"
+                      >
+                        Áp dụng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tiến trình Upload (Progress Bar) */}
+              {isUploading && (
+                <div className="space-y-1.5 p-3 bg-amber-50 rounded-xl border border-amber-200">
+                  <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                      <span>Đang tải lên: {uploadProgress.current}/{uploadProgress.total} ảnh...</span>
+                    </span>
+                    <span className="font-mono">{uploadProgress.percent}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-amber-200/60 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-300"
+                      style={{ width: `${uploadProgress.percent}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-amber-700 font-serif italic text-center">
+                    Ảnh đang được đồng bộ lên Google Drive, vui lòng giữ cửa sổ này mở...
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsPhotoUploadModalOpen(false)}
+                  onClick={handleClosePhotoModal}
                   disabled={isUploading}
                   className="px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans font-semibold cursor-pointer disabled:opacity-50"
                 >
@@ -1220,18 +1406,18 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 </button>
                 <button
                   type="submit"
-                  disabled={isUploading || !uploadPreview}
+                  disabled={isUploading || pendingPhotos.length === 0}
                   className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-sans font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   {isUploading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang Tải Lên...</span>
+                      <span>Đang Tải ({uploadProgress.current}/{uploadProgress.total})...</span>
                     </>
                   ) : (
                     <>
                       <Upload className="w-4 h-4" />
-                      <span>Lưu Vào Thư Viện</span>
+                      <span>{pendingPhotos.length > 0 ? `Tải Lên ${pendingPhotos.length} Ảnh` : 'Tải Lên Thư Viện'}</span>
                     </>
                   )}
                 </button>
