@@ -1,6 +1,6 @@
 {
   "name": "Hội Ngộ 20 Năm Lớp K8A1 - THPT Thái Nguyên",
-  "description": "Trang thông tin và đăng ký kỷ niệm 20 năm hội ngộ lớp K8A1 (Khóa 8), Trường THPT Thái Nguyên tại Crown Palace Thái Nguyên ngày 27/9.",
+  "description": "Trang thông tin chính thức, điểm danh và đăng ký tham dự Đại lễ Kỷ niệm 20 năm ngày ra trường Lớp K8A1 (Niên khóa 2003 — 2006), Trường THPT Thái Nguyên.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

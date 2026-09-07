@@ -176,12 +176,13 @@ export default function StudentPassModal({
   };
 
   const handleCopyPassText = () => {
-    const venue = eventConfig?.venueName || 'Crown Palace';
-    const address = eventConfig?.venueAddress || '779 Dương Tự Minh, TP. Thái Nguyên';
+    const venue = eventConfig?.venueName 
+      ? `${eventConfig.venueName}${eventConfig.venueAddress ? `, ${eventConfig.venueAddress}` : ''}`
+      : 'TP. Thái Nguyên';
     const timeText = eventConfig?.eventTimeText || eventConfig?.eventDateText || 'Từ 08:30 Sáng - Chủ Nhật, 27/09/2026';
     const text = `🎓 THẺ THÀNH VIÊN HỘI NGỘ 20 NĂM LỚP K8A1 (2006 — 2026)\n👤 Cựu học sinh: ${name}${
       currentNickname ? ` ("${currentNickname}")` : ''
-    }\n🏫 Lớp: ${className} • Trường THPT Thái Nguyên\n🎟️ Mã thẻ: #${passCode}\n📍 Địa điểm: ${venue}, ${address}\n⏰ Thời gian: ${timeText}\n✨ 20 Năm Ngày Trở Về - K8A1 Mãi Là Anh Em!`;
+    }\n🏫 Lớp: ${className} • Trường THPT Thái Nguyên\n🎟️ Mã thẻ: #${passCode}\n📍 Địa điểm: ${venue}\n⏰ Thời gian: ${timeText}\n✨ 20 Năm Ngày Trở Về - K8A1 Mãi Là Anh Em!`;
     try {
       if (navigator.clipboard?.writeText) {
         navigator.clipboard
@@ -205,10 +206,9 @@ export default function StudentPassModal({
   };
 
   const handleNativeShare = async () => {
-    const venue = eventConfig?.venueName || 'Crown Palace';
     const shareData = {
       title: `Thẻ Kỷ Niệm 20 Năm Lớp K8A1 - ${name}`,
-      text: `Mình vừa nhận Thẻ Thành Viên Hội Ngộ 20 Năm Lớp K8A1 (Khóa 8 THPT Thái Nguyên)! Hẹn gặp lại cả lớp tại ${venue} nhé ❤️`,
+      text: `Mình vừa nhận Thẻ Thành Viên Hội Ngộ 20 Năm Lớp K8A1 (Khóa 8 THPT Thái Nguyên)! Hẹn gặp lại cả lớp trong ngày hội ngộ nhé ❤️`,
       url: window.location.href
     };
     if (navigator.share) {
@@ -470,7 +470,7 @@ export default function StudentPassModal({
                 </p>
                 <p className="flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-brand-gold shrink-0" />
-                  <span className="truncate">{eventConfig?.venueName || 'Crown Palace'}{eventConfig?.venueAddress ? ` (${eventConfig.venueAddress})` : ''}</span>
+                  <span className="truncate">{eventConfig?.venueName ? `${eventConfig.venueName}${eventConfig.venueAddress ? ` (${eventConfig.venueAddress})` : ''}` : 'TP. Thái Nguyên'}</span>
                 </p>
               </div>
             </div>

@@ -13,23 +13,26 @@ import {
   Send,
   Smartphone
 } from 'lucide-react';
+import { EventConfig } from '../types';
 
 interface QuickShareProps {
   buttonText?: string;
   className?: string;
   variant?: 'primary' | 'secondary' | 'pill' | 'banner';
+  eventConfig?: EventConfig;
 }
 
 export const SHARE_INFO = {
   title: 'Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên (2006 — 2026)',
-  desc: 'Kỷ niệm 20 năm ngày ra trường Lớp K8A1 (Khóa 8), THPT Thái Nguyên. Họp mặt tại Crown Palace Thái Nguyên vào ngày 27/09/2026.',
-  defaultMessage: `🌸 THƯ MỜI HỘI NGỘ 20 NĂM LỚP K8A1 (2006 - 2026) 🌸\n\nThân mời tất cả các bạn cựu học sinh Lớp K8A1 (Khóa 8) Trường THPT Thái Nguyên về tham dự Ngày Hội Ngộ 20 Năm Thanh Xuân!\n⏰ Thời gian: Từ 08:30 sáng - Chủ Nhật, ngày 27/09/2026\n📍 Địa điểm: Trung tâm tổ chức sự kiện - tiệc cưới Crown Palace, Thái Nguyên (779 Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên)\n\n👉 Hãy bấm vào liên kết bên dưới để xác nhận tham dự và cùng ôn lại kỷ niệm nhé:`
+  desc: 'Trang thông tin chính thức, điểm danh và đăng ký tham dự Đại lễ Kỷ niệm 20 năm ngày ra trường Lớp K8A1 (Niên khóa 2003 — 2006), Trường THPT Thái Nguyên.',
+  defaultMessage: `🌸 THƯ MỜI HỘI NGỘ 20 NĂM LỚP K8A1 (2006 - 2026) 🌸\n\nThân mời tất cả các bạn cựu học sinh Lớp K8A1 (Khóa 8) Trường THPT Thái Nguyên về tham dự Ngày Hội Ngộ 20 Năm Thanh Xuân!\n⏰ Thời gian: Từ 08:30 sáng - Chủ Nhật, ngày 27/09/2026\n📍 Địa điểm: TP. Thái Nguyên\n\n👉 Hãy bấm vào liên kết bên dưới để xác nhận tham dự và cùng ôn lại kỷ niệm nhé:`
 };
 
 export default function QuickShare({
   buttonText = 'Chia sẻ tới nhóm lớp',
   className = '',
-  variant = 'pill'
+  variant = 'pill',
+  eventConfig
 }: QuickShareProps) {
   const [showModal, setShowModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -43,11 +46,30 @@ export default function QuickShare({
     return 'https://ais-dev-psz3qzk7y7qxcp67ilerhc-625228135894.asia-southeast1.run.app';
   };
 
+  // Thông tin chia sẻ động từ eventConfig (hoặc fallback chuẩn không kèm địa điểm cố định)
+  const dynamicTitle = eventConfig?.eventTitle
+    ? `${eventConfig.eventTitle} — THPT Thái Nguyên`
+    : SHARE_INFO.title;
+
+  const dynamicDesc = eventConfig?.eventSubtitle
+    ? `${eventConfig.eventSubtitle}. Trang thông tin chính thức, điểm danh và đăng ký tham dự.`
+    : SHARE_INFO.desc;
+
+  const dynamicVenue = eventConfig?.venueName
+    ? `${eventConfig.venueName}${eventConfig.venueAddress ? ` (${eventConfig.venueAddress})` : ''}`
+    : 'TP. Thái Nguyên';
+
+  const dynamicTime = eventConfig?.eventDateText
+    ? `${eventConfig.eventTimeText ? `${eventConfig.eventTimeText} • ` : ''}${eventConfig.eventDateText}`
+    : 'Từ 08:30 sáng - Chủ Nhật, ngày 27/09/2026';
+
+  const dynamicMessage = `🌸 THƯ MỜI HỘI NGỘ 20 NĂM LỚP K8A1 (2006 - 2026) 🌸\n\nThân mời tất cả các bạn cựu học sinh Lớp K8A1 (Khóa 8) Trường THPT Thái Nguyên về tham dự Ngày Hội Ngộ 20 Năm Thanh Xuân!\n⏰ Thời gian: ${dynamicTime}\n📍 Địa điểm: ${dynamicVenue}\n\n👉 Hãy bấm vào liên kết bên dưới để xác nhận tham dự và cùng ôn lại kỷ niệm nhé:`;
+
   const handleNativeShare = async () => {
     const url = getShareUrl();
     const shareData = {
-      title: SHARE_INFO.title,
-      text: `${SHARE_INFO.desc}\n\n`,
+      title: dynamicTitle,
+      text: `${dynamicDesc}\n\n`,
       url: url
     };
 
@@ -88,7 +110,7 @@ export default function QuickShare({
 
   const handleCopyFullInvitation = async () => {
     const url = getShareUrl();
-    const fullText = `${SHARE_INFO.defaultMessage}\n${url}`;
+    const fullText = `${dynamicMessage}\n${url}`;
     try {
       await navigator.clipboard.writeText(fullText);
       setCopiedMessage(true);
@@ -308,7 +330,7 @@ export default function QuickShare({
                   </button>
                 </div>
                 <p className="text-[11px] text-brand-text font-serif italic line-clamp-3 bg-[#FAF9F6] p-2 rounded-xs border border-brand-border/40">
-                  "🌸 THƯ MỜI HỘI NGỘ 20 NĂM LỚP K8A1 (2006 - 2026)... Thân mời các bạn về tham dự họp mặt từ sáng 27/09/2026 tại Crown Palace Thái Nguyên..."
+                  {`"🌸 THƯ MỜI HỘI NGỘ 20 NĂM LỚP K8A1 (2006 - 2026)... Thân mời các bạn về tham dự họp mặt • Địa điểm: ${dynamicVenue}..."`}
                 </p>
               </div>
 

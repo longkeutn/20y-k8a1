@@ -13,7 +13,7 @@ interface CountdownTimerProps {
 export default function CountdownTimer({ 
   targetDate = '2026-09-27T08:30:00+07:00',
   eventDateText = '27/09/2026',
-  venueName = 'Crown Palace Thái Nguyên',
+  venueName = 'TP. Thái Nguyên',
   eventTimeText = 'Đón tiếp từ 08:30 sáng',
   eventTitle = 'Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên'
 }: CountdownTimerProps) {

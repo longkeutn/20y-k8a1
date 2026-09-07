@@ -953,6 +953,35 @@ export default function App() {
     hydrateAllData(activeAppsScriptUrl);
   }, [activeAppsScriptUrl]);
 
+  // Đồng bộ động tiêu đề trang và thẻ meta mô tả khi chia sẻ link theo cấu hình sự kiện
+  useEffect(() => {
+    if (eventConfig) {
+      const pageTitle = eventConfig.eventTitle 
+        ? `${eventConfig.eventTitle} - THPT Thái Nguyên` 
+        : 'Hội Ngộ 20 Năm Lớp K8A1 - THPT Thái Nguyên';
+      document.title = pageTitle;
+
+      const pageDesc = eventConfig.eventSubtitle 
+        ? `${eventConfig.eventSubtitle}. Trang thông tin chính thức, điểm danh và kết nối bạn bè K8A1 (2003 — 2006).`
+        : 'Trang thông tin chính thức, điểm danh và đăng ký tham dự Đại lễ Kỷ niệm 20 năm ngày ra trường Lớp K8A1 (Niên khóa 2003 — 2006), Trường THPT Thái Nguyên.';
+
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', pageDesc);
+
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', pageTitle);
+
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content', pageDesc);
+
+      const twTitle = document.querySelector('meta[name="twitter:title"]');
+      if (twTitle) twTitle.setAttribute('content', pageTitle);
+
+      const twDesc = document.querySelector('meta[name="twitter:description"]');
+      if (twDesc) twDesc.setAttribute('content', pageDesc);
+    }
+  }, [eventConfig]);
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#334155] flex flex-col items-center pb-20 selection:bg-amber-200 selection:text-amber-900 relative overflow-x-hidden font-sans">
       
@@ -1233,6 +1262,13 @@ export default function App() {
                 <Users className="w-4 h-4 text-amber-300" />
                 <span>Xem Bạn Bè ({confirmedCount})</span>
               </button>
+
+              <QuickShare 
+                variant="pill"
+                eventConfig={eventConfig}
+                buttonText="Chia sẻ tới nhóm lớp"
+                className="!py-3 !px-4.5 !bg-amber-400/15 hover:!bg-amber-400/25 !text-amber-200 !border-amber-400/40 backdrop-blur-md !rounded-xl !text-xs sm:!text-sm hover:scale-105 active:scale-95"
+              />
             </div>
 
             {/* Quick Jump Ribbon Pills within Hero */}
@@ -1552,9 +1588,13 @@ export default function App() {
                     <li className="flex items-start gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                       <span>
-                        <strong className="text-slate-800 font-medium">{eventConfig.venueName || "Crown Palace Thái Nguyên"}</strong>
-                        <br />
-                        <span className="text-[11px] text-slate-500">{eventConfig.venueAddress || "779 Dương Tự Minh, TP. Thái Nguyên"}</span>
+                        <strong className="text-slate-800 font-medium">{eventConfig.venueName || "TP. Thái Nguyên"}</strong>
+                        {eventConfig.venueAddress ? (
+                          <>
+                            <br />
+                            <span className="text-[11px] text-slate-500">{eventConfig.venueAddress}</span>
+                          </>
+                        ) : null}
                       </span>
                     </li>
                   </ul>
@@ -1571,7 +1611,11 @@ export default function App() {
                   </p>
                   <div className="pt-1 flex flex-wrap gap-2 text-[11px]">
                     <a 
-                      href={eventConfig.venueAddress ? `https://maps.google.com/?q=${encodeURIComponent(eventConfig.venueAddress)}` : "https://maps.google.com/?q=Crown+Palace+Thai+Nguyen"}
+                      href={eventConfig.venueAddress 
+                        ? `https://maps.google.com/?q=${encodeURIComponent(eventConfig.venueAddress)}` 
+                        : (eventConfig.venueName 
+                          ? `https://maps.google.com/?q=${encodeURIComponent(eventConfig.venueName)}` 
+                          : "https://maps.google.com/?q=Thai+Nguyen")}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-900 hover:bg-amber-50 hover:border-amber-300 transition-colors font-medium shadow-2xs"
@@ -1587,6 +1631,12 @@ export default function App() {
                       <ScrollText className="w-3 h-3 text-amber-700" />
                       Quy chế & Điều lệ lớp
                     </button>
+                    <QuickShare 
+                      variant="secondary"
+                      eventConfig={eventConfig}
+                      buttonText="Chia sẻ link"
+                      className="!rounded-lg !border-amber-200 !text-amber-900 hover:!bg-amber-50 shadow-2xs font-medium !text-[11px] !px-2.5 !py-1"
+                    />
                   </div>
                 </div>
               </div>
