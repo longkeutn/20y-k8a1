@@ -23,6 +23,7 @@ import {
   Minimize2,
   Pause,
   Search,
+  Shuffle,
   ChevronDown,
   ChevronUp,
   Sparkle,
@@ -238,9 +239,53 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     });
   };
 
-  // Lọc danh sách ảnh
+  // ---------------------------------------------------------------------------
+  // SẮP XẾP & XÁO TRỘN ẢNH NGẪU NHIÊN (SHUFFLE / RANDOM DISPLAY ORDER)
+  // ---------------------------------------------------------------------------
+  const [sortOrder, setSortOrder] = useState<'random' | 'newest' | 'likes'>('random');
+  const [shuffleSeed, setShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000));
+  const [isShuffling, setIsShuffling] = useState<boolean>(false);
+
+  const handleShuffle = () => {
+    setSortOrder('random');
+    setShuffleSeed(Date.now());
+    setIsShuffling(true);
+    setTimeout(() => setIsShuffling(false), 500);
+  };
+
+  // Danh sách ảnh đã xáo trộn ngẫu nhiên (Fisher-Yates Shuffle) hoặc sắp xếp
+  const shuffledImages = useMemo(() => {
+    if (!images || images.length === 0) return [];
+
+    if (sortOrder === 'newest') {
+      return [...images]; // Thứ tự mới nhất gốc từ Drive
+    }
+
+    if (sortOrder === 'likes') {
+      return [...images].sort((a, b) => {
+        const likesA = getPhotoLikes(a.id, 0);
+        const likesB = getPhotoLikes(b.id, 0);
+        return likesB - likesA;
+      });
+    }
+
+    // Mặc định: Ngẫu nhiên (Fisher-Yates Shuffle với pseudo-random generator từ shuffleSeed)
+    const list = [...images];
+    let seed = Math.abs(shuffleSeed) || 12345;
+    const rnd = () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  }, [images, sortOrder, shuffleSeed]);
+
+  // Lọc danh sách ảnh trên nguồn ảnh đã xáo trộn
   const filteredImages = useMemo(() => {
-    return images.filter(img => {
+    return shuffledImages.filter(img => {
       if (searchKeyword.trim()) {
         const kw = searchKeyword.toLowerCase();
         const matchCap = img.caption?.toLowerCase().includes(kw);
@@ -264,7 +309,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
       return true;
     });
-  }, [images, activeFilter, searchKeyword]);
+  }, [shuffledImages, activeFilter, searchKeyword]);
 
   // Đếm số lượng theo từng danh mục
   const countsByCategory = useMemo(() => {
@@ -286,7 +331,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE_COUNT);
-  }, [activeFilter, searchKeyword]);
+  }, [activeFilter, searchKeyword, sortOrder, shuffleSeed]);
 
   const handleLoadMore = () => {
     setVisibleCount(prev => Math.min(prev + 8, filteredImages.length));
@@ -747,8 +792,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           </div>
         </div>
 
-        {/* BỘ LỌC CHỦ ĐỀ HOÀI NIỆM & THANH TÌM KIẾM */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+        {/* BỘ LỌC CHỦ ĐỀ HOÀI NIỆM, SẮP XẾP & THANH TÌM KIẾM */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
             {[
               { id: 'all', label: 'Tất Cả', count: countsByCategory.all },
@@ -779,23 +824,70 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             })}
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="Tìm theo năm, kỷ niệm..."
-              className="w-full pl-9 pr-7 py-1.5 bg-white border border-slate-200 rounded-full text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-700 font-serif"
-            />
-            {searchKeyword && (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* TÙY CHỌN SẮP XẾP & XÁO TRỘN NGẪU NHIÊN */}
+            <div className="inline-flex items-center bg-white p-0.5 rounded-full border border-slate-200 shadow-2xs">
               <button
-                onClick={() => setSearchKeyword('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                type="button"
+                onClick={handleShuffle}
+                className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  sortOrder === 'random'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+                title="Hiển thị xáo trộn ngẫu nhiên - Bấm để xáo trộn lại một bộ ảnh mới"
               >
-                ✕
+                <Shuffle className={`w-3 h-3 transition-transform duration-500 ${isShuffling ? 'rotate-180' : ''}`} />
+                <span>Ngẫu nhiên</span>
               </button>
-            )}
+
+              <button
+                type="button"
+                onClick={() => setSortOrder('newest')}
+                className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  sortOrder === 'newest'
+                    ? 'bg-[#1E293B] text-amber-200 shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+                title="Xếp theo thứ tự ảnh mới nhất"
+              >
+                <span>Mới nhất</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSortOrder('likes')}
+                className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  sortOrder === 'likes'
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+                title="Xếp theo ảnh được thả tim nhiều nhất"
+              >
+                <Heart className={`w-3 h-3 ${sortOrder === 'likes' ? 'fill-white text-white' : 'text-slate-400'}`} />
+                <span>Yêu thích</span>
+              </button>
+            </div>
+
+            {/* Ô TÌM KIẾM */}
+            <div className="relative flex-1 sm:w-52 min-w-[140px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="Tìm năm, kỷ niệm..."
+                className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-full text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-700 font-serif"
+              />
+              {searchKeyword && (
+                <button
+                  onClick={() => setSearchKeyword('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
