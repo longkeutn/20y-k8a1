@@ -4147,12 +4147,29 @@ export default function AdminManagementHub({
                               </td>
 
                               <td className="py-2.5 px-3">
-                                <span className={`font-mono font-bold text-xs ${isPaid ? 'text-emerald-700' : 'text-slate-400'}`}>
-                                  {isPaid ? `${amount.toLocaleString('vi-VN')} đ` : '0 đ'}
-                                </span>
-                                {isExtra && (
-                                  <span className="block text-[10px] font-sans font-bold text-amber-700 uppercase">
-                                    + Ủng hộ {(amount - standardFundAmount).toLocaleString('vi-VN')}đ
+                                {isPaid ? (
+                                  <>
+                                    <span className="font-mono font-bold text-xs text-emerald-700">
+                                      {amount.toLocaleString('vi-VN')} đ
+                                    </span>
+                                    {isExtra && (
+                                      <span className="block text-[10px] font-sans font-bold text-amber-700 uppercase">
+                                        + Ủng hộ {(amount - standardFundAmount).toLocaleString('vi-VN')}đ
+                                      </span>
+                                    )}
+                                  </>
+                                ) : item.fundStatus === 'pending' ? (
+                                  <div>
+                                    <span className="font-mono font-bold text-xs text-amber-700">
+                                      {(item.fundAmount || standardFundAmount).toLocaleString('vi-VN')} đ
+                                    </span>
+                                    <span className="block text-[9px] font-sans font-bold text-amber-600 uppercase">
+                                      ⏳ Khai báo chờ duyệt
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="font-mono font-bold text-xs text-slate-400">
+                                    0 đ
                                   </span>
                                 )}
                               </td>

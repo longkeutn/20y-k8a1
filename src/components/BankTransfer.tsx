@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Wallet,
   Calendar,
+  Clock,
   ChevronRight,
   ShieldCheck,
   FileText,
@@ -84,7 +85,6 @@ export default function BankTransfer({
   const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
   const [ledgerTab, setLedgerTab] = useState<'expense' | 'income'>('expense');
   const [ledgerTimeFilter, setLedgerTimeFilter] = useState<'all' | 'this_month' | 'year_2026'>('all');
-  const [viewingPublicReceipt, setViewingPublicReceipt] = useState<string | null>(null);
 
   // Chuẩn hóa an toàn tuyệt đối các biến cấu hình tài khoản
   const accountStr = String(bankAccount || '10123456789');
@@ -163,11 +163,25 @@ export default function BankTransfer({
     return paidAttendees.filter(r => isLedgerDateInFilter(r.fundPaidAt || (r as any).paidAt || r.submittedAt, ledgerTimeFilter));
   }, [paidAttendees, ledgerTimeFilter]);
 
+  // Danh sách thành viên đang chờ đối soát sao kê
+  const pendingAttendees = useMemo(() => {
+    return (rsvpList || []).filter(r => r.fundStatus === 'pending');
+  }, [rsvpList]);
+
   const displayedExtraIncomes = useMemo(() => {
     return effectiveIncomes
-      .filter(item => item.category !== 'event')
+      .filter(item => {
+        if (item.category !== 'event') return true;
+        // Nếu là 'event', chỉ giữ lại nếu người này CHƯA được hiển thị trong displayedPaidAttendees
+        const isAlreadyInPaid = displayedPaidAttendees.some(att => 
+          (item.memberId && att.memberId === item.memberId) ||
+          (item.payerPhone && att.phone && item.payerPhone.replace(/\D/g, '') === att.phone.replace(/\D/g, '')) ||
+          (item.payerName && item.payerName.trim().toLowerCase() === (att.fullName || '').trim().toLowerCase())
+        );
+        return !isAlreadyInPaid;
+      })
       .filter(item => isLedgerDateInFilter(item.date, ledgerTimeFilter));
-  }, [effectiveIncomes, ledgerTimeFilter]);
+  }, [effectiveIncomes, displayedPaidAttendees, ledgerTimeFilter]);
 
   const copyToClipboard = (text: any, type: 'account' | 'syntax') => {
     navigator.clipboard.writeText(String(text || ''));
@@ -829,17 +843,6 @@ export default function BankTransfer({
                             <span className="text-base sm:text-lg font-bold font-mono text-rose-700">
                               -{Number(item.amount || 0).toLocaleString('vi-VN')} đ
                             </span>
-
-                            {item.receiptUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setViewingPublicReceipt(item.receiptUrl || null)}
-                                className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-2.5 py-1 rounded-lg border border-amber-300/80 transition cursor-pointer"
-                              >
-                                <ImageIcon className="w-3 h-3 text-amber-700" />
-                                <span>Xem Hóa Đơn</span>
-                              </button>
-                            )}
                           </div>
                         </div>
                       );
@@ -853,6 +856,36 @@ export default function BankTransfer({
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {/* Hàng đợi giao dịch vừa nộp bill, đang chờ Thủ quỹ đối soát sao kê */}
+                    {pendingAttendees.length > 0 && (
+                      <div className="bg-amber-50/80 border border-amber-300/80 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            Đang Đối Soát Sao Kê ({pendingAttendees.length} bạn vừa nộp bill)
+                          </span>
+                          <span className="text-[10px] text-amber-700 font-sans font-normal">
+                            Thủ quỹ đang kiểm tra tài khoản
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {pendingAttendees.map((att, idx) => (
+                            <div key={att.id || idx} className="bg-white border border-amber-200 rounded-lg p-2.5 flex items-center justify-between gap-2 shadow-2xs">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-800 truncate">{att.fullName}</p>
+                                <p className="text-[10.5px] text-amber-700 font-mono font-bold">
+                                  Khai báo: {(att.fundAmount || fundAmountNum).toLocaleString('vi-VN')} đ
+                                </p>
+                              </div>
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-medium border border-amber-300 shrink-0">
+                                ⏳ Chờ khớp lệnh
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Danh sách các khoản thu ngoài / Tài trợ / Áo đồng phục bổ sung */}
                     {displayedExtraIncomes.length > 0 && (
                       <div className="space-y-2">
@@ -907,17 +940,6 @@ export default function BankTransfer({
                                   <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800">
                                     +{Number(item.amount || 0).toLocaleString('vi-VN')} đ
                                   </span>
-                                  {item.receiptUrl && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setViewingPublicReceipt(item.receiptUrl || null)}
-                                      className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-2 py-0.5 rounded-lg border border-amber-300/80 transition cursor-pointer"
-                                      title="Xem hóa đơn / chứng từ"
-                                    >
-                                      <ImageIcon className="w-3 h-3 text-amber-700" />
-                                      <span>Chứng từ</span>
-                                    </button>
-                                  )}
                                   {(currentUserRole === 'admin' || currentUserRole === 'treasurer') && onDeleteIncome && (
                                     <button
                                       type="button"
@@ -977,17 +999,6 @@ export default function BankTransfer({
                                   <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
                                     +{amount.toLocaleString('vi-VN')} đ
                                   </span>
-                                  {att.fundReceiptUrl && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setViewingPublicReceipt(att.fundReceiptUrl || null)}
-                                      className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-2 py-0.5 rounded-lg border border-amber-300/80 transition cursor-pointer"
-                                      title="Xem ảnh chứng từ / Bill chuyển khoản"
-                                    >
-                                      <ImageIcon className="w-3 h-3 text-amber-700" />
-                                      <span>Chứng từ</span>
-                                    </button>
-                                  )}
                                 </div>
                               </div>
                             );
@@ -1017,63 +1028,7 @@ export default function BankTransfer({
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* 🖼️ PUBLIC RECEIPT LIGHTBOX MODAL */}
-      {/* ======================================================== */}
-      {viewingPublicReceipt && (
-        <div 
-          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setViewingPublicReceipt(null)}
-        >
-          <div 
-            className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-amber-200 space-y-4 animate-in zoom-in-95 duration-200 text-left relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-amber-700" />
-                <h4 className="text-sm font-bold text-slate-900 font-sans">
-                  Hóa Đơn / Chứng Từ Khoản Chi
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setViewingPublicReceipt(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="max-h-[60vh] overflow-auto rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center p-2">
-              <img 
-                src={viewingPublicReceipt} 
-                alt="Hóa đơn chứng từ"
-                className="max-h-[55vh] w-auto object-contain rounded-lg"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <a
-                href={viewingPublicReceipt}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-amber-800 hover:text-amber-950 font-bold"
-              >
-                <ArrowUpRight className="w-4 h-4" />
-                <span>Mở ảnh gốc trong tab mới</span>
-              </a>
-              <button
-                type="button"
-                onClick={() => setViewingPublicReceipt(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
