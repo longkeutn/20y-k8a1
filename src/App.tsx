@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -486,29 +486,28 @@ export default function App() {
         // 2. Khớp theo ID bản ghi nếu có
         if (newRsvp.id && item.id && newRsvp.id === item.id) return true;
 
-        const itemPhone = normalizePhoneForMatch(item.phone);
         const itemName = normalizeNameForMatch(item.fullName);
         const itemNick = normalizeNameForMatch(item.nickname);
 
-        // 3. Nếu cả 2 đều có SĐT:
-        if (normNewPhone && itemPhone) {
-          // Nếu khác SĐT => chắc chắn là 2 người khác nhau dù cùng họ tên!
-          if (normNewPhone !== itemPhone) return false;
-          return normNewName === itemName;
+        // 3. Nếu SĐT khớp nhau:
+        if (isPhoneMatch(newRsvp.phone, item.phone)) {
+          return true;
         }
 
         // 4. Nếu có nickname: khớp cả họ tên và biệt danh
-        if (normNewNick && itemNick) {
-          return normNewName === itemName && normNewNick === itemNick;
+        if (normNewNick && itemNick && normNewName === itemName && normNewNick === itemNick) {
+          return true;
         }
 
-        // 5. Nếu chỉ có họ tên và thiếu 1 bên SĐT: Chỉ cho phép khớp nếu trong danh bạ CHỈ CÓ DUY NHẤT 1 người mang tên này
-        const currentRoster = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
-        const sameNameCount = currentRoster.filter(
-          (r) => normalizeNameForMatch(r.fullName) === normNewName
-        ).length;
-        if (sameNameCount <= 1 && normNewName && itemName && normNewName === itemName) {
-          return true;
+        // 5. Nếu họ tên khớp:
+        if (normNewName && itemName && normNewName === itemName) {
+          const currentRoster = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+          const sameNameCount = currentRoster.filter(
+            (r) => normalizeNameForMatch(r.fullName) === normNewName
+          ).length;
+          if (sameNameCount <= 1) {
+            return true;
+          }
         }
 
         return false;
@@ -793,15 +792,22 @@ export default function App() {
                   const xPhone = normalizePhoneForMatch(x.phone);
                   const xName = normalizeNameForMatch(x.fullName);
 
-                  // 3. Nếu cả 2 đều có SĐT:
-                  if (itemPhone && xPhone) {
-                    // Nếu khác SĐT => chắc chắn là 2 bạn khác nhau dù cùng họ tên!
-                    if (itemPhone !== xPhone) return false;
-                    return itemName === xName;
+                  // 3. Nếu SĐT khớp nhau:
+                  if (isPhoneMatch(item.phone, x.phone)) {
+                    return true;
                   }
 
-                  // 4. Nếu thiếu SĐT hoặc không có memberId: Tuyệt đối KHÔNG gộp theo họ tên
-                  // vì trong lớp hoàn toàn có thể có 2 bạn trùng họ tên!
+                  // 4. Nếu họ tên khớp và là tên duy nhất trong danh bạ:
+                  if (itemName && xName && itemName === xName) {
+                    const currentRoster = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
+                    const sameNameCount = currentRoster.filter(
+                      (r) => normalizeNameForMatch(r.fullName) === itemName
+                    ).length;
+                    if (sameNameCount <= 1) {
+                      return true;
+                    }
+                  }
+
                   return false;
                 });
 
@@ -810,8 +816,7 @@ export default function App() {
                 const localMatch = rsvpList.find((prev) => {
                   if (item.memberId && prev.memberId && item.memberId === prev.memberId) return true;
                   if (item.id && prev.id && item.id === prev.id) return true;
-                  const prevPhone = normalizePhoneForMatch(prev.phone);
-                  if (itemPhone && prevPhone && itemPhone === prevPhone) return true;
+                  if (isPhoneMatch(item.phone, prev.phone)) return true;
                   return normalizeNameForMatch(prev.fullName) === itemName;
                 });
                 if (localMatch && localMatch.fundReceiptUrl) {

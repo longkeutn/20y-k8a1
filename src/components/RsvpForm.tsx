@@ -25,7 +25,7 @@ import {
   Search
 } from 'lucide-react';
 import { RsvpData, ClassMember, EventConfig } from '../types';
-import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, maskPhone } from '../data';
+import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, maskPhone, isPhoneMatch } from '../data';
 import LiveGoldenPass from './LiveGoldenPass';
 
 interface RsvpFormProps {
@@ -198,29 +198,19 @@ export default function RsvpForm({
         return false; // Khác memberId => chắc chắn không phải bạn này, dù trùng họ tên!
       }
 
-      const itemP = normalizePhone(item.phone);
-      const itemN = normalizeName(item.fullName);
-
-      // 2. Nếu cả 2 đều có SĐT và SĐT khác nhau => Tuyệt đối không khớp
-      if (p && itemP && p !== itemP) {
-        return false;
-      }
-
-      // 3. Nếu SĐT khớp nhau
-      if (p && itemP && p === itemP) {
+      // 2. Nếu SĐT khớp nhau (hỗ trợ nhiều số hoặc định dạng linh hoạt)
+      if (isPhoneMatch(activePhone, item.phone)) {
         return true;
       }
 
-      // 4. Nếu họ tên trùng khớp:
+      // 3. Nếu họ tên trùng khớp:
+      const itemN = normalizeName(item.fullName);
       if (n && itemN && n === itemN) {
         // Nếu trong danh bạ có >= 2 bạn trùng họ tên mà không có SĐT khớp => Không gộp bừa
         if (duplicateNameInRoster) {
           return false;
         }
-        // Nếu chỉ có duy nhất 1 bạn mang họ tên này và không xung đột SĐT
-        if (!p || !itemP || p === itemP) {
-          return true;
-        }
+        return true;
       }
 
       return false;
@@ -254,11 +244,8 @@ export default function RsvpForm({
         const itemP = normalizePhone(item.phone);
         const itemN = normalizeName(item.fullName);
 
-        // Nếu khác SĐT thì bỏ qua
-        if (mP && itemP && mP !== itemP) return false;
-
-        // Nếu trùng SĐT
-        if (mP && itemP && mP === itemP) return true;
+        // Khớp theo SĐT (hỗ trợ nhiều số hoặc định dạng linh hoạt)
+        if (isPhoneMatch(activeMember.phone, item.phone)) return true;
 
         // Nếu trùng họ tên nhưng trong danh bạ có nhiều người cùng tên => không lấy bừa
         if (mN && itemN && mN === itemN) {

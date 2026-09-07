@@ -957,6 +957,61 @@ export function maskPhone(phone?: any): string {
   return `${clean.slice(0, 3)} ••• •${clean.slice(-2)}`;
 }
 
+/**
+ * Trích xuất và chuẩn hóa tất cả các số điện thoại từ chuỗi (hỗ trợ nhiều số phân cách bằng -, /, ;, dấu cách)
+ * Chuẩn hóa:
+ * - Bỏ ký tự không phải số
+ * - 84xxxxxxxxx -> 0xxxxxxxxx
+ * - 9 chữ số bắt đầu từ [3,5,7,8,9] -> thêm 0 ở đầu (do Google Sheets lưu dạng number làm mất số 0)
+ * - 10 chữ số bắt đầu từ 1 (đầu 01 cũ) -> thêm 0 ở đầu
+ */
+export function extractPhones(raw?: any): string[] {
+  if (raw === null || raw === undefined) return [];
+  const str = String(raw).trim();
+  if (!str) return [];
+
+  const parts = str.split(/[\s,;\/\-]+/).filter(Boolean);
+  const phones: string[] = [];
+
+  const cleanAndAdd = (numStr: string) => {
+    let clean = numStr.replace(/[^0-9]/g, '');
+    if (!clean) return;
+
+    if (clean.startsWith('84') && clean.length >= 10) {
+      clean = '0' + clean.slice(2);
+    } else if (!clean.startsWith('0') && clean.length === 9) {
+      clean = '0' + clean;
+    } else if (!clean.startsWith('0') && clean.length === 10 && clean.startsWith('1')) {
+      clean = '0' + clean;
+    }
+
+    if (clean && !phones.includes(clean)) {
+      phones.push(clean);
+    }
+  };
+
+  parts.forEach(cleanAndAdd);
+
+  if (phones.length === 0) {
+    const matches = str.match(/(?:0|\+?84)?[0-9]{8,11}/g);
+    if (matches) {
+      matches.forEach(cleanAndAdd);
+    }
+  }
+
+  return phones;
+}
+
+/**
+ * Kiểm tra xem 2 đối tượng SĐT có trùng nhau hay không (so khớp bất kỳ số nào nếu có nhiều số)
+ */
+export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
+  const listA = extractPhones(phoneA);
+  const listB = extractPhones(phoneB);
+  if (listA.length === 0 || listB.length === 0) return false;
+  return listA.some(a => listB.includes(a));
+}
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",

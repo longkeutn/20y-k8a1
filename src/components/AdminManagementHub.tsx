@@ -95,7 +95,9 @@ import {
   IncomeCategoryMeta,
   updatePinsViaBackend,
   initSecuritySheetViaBackend,
-  isOfficialBLLMember
+  isOfficialBLLMember,
+  extractPhones,
+  isPhoneMatch
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
@@ -347,12 +349,10 @@ export default function AdminManagementHub({
   const [rosterStatusFilter, setRosterStatusFilter] = useState<'all' | 'confirmed' | 'declined' | 'pending'>('all');
 
   // Helper chuẩn hóa so khớp danh bạ
+  // Helper chuẩn hóa so khớp danh bạ
   const normPhoneRoster = (p?: any) => {
-    if (p === null || p === undefined) return '';
-    let clean = String(p).replace(/[^0-9]/g, '');
-    if (clean.startsWith('84') && clean.length > 9) clean = '0' + clean.slice(2);
-    else if (!clean.startsWith('0') && clean.length === 9) clean = '0' + clean;
-    return clean;
+    const phones = extractPhones(p);
+    return phones[0] || '';
   };
 
   const normNameRoster = (n?: any) => {
@@ -377,11 +377,11 @@ export default function AdminManagementHub({
     const getRsvpKey = (r: RsvpData, index: number) => {
       if (r.id) return `id_${r.id}`;
       if (r.memberId) return `mid_${r.memberId}`;
-      return `p_${normPhoneRoster(r.phone)}_n_${normNameRoster(r.fullName)}_idx_${index}`;
+      const ph = extractPhones(r.phone)[0] || '';
+      return `p_${ph}_n_${normNameRoster(r.fullName)}_idx_${index}`;
     };
 
     return rosterList.map((m, idx) => {
-      const mP = normPhoneRoster(m.phone);
       const mN = normNameRoster(m.fullName);
       const isDupName = mN ? (rosterNameCounts[mN] || 0) > 1 : false;
 
@@ -400,26 +400,20 @@ export default function AdminManagementHub({
           return false; // Khác memberId => chắc chắn không phải bạn này dù trùng tên
         }
 
-        const rP = normPhoneRoster(r.phone);
-        const rN = normNameRoster(r.fullName);
-
-        // 2. Nếu cả 2 đều có SĐT và khác nhau => Tuyệt đối không khớp!
-        if (mP && rP && mP !== rP) {
-          return false;
-        }
-
-        // 3. Nếu SĐT khớp nhau
-        if (mP && rP && mP === rP) {
+        // 2. So khớp số điện thoại (hỗ trợ nhiều số và định dạng linh hoạt)
+        if (isPhoneMatch(m.phone, r.phone)) {
           matchedIndex = rIdx;
           return true;
         }
 
-        // 4. Nếu họ tên trùng nhau:
+        // 3. So khớp theo họ tên:
+        const rN = normNameRoster(r.fullName);
         if (mN && rN && mN === rN) {
-          // Nếu danh bạ có >= 2 bạn trùng tên mà không có SĐT khớp => Không ghép bừa!
+          // Nếu danh bạ có >= 2 bạn trùng tên mà SĐT không khớp => Không ghép bừa!
           if (isDupName) {
             return false;
           }
+          // Tên là duy nhất trong danh bạ lớp K8A1 => Chắc chắn là thành viên này!
           matchedIndex = rIdx;
           return true;
         }
@@ -1091,7 +1085,7 @@ export default function AdminManagementHub({
 
       const foundRsvpIndex = rsvpList.findIndex(r => {
         if (targetMemberId && r.memberId === targetMemberId) return true;
-        if (targetPhone && normPhoneRoster(r.phone) === targetPhone) return true;
+        if (isPhoneMatch(itemToSave.payerPhone, r.phone)) return true;
         if (normNameRoster(r.fullName) === targetName) return true;
         return false;
       });
@@ -1142,7 +1136,7 @@ export default function AdminManagementHub({
         // Nếu chưa có trong RSVP nhưng có trong Roster: Tự tạo bản ghi RSVP mới với fundStatus = 'paid'
         const rosterMember = rosterList.find(m => {
           if (targetMemberId && m.id === targetMemberId) return true;
-          if (targetPhone && normPhoneRoster(m.phone) === targetPhone) return true;
+          if (isPhoneMatch(itemToSave.payerPhone, m.phone)) return true;
           if (normNameRoster(m.fullName) === targetName) return true;
           return false;
         });
@@ -3031,8 +3025,8 @@ export default function AdminManagementHub({
                 <div className="flex items-center gap-2 text-xs font-sans text-amber-900">
                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
-                    Xác nhận có mặt: <strong className="text-emerald-700">{confirmedCount}</strong> / {rosterList.length} bạn
-                    <span className="text-slate-500 font-mono ml-1">({Math.round((confirmedCount / (rosterList.length || 1)) * 100)}%)</span>
+                    Xác nhận có mặt: <strong className="text-emerald-700">{rosterConfirmedCount}</strong> / {rosterList.length} bạn
+                    <span className="text-slate-500 font-mono ml-1">({Math.round((rosterConfirmedCount / (rosterList.length || 1)) * 100)}%)</span>
                   </span>
                 </div>
               </div>

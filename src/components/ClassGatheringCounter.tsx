@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Sparkles, Users, CheckCircle2, ArrowRight, Eye, Heart, Coins, MapPin, Camera } from 'lucide-react';
 import { RsvpData, ClassMember } from '../types';
-import { CLASS_ROSTER_K8A1 } from '../data';
+import { CLASS_ROSTER_K8A1, isPhoneMatch } from '../data';
 
 interface ClassGatheringCounterProps {
   rsvpList: RsvpData[];
@@ -76,16 +76,11 @@ export default function ClassGatheringCounter({
         return a.memberId === activeMember.id;
       }
 
-      const aPhone = normalizePhone(a.phone);
+      // 2. Nếu SĐT trùng nhau (hỗ trợ nhiều số điện thoại)
+      if (isPhoneMatch(activeMember.phone, a.phone)) return true;
+
+      // 3. Nếu họ tên trùng nhau:
       const aName = normalizeName(a.fullName);
-
-      // 2. Nếu cả 2 đều có SĐT và SĐT khác nhau => chắc chắn không phải
-      if (mPhone && aPhone && mPhone !== aPhone) return false;
-
-      // 3. Nếu SĐT trùng nhau
-      if (mPhone && aPhone && mPhone === aPhone) return true;
-
-      // 4. Nếu họ tên trùng nhau:
       if (mName && aName && mName === aName) {
         // Nếu trong danh bạ có nhiều bạn trùng tên này => không nhận vơ nếu không có SĐT khớp
         if (sameNameCount > 1) return false;
