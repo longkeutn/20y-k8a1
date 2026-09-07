@@ -1399,6 +1399,20 @@ function saveRSVP(data) {
     }
   }
 
+  // Nếu chưa khớp theo SĐT nhưng họ tên khớp 100% với duy nhất 1 dòng trong sheet:
+  if (matchedRowIndex === -1 && normNewName) {
+    var sameNameIndices = [];
+    for (var j = 1; j < rows.length; j++) {
+      if (normalizeName(rows[j][0]) === normNewName) {
+        sameNameIndices.push(j + 1);
+      }
+    }
+    if (sameNameIndices.length === 1) {
+      // Chỉ có duy nhất 1 bạn mang họ tên này trong toàn bộ sheet -> Cập nhật vào dòng của bạn đó, không tạo trùng lặp!
+      matchedRowIndex = sameNameIndices[0];
+    }
+  }
+
   var phoneValue = normNewPhone ? ("'" + normNewPhone) : (data.phone ? ("'" + String(data.phone).trim()) : '');
 
   if (matchedRowIndex !== -1) {

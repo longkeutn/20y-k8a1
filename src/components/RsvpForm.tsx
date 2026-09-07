@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   CheckCircle2, 
@@ -21,7 +21,8 @@ import {
   Star,
   Copy,
   Edit,
-  ShieldCheck
+  ShieldCheck,
+  Search
 } from 'lucide-react';
 import { RsvpData, ClassMember, EventConfig } from '../types';
 import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, maskPhone } from '../data';
@@ -82,6 +83,20 @@ export default function RsvpForm({
   const [message, setMessage] = useState('');
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [showReconsiderModal, setShowReconsiderModal] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
@@ -103,6 +118,57 @@ export default function RsvpForm({
     if (n === null || n === undefined) return '';
     return String(n).trim().toLowerCase().replace(/\s+/g, ' ');
   };
+
+  // Tách tên gọi cuối cùng của người Việt để sắp xếp A-Z (VD: Nguyễn Tuấn Anh -> Anh)
+  const getVietnameseGivenName = (fullName: string): string => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    return parts[parts.length - 1] || fullName;
+  };
+
+  // Chuẩn hóa chuỗi bỏ dấu tiếng Việt để tìm kiếm thông minh
+  const removeVietnameseAccents = (str: string): string => {
+    if (!str) return '';
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase();
+  };
+
+  // Danh sách thành viên lớp K8A1 đã được sắp xếp chuẩn theo vần tên gọi A-Z và lọc theo từ khóa tìm kiếm
+  const filteredRoster = useMemo(() => {
+    const q = removeVietnameseAccents(searchQuery.trim());
+    
+    // Sắp xếp theo tên gọi A-Z chuẩn văn hóa Việt Nam
+    const sorted = [...rosterList].sort((a, b) => {
+      const nameA = getVietnameseGivenName(a.fullName);
+      const nameB = getVietnameseGivenName(b.fullName);
+      const cmp = nameA.localeCompare(nameB, 'vi');
+      if (cmp !== 0) return cmp;
+      return a.fullName.localeCompare(b.fullName, 'vi');
+    });
+
+    if (!q) return sorted;
+
+    return sorted.filter((m) => {
+      const normName = removeVietnameseAccents(m.fullName);
+      const normNick = m.nickname ? removeVietnameseAccents(m.nickname) : '';
+      const normPhone = m.phone ? String(m.phone).replace(/[^0-9]/g, '') : '';
+      return normName.includes(q) || normNick.includes(q) || normPhone.includes(q);
+    });
+  }, [rosterList, searchQuery]);
+
+  // Phát hiện thông minh nếu người dùng tự gõ họ tên trùng với thành viên trong danh bạ lớp
+  const suggestedRosterMember = useMemo(() => {
+    if (activeMember || !fullName.trim() || fullName.trim().length < 2) return null;
+    const cleanInput = removeVietnameseAccents(fullName.trim());
+    return rosterList.find((m) => {
+      const norm = removeVietnameseAccents(m.fullName);
+      return norm === cleanInput;
+    }) || null;
+  }, [activeMember, fullName, rosterList]);
 
   // Đếm số lượng họ tên trong danh bạ để nhận diện các bạn trùng tên
   const nameCounts = useMemo(() => {
@@ -332,14 +398,35 @@ export default function RsvpForm({
       return;
     }
 
+    // Tự động nhận diện và bảo vệ chống trùng lặp nếu người dùng tự gõ họ tên trùng khớp 1 bạn duy nhất trong danh bạ
+    let effectiveMemberId = activeMember?.id;
+    let effectiveRowId = matchedExistingAttendee?.rowId;
+    let effectiveId = matchedExistingAttendee?.id;
+
+    if (!effectiveMemberId) {
+      const n = normalizeName(fullName);
+      const uniqueMatch = rosterList.filter(m => normalizeName(m.fullName) === n);
+      if (uniqueMatch.length === 1) {
+        effectiveMemberId = uniqueMatch[0].id;
+        const existingInRsvp = (rsvpList || []).find(r => 
+          (r.memberId && r.memberId === effectiveMemberId) || 
+          normalizeName(r.fullName) === n
+        );
+        if (existingInRsvp) {
+          effectiveRowId = existingInRsvp.rowId;
+          effectiveId = existingInRsvp.id;
+        }
+      }
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(null);
 
     const rsvpPayload: RsvpData = {
-      id: matchedExistingAttendee ? matchedExistingAttendee.id : `rsvp-${Date.now()}`,
-      rowId: matchedExistingAttendee?.rowId,
-      memberId: activeMember?.id,
+      id: effectiveId || (matchedExistingAttendee ? matchedExistingAttendee.id : `rsvp-${Date.now()}`),
+      rowId: effectiveRowId,
+      memberId: effectiveMemberId,
       fullName: fullName.trim(),
       nickname: nickname.trim() || undefined,
       phone: finalPhone,
@@ -582,34 +669,183 @@ export default function RsvpForm({
             </button>
           </div>
         ) : (
-          <div className="relative w-full">
+          <div className="space-y-2 w-full" ref={dropdownRef}>
+            {/* LỜI NHẮC NHẸ NHÀNG ĐIỀU HƯỚNG TÌM TÊN */}
+            <div className="flex items-start gap-2 p-2 bg-amber-50/80 border border-amber-200/80 rounded-lg text-xs text-amber-950 font-sans shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold text-amber-900 block text-[11px] sm:text-xs">
+                  👉 Bạn hãy tìm hoặc chọn tên mình trong Danh Sách Lớp K8A1 bên dưới:
+                </span>
+                <p className="text-[10.5px] sm:text-[11px] text-slate-600 leading-snug m-0">
+                  Gõ vài chữ cái (họ tên hoặc biệt danh) để tự động điền và liên kết đúng vé kỷ niệm của bạn (tránh gõ thủ công để không bị trùng lặp).
+                </p>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-amber-700 shrink-0 hidden sm:block" />
               <div className="relative flex-1">
-                <select
-                  value={isCustomMode ? 'custom' : ''}
-                  onChange={(e) => handleSelectMember(e.target.value)}
-                  className="w-full bg-white border border-amber-300 rounded-lg py-2 pl-3 pr-8 text-xs sm:text-[13px] text-slate-800 font-sans cursor-pointer focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400/50 shadow-2xs font-medium appearance-none"
+                {/* NÚT KÍCH HOẠT DROPDOWN */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(!isDropdownOpen);
+                    if (!isDropdownOpen) {
+                      setSearchQuery('');
+                    }
+                  }}
+                  className="w-full bg-white border border-amber-300 hover:border-amber-500 rounded-xl py-2 pl-3 pr-9 text-left text-xs sm:text-[13px] text-slate-800 font-sans cursor-pointer focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400/50 shadow-2xs transition flex items-center justify-between font-medium"
                 >
-                  <option value="">-- Chọn tên bạn trong Danh Bạ K8A1 để tự điền thông tin --</option>
-                  {rosterList.map((m) => {
-                    const isDuplicate = (nameCounts[normalizeName(m.fullName)] || 0) > 1;
-                    const details: string[] = [];
-                    if (m.nickname) details.push(`"${m.nickname}"`);
-                    if (isDuplicate && m.phone) details.push(`SĐT đuôi ...${String(m.phone).replace(/[^0-9]/g, '').slice(-4)}`);
-                    if (isDuplicate && m.province) details.push(m.province);
-                    if (m.role && m.role !== 'Thành viên') details.push(`[${m.role}]`);
-                    const detailText = details.length > 0 ? ` (${details.join(' • ')})` : '';
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Search className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                    <span className="truncate text-slate-600">
+                      {isCustomMode
+                        ? '✏️ Đang ở chế độ: Tự nhập họ tên (Bấm để chọn lại trong danh bạ)'
+                        : '-- Bấm để tìm tên hoặc chọn trong Danh Bạ K8A1 --'}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-                    return (
-                      <option key={m.id} value={m.id}>
-                        {m.fullName}{detailText}
-                      </option>
-                    );
-                  })}
-                  <option value="custom">✏️ Tự nhập họ tên khác...</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                {/* MENU DROPDOWN TÌM KIẾM THÔNG MINH */}
+                {isDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-amber-300 rounded-xl shadow-2xl z-50 overflow-hidden animate-fadeIn text-left">
+                    {/* Ô TÌM KIẾM DÍNH Ở ĐẦU */}
+                    <div className="p-2 border-b border-amber-100 bg-amber-50/70 space-y-1.5">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-amber-700 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          autoFocus
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Gõ tên hoặc biệt danh để lọc nhanh... (VD: Vân Anh, Tuấn, Còi...)"
+                          className="w-full bg-white border border-amber-300 rounded-lg py-1.5 pl-8 pr-7 text-xs font-sans text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400"
+                        />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 font-sans px-1">
+                        <span>✨ Sắp xếp theo tên gọi A → Z</span>
+                        <span>
+                          {filteredRoster.length === rosterList.length
+                            ? `Tất cả ${rosterList.length} thành viên`
+                            : `Tìm thấy ${filteredRoster.length} / ${rosterList.length} bạn`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* DANH SÁCH THÀNH VIÊN CUỘN MƯỢT, RÕ RÀNG */}
+                    <div className="max-h-64 sm:max-h-72 overflow-y-auto divide-y divide-slate-100">
+                      {filteredRoster.length > 0 ? (
+                        filteredRoster.map((m) => {
+                          const existingRsvp = (rsvpList || []).find((r) => 
+                            (r.memberId && r.memberId === m.id) || 
+                            normalizeName(r.fullName) === normalizeName(m.fullName)
+                          );
+                          const givenName = getVietnameseGivenName(m.fullName);
+                          const isDuplicate = (nameCounts[normalizeName(m.fullName)] || 0) > 1;
+
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => {
+                                handleSelectMember(m.id);
+                                setIsDropdownOpen(false);
+                                setSearchQuery('');
+                              }}
+                              className="w-full text-left px-3 py-2.5 hover:bg-amber-50/80 transition-colors flex items-center justify-between gap-2 cursor-pointer group"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-serif font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                  {givenName.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="font-serif font-bold text-slate-900 text-xs sm:text-[13px]">
+                                      {m.fullName}
+                                    </span>
+                                    {m.nickname && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 font-sans font-medium border border-amber-200/80 shrink-0">
+                                        “{m.nickname}”
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px] text-slate-500 font-sans mt-0.5">
+                                    <span>{m.role && m.role !== 'Thành viên' ? m.role : 'Lớp K8A1'}</span>
+                                    {isDuplicate && m.phone && (
+                                      <span>• SĐT: ...{String(m.phone).replace(/[^0-9]/g, '').slice(-4)}</span>
+                                    )}
+                                    {isDuplicate && m.province && <span>• {m.province}</span>}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Huy hiệu trạng thái điểm danh */}
+                              <div className="shrink-0">
+                                {existingRsvp ? (
+                                  existingRsvp.status === 'yes' ? (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                      <span>Đã xác nhận</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                                      <span>Báo vắng</span>
+                                    </span>
+                                  )
+                                ) : (
+                                  <span className="text-[10px] font-sans text-amber-700/80 bg-amber-50/70 border border-amber-200/60 px-1.5 py-0.5 rounded">
+                                    Chưa điểm danh
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="p-4 text-center text-xs text-slate-500 font-sans space-y-2">
+                          <p>Không tìm thấy bạn nào khớp với từ khóa "{searchQuery}"</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleSelectMember('custom');
+                              setIsDropdownOpen(false);
+                              setSearchQuery('');
+                            }}
+                            className="inline-flex items-center gap-1 text-amber-800 font-bold hover:underline cursor-pointer"
+                          >
+                            <span>✏️ Bấm vào đây để tự gõ thông tin của bạn</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* TÙY CHỌN TỰ GÕ Ở ĐÁY DROPDOWN */}
+                    <div className="p-2 border-t border-slate-100 bg-slate-50 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSelectMember('custom');
+                          setIsDropdownOpen(false);
+                          setSearchQuery('');
+                        }}
+                        className="text-[11px] font-bold text-amber-900 hover:text-amber-950 hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                      >
+                        <span>✏️ Tự nhập họ tên khác (Nếu không có tên trong danh bạ)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -779,6 +1015,26 @@ export default function RsvpForm({
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
                 />
+
+                {/* GỢI Ý THÔNG MINH NẾU TỰ GÕ TÊN TRÙNG DANH BẠ */}
+                {suggestedRosterMember && (
+                  <div className="mt-1.5 p-2 bg-gradient-to-r from-amber-50 to-amber-100/70 border border-amber-300 rounded-lg flex items-center justify-between gap-2 text-xs animate-fadeIn shadow-2xs">
+                    <div className="flex items-center gap-1.5 min-w-0 text-amber-950">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span className="truncate text-[11px]">
+                        Có phải bạn là: <strong className="font-serif font-bold">{suggestedRosterMember.fullName}</strong>
+                        {suggestedRosterMember.nickname ? ` (“${suggestedRosterMember.nickname}”)` : ''}?
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectMember(suggestedRosterMember.id)}
+                      className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded text-[10px] shrink-0 cursor-pointer shadow-2xs transition"
+                    >
+                      Liên kết hồ sơ ✓
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Biệt danh */}
