@@ -14,10 +14,16 @@ import {
   Receipt,
   User,
   Phone,
-  MessageSquare
+  MessageSquare,
+  Share2,
+  Sliders,
+  Check,
+  Star,
+  Copy
 } from 'lucide-react';
 import { RsvpData, ClassMember, EventConfig } from '../types';
 import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS } from '../data';
+import LiveGoldenPass from './LiveGoldenPass';
 
 interface RsvpFormProps {
   appsScriptUrl: string;
@@ -30,6 +36,15 @@ interface RsvpFormProps {
   onOpenPassModal?: (attendee: RsvpData) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
 }
+
+// Bộ lời nhắn cảm xúc nhanh 1-chạm tuổi học trò
+const QUICK_EMOTION_TAGS = [
+  { label: 'Hội bàn cuối', emoji: '👋', text: 'Hẹn gặp lại đầy đủ anh em hội bàn cuối ngày xưa nhé!' },
+  { label: 'Không say không về', emoji: '🍻', text: '20 năm rồi chớp mắt một cái, hôm đó nhất định không say không về!' },
+  { label: 'Chúc thầy cô', emoji: '❤️', text: 'Kính chúc các thầy cô giáo luôn dồi dào sức khỏe, nhớ lớp K8A1 nhiều!' },
+  { label: 'Sân bóng xưa', emoji: '⚽', text: 'Vẫn nhớ những buổi trốn học đá bóng, bơi sông Cầu năm ấy...' },
+  { label: 'Ghép xe Hà Nội', emoji: '🚗', text: 'Mình xuất phát từ Hà Nội, bạn nào đi cùng thì ới mình đi chung xe nhé!' },
+];
 
 export default function RsvpForm({
   appsScriptUrl,
@@ -50,6 +65,8 @@ export default function RsvpForm({
   const [phone, setPhone] = useState('');
   const [shirtSize, setShirtSize] = useState('L');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [showSmartSizer, setShowSmartSizer] = useState(false);
+  const [selectedWeightBracket, setSelectedWeightBracket] = useState<string>('');
   const [status, setStatus] = useState<'yes' | 'no'>('yes');
   const [message, setMessage] = useState('');
   const [isCustomMode, setIsCustomMode] = useState(false);
@@ -58,6 +75,7 @@ export default function RsvpForm({
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastSubmittedAttendee, setLastSubmittedAttendee] = useState<RsvpData | null>(null);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
 
   // Chuẩn hóa SĐT an toàn
   const normalizePhone = (p?: any) => {
@@ -239,12 +257,44 @@ export default function RsvpForm({
     setPhone('');
     setMessage('');
     setStatus('yes');
+    setSubmitSuccess(null);
+    setLastSubmittedAttendee(null);
+  };
+
+  // Thêm nhanh lời nhắn cảm xúc
+  const handleAddQuickEmotion = (quickText: string) => {
+    setMessage((prev) => {
+      if (!prev.trim()) return quickText;
+      return prev.trim() + ' ' + quickText;
+    });
+  };
+
+  // Chọn gợi ý size áo thông minh theo cân nặng
+  const handleSelectWeightBracket = (bracket: string, suggestedSize: string) => {
+    setSelectedWeightBracket(bracket);
+    setShirtSize(suggestedSize);
   };
 
   const triggerCelebration = () => {
     try {
-      confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.65 } });
     } catch {}
+  };
+
+  // Rủ bạn cùng bàn qua Zalo
+  const handleShareZalo = () => {
+    const senderName = fullName.trim() || 'Một bạn cùng lớp';
+    const text = `${senderName} vừa báo danh tham dự Họp Lớp 20 Năm K8A1 (2003 - 2006) rồi nhé! Bạn vào báo danh và chọn size áo đồng phục với lớp mình luôn đi: ${window.location.href}#diem-danh`;
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedShareLink(true);
+      setTimeout(() => setCopiedShareLink(false), 3000);
+    }
+
+    // Mở trang chia sẻ Zalo hoặc Zalo web
+    const zaloUrl = `https://zalo.me/share?url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(text)}`;
+    window.open(zaloUrl, '_blank');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -302,10 +352,10 @@ export default function RsvpForm({
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
           ? (status === 'yes'
-              ? 'Đã cập nhật thông tin tham dự thành công vào Google Sheet! Hẹn gặp bạn tại Ngày Họp Lớp 20 Năm Lớp K8A1.'
+              ? 'Đã cập nhật thông tin tham dự thành công vào Google Sheet! Tấm vé hội ngộ của bạn đã được làm mới.'
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (status === 'yes'
-              ? 'Xác nhận tham dự thành công! Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1.'
+              ? 'Xác nhận tham dự thành công! Tấm vé kỷ niệm 20 năm của bạn đã được đóng dấu chính thức.'
               : 'Đã lưu phản hồi. Dù không thể đến trực tiếp, tập thể K8A1 vẫn luôn lưu giữ kỷ niệm về bạn.');
         
         setSubmitSuccess(successMsg);
@@ -333,7 +383,7 @@ export default function RsvpForm({
               ? 'Đã cập nhật thông tin tham dự thành công! Hẹn gặp bạn tại Ngày Họp Lớp 20 Năm Lớp K8A1.'
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (status === 'yes'
-              ? 'Xác nhận tham dự thành công! Hẹn gặp lại bạn trong ngày hội ngộ 20 năm Lớp K8A1.'
+              ? 'Xác nhận tham dự thành công! Tấm vé kỷ niệm 20 năm của bạn đã được đóng dấu chính thức.'
               : 'Đã lưu phản hồi. Cảm ơn bạn!');
         
         setSubmitSuccess(successMsg);
@@ -351,7 +401,7 @@ export default function RsvpForm({
   }, [rsvpList]);
 
   return (
-    <div id="rsvp-form-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
+    <div id="rsvp-form-card" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-5 text-left relative overflow-hidden">
       
       {/* HEADER ĐIỂM DANH & SIZE ÁO */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200/80 pb-3.5 gap-3">
@@ -359,14 +409,14 @@ export default function RsvpForm({
           <div className="flex items-center gap-1.5 text-amber-800">
             <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span className="text-[11px] uppercase tracking-widest font-sans font-bold block">
-              Điểm Danh & Size Áo Đồng Phục
+              Điểm Danh & Tấm Vé Vàng Hội Ngộ
             </span>
           </div>
           <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
             Xác Nhận Tham Dự Lớp K8A1
           </h3>
           <p className="text-xs text-slate-500 font-serif italic">
-            Vui lòng xác nhận sớm để may đo áo đồng phục & đặt tiệc
+            Điểm danh để may đo áo đồng phục polo, đặt mâm tiệc và nhận thẻ kỷ niệm 20 năm
           </p>
         </div>
 
@@ -406,7 +456,7 @@ export default function RsvpForm({
                   )}
                 </div>
                 <p className="text-[10px] text-slate-500 font-sans">
-                  Thành viên Lớp K8A1 (2003 — 2006)
+                  Thành viên Lớp K8A1 (2003 — 2006) {activeMember.province ? `• ${activeMember.province}` : ''}
                 </p>
               </div>
             </div>
@@ -455,234 +505,385 @@ export default function RsvpForm({
         )}
       </div>
 
-      {/* CHỌN TRẠNG THÁI THAM GIA */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-        <button
-          type="button"
-          onClick={() => setStatus('yes')}
-          className={`py-3 px-3 rounded-xl border font-sans font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
-            status === 'yes'
-              ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40'
-              : 'bg-white text-slate-700 border-slate-300 hover:border-amber-300 hover:bg-amber-50/30'
-          }`}
-        >
-          <CheckCircle2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-          <span>Có Tham Gia</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setStatus('no')}
-          className={`py-3 px-3 rounded-xl border font-sans font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
-            status === 'no'
-              ? 'bg-gradient-to-br from-slate-700 to-slate-800 text-white border-slate-800 shadow-sm ring-2 ring-slate-400/40'
-              : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400 hover:bg-slate-50/50'
-          }`}
-        >
-          <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-          <span>Rất Tiếc Vắng Mặt</span>
-        </button>
-      </div>
-
-      {/* FORM NHẬP THÔNG TIN */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-amber-200/80 p-3 sm:p-4 space-y-3 shadow-2xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-          
-          {/* Họ và tên */}
-          <div className="space-y-1">
-            <label htmlFor="rsvp-fullName" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-              <User className="w-3 h-3 text-amber-700" />
-              <span>Họ và tên</span>
-              <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="rsvp-fullName"
-              placeholder="Nguyễn Tuấn Anh"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
-            />
+      {/* BỐ CỤC 2 CỘT: CỘT TRÁI FORM NHẬP - CỘT PHẢI TẤM VÉ VÀNG REALTIME */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        {/* CỘT PHẢI TRÊN MOBILE (HIỆN TRƯỚC ĐỂ TẠO CẢM HỨNG) HOẶC CỘT PHẢI STICKY TRÊN DESKTOP */}
+        <div className="lg:col-span-5 lg:order-2 space-y-3 lg:sticky lg:top-6">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+              <Award className="w-3.5 h-3.5 text-amber-700" />
+              <span>Tấm Vé Kỷ Niệm Của Bạn</span>
+            </span>
+            <span className="text-[10px] text-slate-500 font-serif italic">
+              {submitSuccess ? '✓ Đã đóng dấu' : 'Tự cập nhật realtime'}
+            </span>
           </div>
 
-          {/* Biệt danh */}
-          <div className="space-y-1">
-            <label htmlFor="rsvp-nickname" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-700" />
-              <span>Biệt danh cấp 3</span>
-            </label>
-            <input
-              type="text"
-              id="rsvp-nickname"
-              placeholder="Tuấn Béo, Nam Cận..."
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
-            />
-          </div>
-
-          {/* Số điện thoại */}
-          <div className="space-y-1">
-            <label htmlFor="rsvp-phone" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-              <Phone className="w-3 h-3 text-amber-700" />
-              <span>Số điện thoại</span>
-              <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="tel"
-              id="rsvp-phone"
-              placeholder="090x xxx xxx"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-mono outline-none transition"
-            />
-          </div>
-
-          {/* Size áo polo */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <label htmlFor="rsvp-shirtSize" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-                <Shirt className="w-3 h-3 text-amber-700" />
-                <span>Size áo polo</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowSizeGuide(!showSizeGuide)}
-                className="text-[10px] text-amber-800 hover:text-amber-950 font-bold underline cursor-pointer"
-              >
-                {showSizeGuide ? 'Đóng bảng' : 'Bảng size 📐'}
-              </button>
-            </div>
-            <div className="relative">
-              <select
-                id="rsvp-shirtSize"
-                value={shirtSize}
-                onChange={(e) => setShirtSize(e.target.value)}
-                disabled={status === 'no'}
-                className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 outline-none cursor-pointer disabled:opacity-50 appearance-none pr-8 font-medium transition"
-              >
-                {SHIRT_SIZE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Bảng gợi ý size áo dạng mở rộng */}
-        {showSizeGuide && (
-          <div className="bg-[#FAF8F5] border border-amber-200 rounded-xl p-3 text-xs text-slate-700 space-y-2 animate-fadeIn">
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center font-sans">
-              {SHIRT_SIZE_OPTIONS.map((opt) => (
-                <div key={opt.value} className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                  <span className="font-bold text-amber-900 text-xs block">{opt.value}</span>
-                  <span className="text-[10px] text-slate-500 block mt-0.5 leading-tight">{opt.weightHint}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-500 font-serif italic text-center">
-              * Áo polo co giãn 4 chiều. Nếu phân vân giữa 2 cỡ, bạn nên chọn tăng 1 size để mặc thoải mái nhất.
-            </p>
-          </div>
-        )}
-
-        {/* Lời nhắn */}
-        <div className="space-y-1">
-          <label htmlFor="rsvp-message" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-            <MessageSquare className="w-3 h-3 text-amber-700" />
-            <span>Lời nhắn gửi tới lớp & thầy cô (Tùy chọn)</span>
-          </label>
-          <textarea
-            id="rsvp-message"
-            rows={2}
-            placeholder="Gửi lời chào, kỷ niệm xưa hoặc lý do nếu bạn vắng mặt..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 resize-none font-serif leading-relaxed outline-none transition"
+          <LiveGoldenPass
+            fullName={fullName}
+            nickname={nickname}
+            shirtSize={shirtSize}
+            status={status}
+            className="K8A1"
+            memberId={activeMember?.id}
+            isConfirmed={Boolean(submitSuccess && lastSubmittedAttendee)}
+            onOpenPassModal={lastSubmittedAttendee ? () => onOpenPassModal && onOpenPassModal(lastSubmittedAttendee) : undefined}
           />
-        </div>
 
-        {/* Thông báo lỗi */}
-        {submitError && (
-          <div className="p-3 bg-rose-50 border border-rose-200 text-xs text-rose-800 rounded-xl flex items-center gap-2">
-            <span className="text-rose-600 font-bold">⚠️</span>
-            <span>{submitError}</span>
-          </div>
-        )}
+          {/* DÒNG HƯỚNG DẪN KHI CHƯA GỬI */}
+          {!submitSuccess && (
+            <p className="text-[11px] text-slate-500 font-serif italic text-center px-2">
+              ✨ Điền thông tin bên dưới, bạn sẽ nhận được tấm vé kỷ niệm này với con dấu sáp đỏ chính thức của Lớp K8A1.
+            </p>
+          )}
 
-        {/* Thông báo thành công */}
-        {submitSuccess && (
-          <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 rounded-xl space-y-2.5">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <p className="font-bold font-serif text-xs sm:text-sm">{submitSuccess}</p>
-            </div>
-            {lastSubmittedAttendee && lastSubmittedAttendee.status === 'yes' && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-emerald-200 text-xs">
-                <span className="text-slate-700">
-                  Đóng quỹ họp lớp K8A1 <strong>(tạm ứng {standardFundAmount.toLocaleString('vi-VN')}đ)</strong>:
-                </span>
-                <div className="flex items-center gap-2">
+          {/* HỘP HÀNH ĐỘNG SAU KHI GỬI THÀNH CÔNG */}
+          {submitSuccess && lastSubmittedAttendee && (
+            <div className="p-3 bg-white border border-amber-300 rounded-xl shadow-xs space-y-2.5 animate-fadeIn">
+              <div className="flex items-center gap-1.5 text-amber-900 font-bold font-sans text-xs">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Bạn muốn làm gì tiếp theo?</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Nút Xem / Tải Thẻ */}
+                {onOpenPassModal && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenPassModal(lastSubmittedAttendee)}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-2xs"
+                  >
+                    <Award className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Tải thẻ in HD</span>
+                  </button>
+                )}
+
+                {/* Nút Nhắn Zalo Rủ Bạn Thân */}
+                <button
+                  type="button"
+                  onClick={handleShareZalo}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-2xs"
+                  title="Nhắn Zalo rủ bạn cùng bàn điểm danh"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>{copiedShareLink ? '✓ Đã chép link' : 'Rủ bạn qua Zalo'}</span>
+                </button>
+              </div>
+
+              {/* Nút Nộp Quỹ Lớp 700.000đ */}
+              {lastSubmittedAttendee.status === 'yes' && (
+                <div className="pt-2 border-t border-amber-200/80">
                   {onOpenReceiptModal ? (
                     <button
                       type="button"
                       onClick={() => onOpenReceiptModal(lastSubmittedAttendee)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg cursor-pointer transition shadow-xs text-xs"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-lg cursor-pointer transition text-xs shadow-2xs"
                     >
                       <Receipt className="w-3.5 h-3.5" />
-                      <span>Gửi biên lai ➔</span>
+                      <span>Đóng Quỹ Lớp ({standardFundAmount.toLocaleString('vi-VN')}đ) ➔</span>
                     </button>
                   ) : (
                     <a
                       href="#bank-transfer-card"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-lg text-xs"
                     >
                       <Receipt className="w-3.5 h-3.5" />
-                      <span>Gửi biên lai ➔</span>
+                      <span>Đóng Quỹ Lớp ({standardFundAmount.toLocaleString('vi-VN')}đ) ➔</span>
                     </a>
                   )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-                  {onOpenPassModal && (
+        {/* CỘT TRÁI: FORM NHẬP THÔNG TIN (7 PHẦN TRÊN DESKTOP) */}
+        <div className="lg:col-span-7 lg:order-1 space-y-4">
+          
+          {/* 1. CHỌN TRẠNG THÁI THAM GIA */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setStatus('yes')}
+              className={`py-3 px-3 rounded-xl border font-sans font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                status === 'yes'
+                  ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40'
+                  : 'bg-white text-slate-700 border-slate-300 hover:border-amber-300 hover:bg-amber-50/30'
+              }`}
+            >
+              <CheckCircle2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <span>Có Tham Gia</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStatus('no')}
+              className={`py-3 px-3 rounded-xl border font-sans font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                status === 'no'
+                  ? 'bg-gradient-to-br from-slate-700 to-slate-800 text-white border-slate-800 shadow-sm ring-2 ring-slate-400/40'
+                  : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400 hover:bg-slate-50/50'
+              }`}
+            >
+              <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              <span>Rất Tiếc Vắng Mặt</span>
+            </button>
+          </div>
+
+          {/* 2. FORM NHẬP THÔNG TIN CHI TIẾT */}
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-amber-200/80 p-3.5 sm:p-4 space-y-3.5 shadow-2xs">
+            
+            {/* THÔNG TIN CƠ BẢN: HỌ TÊN, BIỆT DANH, SĐT */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+              
+              {/* Họ và tên */}
+              <div className="space-y-1">
+                <label htmlFor="rsvp-fullName" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
+                  <User className="w-3 h-3 text-amber-700" />
+                  <span>Họ và tên</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="rsvp-fullName"
+                  placeholder="Nguyễn Tuấn Anh"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
+                />
+              </div>
+
+              {/* Biệt danh */}
+              <div className="space-y-1">
+                <label htmlFor="rsvp-nickname" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-700" />
+                  <span>Biệt danh cấp 3</span>
+                </label>
+                <input
+                  type="text"
+                  id="rsvp-nickname"
+                  placeholder="Tuấn Béo, Nam Còi..."
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
+                />
+              </div>
+
+              {/* Số điện thoại */}
+              <div className="space-y-1">
+                <label htmlFor="rsvp-phone" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-amber-700" />
+                  <span>Số điện thoại</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  id="rsvp-phone"
+                  placeholder="090x xxx xxx"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-mono outline-none transition"
+                />
+              </div>
+            </div>
+
+            {/* BỘ CHỌN SIZE ÁO TRỰC QUAN (CHỈ KHI CHỌN CÓ THAM GIA) */}
+            {status === 'yes' && (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1.5">
+                    <Shirt className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Chọn Size Áo Polo Đồng Phục Lớp K8A1:</span>
+                    <span className="font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded text-[10px]">
+                      {shirtSize}
+                    </span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => onOpenPassModal(lastSubmittedAttendee)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg cursor-pointer transition shadow-xs text-xs"
+                      onClick={() => setShowSmartSizer(!showSmartSizer)}
+                      className="text-[10px] text-amber-800 hover:text-amber-950 font-bold inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100/70 border border-amber-300/80 px-2 py-0.5 rounded cursor-pointer transition-colors"
                     >
-                      <Award className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Thẻ học sinh</span>
+                      <Sliders className="w-3 h-3" />
+                      <span>{showSmartSizer ? 'Đóng gợi ý' : 'Gợi ý size 💡'}</span>
                     </button>
-                  )}
+
+                    <button
+                      type="button"
+                      onClick={() => setShowSizeGuide(!showSizeGuide)}
+                      className="text-[10px] text-slate-600 hover:text-slate-900 underline font-sans cursor-pointer"
+                    >
+                      {showSizeGuide ? 'Đóng bảng' : 'Bảng size 📐'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* THƯỚC ĐO GỢI Ý SIZE THÔNG MINH THEO CÂN NẶNG */}
+                {showSmartSizer && (
+                  <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3 text-xs space-y-2 animate-fadeIn">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-950">
+                      <span>Chọn khoảng cân nặng hiện tại của bạn:</span>
+                      <span className="text-[10px] text-slate-500 font-normal italic">Bấm để hệ thống tự chọn</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 font-sans">
+                      {[
+                        { bracket: '< 55 kg', size: 'S', note: 'Nữ <48kg / Nam <55kg' },
+                        { bracket: '55 — 62 kg', size: 'M', note: 'Vừa vặn' },
+                        { bracket: '63 — 70 kg', size: 'L', note: 'Phổ biến nhất' },
+                        { bracket: '71 — 78 kg', size: 'XL', note: 'Thoải mái' },
+                        { bracket: '79 — 86 kg', size: '2XL', note: 'Phom rộng' },
+                        { bracket: '> 86 kg', size: '3XL', note: 'Ngoại cỡ' }
+                      ].map((item) => (
+                        <button
+                          key={item.bracket}
+                          type="button"
+                          onClick={() => handleSelectWeightBracket(item.bracket, item.size)}
+                          className={`p-1.5 rounded-lg border text-left transition-all cursor-pointer ${
+                            selectedWeightBracket === item.bracket
+                              ? 'bg-amber-600 text-white border-amber-700 shadow-2xs font-bold'
+                              : 'bg-white hover:bg-amber-100/50 text-slate-700 border-amber-200/80'
+                          }`}
+                        >
+                          <span className="block text-[11px] font-bold">{item.bracket}</span>
+                          <span className={`block text-[9px] ${selectedWeightBracket === item.bracket ? 'text-amber-100' : 'text-slate-500'}`}>
+                            👉 Gợi ý Size {item.size}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* BẢNG SIZE ÁO DẠNG LƯỚI NÚT TRỰC QUAN */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  {SHIRT_SIZE_OPTIONS.map((opt) => {
+                    const isSelected = shirtSize === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setShirtSize(opt.value)}
+                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                          isSelected
+                            ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40 font-bold scale-[1.02]'
+                            : 'bg-slate-50/70 hover:bg-amber-50/50 text-slate-700 border-slate-200 hover:border-amber-300'
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base font-black font-mono block">
+                          {opt.value}
+                        </span>
+                        <span className={`text-[9px] block mt-0.5 leading-tight ${isSelected ? 'text-amber-100' : 'text-slate-500'}`}>
+                          {opt.weightHint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* BẢNG SIZE MỞ RỘNG (NẾU MỞ) */}
+                {showSizeGuide && (
+                  <div className="bg-[#FAF8F5] border border-amber-200 rounded-xl p-3 text-xs text-slate-700 space-y-2 animate-fadeIn">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center font-sans">
+                      {SHIRT_SIZE_OPTIONS.map((opt) => (
+                        <div key={opt.value} className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
+                          <span className="font-bold text-amber-900 text-xs block">{opt.value}</span>
+                          <span className="text-[10px] text-slate-500 block mt-0.5 leading-tight">{opt.weightHint}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-serif italic text-center">
+                      * Áo polo co giãn 4 chiều. Nếu phân vân giữa 2 cỡ hoặc có bụng, bạn nên chọn tăng 1 size để mặc thoải mái nhất.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* KHUNG LƯU BÚT HỌC TRÒ & DẢI PHÍM CẢM XÚC 1-CHẠM */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <label htmlFor="rsvp-message" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3 text-amber-700" />
+                  <span>Trang Lưu Bút K8A1 (Lời nhắn gửi bạn bè & thầy cô):</span>
+                </label>
+                <span className="text-[10px] text-slate-400 font-sans">Tùy chọn</span>
+              </div>
+
+              {/* DẢI PHÍM CẢM XÚC 1-CHẠM */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+                <span className="text-[10px] text-slate-400 font-serif italic shrink-0">
+                  Gợi ý nhanh:
+                </span>
+                {QUICK_EMOTION_TAGS.map((tag) => (
+                  <button
+                    key={tag.label}
+                    type="button"
+                    onClick={() => handleAddQuickEmotion(tag.text)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-full text-[11px] font-medium shrink-0 cursor-pointer transition-colors shadow-2xs"
+                  >
+                    <span>{tag.emoji}</span>
+                    <span>{tag.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* KHUNG TEXTAREA LƯU BÚT */}
+              <div className="relative">
+                <textarea
+                  id="rsvp-message"
+                  rows={2}
+                  placeholder="Gửi lời chào, kỷ niệm xưa, thông tin đi chung xe hoặc lý do nếu bạn vắng mặt..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#FCFAF7] focus:bg-white border border-amber-300/80 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-xl text-xs sm:text-[13px] text-slate-800 resize-none font-serif leading-relaxed outline-none transition shadow-2xs"
+                />
+              </div>
+            </div>
+
+            {/* THÔNG BÁO LỖI */}
+            {submitError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-xs text-rose-800 rounded-xl flex items-center gap-2">
+                <span className="text-rose-600 font-bold">⚠️</span>
+                <span>{submitError}</span>
+              </div>
+            )}
+
+            {/* THÔNG BÁO THÀNH CÔNG */}
+            {submitSuccess && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 rounded-xl space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+                  <p className="font-bold font-serif text-xs sm:text-sm">{submitSuccess}</p>
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Nút gửi điểm danh */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider py-3 px-4 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-lg active:scale-[0.99]"
-        >
-          {isSubmitting ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Đang gửi thông tin...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 text-amber-200" />
-              <span>{matchedExistingAttendee ? 'Cập Nhật Điểm Danh' : 'Xác Nhận Tham Dự Ngay'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
-      </form>
+            {/* NÚT GỬI ĐIỂM DANH */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider py-3.5 px-4 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-lg active:scale-[0.99]"
+            >
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Đang ghi nhận điểm danh...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-amber-200" />
+                  <span>{matchedExistingAttendee ? 'Cập Nhật Điểm Danh' : 'Xác Nhận Tham Dự Ngay'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
