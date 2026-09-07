@@ -42,7 +42,7 @@ export const VENUE_DETAILS = {
   parkingInfo: 'Bãi đỗ xe ô tô & xe máy rộng rãi ngay trong khuôn viên Crown Palace, an ninh 24/7, bảo vệ hướng dẫn tận tình miễn phí.',
   googleMapsUrl: 'https://maps.google.com/?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&ll=21.6041,105.8286&z=16',
   directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.6041,105.8286',
-  embedMapUrl: 'https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=&z=15&ie=UTF8&iwloc=&output=embed'
+  embedMapUrl: 'https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=h&z=18&ie=UTF8&iwloc=&output=embed'
 };
 
 export interface VenueMediaItem {
