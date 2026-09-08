@@ -90,6 +90,11 @@ import {
   GOOGLE_APPS_SCRIPT_CODE,
   CLASS_ROSTER_K8A1,
   TEACHERS_LIST,
+  TEACHER_SUBJECT_OPTIONS,
+  TEACHER_ROLE_OPTIONS,
+  TEACHER_TRANSPORTATION_OPTIONS,
+  TEACHER_COORDINATOR_OPTIONS,
+  TEACHER_HEALTH_OPTIONS,
   normalizeImageUrl,
   SHIRT_SIZE_OPTIONS,
   normalizeShirtSize,
@@ -8872,25 +8877,64 @@ export default function AdminManagementHub({
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <label className="font-bold text-slate-700">Môn giảng dạy:</label>
-                      <input
-                        type="text"
-                        value={teacherFormData.subject || ''}
-                        onChange={(e) => setTeacherFormData({ ...teacherFormData, subject: e.target.value })}
-                        placeholder="VD: Ngữ Văn, Toán Học, Vật Lý..."
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
-                      />
+                      <label className="font-bold text-slate-700">Môn giảng dạy (*):</label>
+                      <select
+                        value={TEACHER_SUBJECT_OPTIONS.includes(teacherFormData.subject || '') ? teacherFormData.subject : (teacherFormData.subject ? 'other' : '')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'other') {
+                            setTeacherFormData(prev => ({ ...prev, subject: '' }));
+                          } else {
+                            setTeacherFormData(prev => ({ ...prev, subject: val }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-medium focus:outline-none focus:border-amber-500 cursor-pointer"
+                      >
+                        <option value="">-- Chọn môn giảng dạy --</option>
+                        {TEACHER_SUBJECT_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                        <option value="other">✏️ Môn khác (Nhập tay)...</option>
+                      </select>
+                      {(!TEACHER_SUBJECT_OPTIONS.includes(teacherFormData.subject || '') || teacherFormData.subject === '') && (
+                        <input
+                          type="text"
+                          value={teacherFormData.subject || ''}
+                          onChange={(e) => setTeacherFormData({ ...teacherFormData, subject: e.target.value })}
+                          placeholder="Nhập tên môn dạy..."
+                          className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs mt-1 focus:outline-none focus:border-amber-600"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-1">
                       <label className="font-bold text-slate-700">Vai trò với K8A1:</label>
-                      <input
-                        type="text"
-                        value={teacherFormData.role || ''}
-                        onChange={(e) => setTeacherFormData({ ...teacherFormData, role: e.target.value })}
-                        placeholder="VD: Chủ nhiệm Lớp 12A1, Giáo viên Bộ môn..."
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-semibold text-amber-900"
-                      />
+                      <select
+                        value={TEACHER_ROLE_OPTIONS.includes(teacherFormData.role || '') ? teacherFormData.role : (teacherFormData.role ? 'other' : 'Giáo viên Bộ môn')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'other') {
+                            setTeacherFormData(prev => ({ ...prev, role: '' }));
+                          } else {
+                            setTeacherFormData(prev => ({ ...prev, role: val }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-semibold text-amber-900 focus:outline-none focus:border-amber-500 cursor-pointer"
+                      >
+                        {TEACHER_ROLE_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                        <option value="other">✏️ Vai trò khác (Nhập tay)...</option>
+                      </select>
+                      {(!TEACHER_ROLE_OPTIONS.includes(teacherFormData.role || '') || teacherFormData.role === '') && (
+                        <input
+                          type="text"
+                          value={teacherFormData.role || ''}
+                          onChange={(e) => setTeacherFormData({ ...teacherFormData, role: e.target.value })}
+                          placeholder="Nhập vai trò cụ thể..."
+                          className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs mt-1 focus:outline-none focus:border-amber-600"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-1">
@@ -8898,11 +8942,12 @@ export default function AdminManagementHub({
                       <select
                         value={teacherFormData.workStatus || 'Đã nghỉ hưu'}
                         onChange={(e) => setTeacherFormData({ ...teacherFormData, workStatus: e.target.value })}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
                       >
                         <option value="Đã nghỉ hưu">Đã nghỉ hưu</option>
-                        <option value="Đang công tác">Đang công tác</option>
-                        <option value="Chuyển đơn vị">Chuyển đơn vị</option>
+                        <option value="Đang công tác tại trường">Đang công tác tại trường</option>
+                        <option value="Đang công tác đơn vị khác">Đang công tác đơn vị khác</option>
+                        <option value="Chuyển đơn vị">Chuyển đơn vị / Tỉnh ngoài</option>
                       </select>
                     </div>
                   </div>
@@ -9045,36 +9090,93 @@ export default function AdminManagementHub({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="font-bold text-slate-700">Phương án đưa đón:</label>
-                      <input
-                        type="text"
-                        value={teacherFormData.transportation || 'Tự túc'}
-                        onChange={(e) => setTeacherFormData({ ...teacherFormData, transportation: e.target.value })}
-                        placeholder="VD: Lớp cử xe đón tại nhà, Tự túc..."
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-medium text-blue-900"
-                      />
+                      <select
+                        value={TEACHER_TRANSPORTATION_OPTIONS.includes(teacherFormData.transportation || '') ? teacherFormData.transportation : (teacherFormData.transportation ? 'other' : 'Tự túc')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'other') {
+                            setTeacherFormData(prev => ({ ...prev, transportation: '' }));
+                          } else {
+                            setTeacherFormData(prev => ({ ...prev, transportation: val }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-medium text-blue-900 focus:outline-none focus:border-amber-500 cursor-pointer"
+                      >
+                        {TEACHER_TRANSPORTATION_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                        <option value="other">✏️ Phương án khác (Nhập tay)...</option>
+                      </select>
+                      {(!TEACHER_TRANSPORTATION_OPTIONS.includes(teacherFormData.transportation || '') || teacherFormData.transportation === '') && (
+                        <input
+                          type="text"
+                          value={teacherFormData.transportation || ''}
+                          onChange={(e) => setTeacherFormData({ ...teacherFormData, transportation: e.target.value })}
+                          placeholder="Ghi rõ địa điểm/phương án xe đón..."
+                          className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs mt-1 focus:outline-none focus:border-amber-600 font-medium text-blue-900"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-1">
                       <label className="font-bold text-slate-700">Cán bộ BLL phụ trách đón tiếp:</label>
-                      <input
-                        type="text"
-                        value={teacherFormData.coordinator || ''}
-                        onChange={(e) => setTeacherFormData({ ...teacherFormData, coordinator: e.target.value })}
-                        placeholder="VD: Long Kều, Tuấn Báo..."
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
-                      />
+                      <select
+                        value={TEACHER_COORDINATOR_OPTIONS.includes(teacherFormData.coordinator || '') ? teacherFormData.coordinator : (teacherFormData.coordinator ? 'other' : 'Chưa phân công')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'other') {
+                            setTeacherFormData(prev => ({ ...prev, coordinator: '' }));
+                          } else {
+                            setTeacherFormData(prev => ({ ...prev, coordinator: val }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
+                      >
+                        {TEACHER_COORDINATOR_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                        <option value="other">✏️ Cán bộ khác (Nhập tay)...</option>
+                      </select>
+                      {(!TEACHER_COORDINATOR_OPTIONS.includes(teacherFormData.coordinator || '') || teacherFormData.coordinator === '') && (
+                        <input
+                          type="text"
+                          value={teacherFormData.coordinator || ''}
+                          onChange={(e) => setTeacherFormData({ ...teacherFormData, coordinator: e.target.value })}
+                          placeholder="Nhập tên người phụ trách đón tiếp..."
+                          className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs mt-1 focus:outline-none focus:border-amber-600"
+                        />
+                      )}
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Lưu ý sức khỏe / vị trí ngồi danh dự:</label>
-                    <input
-                      type="text"
-                      value={teacherFormData.healthNotes || ''}
-                      onChange={(e) => setTeacherFormData({ ...teacherFormData, healthNotes: e.target.value })}
-                      placeholder="VD: Ngồi bàn danh dự tầng 1 ít bậc thang, ăn thanh đạm..."
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
-                    />
+                    <select
+                      value={TEACHER_HEALTH_OPTIONS.includes(teacherFormData.healthNotes || '') ? teacherFormData.healthNotes : (teacherFormData.healthNotes ? 'other' : 'Bình thường (Không yêu cầu đặc biệt)')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'other') {
+                          setTeacherFormData(prev => ({ ...prev, healthNotes: '' }));
+                        } else {
+                          setTeacherFormData(prev => ({ ...prev, healthNotes: val }));
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      {TEACHER_HEALTH_OPTIONS.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                      <option value="other">✏️ Lưu ý khác (Nhập tay)...</option>
+                    </select>
+                    {(!TEACHER_HEALTH_OPTIONS.includes(teacherFormData.healthNotes || '') || teacherFormData.healthNotes === '') && (
+                      <input
+                        type="text"
+                        value={teacherFormData.healthNotes || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, healthNotes: e.target.value })}
+                        placeholder="Ghi rõ lưu ý sức khỏe, kiêng cữ..."
+                        className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs mt-1 focus:outline-none focus:border-amber-600"
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-1">

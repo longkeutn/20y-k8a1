@@ -1757,6 +1757,62 @@ export const TEACHERS_LIST: TeacherData[] = [];
 
 export const INITIAL_TEACHER_TRIBUTES: TeacherTribute[] = [];
 
+export const TEACHER_SUBJECT_OPTIONS = [
+  "Toán Học",
+  "Ngữ Văn",
+  "Tiếng Anh",
+  "Vật Lý",
+  "Hóa Học",
+  "Sinh Học",
+  "Lịch Sử",
+  "Địa Lý",
+  "Tin Học",
+  "GDCD",
+  "Thể Dục",
+  "GDQP-AN",
+  "Công Nghệ / Kỹ Thuật",
+  "Ban Giám Hiệu"
+];
+
+export const TEACHER_ROLE_OPTIONS = [
+  "Giáo viên Bộ môn",
+  "Chủ nhiệm Lớp 12A1",
+  "Chủ nhiệm Lớp 11A1",
+  "Chủ nhiệm Lớp 10A1",
+  "Hiệu Trưởng",
+  "Phó Hiệu Trưởng",
+  "Bí Thư Đoàn Trường",
+  "Tổng Phụ Trách Đội / Đoàn"
+];
+
+export const TEACHER_TRANSPORTATION_OPTIONS = [
+  "Tự túc",
+  "Lớp cử xe đón tại nhà",
+  "Thầy tự đi cùng học trò",
+  "Cô tự đi cùng học trò",
+  "Đi cùng Thầy/Cô khác",
+  "Cần xe đón tuyến Hà Nội - Thái Nguyên",
+  "Cần hỗ trợ đưa đón tại Thái Nguyên",
+  "Cần xe đưa về sau dạ tiệc"
+];
+
+export const TEACHER_COORDINATOR_OPTIONS = [
+  "Chưa phân công",
+  "Long Kều (Trưởng ban BLL)",
+  "Tuấn Báo (Thủ quỹ)",
+  "Hương Béo (BLL)",
+  "Thắng Đầu Gấu (BLL)"
+];
+
+export const TEACHER_HEALTH_OPTIONS = [
+  "Bình thường (Không yêu cầu đặc biệt)",
+  "Ngồi bàn danh dự tầng 1 (ít bậc thang)",
+  "Cần hỗ trợ di chuyển (chân yếu / đi lại chậm)",
+  "Ăn chay",
+  "Ăn kiêng / Chế độ ăn thanh đạm",
+  "Không uống rượu bia / đồ uống có cồn"
+];
+
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * GOOGLE APPS SCRIPT (Code.gs)
  * Phục vụ WebApp "Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên"
