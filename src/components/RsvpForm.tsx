@@ -295,7 +295,7 @@ export default function RsvpForm({
         return nameA.localeCompare(nameB, 'vi');
       })
       .map(item => item.member)
-      .slice(0, 6);
+      .slice(0, 8);
   }, [activeMember, fullName, phone, rosterList]);
 
   // Đếm số lượng họ tên trong danh bạ để nhận diện các bạn trùng tên
@@ -1212,7 +1212,8 @@ export default function RsvpForm({
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* DANH SÁCH GỢI Ý DẠNG TỪNG DÒNG (FULL WIDTH, KHÔNG BỊ CO CẮT CHỮ) */}
+                  <div className="max-h-72 sm:max-h-80 overflow-y-auto pr-1 space-y-1.5">
                     {matchingRosterMembers.map((m) => {
                       const givenName = getVietnameseGivenName(m.fullName);
                       const existingRsvp = (rsvpList || []).find((item) => {
@@ -1226,40 +1227,57 @@ export default function RsvpForm({
                       return (
                         <div
                           key={m.id}
-                          className="p-2 sm:p-2.5 bg-white hover:bg-amber-50 border border-amber-200/90 hover:border-amber-400 rounded-lg flex items-center justify-between gap-2 transition-all shadow-2xs group"
+                          onClick={() => handleSelectMember(m.id)}
+                          className="p-2.5 sm:p-3 bg-white hover:bg-amber-50/90 border border-amber-200/90 hover:border-amber-400 rounded-xl flex items-center justify-between gap-3 transition-all shadow-2xs cursor-pointer group active:scale-[0.99]"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-serif font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                          {/* CỘT TRÁI: AVATAR + HỌ TÊN + BIỆT DANH + CHỨC VỤ + TRẠNG THÁI */}
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-serif font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                               {givenName.charAt(0).toUpperCase()}
                             </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-serif font-bold text-slate-900 text-xs truncate">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-serif font-bold text-slate-900 text-xs sm:text-[13.5px]">
                                   {m.fullName}
                                 </span>
                                 {m.nickname && (
-                                  <span className="text-[9.5px] px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 font-sans font-bold border border-amber-200/80 shrink-0">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 font-sans font-bold border border-amber-200/80 shrink-0">
                                     “{m.nickname}”
                                   </span>
                                 )}
+                                {m.role && m.role !== 'Thành viên' && (
+                                  <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-sans font-medium border border-slate-200 shrink-0">
+                                    {m.role}
+                                  </span>
+                                )}
                               </div>
-                              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-sans mt-0.5">
-                                <span>{m.role && m.role !== 'Thành viên' ? m.role : 'Lớp K8A1'}</span>
-                                {m.province && <span>• {m.province}</span>}
-                                {isConfirmed && (
-                                  <span className="text-emerald-700 font-bold">• Đã điểm danh</span>
+                              <div className="flex items-center gap-2 text-[10.5px] text-slate-500 font-sans mt-0.5 flex-wrap">
+                                <span>{m.province ? m.province : 'Lớp K8A1'}</span>
+                                {isConfirmed ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />
+                                    <span>Đã xác nhận tham gia</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400">
+                                    • Chưa điểm danh
+                                  </span>
                                 )}
                               </div>
                             </div>
                           </div>
 
+                          {/* CỘT PHẢI: NÚT CHỌN RÕ RÀNG */}
                           <button
                             type="button"
-                            onClick={() => handleSelectMember(m.id)}
-                            className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 active:scale-95 text-white font-bold rounded-lg text-[11px] font-sans shrink-0 cursor-pointer shadow-2xs transition"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectMember(m.id);
+                            }}
+                            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 active:scale-95 text-white font-bold rounded-lg text-xs font-sans shrink-0 cursor-pointer shadow-xs transition group-hover:shadow-md"
                           >
-                            <Check className="w-3 h-3" />
-                            <span>Chọn ✓</span>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Chọn bạn này ✓</span>
                           </button>
                         </div>
                       );
