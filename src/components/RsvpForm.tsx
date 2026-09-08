@@ -207,27 +207,95 @@ export default function RsvpForm({
     });
   }, [rosterList, searchQuery]);
 
-  // Phát hiện thông minh nếu người dùng tự gõ họ tên hoặc SĐT trùng/gần đúng với thành viên trong danh bạ lớp
-  const suggestedRosterMember = useMemo(() => {
-    if (activeMember || !fullName.trim() || fullName.trim().length < 2) return null;
-    const cleanInput = removeVietnameseAccents(fullName.trim());
-    const exact = rosterList.find((m) => {
-      const norm = removeVietnameseAccents(m.fullName);
-      return norm === cleanInput;
+  // Danh sách các bạn học phù hợp trong danh bạ khi người dùng tự gõ họ tên hoặc biệt danh
+  const matchingRosterMembers = useMemo(() => {
+    if (activeMember || !fullName.trim() || fullName.trim().length < 2) return [];
+
+    const rawInput = fullName.trim();
+    const cleanInput = removeVietnameseAccents(rawInput);
+    const inputTokens = cleanInput.split(/\s+/).filter(Boolean);
+
+    const scoredMembers = rosterList.map((m) => {
+      const rawName = m.fullName.trim();
+      const cleanName = removeVietnameseAccents(rawName);
+      const nameTokens = cleanName.split(/\s+/).filter(Boolean);
+      const givenName = nameTokens[nameTokens.length - 1] || '';
+
+      const rawNick = (m.nickname || '').trim();
+      const cleanNick = removeVietnameseAccents(rawNick);
+      const nickTokens = cleanNick.split(/\s+/).filter(Boolean);
+
+      let score = 0;
+
+      // 1. Trùng khớp tuyệt đối cả họ và tên (100 điểm)
+      if (cleanName === cleanInput) {
+        score = 100;
+      }
+      // 2. Trùng khớp tuyệt đối tên gọi (VD: gõ "Linh" -> "Ngô Linh", "Linh Hữu")
+      else if (givenName === cleanInput) {
+        score = 85;
+      }
+      // 3. Trùng khớp biệt danh hoặc từ trong biệt danh (VD: "Báo", "Còi", "Mít")
+      else if (cleanNick && (cleanNick === cleanInput || nickTokens.includes(cleanInput))) {
+        score = 80;
+      }
+      // 4. Họ tên bắt đầu bằng cụm từ đang gõ
+      else if (cleanName.startsWith(cleanInput)) {
+        score = 75;
+      }
+      // 5. Cụm từ đang gõ nằm trọn vẹn trong họ tên
+      else if (cleanName.includes(cleanInput)) {
+        if (inputTokens.length >= 2) {
+          score = 70;
+        } else if (nameTokens.includes(cleanInput)) {
+          // Là 1 từ trọn vẹn trong tên, loại trừ chữ đệm quá phổ biến như 'thi', 'van'
+          if (cleanInput === 'thi' || cleanInput === 'van') {
+            score = 15;
+          } else {
+            score = 65;
+          }
+        }
+      }
+      // 6. Toàn bộ từ đang gõ nằm trong các từ của họ tên (VD: "Trần Khuyến" -> "Trần Văn Khuyến")
+      else if (inputTokens.length >= 2 && inputTokens.every(t => nameTokens.includes(t))) {
+        score = 65;
+      }
+      // 7. Toàn bộ từ của họ tên nằm trong chuỗi đang gõ (VD: "Linh Hữu" -> "Thái Hữu Linh")
+      else if (nameTokens.length >= 2 && nameTokens.every(t => inputTokens.includes(t))) {
+        score = 60;
+      }
+      // 8. Tên gọi cuối cùng trùng nhau + có ít nhất 1 từ khác trùng
+      else if (inputTokens.length >= 2 && givenName === inputTokens[inputTokens.length - 1]) {
+        const matchCount = inputTokens.filter(t => nameTokens.includes(t)).length;
+        if (matchCount >= 2) score = 55;
+      }
+      // 9. Khớp theo isVietnameseNameMatch chuẩn toàn hệ thống
+      else if (isVietnameseNameMatch(m, rawInput)) {
+        score = 50;
+      }
+      // 10. Biệt danh chứa từ khóa đang gõ
+      else if (cleanNick && cleanNick.includes(cleanInput)) {
+        score = 45;
+      }
+
+      // Khớp bổ sung theo SĐT nếu người dùng đã nhập SĐT
+      if (phone.trim() && phone.trim().length >= 8 && isPhoneMatch(m.phone, phone.trim())) {
+        score += 50;
+      }
+
+      return { member: m, score };
     });
-    if (exact) return exact;
 
-    // Tìm kiếm thông minh theo SĐT nếu người dùng đã nhập SĐT
-    if (phone.trim() && phone.trim().length >= 8) {
-      const byPhone = rosterList.filter(m => isPhoneMatch(m.phone, phone.trim()));
-      if (byPhone.length === 1) return byPhone[0];
-    }
-
-    // Tìm kiếm thông minh theo tên tiếng Việt (tên lót, viết tắt, biệt danh)
-    const smartMatches = rosterList.filter(m => isVietnameseNameMatch(m, fullName.trim()));
-    if (smartMatches.length === 1) return smartMatches[0];
-
-    return null;
+    return scoredMembers
+      .filter(item => item.score > 25)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const nameA = getVietnameseGivenName(a.member.fullName);
+        const nameB = getVietnameseGivenName(b.member.fullName);
+        return nameA.localeCompare(nameB, 'vi');
+      })
+      .map(item => item.member)
+      .slice(0, 6);
   }, [activeMember, fullName, phone, rosterList]);
 
   // Đếm số lượng họ tên trong danh bạ để nhận diện các bạn trùng tên
@@ -1130,30 +1198,78 @@ export default function RsvpForm({
                 />
               </div>
 
-              {/* GỢI Ý THÔNG MINH NẾU TỰ GÕ TÊN TRÙNG DANH BẠ (TRẢI RỘNG 2 CỘT, KHÔNG BỊ CẮT CHỮ) */}
-              {suggestedRosterMember && (
-                <div className="sm:col-span-2 p-2.5 bg-gradient-to-r from-amber-50 via-orange-50/60 to-amber-100/80 border border-amber-300 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs animate-fadeIn shadow-2xs">
-                  <div className="flex items-start sm:items-center gap-2 text-amber-950 min-w-0">
-                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0 animate-pulse" />
-                    <div className="leading-snug">
-                      <span className="text-slate-600 text-xs">Có phải bạn là: </span>
-                      <strong className="font-serif font-bold text-amber-950 text-sm">{suggestedRosterMember.fullName}</strong>
-                      {suggestedRosterMember.nickname && (
-                        <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-200/70 text-amber-900 font-sans text-[11px] font-medium border border-amber-300">
-                          “{suggestedRosterMember.nickname}”
-                        </span>
-                      )}
-                      <span className="text-slate-500 text-[11px] ml-1.5 font-sans">trong danh bạ K8A1?</span>
+              {/* DANH SÁCH GỢI Ý THÔNG MINH KHI TỰ GÕ TÊN (HIỂN THỊ TOÀN BỘ CÁC BẠN PHÙ HỢP ĐỂ BẤM CHỌN CHÍNH XÁC) */}
+              {!activeMember && matchingRosterMembers.length > 0 && (
+                <div className="sm:col-span-2 p-3 bg-gradient-to-br from-amber-50/90 via-orange-50/70 to-amber-100/90 border-2 border-amber-300 rounded-xl space-y-2.5 shadow-sm animate-fadeIn">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-amber-200/80 pb-2">
+                    <div className="flex items-center gap-1.5 text-amber-950 font-sans font-bold text-xs">
+                      <Sparkles className="w-4 h-4 text-amber-600 animate-pulse shrink-0" />
+                      <span>
+                        Có {matchingRosterMembers.length} bạn trong danh bạ K8A1 khớp với "{fullName.trim()}":
+                      </span>
                     </div>
+                    <span className="text-[11px] text-amber-800 font-sans font-medium italic">
+                      👉 Bấm vào bạn của mình để tự động chọn đúng hồ sơ:
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectMember(suggestedRosterMember.id)}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 active:scale-95 text-white font-bold rounded-lg text-xs shrink-0 cursor-pointer shadow-xs transition"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Liên kết hồ sơ này</span>
-                  </button>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {matchingRosterMembers.map((m) => {
+                      const givenName = getVietnameseGivenName(m.fullName);
+                      const existingRsvp = (rsvpList || []).find((item) => {
+                        if (!item) return false;
+                        if (item.memberId && m.id) return item.memberId === m.id;
+                        if (isPhoneMatch(m.phone, item.phone)) return true;
+                        return isVietnameseNameMatch(m, item.fullName);
+                      });
+                      const isConfirmed = existingRsvp && existingRsvp.status === 'yes';
+
+                      return (
+                        <div
+                          key={m.id}
+                          className="p-2 sm:p-2.5 bg-white hover:bg-amber-50 border border-amber-200/90 hover:border-amber-400 rounded-lg flex items-center justify-between gap-2 transition-all shadow-2xs group"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-white font-serif font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                              {givenName.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-serif font-bold text-slate-900 text-xs truncate">
+                                  {m.fullName}
+                                </span>
+                                {m.nickname && (
+                                  <span className="text-[9.5px] px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 font-sans font-bold border border-amber-200/80 shrink-0">
+                                    “{m.nickname}”
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-sans mt-0.5">
+                                <span>{m.role && m.role !== 'Thành viên' ? m.role : 'Lớp K8A1'}</span>
+                                {m.province && <span>• {m.province}</span>}
+                                {isConfirmed && (
+                                  <span className="text-emerald-700 font-bold">• Đã điểm danh</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelectMember(m.id)}
+                            className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 active:scale-95 text-white font-bold rounded-lg text-[11px] font-sans shrink-0 cursor-pointer shadow-2xs transition"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Chọn ✓</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-0.5 text-[10.5px] text-slate-500 font-sans">
+                    <span>💡 Nếu bạn là khách mời / người thân đi cùng không có tên trong danh bạ: Tiếp tục nhập thông tin bình thường.</span>
+                  </div>
                 </div>
               )}
             </div>
