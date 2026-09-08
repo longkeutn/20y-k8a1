@@ -14,6 +14,7 @@ import {
 
 interface QuickNavigationProps {
   confirmedCount?: number;
+  hasTeachers?: boolean;
 }
 
 interface NavItem {
@@ -25,7 +26,7 @@ interface NavItem {
   badge?: number;
 }
 
-export default function QuickNavigation({ confirmedCount = 0 }: QuickNavigationProps) {
+export default function QuickNavigation({ confirmedCount = 0, hasTeachers = false }: QuickNavigationProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
@@ -58,12 +59,12 @@ export default function QuickNavigation({ confirmedCount = 0 }: QuickNavigationP
       shortLabel: 'Quỹ lớp',
       icon: Coins,
     },
-    {
+    ...(hasTeachers ? [{
       id: 'thay-co',
       label: 'Thầy Cô',
       shortLabel: 'Thầy Cô',
       icon: GraduationCap,
-    },
+    }] : []),
     {
       id: 'ky-uc',
       label: 'Ký Ức',
@@ -108,7 +109,7 @@ export default function QuickNavigation({ confirmedCount = 0 }: QuickNavigationP
           // Nhận diện phân vùng đang đọc (Scroll Spy)
           const sectionIds = [
             'ky-uc',
-            'thay-co',
+            ...(hasTeachers ? ['thay-co'] : []),
             'bank-transfer-card',
             'danh-sach-diem-danh',
             'diem-danh',

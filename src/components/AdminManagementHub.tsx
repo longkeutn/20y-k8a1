@@ -631,7 +631,7 @@ export default function AdminManagementHub({
   // QUẢN LÝ QUÝ THẦY CÔ GIÁO K8A1 STATE (SHEET: "Thay_Co_K8A1")
   // ---------------------------------------------------------------------------
   const effectiveTeachers = useMemo(() => {
-    return Array.isArray(teachersList) && teachersList.length > 0 ? teachersList : TEACHERS_LIST;
+    return Array.isArray(teachersList) ? teachersList : [];
   }, [teachersList]);
 
   const [teacherSearch, setTeacherSearch] = useState('');

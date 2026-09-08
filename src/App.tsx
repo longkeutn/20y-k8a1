@@ -799,11 +799,17 @@ export default function App() {
       if (local) {
         const parsed = JSON.parse(local);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Xóa bỏ dữ liệu mẫu ban đầu nếu có để đồng bộ chính xác với Google Sheet
+          const isInitialMock = parsed.some((t: any) => t.id === 'tc01' && String(t.name || '').includes('Trần Thị Lan'));
+          if (isInitialMock) {
+            localStorage.removeItem('k8a1_teachers_list');
+            return [];
+          }
           return parsed.map(sanitizeTeacher);
         }
       }
     } catch {}
-    return TEACHERS_LIST;
+    return [];
   });
 
   const handleAddTeacher = (newTeacher: TeacherData) => {
@@ -1428,14 +1434,16 @@ export default function App() {
                 <Coins className="w-3 h-3 text-emerald-400" />
                 <span>Sổ Quỹ Lớp</span>
               </button>
-              <button
-                type="button"
-                onClick={() => document.getElementById('thay-co')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
-              >
-                <GraduationCap className="w-3 h-3 text-amber-400" />
-                <span>Quý Thầy Cô</span>
-              </button>
+              {teachersList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('thay-co')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
+                >
+                  <GraduationCap className="w-3 h-3 text-amber-400" />
+                  <span>Quý Thầy Cô ({teachersList.length})</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => document.getElementById('ky-uc')?.scrollIntoView({ behavior: 'smooth' })}
@@ -1987,7 +1995,7 @@ export default function App() {
       />
 
       {/* 🚀 THANH ĐIỀU HƯỚNG NỔI THÔNG MINH & BACK TO TOP */}
-      <QuickNavigation confirmedCount={confirmedCount} />
+      <QuickNavigation confirmedCount={confirmedCount} hasTeachers={teachersList.length > 0} />
 
       {/* Toast thông báo realtime */}
       <ActivityToastManager

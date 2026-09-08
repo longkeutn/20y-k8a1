@@ -25,8 +25,10 @@ interface TeachersHonorRollProps {
 
 export default function TeachersHonorRoll({ teachers: propTeachers, onAddTribute }: TeachersHonorRollProps) {
   const teachers = useMemo(() => {
-    return Array.isArray(propTeachers) && propTeachers.length > 0 ? propTeachers : TEACHERS_LIST;
+    return Array.isArray(propTeachers) ? propTeachers : [];
   }, [propTeachers]);
+
+
 
   const [tributes, setTributes] = useState<TeacherTribute[]>(INITIAL_TEACHER_TRIBUTES);
   const [selectedTeacher, setSelectedTeacher] = useState<string>(teachers[0]?.name || 'Toàn thể Quý Thầy Cô giáo');
@@ -138,6 +140,11 @@ export default function TeachersHonorRoll({ teachers: propTeachers, onAddTribute
         );
     }
   };
+
+  // Nếu sheet chưa có dữ liệu thì ẩn toàn bộ khối này
+  if (!teachers || teachers.length === 0) {
+    return null;
+  }
 
   return (
     <section id="thay-co" className="space-y-8 scroll-mt-20">
