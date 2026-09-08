@@ -25,7 +25,7 @@ import {
   Search
 } from 'lucide-react';
 import { RsvpData, ClassMember, EventConfig } from '../types';
-import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize, maskPhone, isPhoneMatch } from '../data';
+import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize, maskPhone, isPhoneMatch, isVietnameseNameMatch } from '../data';
 import LiveGoldenPass from './LiveGoldenPass';
 
 interface RsvpFormProps {
@@ -160,15 +160,28 @@ export default function RsvpForm({
     });
   }, [rosterList, searchQuery]);
 
-  // Phát hiện thông minh nếu người dùng tự gõ họ tên trùng với thành viên trong danh bạ lớp
+  // Phát hiện thông minh nếu người dùng tự gõ họ tên hoặc SĐT trùng/gần đúng với thành viên trong danh bạ lớp
   const suggestedRosterMember = useMemo(() => {
     if (activeMember || !fullName.trim() || fullName.trim().length < 2) return null;
     const cleanInput = removeVietnameseAccents(fullName.trim());
-    return rosterList.find((m) => {
+    const exact = rosterList.find((m) => {
       const norm = removeVietnameseAccents(m.fullName);
       return norm === cleanInput;
-    }) || null;
-  }, [activeMember, fullName, rosterList]);
+    });
+    if (exact) return exact;
+
+    // Tìm kiếm thông minh theo SĐT nếu người dùng đã nhập SĐT
+    if (phone.trim() && phone.trim().length >= 8) {
+      const byPhone = rosterList.filter(m => isPhoneMatch(m.phone, phone.trim()));
+      if (byPhone.length === 1) return byPhone[0];
+    }
+
+    // Tìm kiếm thông minh theo tên tiếng Việt (tên lót, viết tắt, biệt danh)
+    const smartMatches = rosterList.filter(m => isVietnameseNameMatch(m, fullName.trim()));
+    if (smartMatches.length === 1) return smartMatches[0];
+
+    return null;
+  }, [activeMember, fullName, phone, rosterList]);
 
   // Đếm số lượng họ tên trong danh bạ để nhận diện các bạn trùng tên
   const nameCounts = useMemo(() => {
@@ -390,12 +403,19 @@ export default function RsvpForm({
 
     if (!effectiveMemberId) {
       const n = normalizeName(fullName);
-      const uniqueMatch = rosterList.filter(m => normalizeName(m.fullName) === n);
+      let uniqueMatch = rosterList.filter(m => normalizeName(m.fullName) === n);
+      if (uniqueMatch.length === 0 && finalPhone) {
+        uniqueMatch = rosterList.filter(m => isPhoneMatch(m.phone, finalPhone));
+      }
+      if (uniqueMatch.length === 0) {
+        uniqueMatch = rosterList.filter(m => isVietnameseNameMatch(m, fullName.trim()));
+      }
       if (uniqueMatch.length === 1) {
         effectiveMemberId = uniqueMatch[0].id;
         const existingInRsvp = (rsvpList || []).find(r => 
           (r.memberId && r.memberId === effectiveMemberId) || 
-          normalizeName(r.fullName) === n
+          isPhoneMatch(r.phone, finalPhone) ||
+          isVietnameseNameMatch(uniqueMatch[0], r.fullName)
         );
         if (existingInRsvp) {
           effectiveRowId = existingInRsvp.rowId;
