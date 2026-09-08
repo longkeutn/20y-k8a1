@@ -108,7 +108,8 @@ import {
   initSecuritySheetViaBackend,
   isOfficialBLLMember,
   extractPhones,
-  isPhoneMatch
+  isPhoneMatch,
+  isVietnameseNameMatch
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
@@ -427,20 +428,24 @@ export default function AdminManagementHub({
           return false; // Khác memberId => chắc chắn không phải bạn này dù trùng tên
         }
 
-        // 2. So khớp số điện thoại (hỗ trợ nhiều số và định dạng linh hoạt)
+        // 2. So khớp theo họ tên chuẩn
+        const rN = normNameRoster(r.fullName);
+        if (mN && rN && mN === rN) {
+          if (isDupName) {
+            return false;
+          }
+          matchedIndex = rIdx;
+          return true;
+        }
+
+        // 3. So khớp số điện thoại (hỗ trợ nhiều số, định dạng linh hoạt, chuyển đổi 11 số sang 10 số)
         if (isPhoneMatch(m.phone, r.phone)) {
           matchedIndex = rIdx;
           return true;
         }
 
-        // 3. So khớp theo họ tên:
-        const rN = normNameRoster(r.fullName);
-        if (mN && rN && mN === rN) {
-          // Nếu danh bạ có >= 2 bạn trùng tên mà SĐT không khớp => Không ghép bừa!
-          if (isDupName) {
-            return false;
-          }
-          // Tên là duy nhất trong danh bạ lớp K8A1 => Chắc chắn là thành viên này!
+        // 4. So khớp thông minh theo tên tiếng Việt (nếu tên là duy nhất trong danh bạ)
+        if (!isDupName && isVietnameseNameMatch(m, r.fullName)) {
           matchedIndex = rIdx;
           return true;
         }
@@ -453,6 +458,9 @@ export default function AdminManagementHub({
         const rKey = getRsvpKey(matchedRsvp, matchedIndex);
         claimedRsvpKeys.add(rKey);
         rosterStatus = matchedRsvp.status === 'yes' ? 'confirmed' : 'declined';
+        if (!matchedRsvp.memberId && m.id) {
+          matchedRsvp.memberId = m.id;
+        }
       }
 
       return {
@@ -1556,8 +1564,15 @@ export default function AdminManagementHub({
       return;
     }
 
+    let autoMemberId = memberFormData.memberId;
+    if (!autoMemberId && rosterList && rosterList.length > 0) {
+      const match = rosterList.find(m => isPhoneMatch(m.phone, cleanPhone) || isVietnameseNameMatch(m, cleanFullName));
+      if (match) autoMemberId = match.id;
+    }
+
     const memberPayload: RsvpData = {
       ...memberFormData,
+      memberId: autoMemberId || undefined,
       fullName: cleanFullName,
       phone: cleanPhone,
       className: memberFormData.className || 'K8A1',
@@ -7530,6 +7545,37 @@ export default function AdminManagementHub({
               </div>
 
               <form onSubmit={handleSaveMember} className="space-y-3">
+                <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg space-y-1">
+                  <label className="font-bold text-amber-950 flex items-center justify-between text-xs">
+                    <span>🔗 Liên kết bạn học trong Danh bạ (Sĩ số 65 bạn):</span>
+                    {memberFormData.memberId && (
+                      <span className="font-mono text-amber-800 font-bold">Mã: {memberFormData.memberId}</span>
+                    )}
+                  </label>
+                  <select
+                    value={memberFormData.memberId || ''}
+                    onChange={(e) => {
+                      const selId = e.target.value;
+                      const matched = rosterList.find(m => m.id === selId);
+                      setMemberFormData({
+                        ...memberFormData,
+                        memberId: selId || undefined,
+                        fullName: matched && !memberFormData.fullName ? matched.fullName : memberFormData.fullName,
+                        nickname: matched && !memberFormData.nickname ? matched.nickname : memberFormData.nickname,
+                        phone: matched && !memberFormData.phone ? matched.phone : memberFormData.phone
+                      });
+                    }}
+                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-sans text-slate-800 focus:outline-none focus:border-amber-600 cursor-pointer"
+                  >
+                    <option value="">-- Tự động ghép nối theo Tên / SĐT --</option>
+                    {rosterList.map((m, idx) => (
+                      <option key={m.id || idx} value={m.id}>
+                        {idx + 1}. {m.fullName} {m.nickname ? `(${m.nickname})` : ''} {m.id ? `[${m.id}]` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Họ và Tên (*):</label>

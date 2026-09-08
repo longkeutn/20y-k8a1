@@ -1631,6 +1631,29 @@ export function maskPhone(phone?: any): string {
  * - 10 chữ số bắt đầu từ 1 (đầu 01 cũ) -> thêm 0 ở đầu
  * - Chỉ chấp nhận SĐT hợp lệ có từ 9 đến 12 chữ số, loại bỏ các mảnh 2-4 chữ số vụn
  */
+export const OLD_TO_NEW_VIETNAMESE_PREFIXES: Record<string, string> = {
+  '0162': '032', '0163': '033', '0164': '034', '0165': '035',
+  '0166': '036', '0167': '037', '0168': '038', '0169': '039',
+  '0120': '070', '0121': '079', '0122': '077', '0126': '076', '0128': '078',
+  '0123': '083', '0124': '084', '0125': '085', '0127': '081', '0129': '082',
+  '0186': '056', '0188': '058',
+  '0199': '059'
+};
+
+export function convertOldVietnamesePhone(phone: string): string {
+  if (!phone) return phone;
+  let p = String(phone).replace(/\D/g, '');
+  if (p.startsWith('84') && p.length >= 10) p = '0' + p.slice(2);
+  if (!p.startsWith('0') && (p.length === 9 || p.length === 10)) p = '0' + p;
+  if (p.length === 11 && p.startsWith('01')) {
+    const prefix4 = p.slice(0, 4);
+    if (OLD_TO_NEW_VIETNAMESE_PREFIXES[prefix4]) {
+      return OLD_TO_NEW_VIETNAMESE_PREFIXES[prefix4] + p.slice(4);
+    }
+  }
+  return p;
+}
+
 export function extractPhones(raw?: any): string[] {
   if (raw === null || raw === undefined) return [];
   const str = String(raw).trim();
@@ -1657,11 +1680,14 @@ export function extractPhones(raw?: any): string[] {
     }
 
     // SĐT hợp lệ tại Việt Nam phải có ít nhất 9 đến 12 chữ số
-    // Tuyệt đối không nhận các mảnh vụn 2-4 chữ số (như đầu nhà mạng 0919 hay đuôi 88)
     if (clean.length < 9 || clean.length > 12) return;
 
     if (clean && !phones.includes(clean)) {
       phones.push(clean);
+    }
+    const converted = convertOldVietnamesePhone(clean);
+    if (converted && !phones.includes(converted)) {
+      phones.push(converted);
     }
   };
 
@@ -1678,7 +1704,7 @@ export function extractPhones(raw?: any): string[] {
 }
 
 /**
- * Kiểm tra xem 2 đối tượng SĐT có trùng nhau hay không (so khớp an toàn, chống gộp nhầm số bị che)
+ * Kiểm tra xem 2 đối tượng SĐT có trùng nhau hay không (so khớp an toàn, hỗ trợ chuyển đổi 11 số sang 10 số)
  */
 export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
   if (!phoneA || !phoneB) return false;
@@ -1689,22 +1715,42 @@ export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
   const isMaskedA = strA.includes('•') || strA.includes('*');
   const isMaskedB = strB.includes('•') || strB.includes('*');
 
-  // 1. Nếu CẢ 2 đều là số bị che (chế độ khách): Tuyệt đối không so khớp để tránh gom nhầm người khác
-  if (isMaskedA && isMaskedB) return false;
+  // 1. Cả 2 đều là số bị che: so khớp an toàn qua suffix (2 số cuối) và prefix nhà mạng
+  if (isMaskedA && isMaskedB) {
+    const cleanA = strA.replace(/\D/g, '');
+    const cleanB = strB.replace(/\D/g, '');
+    if (cleanA.length >= 4 && cleanB.length >= 4) {
+      const sufA = cleanA.slice(-2);
+      const sufB = cleanB.slice(-2);
+      if (sufA !== sufB) return false;
+      let preA = cleanA.slice(0, cleanA.length - 2);
+      let preB = cleanB.slice(0, cleanB.length - 2);
+      if (preA.length === 4 && !preA.startsWith('0') && preA.startsWith('1')) preA = '0' + preA;
+      if (preB.length === 4 && !preB.startsWith('0') && preB.startsWith('1')) preB = '0' + preB;
+      const convA = OLD_TO_NEW_VIETNAMESE_PREFIXES[preA] || preA;
+      const convB = OLD_TO_NEW_VIETNAMESE_PREFIXES[preB] || preB;
+      return (convA.length >= 3 && convB.length >= 3) && (convA.endsWith(convB) || convB.endsWith(convA));
+    }
+    return false;
+  }
 
-  // 2. Nếu 1 bên bị che và 1 bên là số đầy đủ (ví dụ thành viên tự nhập SĐT của mình để đối soát):
+  // 2. Nếu 1 bên bị che và 1 bên là số đầy đủ:
   if (isMaskedA !== isMaskedB) {
     const masked = isMaskedA ? strA : strB;
     const full = isMaskedA ? strB : strA;
     const fullPhones = extractPhones(full);
     if (fullPhones.length === 0) return false;
 
-    // Lấy prefix (4 số đầu) và suffix (2 số cuối) của masked
     const cleanMasked = masked.replace(/[^0-9]/g, '');
     if (cleanMasked.length >= 6) {
-      const prefix = cleanMasked.slice(0, 4);
+      let prefix = cleanMasked.slice(0, 4);
       const suffix = cleanMasked.slice(-2);
-      return fullPhones.some(fp => fp.startsWith(prefix) && fp.endsWith(suffix));
+      if (prefix.length === 4 && !prefix.startsWith('0') && prefix.startsWith('1')) prefix = '0' + prefix;
+      const convPrefix = OLD_TO_NEW_VIETNAMESE_PREFIXES[prefix] || prefix;
+      return fullPhones.some(fp => {
+        if (!fp.endsWith(suffix)) return false;
+        return fp.startsWith(prefix) || fp.startsWith(convPrefix);
+      });
     }
     return false;
   }
@@ -1714,6 +1760,58 @@ export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
   const listB = extractPhones(phoneB);
   if (listA.length === 0 || listB.length === 0) return false;
   return listA.some(a => listB.includes(a));
+}
+
+/**
+ * So khớp thông minh tên học sinh trong Danh bạ (Master Roster) với Họ tên gửi từ Web
+ * Hỗ trợ các trường hợp thực tế:
+ * - Danh bạ ghi ngắn gọn: "Trần Khuyến" <-> Web nhập: "Trần văn Khuyến"
+ * - Danh bạ chỉ ghi tên/đệm: "Bảo Thi" <-> Web nhập: "Hoàng Bảo Thi"
+ * - Danh bạ ghi tên đảo: "Linh Hữu" <-> Web nhập: "Thái hữu linh"
+ * - Khớp theo Biệt danh
+ */
+export function isVietnameseNameMatch(
+  rosterMember: { fullName: string; nickname?: string },
+  targetName?: string
+): boolean {
+  if (!targetName || !rosterMember || !rosterMember.fullName) return false;
+
+  const normalize = (s: string) =>
+    String(s)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+
+  const rName = normalize(targetName);
+  const mName = normalize(rosterMember.fullName);
+  const mNick = rosterMember.nickname ? normalize(rosterMember.nickname) : '';
+
+  if (!rName || !mName) return false;
+  if (mName === rName) return true;
+  if (mNick && mNick === rName) return true;
+
+  const rTokens = rName.split(' ').filter(Boolean);
+  const mTokens = mName.split(' ').filter(Boolean);
+
+  // 1. Toàn bộ các từ của tên danh bạ nằm trong tên đăng ký web
+  if (mTokens.length >= 2 && mTokens.every(t => rTokens.includes(t))) {
+    return true;
+  }
+
+  // 2. Toàn bộ các từ của tên web nằm trong danh bạ
+  if (rTokens.length >= 2 && rTokens.every(t => mTokens.includes(t))) {
+    return true;
+  }
+
+  // 3. Biệt danh khớp với tên web
+  if (mNick && mNick.length >= 2) {
+    const nickTokens = mNick.split(' ').filter(Boolean);
+    if (nickTokens.length >= 2 && nickTokens.every(t => rTokens.includes(t))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
@@ -1964,6 +2062,7 @@ function getRosterLookupMap() {
   if (!sheet) return { byId: byId, byPhone: byPhone, byName: byName };
 
   var rows = sheet.getDataRange().getValues();
+  var allMembers = [];
   for (var i = 1; i < rows.length; i++) {
     var r = rows[i];
     var id = String(r[0] || '').trim();
@@ -1984,12 +2083,15 @@ function getRosterLookupMap() {
 
     byId[id] = m;
     if (phone) byPhone[phone] = m;
+    var rawCleanPhone = String(r[3] || '').replace(/[^0-9]/g, '');
+    if (rawCleanPhone) byPhone[rawCleanPhone] = m;
     var normN = normalizeName(name);
     if (!byName[normN]) byName[normN] = [];
     byName[normN].push(m);
+    allMembers.push(m);
   }
 
-  return { byId: byId, byPhone: byPhone, byName: byName };
+  return { byId: byId, byPhone: byPhone, byName: byName, allMembers: allMembers };
 }
 
 /**
@@ -2080,6 +2182,13 @@ function syncRosterToRSVP() {
         matchedMember = rosterMap.byPhone[normP];
       } else if (normN && rosterMap.byName[normN] && rosterMap.byName[normN].length === 1) {
         matchedMember = rosterMap.byName[normN][0];
+      } else if (rosterMap.allMembers) {
+        var candidates = rosterMap.allMembers.filter(function(m) {
+          return isVietnameseNameMatchScript(m, rawName);
+        });
+        if (candidates.length === 1) {
+          matchedMember = candidates[0];
+        }
       }
 
       if (matchedMember) {
@@ -2451,15 +2560,53 @@ function doPost(e) {
 /**
  * Chuẩn hóa số điện thoại để so khớp chống trùng lặp (loại bỏ khoảng trắng, dấu cộng, số 84...)
  */
+var OLD_TO_NEW_VIETNAMESE_PREFIXES = {
+  '0162': '032', '0163': '033', '0164': '034', '0165': '035',
+  '0166': '036', '0167': '037', '0168': '038', '0169': '039',
+  '0120': '070', '0121': '079', '0122': '077', '0126': '076', '0128': '078',
+  '0123': '083', '0124': '084', '0125': '085', '0127': '081', '0129': '082',
+  '0186': '056', '0188': '058',
+  '0199': '059'
+};
+
 function normalizePhone(phone) {
   if (!phone) return '';
   var p = String(phone).replace(/[^0-9]/g, '');
   if (p.indexOf('84') === 0 && p.length > 9) {
     p = '0' + p.substring(2);
-  } else if (p.indexOf('0') !== 0 && p.length === 9) {
+  } else if (p.indexOf('0') !== 0 && (p.length === 9 || (p.length === 10 && p.indexOf('1') === 0))) {
     p = '0' + p;
   }
+  if (p.length === 11 && p.indexOf('01') === 0) {
+    var pre = p.substring(0, 4);
+    if (OLD_TO_NEW_VIETNAMESE_PREFIXES[pre]) {
+      p = OLD_TO_NEW_VIETNAMESE_PREFIXES[pre] + p.substring(4);
+    }
+  }
   return p;
+}
+
+function isVietnameseNameMatchScript(rosterMember, targetName) {
+  if (!targetName || !rosterMember || !rosterMember.fullName) return false;
+  var rName = normalizeName(targetName);
+  var mName = normalizeName(rosterMember.fullName);
+  var mNick = rosterMember.nickname ? normalizeName(rosterMember.nickname) : '';
+
+  if (!rName || !mName) return false;
+  if (mName === rName) return true;
+  if (mNick && mNick === rName) return true;
+
+  var rTokens = rName.split(' ').filter(Boolean);
+  var mTokens = mName.split(' ').filter(Boolean);
+
+  if (mTokens.length >= 2 && mTokens.every(function(t) { return rTokens.indexOf(t) !== -1; })) return true;
+  if (rTokens.length >= 2 && rTokens.every(function(t) { return mTokens.indexOf(t) !== -1; })) return true;
+
+  if (mNick && mNick.length >= 2) {
+    var nickTokens = mNick.split(' ').filter(Boolean);
+    if (nickTokens.length >= 2 && nickTokens.every(function(t) { return rTokens.indexOf(t) !== -1; })) return true;
+  }
+  return false;
 }
 
 /**
@@ -2500,6 +2647,13 @@ function getRSVPList(isAdmin) {
         memberId = rosterMap.byPhone[normPhone].id;
       } else if (normName && rosterMap.byName[normName] && rosterMap.byName[normName].length === 1) {
         memberId = rosterMap.byName[normName][0].id;
+      } else if (rosterMap.allMembers) {
+        var candidates = rosterMap.allMembers.filter(function(m) {
+          return isVietnameseNameMatchScript(m, rawName);
+        });
+        if (candidates.length === 1) {
+          memberId = candidates[0].id;
+        }
       }
     }
 

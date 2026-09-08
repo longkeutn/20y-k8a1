@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, TEACHERS_LIST } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -859,6 +859,12 @@ export default function App() {
     for (const rawItem of rawRsvpList) {
       if (!rawItem) continue;
       const item = sanitizeRsvp(rawItem);
+      if (!item.memberId && currentRoster && currentRoster.length > 0) {
+        const found = currentRoster.find(m => isPhoneMatch(m.phone, item.phone) || isVietnameseNameMatch(m, item.fullName));
+        if (found) {
+          item.memberId = found.id;
+        }
+      }
       const itemName = normalizeNameForMatch(item.fullName);
 
       // Kiểm tra xem trong uniqueRsvp đã có bản ghi của CHÍNH người này chưa
