@@ -1473,6 +1473,28 @@ export default function AdminManagementHub({
     if (onUpdateClassRoster) {
       onUpdateClassRoster(updatedList);
     }
+
+    // Đồng bộ tức thời sang rsvpList nếu đang sửa bạn học đã có trong danh bạ
+    if (editingRosterMember && rsvpList && rsvpList.length > 0) {
+      const targetMid = editingRosterMember.id;
+      const updatedRsvp = rsvpList.map(r => {
+        if (r.memberId === targetMid) {
+          return {
+            ...r,
+            fullName: cleanName,
+            nickname: String(rosterFormData.nickname || '').trim(),
+            phone: String(rosterFormData.phone || '').trim(),
+            shirtSize: String(rosterFormData.shirtSize || 'L').trim().toUpperCase()
+          };
+        }
+        return r;
+      });
+      onUpdateRsvpList(updatedRsvp);
+      try {
+        localStorage.setItem('rsvp_list', JSON.stringify(updatedRsvp));
+      } catch (e) {}
+    }
+
     setTimeout(() => setRosterFeedbackMsg(''), 4000);
     setIsRosterModalOpen(false);
   };
@@ -2700,6 +2722,36 @@ export default function AdminManagementHub({
     }
   };
 
+  const [isSyncingRosterToRsvp, setIsSyncingRosterToRsvp] = useState(false);
+  const handleSyncRosterToRsvp = async () => {
+    const target = (scriptUrlInput || appsScriptUrl || '').trim();
+    if (!target || !target.startsWith('http')) {
+      alert('Vui lòng nhập URL Google Apps Script Web App trong tab Cấu Hình trước!');
+      return;
+    }
+    if (!confirm('Hệ thống sẽ quét toàn bộ Sheet Điểm Danh, tự động so khớp với Danh Bạ 65 học sinh K8A1 và điền chuẩn Mã TV (Cột 17) kèm đồng bộ chuẩn Họ tên, SĐT, Size áo. Bạn có muốn thực hiện ngay?')) {
+      return;
+    }
+
+    setIsSyncingRosterToRsvp(true);
+    try {
+      const adminPin = getAdminPinToken();
+      const pinQuery = adminPin ? `&pin=${encodeURIComponent(adminPin)}` : '';
+      const res = await fetch(`${target}?action=sync_roster_to_rsvp${pinQuery}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        alert(data.message || 'Đã quét và đồng bộ dữ liệu Danh Bạ sang Điểm Danh thành công!');
+        if (onRefreshData) onRefreshData();
+      } else {
+        alert(data.message || 'Không thể đồng bộ lúc này.');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối khi đồng bộ danh bạ: ' + (err.message || 'Vui lòng kiểm tra lại'));
+    } finally {
+      setIsSyncingRosterToRsvp(false);
+    }
+  };
+
   // Filtered members list
   const filteredMemberList = useMemo(() => {
     const q = (memberSearch || '').toLowerCase().trim();
@@ -3363,6 +3415,17 @@ export default function AdminManagementHub({
 
                   <button
                     type="button"
+                    onClick={handleSyncRosterToRsvp}
+                    disabled={isSyncingRosterToRsvp}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                    title="Quét toàn bộ sheet Điểm Danh, tự động ánh xạ và điền Mã TV (Cột 17) từ Danh Bạ Lớp"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingRosterToRsvp ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">{isSyncingRosterToRsvp ? 'Đang đồng bộ...' : '🔄 Đồng Bộ Danh Bạ'}</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleCleanDuplicates}
                     disabled={isCleaningDuplicates}
                     className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
@@ -3413,8 +3476,15 @@ export default function AdminManagementHub({
                             </td>
 
                             <td className="py-2.5 px-3">
-                              <div className="font-bold text-slate-900 text-sm">
-                                {item.fullName}
+                              <div className="flex items-center gap-2">
+                                <div className="font-bold text-slate-900 text-sm">
+                                  {item.fullName}
+                                </div>
+                                {item.memberId && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300" title="Mã thành viên danh bạ lớp">
+                                    {item.memberId}
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                                 {item.nickname && (
@@ -4134,6 +4204,11 @@ export default function AdminManagementHub({
                                       <span className="font-bold text-slate-900 text-xs">
                                         {item.fullName}
                                       </span>
+                                      {item.memberId && (
+                                        <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300" title="Mã thành viên danh bạ lớp">
+                                          {item.memberId}
+                                        </span>
+                                      )}
                                       {item.status === 'yes' ? (
                                         <span className="px-1.5 py-0.2 text-[9px] bg-emerald-100 text-emerald-800 rounded font-bold">
                                           Tham gia

@@ -227,6 +227,8 @@ export default function App() {
   const sanitizeRsvp = (item: any): RsvpData => ({
     ...item,
     id: String(item.id || ''),
+    rowId: item.rowId ? String(item.rowId).trim() : undefined,
+    memberId: item.memberId ? String(item.memberId).trim() : undefined,
     fullName: String(item.fullName || ''),
     phone: String(item.phone || ''),
     nickname: item.nickname ? String(item.nickname) : '',
@@ -276,7 +278,31 @@ export default function App() {
     } catch (e) {
       console.warn('Lỗi lưu danh bạ lớp vào localStorage:', e);
     }
-    // Ghi trực tiếp lên Google Sheet tab "Danh_Sach_Lop"
+
+    // CASCADE UPDATE: Đồng bộ ngay lập tức sang rsvpList trong bộ nhớ React State
+    setRsvpList(prev => {
+      const rosterMap = new Map<string, ClassMember>();
+      sanitized.forEach(m => rosterMap.set(m.id, m));
+      const updatedRsvp = prev.map(r => {
+        if (r.memberId && rosterMap.has(r.memberId)) {
+          const m = rosterMap.get(r.memberId)!;
+          return {
+            ...r,
+            fullName: m.fullName,
+            nickname: m.nickname || r.nickname,
+            phone: m.phone || r.phone,
+            shirtSize: m.shirtSize || r.shirtSize
+          };
+        }
+        return r;
+      });
+      try {
+        localStorage.setItem('rsvp_list', JSON.stringify(updatedRsvp));
+      } catch (e) {}
+      return updatedRsvp;
+    });
+
+    // Ghi trực tiếp lên Google Sheet tab "Danh_Sach_Lop" (Backend sẽ tự cascade sang sheet Điểm danh)
     syncToBackend('save_roster', { roster: sanitized });
   };
 
@@ -545,6 +571,8 @@ export default function App() {
           ...prevItem,
           ...newRsvp,
           id: prevItem.id,
+          rowId: newRsvp.rowId || prevItem.rowId,
+          memberId: newRsvp.memberId || prevItem.memberId,
           phone: normNewPhone || newRsvp.phone || prevItem.phone,
           checkedIn: isAlreadyCheckedIn || newRsvp.checkedIn,
           fundStatus: isAlreadyPaid 

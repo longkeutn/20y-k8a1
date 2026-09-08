@@ -1810,6 +1810,8 @@ function onOpen(e) {
     SpreadsheetApp.getUi()
       .createMenu('⚙️ Quản Trị K8A1')
       .addItem('🛡️ Khởi Tạo / Mở Sheet Bảo Mật PIN', 'openSecuritySheet')
+      .addItem('🔄 Đồng Bộ Danh Bạ Sang Điểm Danh (1-Chạm)', 'syncRosterToRSVP')
+      .addItem('🧹 Dọn Dẹp Bản Ghi Trùng Lặp RSVP', 'deduplicateRSVP')
       .addItem('🔄 Kiểm Tra Cơ Sở Dữ Liệu', 'getAllData')
       .addToUi();
   } catch (err) {}
@@ -1821,6 +1823,276 @@ function openSecuritySheet() {
     SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sheet);
   } catch (e) {}
   return sheet;
+}
+
+/**
+ * Lấy trang tính RSVP đang kích hoạt theo cấu hình sự kiện (Hỗ trợ đa sự kiện Zero-Code)
+ * Tự động tạo mới và format 17 cột nếu sheet chưa tồn tại
+ */
+function getActiveRsvpSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var targetName = CONFIG.RSVP_SHEET_NAME; // Fallback "Trang_tinh_1"
+  try {
+    var confSheet = ss.getSheetByName(CONFIG.CONFIG_SHEET_NAME);
+    if (confSheet) {
+      var cRows = confSheet.getDataRange().getValues();
+      for (var ci = 1; ci < cRows.length; ci++) {
+        var cKey = String(cRows[ci][0] || '').trim();
+        if (cKey === 'currentRsvpSheet' || cKey === 'rsvpSheetName') {
+          var val = String(cRows[ci][1] || '').trim();
+          if (val) targetName = val;
+          break;
+        }
+      }
+    }
+  } catch (eConf) {}
+
+  var sheet = ss.getSheetByName(targetName);
+  if (!sheet) {
+    if (targetName === CONFIG.RSVP_SHEET_NAME && ss.getSheets().length > 0) {
+      sheet = ss.getSheets()[0];
+    } else {
+      sheet = ss.insertSheet(targetName);
+    }
+  }
+
+  // Đảm bảo đủ 17 cột tiêu đề (Thêm cột 17: Mã TV)
+  initRsvpSheetHeaders(sheet);
+  return sheet;
+}
+
+/**
+ * Đảm bảo cấu trúc 17 cột tiêu đề chuẩn xác cho Sheet Điểm Danh
+ */
+function initRsvpSheetHeaders(sheet) {
+  var headers = [
+    'Họ và Tên', 
+    'Biệt danh', 
+    'Số điện thoại', 
+    'Tình trạng', 
+    'Size áo', 
+    'Lời nhắn', 
+    'Thời gian gửi',
+    'Điểm danh đến',
+    'Giờ đến',
+    'Quỹ 700k',
+    'Số tiền',
+    'Ghi chú quỹ',
+    'Link Ảnh Bill/UNC',
+    'Thời gian nộp',
+    'Hình thức',
+    'Người đối soát',
+    'Mã TV' // Cột 17: Khóa ngoại liên kết danh bạ K8A1
+  ];
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, 17).setFontWeight('bold').setBackground('#FAF3E0');
+  } else {
+    var maxCols = Math.max(17, sheet.getLastColumn());
+    var currentHeaders = sheet.getRange(1, 1, 1, maxCols).getValues()[0];
+    if (!currentHeaders[16] || String(currentHeaders[16]).trim() === '') {
+      sheet.getRange(1, 17).setValue('Mã TV').setFontWeight('bold').setBackground('#FAF3E0');
+    }
+  }
+}
+
+/**
+ * Đọc toàn bộ danh bạ lớp K8A1 vào Map để tra cứu siêu tốc O(1) theo ID, SĐT, Họ tên
+ */
+function getRosterLookupMap() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+  var byId = {};
+  var byPhone = {};
+  var byName = {};
+
+  if (!sheet) return { byId: byId, byPhone: byPhone, byName: byName };
+
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    var r = rows[i];
+    var id = String(r[0] || '').trim();
+    var name = String(r[1] || '').trim();
+    var phone = normalizePhone(r[3]);
+    if (!id || !name) continue;
+
+    var m = {
+      id: id,
+      fullName: name,
+      nickname: String(r[2] || '').trim(),
+      phone: phone,
+      role: String(r[4] || '').trim(),
+      gender: String(r[5] || '').trim(),
+      shirtSize: String(r[6] || 'L').trim().toUpperCase(),
+      rowIndex: i + 1
+    };
+
+    byId[id] = m;
+    if (phone) byPhone[phone] = m;
+    var normN = normalizeName(name);
+    if (!byName[normN]) byName[normN] = [];
+    byName[normN].push(m);
+  }
+
+  return { byId: byId, byPhone: byPhone, byName: byName };
+}
+
+/**
+ * Tự động đồng bộ thông tin thành viên (Họ tên, SĐT, Biệt danh, Size áo) sang sheet RSVP
+ * Đảm bảo khi sửa danh bạ thì bên điểm danh cũng tự động cập nhật ngay lập tức!
+ */
+function cascadeSyncMemberToRSVP(member) {
+  if (!member || !member.id) return;
+  try {
+    var sheet = getActiveRsvpSheet();
+    var rows = sheet.getDataRange().getValues();
+    var memberId = String(member.id).trim();
+    var normP = normalizePhone(member.phone);
+    var normN = normalizeName(member.fullName);
+
+    for (var i = 1; i < rows.length; i++) {
+      var row = rows[i];
+      var rMid = String(row[16] || '').trim();
+      var rPhone = normalizePhone(row[2]);
+      var rName = normalizeName(row[0]);
+
+      var isMatch = false;
+      if (rMid && rMid === memberId) {
+        isMatch = true;
+      } else if (!rMid) {
+        if (normP && rPhone && normP === rPhone) {
+          isMatch = true;
+        } else if (normN && rName && normN === rName) {
+          isMatch = true;
+        }
+      }
+
+      if (isMatch) {
+        var rowIndex = i + 1;
+        // Cập nhật Cột 17 (Mã TV)
+        sheet.getRange(rowIndex, 17).setValue(memberId);
+        // Cập nhật Họ và tên
+        if (member.fullName) sheet.getRange(rowIndex, 1).setValue(String(member.fullName).trim());
+        // Cập nhật Biệt danh
+        if (member.nickname !== undefined) sheet.getRange(rowIndex, 2).setValue(String(member.nickname).trim());
+        // Cập nhật SĐT nếu có
+        if (member.phone !== undefined) {
+          var pVal = normP ? ("'" + normP) : ("'" + String(member.phone).trim());
+          sheet.getRange(rowIndex, 3).setValue(pVal);
+        }
+        // Cập nhật Size áo nếu có
+        if (member.shirtSize) {
+          sheet.getRange(rowIndex, 5).setValue(String(member.shirtSize).trim().toUpperCase());
+        }
+        break;
+      }
+    }
+  } catch (errCascade) {
+    console.warn("Lỗi cascadeSyncMemberToRSVP: " + errCascade);
+  }
+}
+
+/**
+ * Quét toàn bộ sheet RSVP hiện tại và đồng bộ chuẩn xác với Danh bạ lớp K8A1 (1-Chạm)
+ * Tự động Backfill Mã TV (Cột 17) cho mọi bạn đã đăng ký từ trước tới nay
+ */
+function syncRosterToRSVP() {
+  try {
+    var sheet = getActiveRsvpSheet();
+    var rRows = sheet.getDataRange().getValues();
+    if (rRows.length <= 1) {
+      return { status: 'success', message: 'Chưa có bản ghi điểm danh nào cần đồng bộ.', syncedCount: 0 };
+    }
+
+    var rosterMap = getRosterLookupMap();
+    var syncedCount = 0;
+    var updatedRows = [];
+
+    for (var i = 1; i < rRows.length; i++) {
+      var row = rRows[i].slice(0, 17);
+      while (row.length < 17) row.push('');
+
+      var rawName = String(row[0] || '').trim();
+      var rawPhone = String(row[2] || '').trim();
+      var normP = normalizePhone(rawPhone);
+      var normN = normalizeName(rawName);
+      var currentMid = String(row[16] || '').trim();
+
+      var matchedMember = null;
+      if (currentMid && rosterMap.byId[currentMid]) {
+        matchedMember = rosterMap.byId[currentMid];
+      } else if (normP && rosterMap.byPhone[normP]) {
+        matchedMember = rosterMap.byPhone[normP];
+      } else if (normN && rosterMap.byName[normN] && rosterMap.byName[normN].length === 1) {
+        matchedMember = rosterMap.byName[normN][0];
+      }
+
+      if (matchedMember) {
+        row[16] = matchedMember.id;
+        row[0] = matchedMember.fullName;
+        if (!row[1] && matchedMember.nickname) row[1] = matchedMember.nickname;
+        if (matchedMember.phone && !row[2]) {
+          row[2] = "'" + matchedMember.phone;
+        } else if (row[2]) {
+          var cleanP = normalizePhone(row[2]);
+          if (cleanP) row[2] = "'" + cleanP;
+        }
+        if (!row[4] && matchedMember.shirtSize) row[4] = matchedMember.shirtSize;
+        syncedCount++;
+      }
+      updatedRows.push(row);
+    }
+
+    if (updatedRows.length > 0) {
+      sheet.getRange(2, 1, updatedRows.length, 17).setValues(updatedRows);
+    }
+
+    return {
+      status: 'success',
+      message: 'Đã quét và đồng bộ thành công ' + syncedCount + ' thành viên từ Danh Bạ sang Điểm Danh!',
+      syncedCount: syncedCount
+    };
+  } catch (err) {
+    return { status: 'error', message: 'Lỗi đồng bộ: ' + err.toString() };
+  }
+}
+
+/**
+ * Trigger tự động chạy khi người dùng gõ sửa trực tiếp trên giao diện Google Sheets
+ */
+function onEdit(e) {
+  if (!e || !e.range) return;
+  try {
+    var range = e.range;
+    var sheet = range.getSheet();
+    var sheetName = sheet.getName();
+
+    // Nếu sửa tại tab Danh_Sach_Lop (cột 2: Tên, cột 3: Biệt danh, cột 4: SĐT, cột 7: Size áo)
+    if (sheetName === CONFIG.ROSTER_SHEET_NAME) {
+      var row = range.getRow();
+      var col = range.getColumn();
+      if (row > 1 && (col === 2 || col === 3 || col === 4 || col === 7)) {
+        var memberId = String(sheet.getRange(row, 1).getValue() || '').trim();
+        var fullName = String(sheet.getRange(row, 2).getValue() || '').trim();
+        var nickname = String(sheet.getRange(row, 3).getValue() || '').trim();
+        var phone = String(sheet.getRange(row, 4).getValue() || '').trim();
+        var shirtSize = String(sheet.getRange(row, 7).getValue() || '').trim();
+
+        if (memberId) {
+          cascadeSyncMemberToRSVP({
+            id: memberId,
+            fullName: fullName,
+            nickname: nickname,
+            phone: phone,
+            shirtSize: shirtSize
+          });
+        }
+      }
+    }
+  } catch (errEdit) {
+    console.warn("Lỗi onEdit: " + errEdit);
+  }
 }
 
 /**
@@ -1927,6 +2199,12 @@ function doGet(e) {
     if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
       if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên!' });
       return handleResponse(deduplicateRSVP());
+    }
+
+    // Quét và đồng bộ Danh Bạ Lớp sang Điểm Danh RSVP (1-Chạm)
+    if (action === 'sync_roster_to_rsvp' || action === 'sync_roster') {
+      if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên!' });
+      return handleResponse(syncRosterToRSVP());
     }
 
     // 7. Lấy số lượt xem trang
@@ -2055,6 +2333,11 @@ function doPost(e) {
       return handleResponse(deduplicateRSVP());
     }
 
+    if (action === 'sync_roster_to_rsvp' || action === 'sync_roster') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để đồng bộ danh bạ!' });
+      return handleResponse(syncRosterToRSVP());
+    }
+
     if (action === 'record_view' || action === 'hit_view') {
       return handleResponse(recordPageView());
     }
@@ -2111,17 +2394,13 @@ function normalizeName(name) {
  * Lấy danh sách RSVP từ Google Sheet (tự động hợp nhất bản ghi trùng lặp)
  */
 function getRSVPList(isAdmin) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.getSheets()[0];
-  }
-
+  var sheet = getActiveRsvpSheet();
   var rows = sheet.getDataRange().getValues();
   if (rows.length <= 1) {
     return { status: 'success', data: [] };
   }
 
+  var rosterMap = getRosterLookupMap();
   var list = [];
   var seenMap = {};
 
@@ -2133,12 +2412,24 @@ function getRSVPList(isAdmin) {
     var rawPhone = String(row[2] || '').trim();
     var normPhone = normalizePhone(rawPhone);
     var normName = normalizeName(rawName);
-    // Chỉ hợp nhất nếu có cùng SĐT hợp lệ. Tuyệt đối không gộp chỉ vì trùng họ tên!
-    var uniqueKey = normPhone ? ('phone_' + normPhone) : '';
+    var memberId = String(row[16] || '').trim();
+
+    // Tự động map memberId từ danh bạ nếu ô Cột 17 của dòng này đang trống (Backfill tự động)
+    if (!memberId) {
+      if (normPhone && rosterMap.byPhone[normPhone]) {
+        memberId = rosterMap.byPhone[normPhone].id;
+      } else if (normName && rosterMap.byName[normName] && rosterMap.byName[normName].length === 1) {
+        memberId = rosterMap.byName[normName][0].id;
+      }
+    }
+
+    // Ưu tiên hợp nhất theo Mã TV nếu có, sau đó mới tới SĐT
+    var uniqueKey = memberId ? ('mid_' + memberId) : (normPhone ? ('phone_' + normPhone) : '');
 
     var item = {
       id: String(i),
       rowId: String(i + 1),
+      memberId: memberId || undefined,
       fullName: rawName,
       nickname: String(row[1] || ''),
       phone: isAdmin ? (normPhone || rawPhone) : maskPhoneScript(normPhone || rawPhone),
@@ -2159,12 +2450,12 @@ function getRSVPList(isAdmin) {
     };
 
     if (uniqueKey && seenMap[uniqueKey] !== undefined) {
-      // Đã có bản ghi trước đó của người này -> Hợp nhất thông tin tối ưu nhất
       var existingIdx = seenMap[uniqueKey];
       var existing = list[existingIdx];
       list[existingIdx] = {
         id: existing.id,
         rowId: existing.rowId,
+        memberId: item.memberId || existing.memberId,
         fullName: item.fullName || existing.fullName,
         nickname: item.nickname || existing.nickname,
         phone: item.phone || existing.phone,
@@ -2193,38 +2484,10 @@ function getRSVPList(isAdmin) {
 }
 
 /**
- * Lưu lượt đăng ký RSVP (Tự động chống trùng lặp - UPSERT thông minh)
- * Nếu người dùng đã từng đăng ký (theo SĐT hoặc Họ Tên): Cập nhật thông tin vào dòng cũ, không tạo dòng mới.
+ * Lưu lượt đăng ký RSVP (Tự động chống trùng lặp - UPSERT thông minh ưu tiên Mã TV)
  */
 function saveRSVP(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.getSheets()[0];
-  }
-
-  // Khởi tạo tiêu đề cột đầy đủ 16 cột
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      'Họ và Tên', 
-      'Biệt danh', 
-      'Số điện thoại', 
-      'Tình trạng', 
-      'Size áo', 
-      'Lời nhắn', 
-      'Thời gian gửi',
-      'Điểm danh đến',
-      'Giờ đến',
-      'Quỹ 700k',
-      'Số tiền',
-      'Ghi chú quỹ',
-      'Link Ảnh Bill/UNC',
-      'Thời gian nộp',
-      'Hình thức',
-      'Người đối soát'
-    ]);
-    sheet.getRange(1, 1, 1, 16).setFontWeight('bold').setBackground('#FAF3E0');
-  }
+  var sheet = getActiveRsvpSheet();
 
   // Nếu có kèm ảnh bill trong form RSVP, tự động upload lên Drive folder ChungTu_QuyLop_K8A1
   if ((data.fileData || data.fundReceiptBase64) && !data.fundReceiptUrl) {
@@ -2253,43 +2516,53 @@ function saveRSVP(data) {
 
   var normNewPhone = normalizePhone(data.phone);
   var normNewName = normalizeName(data.fullName);
+  var targetMemberId = String(data.memberId || '').trim();
 
   // Đọc các dòng hiện tại để tìm kiếm bản ghi trùng lặp
   var rows = sheet.getDataRange().getValues();
   var matchedRowIndex = -1;
   var duplicateRowIndices = [];
 
-  // 1. Ưu tiên tìm theo rowId gửi lên nếu có (chính xác tuyệt đối 1-1)
-  var targetRowId = Number(data.rowId);
-  if (targetRowId > 1 && targetRowId <= rows.length) {
-    var checkRow = rows[targetRowId - 1];
-    var checkRowName = normalizeName(checkRow[0]);
-    if (checkRowName === normNewName) {
-      matchedRowIndex = targetRowId;
-    }
-  }
-
-  for (var i = 1; i < rows.length; i++) {
-    var row = rows[i];
-    var rowPhone = normalizePhone(row[2]);
-    var rowName = normalizeName(row[0]);
-
-    var isMatch = false;
-    // Chỉ khớp và cập nhật dòng cũ nếu trùng SĐT hợp lệ (tuyệt đối không đè bạn trùng họ tên)
-    if (normNewPhone && rowPhone && normNewPhone === rowPhone) {
-      isMatch = true;
-    }
-
-    if (isMatch) {
-      if (matchedRowIndex === -1) {
-        matchedRowIndex = i + 1; // dòng đầu tiên (1-indexed)
-      } else if (matchedRowIndex !== (i + 1)) {
-        duplicateRowIndices.push(i + 1); // các dòng trùng thừa phía sau
+  // 1. Ưu tiên số 1: Tìm theo Mã TV (Cột 17) nếu cả 2 bên đều có
+  if (targetMemberId) {
+    for (var i = 1; i < rows.length; i++) {
+      var rowMid = String(rows[i][16] || '').trim();
+      if (rowMid && rowMid === targetMemberId) {
+        matchedRowIndex = i + 1;
+        break;
       }
     }
   }
 
-  // Nếu chưa khớp theo SĐT nhưng họ tên khớp 100% với duy nhất 1 dòng trong sheet:
+  // 2. Ưu tiên số 2: Tìm theo rowId gửi lên nếu có và khớp Họ tên hoặc Mã TV
+  if (matchedRowIndex === -1) {
+    var targetRowId = Number(data.rowId);
+    if (targetRowId > 1 && targetRowId <= rows.length) {
+      var checkRow = rows[targetRowId - 1];
+      var checkRowName = normalizeName(checkRow[0]);
+      var checkRowMid = String(checkRow[16] || '').trim();
+      if ((targetMemberId && checkRowMid === targetMemberId) || (checkRowName === normNewName)) {
+        matchedRowIndex = targetRowId;
+      }
+    }
+  }
+
+  // 3. Ưu tiên số 3: Khớp theo SĐT hợp lệ
+  if (matchedRowIndex === -1 && normNewPhone) {
+    for (var i = 1; i < rows.length; i++) {
+      var row = rows[i];
+      var rowPhone = normalizePhone(row[2]);
+      if (rowPhone && normNewPhone === rowPhone) {
+        if (matchedRowIndex === -1) {
+          matchedRowIndex = i + 1;
+        } else if (matchedRowIndex !== (i + 1)) {
+          duplicateRowIndices.push(i + 1);
+        }
+      }
+    }
+  }
+
+  // 4. Ưu tiên số 4: Nếu chưa khớp nhưng họ tên khớp 100% với duy nhất 1 dòng trong sheet:
   if (matchedRowIndex === -1 && normNewName) {
     var sameNameIndices = [];
     for (var j = 1; j < rows.length; j++) {
@@ -2298,16 +2571,26 @@ function saveRSVP(data) {
       }
     }
     if (sameNameIndices.length === 1) {
-      // Chỉ có duy nhất 1 bạn mang họ tên này trong toàn bộ sheet -> Cập nhật vào dòng của bạn đó, không tạo trùng lặp!
       matchedRowIndex = sameNameIndices[0];
     }
   }
 
   var phoneValue = normNewPhone ? ("'" + normNewPhone) : (data.phone ? ("'" + String(data.phone).trim()) : '');
+  var effectiveMemberId = targetMemberId;
 
   if (matchedRowIndex !== -1) {
-    // === CẬP NHẬT DÒNG HIỆN TẠI (UPSERT) ===
     var existingRow = rows[matchedRowIndex - 1];
+    if (!effectiveMemberId && existingRow[16]) {
+      effectiveMemberId = String(existingRow[16]).trim();
+    }
+    if (!effectiveMemberId) {
+      var rosterMap = getRosterLookupMap();
+      if (normNewPhone && rosterMap.byPhone[normNewPhone]) {
+        effectiveMemberId = rosterMap.byPhone[normNewPhone].id;
+      } else if (normNewName && rosterMap.byName[normNewName] && rosterMap.byName[normNewName].length === 1) {
+        effectiveMemberId = rosterMap.byName[normNewName][0].id;
+      }
+    }
 
     var isAlreadyCheckedIn = existingRow[7] === 'ĐÃ ĐẾN';
     var isAlreadyPaid = existingRow[9] === 'ĐÃ ĐÓNG';
@@ -2327,7 +2610,7 @@ function saveRSVP(data) {
       data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
       data.shirtSize || existingRow[4] || 'L',
       (data.message !== undefined && data.message !== '') ? data.message : (existingRow[5] || ''),
-      new Date(), // Cập nhật thời gian gửi mới nhất
+      new Date(),
       isAlreadyCheckedIn ? 'ĐÃ ĐẾN' : (data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN'),
       data.checkedInAt || existingRow[8] || '',
       updatedFundStatus,
@@ -2336,12 +2619,12 @@ function saveRSVP(data) {
       data.fundReceiptUrl || existingRow[12] || '',
       data.fundPaidAt || existingRow[13] || '',
       data.fundPaymentMethod || existingRow[14] || 'bank_transfer',
-      existingRow[15] || ''
+      existingRow[15] || '',
+      effectiveMemberId || '' // Cột 17: Mã TV
     ];
 
-    sheet.getRange(matchedRowIndex, 1, 1, 16).setValues([updatedRow]);
+    sheet.getRange(matchedRowIndex, 1, 1, 17).setValues([updatedRow]);
 
-    // Xóa sạch các dòng trùng lặp thừa nếu trước đó đã bị sinh ra (xóa từ dưới lên trên)
     if (duplicateRowIndices.length > 0) {
       duplicateRowIndices.sort(function(a, b) { return b - a; });
       for (var d = 0; d < duplicateRowIndices.length; d++) {
@@ -2351,7 +2634,16 @@ function saveRSVP(data) {
 
     return { status: 'success', message: 'Đã cập nhật thông tin thành công (không tạo bản ghi trùng lặp)!' };
   } else {
-    // === THÊM MỚI BẢN GHI (CHƯA TỪNG ĐĂNG KÝ) ===
+    // THÊM MỚI BẢN GHI
+    if (!effectiveMemberId) {
+      var rosterMap = getRosterLookupMap();
+      if (normNewPhone && rosterMap.byPhone[normNewPhone]) {
+        effectiveMemberId = rosterMap.byPhone[normNewPhone].id;
+      } else if (normNewName && rosterMap.byName[normNewName] && rosterMap.byName[normNewName].length === 1) {
+        effectiveMemberId = rosterMap.byName[normNewName][0].id;
+      }
+    }
+
     var newRow = [
       data.fullName || '',
       data.nickname || '',
@@ -2368,7 +2660,8 @@ function saveRSVP(data) {
       data.fundReceiptUrl || '',
       data.fundPaidAt || '',
       data.fundPaymentMethod || 'bank_transfer',
-      data.fundAuditedBy || ''
+      data.fundAuditedBy || '',
+      effectiveMemberId || '' // Cột 17: Mã TV
     ];
 
     sheet.appendRow(newRow);
@@ -2377,24 +2670,25 @@ function saveRSVP(data) {
 }
 
 /**
- * Cập nhật thông tin RSVP / Đối soát quỹ (so khớp SĐT chuẩn hóa)
+ * Cập nhật thông tin RSVP / Đối soát quỹ (ưu tiên Mã TV)
  */
 function updateRSVP(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
-  if (!sheet) sheet = ss.getSheets()[0];
-
+  var sheet = getActiveRsvpSheet();
   var rows = sheet.getDataRange().getValues();
+  var targetMemberId = String(data.memberId || '').trim();
   var targetPhone = normalizePhone(data.phone);
   var targetName = normalizeName(data.fullName);
   var updated = false;
 
   for (var i = 1; i < rows.length; i++) {
+    var rowMemberId = String(rows[i][16] || '').trim();
     var rowPhone = normalizePhone(rows[i][2]);
     var rowName = normalizeName(rows[i][0]);
-    var isMatch = (targetPhone && rowPhone && targetPhone === rowPhone) ||
-                  (!targetPhone && targetName && rowName && targetName === rowName) ||
-                  (data.rowId && (i + 1) === Number(data.rowId));
+
+    var isMatch = (targetMemberId && rowMemberId && targetMemberId === rowMemberId) ||
+                  (data.rowId && (i + 1) === Number(data.rowId)) ||
+                  (targetPhone && rowPhone && targetPhone === rowPhone) ||
+                  (!targetPhone && targetName && rowName && targetName === rowName);
 
     if (isMatch) {
       var rowIndex = i + 1;
@@ -2416,6 +2710,7 @@ function updateRSVP(data) {
       if (data.fundPaidAt !== undefined) sheet.getRange(rowIndex, 14).setValue(data.fundPaidAt);
       if (data.fundPaymentMethod !== undefined) sheet.getRange(rowIndex, 15).setValue(data.fundPaymentMethod);
       if (data.fundAuditedBy !== undefined) sheet.getRange(rowIndex, 16).setValue(data.fundAuditedBy);
+      if (data.memberId) sheet.getRange(rowIndex, 17).setValue(data.memberId);
       updated = true;
       break;
     }
@@ -2425,21 +2720,21 @@ function updateRSVP(data) {
 }
 
 /**
- * Xóa dòng RSVP (Admin Only - so khớp SĐT hoặc dòng)
+ * Xóa dòng RSVP (Admin Only - so khớp Mã TV, SĐT hoặc dòng)
  */
 function deleteRSVP(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
-  if (!sheet) sheet = ss.getSheets()[0];
-
+  var sheet = getActiveRsvpSheet();
   var rows = sheet.getDataRange().getValues();
+  var targetMemberId = String(data.memberId || '').trim();
   var targetPhone = normalizePhone(data.phone);
   var targetName = normalizeName(data.fullName);
 
   for (var i = 1; i < rows.length; i++) {
+    var rowMemberId = String(rows[i][16] || '').trim();
     var rowPhone = normalizePhone(rows[i][2]);
     var rowName = normalizeName(rows[i][0]);
-    var isMatch = (targetPhone && rowPhone && targetPhone === rowPhone) ||
+    var isMatch = (targetMemberId && rowMemberId && targetMemberId === rowMemberId) ||
+                  (targetPhone && rowPhone && targetPhone === rowPhone) ||
                   (!targetPhone && targetName && rowName && targetName === rowName) ||
                   (data.rowId && (i + 1) === Number(data.rowId));
 
@@ -2453,13 +2748,10 @@ function deleteRSVP(data) {
 }
 
 /**
- * Dọn dẹp và hợp nhất toàn bộ bản ghi trùng lặp trong Google Sheet
+ * Dọn dẹp và hợp nhất toàn bộ bản ghi trùng lặp trong Google Sheet (bảo toàn 17 cột)
  */
 function deduplicateRSVP() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.RSVP_SHEET_NAME);
-  if (!sheet) sheet = ss.getSheets()[0];
-
+  var sheet = getActiveRsvpSheet();
   var rows = sheet.getDataRange().getValues();
   if (rows.length <= 2) {
     return { status: 'success', message: 'Bảng tính chưa có bản ghi nào để dọn dẹp.' };
@@ -2473,19 +2765,19 @@ function deduplicateRSVP() {
     var row = rows[i];
     var rawName = String(row[0] || '').trim();
     var rawPhone = String(row[2] || '').trim();
-    if (!rawName && !rawPhone) continue;
+    var memberId = String(row[16] || '').trim();
+    if (!rawName && !rawPhone && !memberId) continue;
 
     var normP = normalizePhone(rawPhone);
-    var normN = normalizeName(rawName);
-    // Chỉ dọn dẹp các dòng trùng nếu có cùng số điện thoại hợp lệ. Tuyệt đối không xóa bạn trùng tên!
-    if (!normP) continue;
-    var key = 'phone_' + normP;
+    var key = memberId ? ('mid_' + memberId) : (normP ? ('phone_' + normP) : '');
+    if (!key) continue;
 
     if (!uniqueMap[key]) {
       uniqueMap[key] = {
         rowIndex: i + 1,
-        data: row.slice(0, 16)
+        data: row.slice(0, 17)
       };
+      while (uniqueMap[key].data.length < 17) uniqueMap[key].data.push('');
     } else {
       var master = uniqueMap[key];
       var masterData = master.data;
@@ -2509,6 +2801,7 @@ function deduplicateRSVP() {
       if (row[13]) masterData[13] = row[13];
       if (row[14]) masterData[14] = row[14];
       if (row[15]) masterData[15] = row[15];
+      if (row[16] && !masterData[16]) masterData[16] = row[16];
 
       rowsToDelete.push(i + 1);
       mergedCount++;
@@ -2521,7 +2814,7 @@ function deduplicateRSVP() {
       var p = normalizePhone(item.data[2]);
       item.data[2] = "'" + (p || item.data[2]);
     }
-    sheet.getRange(item.rowIndex, 1, 1, 16).setValues([item.data]);
+    sheet.getRange(item.rowIndex, 1, 1, 17).setValues([item.data]);
   }
 
   rowsToDelete.sort(function(a, b) { return b - a; });
@@ -3282,6 +3575,11 @@ function saveClassRoster(postData) {
       sheet.getRange(2, 1, rows.length, 9).setValues(rows);
     }
 
+    // Tự động Cascade đồng bộ sang sheet RSVP đang hoạt động
+    for (var mi = 0; mi < roster.length; mi++) {
+      cascadeSyncMemberToRSVP(roster[mi]);
+    }
+
     return { status: 'success', message: 'Đã lưu danh bạ ' + rows.length + ' thành viên vào Google Sheet thành công!', count: rows.length };
   } catch (err) {
     return { status: 'error', message: err.toString() };
@@ -3316,6 +3614,7 @@ function addClassMember(postData) {
     const nowStr = formatDate(new Date());
 
     sheet.appendRow([id, fullName, nickname, phone, role, gender, shirtSize, note, nowStr]);
+    cascadeSyncMemberToRSVP({ id: id, fullName: fullName, nickname: nickname, phone: phone, shirtSize: shirtSize });
     return { status: 'success', message: 'Đã thêm bạn ' + fullName + ' vào Danh Bạ Lớp thành công!', id: id };
   } catch (err) {
     return { status: 'error', message: err.toString() };
@@ -3375,6 +3674,9 @@ function updateClassMember(postData) {
     if (member.shirtSize !== undefined) sheet.getRange(targetRowIndex, 7).setValue(String(member.shirtSize).trim().toUpperCase());
     if (member.note !== undefined) sheet.getRange(targetRowIndex, 8).setValue(String(member.note).trim());
     sheet.getRange(targetRowIndex, 9).setValue(nowStr);
+
+    // Tự động Cascade đồng bộ sang sheet RSVP đang hoạt động
+    cascadeSyncMemberToRSVP(member);
 
     return { status: 'success', message: 'Đã cập nhật thông tin thành viên thành công!' };
   } catch (err) {
