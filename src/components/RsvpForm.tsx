@@ -148,6 +148,40 @@ export default function RsvpForm({
     };
   }, [activeMember]);
 
+  // Lắng nghe sự kiện yêu cầu đổi size áo từ danh sách hoặc nút bấm bên ngoài
+  useEffect(() => {
+    const handleUpdateShirtSize = (e: any) => {
+      const detail = e.detail;
+      if (detail && detail.memberId) {
+        const member = rosterList.find(m => m.id === detail.memberId);
+        if (member) {
+          handleSelectMember(member.id);
+        }
+      } else if (detail && detail.fullName) {
+        const member = rosterList.find(m => m.fullName.toLowerCase().trim() === detail.fullName.toLowerCase().trim());
+        if (member) {
+          handleSelectMember(member.id);
+        }
+      }
+
+      setTimeout(() => {
+        const shirtEl = document.getElementById('rsvp-shirt-size-section');
+        if (shirtEl) {
+          const navOffset = 70;
+          const elementPosition = shirtEl.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = Math.max(0, elementPosition - navOffset);
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 150);
+    };
+
+    window.addEventListener('update-member-shirt-size', handleUpdateShirtSize);
+    return () => window.removeEventListener('update-member-shirt-size', handleUpdateShirtSize);
+  }, [rosterList]);
+
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -606,7 +640,7 @@ export default function RsvpForm({
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
           ? (targetStatus === 'yes'
-              ? 'Đã cập nhật thông tin tham dự thành công vào Google Sheet! Tấm vé hội ngộ của bạn đã được làm mới.'
+              ? `Đã cập nhật size áo thành Size ${shirtSize} thành công vào Google Sheet! Tấm vé kỷ niệm của bạn đã được làm mới.`
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (targetStatus === 'yes'
               ? 'Xác nhận tham dự thành công! Tấm vé kỷ niệm 20 năm của bạn đã được đóng dấu chính thức.'
@@ -1396,34 +1430,66 @@ export default function RsvpForm({
 
             {/* BỘ CHỌN SIZE ÁO TRỰC QUAN (CHỈ KHI CHỌN CÓ THAM GIA) */}
             {status === 'yes' && (
-              <div className="space-y-2 pt-1">
-                <div className="flex flex-wrap items-center justify-between gap-1.5">
-                  <label className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1.5">
-                    <Shirt className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Chọn Size Áo Polo Đồng Phục K8A1:</span>
-                    <span className="font-mono font-bold text-amber-900 bg-amber-100/90 border border-amber-300/80 px-1.5 py-0.5 rounded text-[10px]">
-                      Size {shirtSize} ({SHIRT_SIZE_OPTIONS.find((o) => o.value === normalizeShirtSize(shirtSize))?.weightHint || ''})
-                    </span>
-                  </label>
+              <div id="rsvp-shirt-size-section" className="space-y-2.5 pt-1 scroll-mt-28">
+                {/* 1. NẾU ĐÃ TỪNG XÁC NHẬN: HIỆN HỘP THÔNG BÁO HƯỚNG DẪN CẬP NHẬT RIÊNG */}
+                {matchedExistingAttendee && (
+                  <div className="p-3 bg-gradient-to-r from-blue-50/95 via-indigo-50/70 to-amber-50/90 border-2 border-blue-300 rounded-xl space-y-1.5 shadow-2xs animate-fadeIn">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-blue-950 font-sans font-bold text-xs">
+                        <span className="text-base">👋</span>
+                        <span>Chào bạn! Hồ sơ của bạn đã có trên hệ thống</span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-300 shadow-2xs">
+                        ✓ Đã xác nhận tham gia
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5 text-xs">
+                      <div className="text-slate-700 font-sans">
+                        Size áo đã lưu hiện tại: <strong className="text-amber-950 font-mono text-sm px-2 py-0.5 bg-amber-200/90 border border-amber-300 rounded-md font-bold">Size {matchedExistingAttendee.shirtSize || 'Chưa chọn'}</strong>
+                      </div>
+                      <span className="text-[11px] text-blue-900 font-sans font-semibold">
+                        👉 Muốn đổi size áo? Bấm chọn size mới bên dưới rồi nhấn <strong>"Lưu Thay Đổi Size Áo"</strong>!
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-                  <button
-                    type="button"
-                    onClick={() => setShowSizeGuide(!showSizeGuide)}
-                    className="text-[10px] text-slate-500 hover:text-slate-900 underline font-sans cursor-pointer ml-auto"
-                  >
-                    {showSizeGuide ? 'Đóng bảng thông số 📐' : 'Xem chi tiết số đo áo 📐'}
-                  </button>
+                {/* 2. LỜI NHẮC CỰC KỲ NỔI BẬT: BẮT BUỘC CHỌN SIZE ÁO ĐỂ ĐẶT MAY RIÊNG */}
+                <div className="p-3 bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-500/15 border-2 border-amber-400 rounded-xl space-y-1 shadow-2xs">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white font-sans font-black text-[10.5px] uppercase tracking-wider shadow-2xs animate-pulse">
+                      👕 BẮT BUỘC: CHỌN SIZE ÁO POLO KỶ NIỆM K8A1 *
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSizeGuide(!showSizeGuide)}
+                      className="text-[11px] text-amber-900 hover:text-amber-950 font-sans font-bold underline cursor-pointer ml-auto flex items-center gap-1"
+                    >
+                      <span>📐 {showSizeGuide ? 'Đóng bảng thông số' : 'Xem chi tiết số đo áo'}</span>
+                    </button>
+                  </div>
+                  <p className="text-[11.5px] text-amber-950 font-sans leading-snug m-0">
+                    Áo polo kỷ niệm 20 năm được Ban Tổ Chức <strong>đặt may theo đúng số đo từng người</strong>. Bạn vui lòng đối chiếu khoảng cân nặng bên dưới và <strong>bấm vào ô size vừa vặn nhất với mình</strong>:
+                  </p>
                 </div>
 
-                {/* LỜI NHẮC NHẸ NHÀNG, TINH TẾ */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-amber-950 font-sans">
-                  <span className="text-amber-600 text-xs shrink-0">✨</span>
-                  <span>
-                    Áo polo kỷ niệm may theo số lượng đăng ký — Bạn nhớ chọn cỡ áo theo <strong>khoảng cân nặng & số đo</strong> bên dưới để vừa vặn nhất nhé!
+                {/* 3. Ô TÓM TẮT TRỰC QUAN CỠ ÁO ĐANG ĐƯỢC CHỌN */}
+                <div className="flex items-center justify-between p-2 sm:px-3 bg-amber-100/70 border border-amber-300 rounded-xl text-xs font-sans shadow-2xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-amber-900 font-bold">Cỡ áo bạn đang chọn:</span>
+                    <span className="font-mono font-black text-sm px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-xs">
+                      Size {shirtSize}
+                    </span>
+                    <span className="text-amber-950 font-bold">
+                      ({SHIRT_SIZE_OPTIONS.find((o) => o.value === normalizeShirtSize(shirtSize))?.weightHint || ''})
+                    </span>
+                  </div>
+                  <span className="text-[10.5px] text-slate-500 italic hidden sm:inline">
+                    (Bấm bảng 6 nút bên dưới để đổi size)
                   </span>
                 </div>
 
-                {/* BẢNG SIZE ÁO DẠNG LƯỚI NÚT TRỰC QUAN */}
+                {/* 4. BẢNG 6 NÚT SIZE ÁO TRỰC QUAN CỰC KỲ DỄ BẤM */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {SHIRT_SIZE_OPTIONS.map((opt) => {
                     const isSelected = normalizeShirtSize(shirtSize) === opt.value;
@@ -1432,16 +1498,21 @@ export default function RsvpForm({
                         key={opt.value}
                         type="button"
                         onClick={() => setShirtSize(opt.value)}
-                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center relative ${
                           isSelected
-                            ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-white border-amber-600 shadow-2xs ring-2 ring-amber-400/40 font-bold scale-[1.02]'
-                            : 'bg-slate-50/70 hover:bg-amber-50/50 text-slate-700 border-slate-200 hover:border-amber-300'
+                            ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-white border-amber-600 shadow-md ring-3 ring-amber-400/60 font-bold scale-[1.03]'
+                            : 'bg-white hover:bg-amber-50 text-slate-700 border-slate-300 hover:border-amber-400 shadow-2xs'
                         }`}
                       >
+                        {isSelected && (
+                          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-xs">
+                            ✓
+                          </span>
+                        )}
                         <span className="text-sm sm:text-base font-black font-mono block">
                           {opt.value}
                         </span>
-                        <span className={`text-[9px] block mt-0.5 leading-tight ${isSelected ? 'text-amber-100 font-medium' : 'text-slate-500'}`}>
+                        <span className={`text-[9.5px] block mt-0.5 leading-tight font-sans ${isSelected ? 'text-amber-100 font-bold' : 'text-slate-500 font-medium'}`}>
                           {opt.weightHint}
                         </span>
                       </button>

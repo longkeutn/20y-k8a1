@@ -400,14 +400,35 @@ export default function ConfirmedAttendees({
                         </div>
                       </td>
 
-                      {/* Shirt Size */}
+                      {/* Shirt Size - Cho phép bấm để đổi size nhanh */}
                       <td className="py-3 px-3 text-center">
                         {attendee.status === 'yes' && attendee.shirtSize ? (
-                          <span className="font-sans font-bold text-[10px] px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80">
-                            {attendee.shirtSize}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.dispatchEvent(new CustomEvent('update-member-shirt-size', { 
+                                detail: { memberId: attendee.memberId, fullName: attendee.fullName } 
+                              }));
+                            }}
+                            className="font-sans font-bold text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80 hover:bg-amber-100 hover:border-amber-400 transition cursor-pointer inline-flex items-center gap-1 group/size"
+                            title="Bấm vào đây nếu bạn muốn đổi cỡ áo polo khác"
+                          >
+                            <span>Size {attendee.shirtSize}</span>
+                            <span className="text-[9px] text-amber-600 opacity-60 group-hover/size:opacity-100">✏️</span>
+                          </button>
                         ) : (
-                          <span className="text-slate-400 text-[10px]">—</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.dispatchEvent(new CustomEvent('update-member-shirt-size', { 
+                                detail: { memberId: attendee.memberId, fullName: attendee.fullName } 
+                              }));
+                            }}
+                            className="text-amber-800 hover:underline text-[10px] cursor-pointer"
+                            title="Bấm để chọn size áo"
+                          >
+                            + Chọn size
+                          </button>
                         )}
                       </td>
 
