@@ -25,7 +25,7 @@ import {
   Search
 } from 'lucide-react';
 import { RsvpData, ClassMember, EventConfig } from '../types';
-import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, maskPhone, isPhoneMatch } from '../data';
+import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize, maskPhone, isPhoneMatch } from '../data';
 import LiveGoldenPass from './LiveGoldenPass';
 
 interface RsvpFormProps {
@@ -269,8 +269,7 @@ export default function RsvpForm({
 
       if (existing) {
         if (existing.shirtSize) {
-          const normSize = existing.shirtSize.toUpperCase() === 'XXL' ? '2XL' : existing.shirtSize.toUpperCase();
-          setShirtSize(normSize);
+          setShirtSize(normalizeShirtSize(existing.shirtSize));
         }
         if (existing.status) setStatus(existing.status);
         if (existing.message) setMessage(String(existing.message));
@@ -323,8 +322,7 @@ export default function RsvpForm({
         setFullName(member.fullName);
         if (member.nickname) setNickname(member.nickname);
         if (member.shirtSize) {
-          const normSize = member.shirtSize.toUpperCase() === 'XXL' ? '2XL' : member.shirtSize.toUpperCase();
-          setShirtSize(normSize);
+          setShirtSize(normalizeShirtSize(member.shirtSize));
         }
         const mPhone = member.phone ? String(member.phone).trim() : '';
         setSavedExistingPhone(mPhone);
@@ -1139,7 +1137,7 @@ export default function RsvpForm({
                     <Shirt className="w-3.5 h-3.5 text-amber-700" />
                     <span>Chọn Size Áo Polo Đồng Phục K8A1:</span>
                     <span className="font-mono font-bold text-amber-900 bg-amber-100/90 border border-amber-300/80 px-1.5 py-0.5 rounded text-[10px]">
-                      Size {shirtSize} ({SHIRT_SIZE_OPTIONS.find((o) => o.value === shirtSize)?.weightHint || ''})
+                      Size {shirtSize} ({SHIRT_SIZE_OPTIONS.find((o) => o.value === normalizeShirtSize(shirtSize))?.weightHint || ''})
                     </span>
                   </label>
 
@@ -1148,7 +1146,7 @@ export default function RsvpForm({
                     onClick={() => setShowSizeGuide(!showSizeGuide)}
                     className="text-[10px] text-slate-500 hover:text-slate-900 underline font-sans cursor-pointer ml-auto"
                   >
-                    {showSizeGuide ? 'Đóng bảng' : 'Bảng size 📐'}
+                    {showSizeGuide ? 'Đóng bảng thông số 📐' : 'Xem chi tiết số đo áo 📐'}
                   </button>
                 </div>
 
@@ -1156,14 +1154,14 @@ export default function RsvpForm({
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-amber-950 font-sans">
                   <span className="text-amber-600 text-xs shrink-0">✨</span>
                   <span>
-                    Áo polo kỷ niệm may theo số lượng đăng ký — Bạn nhớ chọn cỡ áo theo <strong>khoảng cân nặng</strong> bên dưới để vừa vặn nhất nhé!
+                    Áo polo kỷ niệm may theo số lượng đăng ký — Bạn nhớ chọn cỡ áo theo <strong>khoảng cân nặng & số đo</strong> bên dưới để vừa vặn nhất nhé!
                   </span>
                 </div>
 
                 {/* BẢNG SIZE ÁO DẠNG LƯỚI NÚT TRỰC QUAN */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {SHIRT_SIZE_OPTIONS.map((opt) => {
-                    const isSelected = shirtSize === opt.value;
+                    const isSelected = normalizeShirtSize(shirtSize) === opt.value;
                     return (
                       <button
                         key={opt.value}
@@ -1188,17 +1186,51 @@ export default function RsvpForm({
 
                 {/* BẢNG SIZE MỞ RỘNG (NẾU MỞ) */}
                 {showSizeGuide && (
-                  <div className="bg-[#FAF8F5] border border-amber-200 rounded-xl p-3 text-xs text-slate-700 space-y-2 animate-fadeIn">
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center font-sans">
-                      {SHIRT_SIZE_OPTIONS.map((opt) => (
-                        <div key={opt.value} className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                          <span className="font-bold text-amber-900 text-xs block">{opt.value}</span>
-                          <span className="text-[10px] text-slate-500 block mt-0.5 leading-tight">{opt.weightHint}</span>
-                        </div>
-                      ))}
+                  <div className="bg-[#FAF8F5] border border-amber-200 rounded-xl p-3 sm:p-4 text-xs text-slate-700 space-y-2.5 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-1 border-b border-amber-200/60">
+                      <span className="font-bold text-amber-950 font-serif text-[11px] sm:text-xs">
+                        Bảng Thông Số Kích Cỡ Áo Polo Đồng Phục K8A1 (Người Lớn)
+                      </span>
+                      <span className="text-[10px] text-slate-500 italic">Đơn vị: cm / kg</span>
                     </div>
+
+                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                      <table className="w-full text-center text-xs">
+                        <thead className="bg-amber-100/70 text-amber-950 font-bold border-b border-slate-200 text-[10px] sm:text-[11px]">
+                          <tr>
+                            <th className="py-2 px-2">Size Áo</th>
+                            <th className="py-2 px-2">Ngang Vai</th>
+                            <th className="py-2 px-2">Rộng</th>
+                            <th className="py-2 px-2">Dài</th>
+                            <th className="py-2 px-2">T.Ứng Số Kg</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-sans text-[11px]">
+                          {SHIRT_SIZE_OPTIONS.map((opt) => {
+                            const isRowSelected = normalizeShirtSize(shirtSize) === opt.value;
+                            return (
+                              <tr
+                                key={opt.value}
+                                onClick={() => setShirtSize(opt.value)}
+                                className={`cursor-pointer transition-colors ${
+                                  isRowSelected ? 'bg-amber-100/60 font-bold text-amber-950' : 'hover:bg-amber-50/40 text-slate-700'
+                                }`}
+                                title="Bấm để chọn size này"
+                              >
+                                <td className="py-2 px-2 font-mono font-black text-amber-800 text-xs sm:text-sm">{opt.value}</td>
+                                <td className="py-2 px-2">{opt.shoulder}</td>
+                                <td className="py-2 px-2">{opt.width}</td>
+                                <td className="py-2 px-2">{opt.length}</td>
+                                <td className="py-2 px-2 font-bold text-amber-900">{opt.weightHint}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
                     <p className="text-[10px] text-slate-500 font-serif italic text-center">
-                      * Áo polo co giãn 4 chiều. Nếu phân vân giữa 2 cỡ hoặc có bụng, bạn nên chọn tăng 1 size để mặc thoải mái nhất.
+                      * Bấm trực tiếp vào dòng để chọn size. Áo polo dáng chuẩn — Nếu phân vân giữa 2 cỡ hoặc thích mặc rộng rãi, bạn nên chọn tăng 1 size để mặc thoải mái nhất nhé!
                     </p>
                   </div>
                 )}

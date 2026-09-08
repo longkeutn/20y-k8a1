@@ -120,7 +120,7 @@ export default function RoleGuideModal({
         'Hệ thống tự động nhận diện thành viên theo danh bạ 65 bạn học K8A1. Bạn chỉ cần chọn tên mình, hệ thống sẽ tự động điền thông tin sẵn có. Chọn size áo đồng phục, số lượng người thân đi kèm và gửi gắm lời nhắn nhủ tới tập thể lớp.',
       details: [
         'Chọn tên từ danh bạ 65 bạn (không cần gõ lại họ tên)',
-        'Đăng ký size áo đồng phục (S, M, L, XL, XXL, 3XL...)',
+        'Đăng ký size áo đồng phục (S, M, L, XL, XXL, XXXL...)',
         'Xác nhận số người thân tham dự cùng',
         'Gửi lời nhắn nhủ hoặc lưu bút kèm theo'
       ],

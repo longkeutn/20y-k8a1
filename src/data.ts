@@ -734,7 +734,7 @@ export const CLASS_ROSTER_K8A1: ClassMember[] = [
   { id: 'm12', fullName: 'Nguyễn Minh Đức', nickname: 'Đức Còi', role: 'Thành viên', gender: 'male', shirtSize: 'M' },
   { id: 'm13', fullName: 'Phạm Thùy Linh', nickname: 'Linh Nhím', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
   { id: 'm14', fullName: 'Dương Quốc Toàn', nickname: 'Toàn Xoăn', role: 'Thành viên', gender: 'male', shirtSize: 'XL' },
-  { id: 'm15', fullName: 'Vũ Tuấn Dũng', nickname: 'Dũng Béo', role: 'Thành viên', gender: 'male', shirtSize: '2XL' },
+  { id: 'm15', fullName: 'Vũ Tuấn Dũng', nickname: 'Dũng Béo', role: 'Thành viên', gender: 'male', shirtSize: 'XXL' },
   { id: 'm16', fullName: 'Trần Phương Thảo', nickname: 'Thảo Xinh', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
   { id: 'm17', fullName: 'Ngô Quang Vinh', nickname: 'Vinh Râu', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
   { id: 'm18', fullName: 'Đoàn Thị Bích Ngọc', nickname: 'Ngọc Nấm', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
@@ -1351,20 +1351,79 @@ export function sanitizeVietQrText(text?: any): string {
 export interface ShirtSizeOption {
   value: string;
   label: string;
-  weightHint?: string;
+  weightHint: string;
+  shoulder: string;
+  width: string;
+  length: string;
 }
 
 /**
- * Bảng kích cỡ áo đồng phục polo Họp lớp 20 năm K8A1 chuẩn hóa thống nhất toàn bộ hệ thống
+ * Bảng kích cỡ áo đồng phục polo Họp lớp 20 năm K8A1 chuẩn hóa theo bảng xưởng may (Người lớn)
+ * S:    Vai 35cm | Rộng 41cm | Dài 55cm | 35kg - 45kg
+ * M:    Vai 37cm | Rộng 44cm | Dài 59cm | 45kg - 55kg
+ * L:    Vai 39cm | Rộng 47cm | Dài 63cm | 55kg - 65kg
+ * XL:   Vai 41cm | Rộng 49cm | Dài 67cm | 65kg - 75kg
+ * XXL:  Vai 43cm | Rộng 51cm | Dài 70cm | 75kg - 85kg
+ * XXXL: Vai 45cm | Rộng 53cm | Dài 73cm | 85kg - 95kg
  */
 export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
-  { value: 'S', label: 'Size S (Nữ <48kg / Nam <55kg)', weightHint: 'Nữ <48kg / Nam <55kg' },
-  { value: 'M', label: 'Size M (48 - 56kg)', weightHint: '48 - 56kg' },
-  { value: 'L', label: 'Size L (57 - 65kg)', weightHint: '57 - 65kg' },
-  { value: 'XL', label: 'Size XL (66 - 74kg)', weightHint: '66 - 74kg' },
-  { value: '2XL', label: 'Size 2XL (75 - 84kg)', weightHint: '75 - 84kg' },
-  { value: '3XL', label: 'Size 3XL (> 85kg)', weightHint: '> 85kg' }
+  { 
+    value: 'S', 
+    label: 'Size S (35 - 45kg) • Vai 35 / Rộng 41 / Dài 55cm', 
+    weightHint: '35 - 45kg',
+    shoulder: '35cm',
+    width: '41cm',
+    length: '55cm'
+  },
+  { 
+    value: 'M', 
+    label: 'Size M (45 - 55kg) • Vai 37 / Rộng 44 / Dài 59cm', 
+    weightHint: '45 - 55kg',
+    shoulder: '37cm',
+    width: '44cm',
+    length: '59cm'
+  },
+  { 
+    value: 'L', 
+    label: 'Size L (55 - 65kg) • Vai 39 / Rộng 47 / Dài 63cm', 
+    weightHint: '55 - 65kg',
+    shoulder: '39cm',
+    width: '47cm',
+    length: '63cm'
+  },
+  { 
+    value: 'XL', 
+    label: 'Size XL (65 - 75kg) • Vai 41 / Rộng 49 / Dài 67cm', 
+    weightHint: '65 - 75kg',
+    shoulder: '41cm',
+    width: '49cm',
+    length: '67cm'
+  },
+  { 
+    value: 'XXL', 
+    label: 'Size XXL (75 - 85kg) • Vai 43 / Rộng 51 / Dài 70cm', 
+    weightHint: '75 - 85kg',
+    shoulder: '43cm',
+    width: '51cm',
+    length: '70cm'
+  },
+  { 
+    value: 'XXXL', 
+    label: 'Size XXXL (85 - 95kg) • Vai 45 / Rộng 53 / Dài 73cm', 
+    weightHint: '85 - 95kg',
+    shoulder: '45cm',
+    width: '53cm',
+    length: '73cm'
+  }
 ];
+
+export function normalizeShirtSize(size?: string): string {
+  if (!size) return 'L';
+  const s = size.trim().toUpperCase();
+  if (s === '2XL') return 'XXL';
+  if (s === '3XL') return 'XXXL';
+  return s;
+}
 
 /**
  * Sinh URL tạo ảnh mã VietQR chuẩn xác, tương thích 100% App Ngân hàng Việt Nam

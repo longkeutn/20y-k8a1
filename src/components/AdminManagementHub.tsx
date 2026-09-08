@@ -87,6 +87,7 @@ import {
   CLASS_ROSTER_K8A1,
   normalizeImageUrl,
   SHIRT_SIZE_OPTIONS,
+  normalizeShirtSize,
   formatDateTimeVi,
   formatDateOnlyVi,
   parseDate,
@@ -2716,7 +2717,7 @@ export default function AdminManagementHub({
         (memberStatusFilter === 'checkedIn' && item.checkedIn) ||
         (memberStatusFilter === 'notCheckedIn' && item.status === 'yes' && !item.checkedIn);
 
-      const matchShirt = memberShirtFilter === 'all' || item.shirtSize === memberShirtFilter;
+      const matchShirt = memberShirtFilter === 'all' || normalizeShirtSize(item.shirtSize) === normalizeShirtSize(memberShirtFilter);
 
       return matchQuery && matchStatus && matchShirt;
     });
@@ -6831,7 +6832,7 @@ export default function AdminManagementHub({
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Size Áo Dự Kiến:</label>
                     <select
-                      value={rosterFormData.shirtSize || 'L'}
+                      value={normalizeShirtSize(rosterFormData.shirtSize || 'L')}
                       onChange={(e) => setRosterFormData({ ...rosterFormData, shirtSize: e.target.value })}
                       className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
@@ -6941,7 +6942,7 @@ export default function AdminManagementHub({
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Size Áo Đồng Phục:</label>
                     <select
-                      value={memberFormData.shirtSize || 'L'}
+                      value={normalizeShirtSize(memberFormData.shirtSize || 'L')}
                       onChange={(e) => setMemberFormData({ ...memberFormData, shirtSize: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
                     >

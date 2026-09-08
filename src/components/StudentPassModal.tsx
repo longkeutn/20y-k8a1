@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig } from '../types';
-import { SHIRT_SIZE_OPTIONS } from '../data';
+import { SHIRT_SIZE_OPTIONS, normalizeShirtSize } from '../data';
 
 interface StudentPassModalProps {
   isOpen: boolean;
@@ -300,7 +300,7 @@ export default function StudentPassModal({
                 Size áo đồng phục:
               </label>
               <select
-                value={shirtSize}
+                value={normalizeShirtSize(shirtSize)}
                 onChange={(e) => setShirtSize(e.target.value)}
                 className="w-full px-2.5 py-1.5 border border-brand-border rounded bg-white text-xs font-serif font-bold text-brand-text focus:outline-none focus:border-brand-gold cursor-pointer"
               >
