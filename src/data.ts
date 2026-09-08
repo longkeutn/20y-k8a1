@@ -1796,14 +1796,6 @@ export const TEACHER_TRANSPORTATION_OPTIONS = [
   "Cần xe đưa về sau dạ tiệc"
 ];
 
-export const TEACHER_COORDINATOR_OPTIONS = [
-  "Chưa phân công",
-  "Long Kều (Trưởng ban BLL)",
-  "Tuấn Báo (Thủ quỹ)",
-  "Hương Béo (BLL)",
-  "Thắng Đầu Gấu (BLL)"
-];
-
 export const TEACHER_HEALTH_OPTIONS = [
   "Bình thường (Không yêu cầu đặc biệt)",
   "Ngồi bàn danh dự tầng 1 (ít bậc thang)",

@@ -93,7 +93,6 @@ import {
   TEACHER_SUBJECT_OPTIONS,
   TEACHER_ROLE_OPTIONS,
   TEACHER_TRANSPORTATION_OPTIONS,
-  TEACHER_COORDINATOR_OPTIONS,
   TEACHER_HEALTH_OPTIONS,
   normalizeImageUrl,
   SHIRT_SIZE_OPTIONS,
@@ -9120,32 +9119,13 @@ export default function AdminManagementHub({
 
                     <div className="space-y-1">
                       <label className="font-bold text-slate-700">Cán bộ BLL phụ trách đón tiếp:</label>
-                      <select
-                        value={TEACHER_COORDINATOR_OPTIONS.includes(teacherFormData.coordinator || '') ? teacherFormData.coordinator : (teacherFormData.coordinator ? 'other' : 'Chưa phân công')}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === 'other') {
-                            setTeacherFormData(prev => ({ ...prev, coordinator: '' }));
-                          } else {
-                            setTeacherFormData(prev => ({ ...prev, coordinator: val }));
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
-                      >
-                        {TEACHER_COORDINATOR_OPTIONS.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                        <option value="other">✏️ Cán bộ khác (Nhập tay)...</option>
-                      </select>
-                      {(!TEACHER_COORDINATOR_OPTIONS.includes(teacherFormData.coordinator || '') || teacherFormData.coordinator === '') && (
-                        <input
-                          type="text"
-                          value={teacherFormData.coordinator || ''}
-                          onChange={(e) => setTeacherFormData({ ...teacherFormData, coordinator: e.target.value })}
-                          placeholder="Nhập tên người phụ trách đón tiếp..."
-                          className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs mt-1 focus:outline-none focus:border-amber-600"
-                        />
-                      )}
+                      <input
+                        type="text"
+                        value={teacherFormData.coordinator || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, coordinator: e.target.value })}
+                        placeholder="VD: Long Kều, Tuấn Báo, Hương Béo..."
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                      />
                     </div>
                   </div>
 
