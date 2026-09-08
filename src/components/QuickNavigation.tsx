@@ -91,6 +91,10 @@ export default function QuickNavigation({ confirmedCount = 0, hasTeachers = fals
         top: offsetPosition,
         behavior: 'smooth'
       });
+
+      if (targetId === 'diem-danh') {
+        window.dispatchEvent(new CustomEvent('focus-diem-danh'));
+      }
     }
   }, []);
 

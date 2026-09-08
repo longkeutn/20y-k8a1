@@ -838,6 +838,7 @@ export default function ConfirmedAttendees({
           <button
             type="button"
             onClick={() => {
+              window.dispatchEvent(new CustomEvent('focus-diem-danh'));
               const el = document.getElementById('diem-danh') || document.getElementById('rsvp-form-card');
               el?.scrollIntoView({ behavior: 'smooth' });
             }}

@@ -100,6 +100,7 @@ export default function ClassGatheringCounter({
 
   // Cuộn mượt đến form điểm danh
   const scrollToRsvpForm = () => {
+    window.dispatchEvent(new CustomEvent('focus-diem-danh'));
     const el = document.getElementById('diem-danh');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });

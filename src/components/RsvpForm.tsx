@@ -85,7 +85,54 @@ export default function RsvpForm({
   const [showReconsiderModal, setShowReconsiderModal] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isHighlighted, setIsHighlighted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Lắng nghe sự kiện điều hướng nhanh để tự động mở ô chọn tên và focus
+  useEffect(() => {
+    const handleFocusDiemDanh = () => {
+      setIsHighlighted(true);
+      setTimeout(() => setIsHighlighted(false), 3500);
+
+      // Nếu chưa chọn bạn học (hoặc đang custom mode), mở dropdown và focus vào ô tìm kiếm
+      if (!activeMember) {
+        setIsDropdownOpen(true);
+        setSearchQuery('');
+        setTimeout(() => {
+          const searchInput = document.getElementById('roster-search-input');
+          if (searchInput) {
+            searchInput.focus();
+          }
+          const selectorEl = document.getElementById('rsvp-member-selector') || document.getElementById('rsvp-form-card');
+          if (selectorEl) {
+            selectorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 120);
+      } else {
+        const formEl = document.getElementById('rsvp-form-card');
+        if (formEl) {
+          formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    };
+
+    window.addEventListener('focus-diem-danh', handleFocusDiemDanh);
+    const handleHash = () => {
+      if (window.location.hash === '#diem-danh' || window.location.hash === '#rsvp-form-card') {
+        handleFocusDiemDanh();
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+
+    if (window.location.hash === '#diem-danh' || window.location.hash === '#rsvp-form-card') {
+      setTimeout(handleFocusDiemDanh, 700);
+    }
+
+    return () => {
+      window.removeEventListener('focus-diem-danh', handleFocusDiemDanh);
+      window.removeEventListener('hashchange', handleHash);
+    };
+  }, [activeMember]);
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -674,60 +721,104 @@ export default function RsvpForm({
             </button>
           </div>
         ) : (
-          <div className="space-y-2 w-full" ref={dropdownRef}>
-            {/* LỜI NHẮC NHẸ NHÀNG ĐIỀU HƯỚNG TÌM TÊN */}
-            <div className="flex items-start gap-2 p-2 bg-amber-50/80 border border-amber-200/80 rounded-lg text-xs text-amber-950 font-sans shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-0.5">
-                <span className="font-bold text-amber-900 block text-[11px] sm:text-xs">
-                  👉 Bạn hãy tìm hoặc chọn tên mình trong Danh Sách Lớp K8A1 bên dưới:
+          <div id="rsvp-member-selector" className="space-y-2.5 w-full scroll-mt-28" ref={dropdownRef}>
+            {/* LỜI NHẮC CỰC KỲ NỔI BẬT ĐIỀU HƯỚNG TÌM TÊN */}
+            <div className={`p-3 sm:p-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white rounded-2xl shadow-md space-y-1.5 transition-all duration-300 ${
+              isHighlighted ? 'ring-4 ring-amber-300 scale-[1.01] shadow-xl' : ''
+            }`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10.5px] font-sans font-extrabold uppercase tracking-wider backdrop-blur-xs border border-white/30 shadow-2xs animate-pulse">
+                  🎯 BƯỚC 1: CHỌN TÊN TRONG DANH BẠ LỚP
                 </span>
-                <p className="text-[10.5px] sm:text-[11px] text-slate-600 leading-snug m-0">
-                  Gõ vài chữ cái (họ tên hoặc biệt danh) để tự động điền và liên kết đúng vé kỷ niệm của bạn (tránh gõ thủ công để không bị trùng lặp).
+                <span className="text-[11px] font-sans text-amber-100 font-bold hidden sm:inline">
+                  (Sĩ số 65 bạn học K8A1)
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="font-bold text-white text-xs sm:text-sm block">
+                  👉 Bạn hãy bấm vào thanh bên dưới để tìm hoặc chọn tên mình:
+                </span>
+                <p className="text-[11px] text-amber-100/90 leading-snug m-0 font-sans">
+                  Gõ vài chữ cái (họ tên hoặc biệt danh) để tự động điền vé kỷ niệm, size áo và bảo toàn danh bạ lớp (tránh gõ tay tự do để không bị trùng lặp).
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-amber-700 shrink-0 hidden sm:block" />
-              <div className="relative flex-1">
-                {/* NÚT KÍCH HOẠT DROPDOWN */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsDropdownOpen(!isDropdownOpen);
-                    if (!isDropdownOpen) {
-                      setSearchQuery('');
-                    }
-                  }}
-                  className="w-full bg-white border border-amber-300 hover:border-amber-500 rounded-xl py-2 pl-3 pr-9 text-left text-xs sm:text-[13px] text-slate-800 font-sans cursor-pointer focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400/50 shadow-2xs transition flex items-center justify-between font-medium"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Search className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                    <span className="truncate text-slate-600">
-                      {isCustomMode
-                        ? '✏️ Đang ở chế độ: Tự nhập họ tên (Bấm để chọn lại trong danh bạ)'
-                        : '-- Bấm để tìm tên hoặc chọn trong Danh Bạ K8A1 --'}
-                    </span>
+            <div className="relative">
+              {/* NÚT KÍCH HOẠT DROPDOWN CỰC KỲ NỔI BẬT VÀ THU HÚT */}
+              <button
+                type="button"
+                id="roster-dropdown-trigger"
+                onClick={() => {
+                  setIsDropdownOpen(!isDropdownOpen);
+                  if (!isDropdownOpen) {
+                    setSearchQuery('');
+                    setTimeout(() => {
+                      document.getElementById('roster-search-input')?.focus();
+                    }, 100);
+                  }
+                }}
+                className={`w-full rounded-2xl p-2.5 sm:p-3 text-left transition-all duration-300 cursor-pointer flex items-center justify-between border-2 ${
+                  isDropdownOpen || isHighlighted
+                    ? 'bg-gradient-to-r from-amber-50 via-white to-amber-50 border-amber-500 shadow-xl ring-4 ring-amber-400/70 scale-[1.01]'
+                    : 'bg-gradient-to-r from-amber-50/70 via-white to-amber-50/70 hover:bg-amber-50 border-amber-400 hover:border-amber-600 shadow-md hover:shadow-lg ring-2 ring-amber-300/40 hover:ring-amber-400/60'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
+                    <Search className={`w-5 h-5 ${isHighlighted ? 'animate-bounce' : ''}`} />
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+                  <div className="min-w-0 flex-1">
+                    {isCustomMode ? (
+                      <div className="space-y-0.5">
+                        <div className="text-xs sm:text-[13px] font-bold text-amber-900 flex items-center gap-1.5 flex-wrap">
+                          <span>✏️ Đang ở chế độ: Tự nhập họ tên</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-200/80 text-amber-950 font-bold border border-amber-300">
+                            Bấm để chọn lại trong danh bạ ▾
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate font-sans">
+                          Khuyến nghị nên chọn tên trong danh bạ để được cấp thẻ kỷ niệm chính thức
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5">
+                        <div className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-amber-900">🔍 BẤM VÀO ĐÂY ĐỂ CHỌN TÊN BẠN</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white font-sans font-bold shadow-2xs animate-pulse">
+                            Danh Bạ 65 Bạn ▾
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 font-sans truncate">
+                          Gõ họ tên hoặc biệt danh để tìm nhanh (Ví dụ: Thành Long, Tuấn Báo, Nam Còi...)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                {/* MENU DROPDOWN TÌM KIẾM THÔNG MINH */}
-                {isDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-amber-300 rounded-xl shadow-2xl z-50 overflow-hidden animate-fadeIn text-left">
-                    {/* Ô TÌM KIẾM DÍNH Ở ĐẦU */}
-                    <div className="p-2 border-b border-amber-100 bg-amber-50/70 space-y-1.5">
-                      <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-amber-700 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          autoFocus
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Gõ tên hoặc biệt danh để lọc nhanh... (VD: Vân Anh, Tuấn, Còi...)"
-                          className="w-full bg-white border border-amber-300 rounded-lg py-1.5 pl-8 pr-7 text-xs font-sans text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-400"
-                        />
+                <div className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 ml-2 shadow-xs">
+                  <span className="hidden sm:inline">Mở danh bạ</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+
+              {/* MENU DROPDOWN TÌM KIẾM THÔNG MINH */}
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-amber-400 rounded-2xl shadow-2xl z-50 overflow-hidden animate-fadeIn text-left ring-4 ring-amber-500/20">
+                  {/* Ô TÌM KIẾM DÍNH Ở ĐẦU */}
+                  <div className="p-3 border-b border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-100/70 space-y-2">
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-amber-700 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        id="roster-search-input"
+                        autoFocus
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Gõ tên hoặc biệt danh để lọc nhanh... (VD: Vân Anh, Tuấn, Còi, Long...)"
+                        className="w-full bg-white border-2 border-amber-400 rounded-xl py-2 pl-9 pr-8 text-xs sm:text-[13px] font-sans text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-400/50 shadow-inner"
+                      />
                         {searchQuery && (
                           <button
                             type="button"
