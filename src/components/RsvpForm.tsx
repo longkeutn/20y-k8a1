@@ -1012,9 +1012,8 @@ export default function RsvpForm({
                 )}
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
       {/* BỐ CỤC 2 CỘT: CỘT TRÁI FORM NHẬP - CỘT PHẢI TẤM VÉ VÀNG REALTIME */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
