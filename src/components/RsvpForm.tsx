@@ -94,24 +94,38 @@ export default function RsvpForm({
       setIsHighlighted(true);
       setTimeout(() => setIsHighlighted(false), 3500);
 
-      // Nếu chưa chọn bạn học (hoặc đang custom mode), mở dropdown và focus vào ô tìm kiếm
+      // Nếu chưa chọn bạn học (hoặc đang custom mode), mở dropdown và cuộn lên cao để danh sách hiển thị trọn vẹn
       if (!activeMember) {
         setIsDropdownOpen(true);
         setSearchQuery('');
         setTimeout(() => {
-          const searchInput = document.getElementById('roster-search-input');
-          if (searchInput) {
-            searchInput.focus();
-          }
           const selectorEl = document.getElementById('rsvp-member-selector') || document.getElementById('rsvp-form-card');
+          const searchInput = document.getElementById('roster-search-input');
+
           if (selectorEl) {
-            selectorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const navOffset = 70; // Trừ hao chiều cao navbar cố định
+            const elementPosition = selectorEl.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = Math.max(0, elementPosition - navOffset);
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
           }
-        }, 120);
+
+          if (searchInput) {
+            searchInput.focus({ preventScroll: true });
+          }
+        }, 80);
       } else {
         const formEl = document.getElementById('rsvp-form-card');
         if (formEl) {
-          formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const navOffset = 70;
+          const elementPosition = formEl.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = Math.max(0, elementPosition - navOffset);
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
         }
       }
     };
@@ -908,7 +922,7 @@ export default function RsvpForm({
                     </div>
 
                     {/* DANH SÁCH THÀNH VIÊN CUỘN MƯỢT, RÕ RÀNG */}
-                    <div className="max-h-64 sm:max-h-72 overflow-y-auto divide-y divide-slate-100">
+                    <div className="max-h-72 sm:max-h-84 overflow-y-auto divide-y divide-slate-100">
                       {filteredRoster.length > 0 ? (
                         filteredRoster.map((m) => {
                           const existingRsvp = (rsvpList || []).find((r) => 

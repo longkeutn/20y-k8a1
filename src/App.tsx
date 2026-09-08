@@ -1212,7 +1212,8 @@ export default function App() {
             {/* Primary Action Button Duy Nhất: Điểm Danh */}
             <a 
               href="#diem-danh" 
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 window.dispatchEvent(new CustomEvent('focus-diem-danh'));
               }}
               className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs cursor-pointer"
@@ -1398,7 +1399,6 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('focus-diem-danh'));
-                  document.getElementById('diem-danh')?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="inline-flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-amber-300/40"
               >
@@ -1630,7 +1630,6 @@ export default function App() {
                   <button
                     onClick={() => {
                       window.dispatchEvent(new CustomEvent('focus-diem-danh'));
-                      document.getElementById('diem-danh')?.scrollIntoView({ behavior: 'smooth' });
                     }}
                     className="inline-flex items-center gap-2 px-5 py-3 bg-[#1E293B] hover:bg-amber-600 text-white text-xs sm:text-sm font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition-all duration-300 hover:scale-105 cursor-pointer"
                   >

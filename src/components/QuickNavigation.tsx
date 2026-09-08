@@ -93,9 +93,20 @@ export default function QuickNavigation({ confirmedCount = 0, hasTeachers = fals
       });
 
       if (targetId === 'diem-danh') {
+        setIsCollapsed(true);
         window.dispatchEvent(new CustomEvent('focus-diem-danh'));
+        return;
       }
     }
+  }, []);
+
+  // Tự động thu gọn floating dock khi người dùng bấm mở Điểm Danh / Báo Danh để không che khuất danh sách
+  useEffect(() => {
+    const handleCollapseOnFocus = () => {
+      setIsCollapsed(true);
+    };
+    window.addEventListener('focus-diem-danh', handleCollapseOnFocus);
+    return () => window.removeEventListener('focus-diem-danh', handleCollapseOnFocus);
   }, []);
 
   // Lắng nghe sự kiện cuộn trang để kích hoạt Scroll Spy & ẩn/hiện Dock
