@@ -8789,6 +8789,329 @@ export default function AdminManagementHub({
       </AnimatePresence>
 
       {/* =================================================================== */}
+      {/* MODAL: THÊM / SỬA QUÝ THẦY CÔ GIÁO K8A1 (FULL 18 FIELDS) */}
+      {/* =================================================================== */}
+      <AnimatePresence>
+        {isTeacherModalOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl border-2 border-amber-500/80 shadow-2xl max-w-3xl w-full p-5 sm:p-6 my-6 overflow-hidden space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-800 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-base sm:text-lg text-slate-900">
+                      {editingTeacher ? `Chỉnh Sửa Thông Tin: ${editingTeacher.name}` : 'Thêm Quý Thầy Cô Mới Vào Sổ Tri Ân'}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-sans">
+                      Thiết lập hồ sơ tri ân, số điện thoại, tiến độ thiệp mời và phương án đưa đón tại Hội Khóa
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTeacherModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body Form */}
+              <form onSubmit={handleSaveTeacher} className="space-y-4 max-h-[72vh] overflow-y-auto pr-1 text-xs">
+                {/* PHẦN 1: THÔNG TIN CÁ NHÂN & GIẢNG DẠY */}
+                <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-200 space-y-3">
+                  <h4 className="font-serif font-bold text-amber-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span>1. Thông Tin Cá Nhân & Giảng Dạy</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <div className="sm:col-span-3 space-y-1">
+                      <label className="font-bold text-slate-700">Danh xưng:</label>
+                      <select
+                        value={teacherFormData.gender || 'Cô'}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, gender: e.target.value as any })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-bold"
+                      >
+                        <option value="Cô">Cô giáo</option>
+                        <option value="Thầy">Thầy giáo</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-6 space-y-1">
+                      <label className="font-bold text-slate-700">Họ và Tên (*):</label>
+                      <input
+                        type="text"
+                        required
+                        value={teacherFormData.name || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, name: e.target.value })}
+                        placeholder="VD: Cô Trần Thị Lan"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3 space-y-1">
+                      <label className="font-bold text-slate-700">Năm sinh / Tuổi:</label>
+                      <input
+                        type="text"
+                        value={teacherFormData.birthYear || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, birthYear: e.target.value })}
+                        placeholder="VD: 1960"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Môn giảng dạy:</label>
+                      <input
+                        type="text"
+                        value={teacherFormData.subject || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, subject: e.target.value })}
+                        placeholder="VD: Ngữ Văn, Toán Học, Vật Lý..."
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Vai trò với K8A1:</label>
+                      <input
+                        type="text"
+                        value={teacherFormData.role || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, role: e.target.value })}
+                        placeholder="VD: Chủ nhiệm Lớp 12A1, Giáo viên Bộ môn..."
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-semibold text-amber-900"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Tình trạng công tác:</label>
+                      <select
+                        value={teacherFormData.workStatus || 'Đã nghỉ hưu'}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, workStatus: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                      >
+                        <option value="Đã nghỉ hưu">Đã nghỉ hưu</option>
+                        <option value="Đang công tác">Đang công tác</option>
+                        <option value="Chuyển đơn vị">Chuyển đơn vị</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Avatar Upload */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="font-bold text-slate-700">Ảnh đại diện Thầy Cô:</label>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={teacherFormData.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'}
+                        alt="Avatar preview"
+                        className="w-12 h-12 rounded-xl object-cover border border-amber-300 shadow-2xs shrink-0"
+                        onError={(e: any) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80';
+                        }}
+                      />
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <label className="px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-lg cursor-pointer flex items-center gap-1.5 font-semibold text-xs transition">
+                            <Upload className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Tải ảnh từ máy</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleTeacherAvatarUpload}
+                              className="hidden"
+                            />
+                          </label>
+                          {isUploadingTeacherAvatar && (
+                            <span className="text-amber-700 font-semibold animate-pulse flex items-center gap-1">
+                              <RefreshCw className="w-3 h-3 animate-spin" /> Đang xử lý ảnh...
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={teacherFormData.avatarUrl || ''}
+                          onChange={(e) => setTeacherFormData({ ...teacherFormData, avatarUrl: e.target.value })}
+                          placeholder="Hoặc dán URL ảnh chân dung..."
+                          className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg font-mono text-[11px]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PHẦN 2: LIÊN LẠC & ĐỊA CHỈ */}
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                  <h4 className="font-serif font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span>2. Thông Tin Liên Lạc & Địa Chỉ Nhà Riêng</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Số Điện Thoại Chính:</label>
+                      <input
+                        type="text"
+                        value={teacherFormData.phone || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, phone: e.target.value })}
+                        placeholder="VD: 0912 345 678"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">SĐT Người Thân / Con cái (dự phòng):</label>
+                      <input
+                        type="text"
+                        value={teacherFormData.relativePhone || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, relativePhone: e.target.value })}
+                        placeholder="VD: 0987 654 321 (Con gái Thầy)"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Địa Chỉ Nhà Riêng (để gửi thiệp & đón tiếp):</label>
+                    <input
+                      type="text"
+                      value={teacherFormData.address || ''}
+                      onChange={(e) => setTeacherFormData({ ...teacherFormData, address: e.target.value })}
+                      placeholder="VD: P. Hoàng Văn Thụ, TP. Thái Nguyên"
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                {/* PHẦN 3: KẾ HOẠCH TIẾP ĐÓN & HẬU CẦN HỘI KHÓA */}
+                <div className="p-3.5 bg-emerald-50/40 rounded-xl border border-emerald-200 space-y-3">
+                  <h4 className="font-serif font-bold text-emerald-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <span>3. Kế Hoạch Tiếp Đón & Hậu Cần Hội Khóa 20 Năm</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Tiến độ gửi thiệp mời:</label>
+                      <select
+                        value={teacherFormData.inviteProgress || 'Chưa gửi'}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, inviteProgress: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                      >
+                        <option value="Chưa gửi">Chưa gửi thiệp</option>
+                        <option value="Đang liên hệ">Đang liên hệ đặt lịch</option>
+                        <option value="Đã gửi thiệp điện tử">Đã gửi thiệp điện tử</option>
+                        <option value="Đã trao thiệp tận tay">Đã trao thiệp tận tay</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Trạng thái tham dự:</label>
+                      <select
+                        value={teacherFormData.status || 'pending'}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, status: e.target.value as any })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-bold"
+                      >
+                        <option value="pending">Đang liên hệ (Chờ phản hồi)</option>
+                        <option value="attending">Chắc chắn tham dự</option>
+                        <option value="wishing">Gửi lời chúc từ xa</option>
+                        <option value="declined">Báo bận / Không tham dự</option>
+                        <option value="memorial">Tưởng nhớ tri ân</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Người đi kèm:</label>
+                      <select
+                        value={teacherFormData.companion || 'Đi một mình'}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, companion: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                      >
+                        <option value="Đi một mình">Đi một mình</option>
+                        <option value="Kèm phu quân (+1)">Kèm phu quân (+1)</option>
+                        <option value="Kèm phu nhân (+1)">Kèm phu nhân (+1)</option>
+                        <option value="Kèm con/cháu (+1)">Kèm con/cháu (+1)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Phương án đưa đón:</label>
+                      <input
+                        type="text"
+                        value={teacherFormData.transportation || 'Tự túc'}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, transportation: e.target.value })}
+                        placeholder="VD: Lớp cử xe đón tại nhà, Tự túc..."
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-medium text-blue-900"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Cán bộ BLL phụ trách đón tiếp:</label>
+                      <input
+                        type="text"
+                        value={teacherFormData.coordinator || ''}
+                        onChange={(e) => setTeacherFormData({ ...teacherFormData, coordinator: e.target.value })}
+                        placeholder="VD: Long Kều, Tuấn Báo..."
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Lưu ý sức khỏe / vị trí ngồi danh dự:</label>
+                    <input
+                      type="text"
+                      value={teacherFormData.healthNotes || ''}
+                      onChange={(e) => setTeacherFormData({ ...teacherFormData, healthNotes: e.target.value })}
+                      placeholder="VD: Ngồi bàn danh dự tầng 1 ít bậc thang, ăn thanh đạm..."
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Lời dặn dò / Kỷ niệm với tập thể K8A1:</label>
+                    <textarea
+                      rows={2}
+                      value={teacherFormData.quote || ''}
+                      onChange={(e) => setTeacherFormData({ ...teacherFormData, quote: e.target.value })}
+                      placeholder="VD: 20 năm qua đi như một cái chớp mắt, chúc các em luôn giữ trọn tình bạn..."
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-serif italic"
+                    />
+                  </div>
+                </div>
+
+                {/* Submit button */}
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsTeacherModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer transition"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 text-white font-bold rounded-xl shadow-md cursor-pointer transition"
+                  >
+                    {editingTeacher ? 'Lưu Cập Nhật Thầy Cô' : 'Thêm Vào Danh Sách'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* =================================================================== */}
       {/* MODAL: THÊM / CẬP NHẬT KHOẢN THU QUỸ LỚP (INCOME MODAL) */}
       {/* =================================================================== */}
       <AnimatePresence>
