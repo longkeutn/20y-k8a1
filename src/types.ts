@@ -49,14 +49,28 @@ export interface WishData {
   isPinned?: boolean;
 }
 
+export type TeacherInvitationStatus = 'attending' | 'pending' | 'declined' | 'wishing' | 'memorial';
+
 export interface TeacherData {
   id: string;
   name: string;
-  role: string;
+  gender?: 'Thầy' | 'Cô';
+  birthYear?: string;
+  phone?: string;
+  relativePhone?: string;
+  address?: string;
   subject: string;
-  status: 'attending' | 'wishing' | 'pending';
-  quote?: string;
+  role: string;
+  workStatus?: string;
+  inviteProgress?: string;
+  status: 'attending' | 'wishing' | 'pending' | 'declined' | 'memorial';
+  companion?: string;
+  transportation?: string;
+  coordinator?: string;
+  healthNotes?: string;
   avatarUrl?: string;
+  quote?: string;
+  updatedAt?: string;
 }
 
 export interface TeacherTribute {

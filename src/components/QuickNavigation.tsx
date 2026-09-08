@@ -8,7 +8,8 @@ import {
   ArrowUp, 
   ChevronDown, 
   ChevronUp, 
-  Sparkles 
+  Sparkles,
+  GraduationCap
 } from 'lucide-react';
 
 interface QuickNavigationProps {
@@ -58,6 +59,12 @@ export default function QuickNavigation({ confirmedCount = 0 }: QuickNavigationP
       icon: Coins,
     },
     {
+      id: 'thay-co',
+      label: 'Thầy Cô',
+      shortLabel: 'Thầy Cô',
+      icon: GraduationCap,
+    },
+    {
       id: 'ky-uc',
       label: 'Ký Ức',
       shortLabel: 'Kỷ niệm',
@@ -101,6 +108,7 @@ export default function QuickNavigation({ confirmedCount = 0 }: QuickNavigationP
           // Nhận diện phân vùng đang đọc (Scroll Spy)
           const sectionIds = [
             'ky-uc',
+            'thay-co',
             'bank-transfer-card',
             'danh-sach-diem-danh',
             'diem-danh',

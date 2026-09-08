@@ -72,9 +72,13 @@ import {
   Landmark,
   QrCode,
   ShieldCheck,
-  Loader2
+  Loader2,
+  GraduationCap,
+  Car,
+  HeartHandshake,
+  PhoneCall
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from '../types';
 import { 
   K8A1_DRIVE_FOLDER_ID, 
   K8A1_DRIVE_FOLDER_URL, 
@@ -85,6 +89,7 @@ import {
   sanitizeVietQrText, 
   GOOGLE_APPS_SCRIPT_CODE,
   CLASS_ROSTER_K8A1,
+  TEACHERS_LIST,
   normalizeImageUrl,
   SHIRT_SIZE_OPTIONS,
   normalizeShirtSize,
@@ -162,7 +167,7 @@ interface AdminManagementHubProps {
   currentUserRole: UserRole;
   onLoginSuccess: (role: UserRole) => void;
   onLogout: () => void;
-  initialTab?: 'members' | 'fund' | 'wishes' | 'media' | 'settings';
+  initialTab?: 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings';
   initialMediaSubTab?: 'venue' | 'banner' | 'videos' | 'photos';
   
   // Data props
@@ -211,6 +216,13 @@ interface AdminManagementHubProps {
   onDeleteIncome?: (id: string) => void;
   onSaveAllIncomes?: (list: IncomeItem[]) => void;
 
+  // Quản lý Quý Thầy Cô giáo K8A1 (Thay_Co_K8A1)
+  teachersList?: TeacherData[];
+  onAddTeacher?: (teacher: TeacherData) => void;
+  onUpdateTeacher?: (teacher: TeacherData) => void;
+  onDeleteTeacher?: (id: string) => void;
+  onSaveAllTeachers?: (list: TeacherData[]) => void;
+
   // Cẩm Nang Hướng Dẫn Vận Hành & Nghiệp Vụ
   onOpenGuideModal?: () => void;
 }
@@ -255,6 +267,11 @@ export default function AdminManagementHub({
   onUpdateIncome,
   onDeleteIncome,
   onSaveAllIncomes,
+  teachersList = [],
+  onAddTeacher,
+  onUpdateTeacher,
+  onDeleteTeacher,
+  onSaveAllTeachers,
   onOpenGuideModal
 }: AdminManagementHubProps) {
   // User Role Helpers (RBAC)
@@ -290,7 +307,7 @@ export default function AdminManagementHub({
   }, [isTreasurer, isAdmin, activeMember]);
 
   // Navigation tabs
-  type ActiveTab = 'members' | 'fund' | 'wishes' | 'media' | 'settings';
+  type ActiveTab = 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings';
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
 
   // Media Tab subtab state
@@ -610,6 +627,227 @@ export default function AdminManagementHub({
 
     return true;
   }, []);
+  // ---------------------------------------------------------------------------
+  // QUẢN LÝ QUÝ THẦY CÔ GIÁO K8A1 STATE (SHEET: "Thay_Co_K8A1")
+  // ---------------------------------------------------------------------------
+  const effectiveTeachers = useMemo(() => {
+    return Array.isArray(teachersList) && teachersList.length > 0 ? teachersList : TEACHERS_LIST;
+  }, [teachersList]);
+
+  const [teacherSearch, setTeacherSearch] = useState('');
+  const [teacherStatusFilter, setTeacherStatusFilter] = useState<string>('all');
+  const [teacherRoleFilter, setTeacherRoleFilter] = useState<string>('all');
+  const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<TeacherData | null>(null);
+  const [teacherFormData, setTeacherFormData] = useState<Partial<TeacherData>>({
+    name: '',
+    gender: 'Cô',
+    birthYear: '',
+    phone: '',
+    relativePhone: '',
+    address: '',
+    subject: '',
+    role: 'Giáo viên Bộ môn',
+    workStatus: 'Đã nghỉ hưu',
+    inviteProgress: 'Chưa gửi',
+    status: 'pending',
+    companion: 'Đi một mình',
+    transportation: 'Tự túc',
+    coordinator: '',
+    healthNotes: '',
+    avatarUrl: '',
+    quote: ''
+  });
+  const [isUploadingTeacherAvatar, setIsUploadingTeacherAvatar] = useState(false);
+  const [isSyncingTeachers, setIsSyncingTeachers] = useState(false);
+
+  const handleOpenAddTeacher = () => {
+    setEditingTeacher(null);
+    setTeacherFormData({
+      name: '',
+      gender: 'Cô',
+      birthYear: '',
+      phone: '',
+      relativePhone: '',
+      address: '',
+      subject: '',
+      role: 'Giáo viên Bộ môn',
+      workStatus: 'Đã nghỉ hưu',
+      inviteProgress: 'Chưa gửi',
+      status: 'pending',
+      companion: 'Đi một mình',
+      transportation: 'Tự túc',
+      coordinator: (isOfficialBLLMember(activeMember) && activeMember?.fullName) ? activeMember.fullName : '',
+      healthNotes: '',
+      avatarUrl: '',
+      quote: ''
+    });
+    setIsTeacherModalOpen(true);
+  };
+
+  const handleOpenEditTeacher = (t: TeacherData) => {
+    setEditingTeacher(t);
+    setTeacherFormData({ ...t });
+    setIsTeacherModalOpen(true);
+  };
+
+  const handleSaveTeacher = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = String(teacherFormData.name || '').trim();
+    if (!cleanName) {
+      alert('Vui lòng nhập họ tên Thầy / Cô!');
+      return;
+    }
+
+    const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const teacherToSave: TeacherData = {
+      id: editingTeacher?.id || ('tc' + (Date.now() % 10000)),
+      name: cleanName,
+      gender: (teacherFormData.gender as 'Thầy' | 'Cô') || 'Cô',
+      birthYear: String(teacherFormData.birthYear || '').trim(),
+      phone: String(teacherFormData.phone || '').trim(),
+      relativePhone: String(teacherFormData.relativePhone || '').trim(),
+      address: String(teacherFormData.address || '').trim(),
+      subject: String(teacherFormData.subject || '').trim(),
+      role: String(teacherFormData.role || 'Giáo viên Bộ môn').trim(),
+      workStatus: String(teacherFormData.workStatus || 'Đã nghỉ hưu').trim(),
+      inviteProgress: String(teacherFormData.inviteProgress || 'Chưa gửi').trim(),
+      status: (teacherFormData.status || 'pending') as TeacherInvitationStatus,
+      companion: String(teacherFormData.companion || 'Đi một mình').trim(),
+      transportation: String(teacherFormData.transportation || 'Tự túc').trim(),
+      coordinator: String(teacherFormData.coordinator || '').trim(),
+      healthNotes: String(teacherFormData.healthNotes || '').trim(),
+      avatarUrl: String(teacherFormData.avatarUrl || '').trim(),
+      quote: String(teacherFormData.quote || '').trim(),
+      updatedAt: nowStr
+    };
+
+    if (editingTeacher) {
+      if (onUpdateTeacher) {
+        onUpdateTeacher(teacherToSave);
+      } else if (onSaveAllTeachers) {
+        onSaveAllTeachers(effectiveTeachers.map(t => t.id === teacherToSave.id ? teacherToSave : t));
+      }
+    } else {
+      if (onAddTeacher) {
+        onAddTeacher(teacherToSave);
+      } else if (onSaveAllTeachers) {
+        onSaveAllTeachers([...effectiveTeachers, teacherToSave]);
+      }
+    }
+
+    setIsTeacherModalOpen(false);
+    setEditingTeacher(null);
+  };
+
+  const handleDeleteTeacherItem = (t: TeacherData) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa "${t.name}" khỏi danh sách Thầy Cô không?`)) {
+      return;
+    }
+    if (onDeleteTeacher) {
+      onDeleteTeacher(t.id);
+    } else if (onSaveAllTeachers) {
+      onSaveAllTeachers(effectiveTeachers.filter(x => x.id !== t.id));
+    }
+  };
+
+  const handleTeacherAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingTeacherAvatar(true);
+    try {
+      const base64Jpeg = await compressImageToJpeg(file, 800, 0.82);
+      const targetUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      if (targetUrl && targetUrl.trim()) {
+        try {
+          const payload = {
+            action: 'upload_teacher_avatar',
+            fileData: base64Jpeg,
+            mimeType: 'image/jpeg',
+            name: teacherFormData.name || 'ThayCo'
+          };
+          const res = await fetch(targetUrl, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (json.status === 'success' && json.url) {
+            setTeacherFormData(prev => ({ ...prev, avatarUrl: json.url }));
+            setIsUploadingTeacherAvatar(false);
+            return;
+          }
+        } catch (fetchErr) {
+          console.warn('Lỗi tải ảnh thầy cô lên Drive, lưu base64:', fetchErr);
+        }
+      }
+      setTeacherFormData(prev => ({ ...prev, avatarUrl: base64Jpeg }));
+    } catch (err) {
+      console.warn('Lỗi nén ảnh chân dung:', err);
+      alert('Không thể đọc file ảnh, vui lòng thử lại!');
+    } finally {
+      setIsUploadingTeacherAvatar(false);
+    }
+  };
+
+  const handleSyncTeachersFromSheet = async () => {
+    const target = (scriptUrlInput || appsScriptUrl || '').trim();
+    if (!target || !target.startsWith('http')) {
+      alert('Vui lòng kiểm tra URL Google Apps Script trong tab Cấu Hình!');
+      return;
+    }
+    setIsSyncingTeachers(true);
+    try {
+      const adminPin = getAdminPinToken();
+      const pinQuery = adminPin ? `&pin=${encodeURIComponent(adminPin)}` : '';
+      const res = await fetch(`${target}?action=get_teachers${pinQuery}&t=${Date.now()}`);
+      const json = await res.json();
+      if (json && json.status === 'success' && Array.isArray(json.data)) {
+        if (onSaveAllTeachers) {
+          onSaveAllTeachers(json.data);
+        }
+        alert(`Đã tải về danh sách ${json.data.length} Thầy Cô từ Google Sheet!`);
+      } else {
+        alert(json.message || 'Không thể đồng bộ danh sách Thầy Cô lúc này.');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối khi đồng bộ Thầy Cô: ' + (err.message || 'Vui lòng thử lại'));
+    } finally {
+      setIsSyncingTeachers(false);
+    }
+  };
+
+  // Lọc danh sách thầy cô trong bảng admin
+  const filteredAdminTeachers = useMemo(() => {
+    const q = teacherSearch.toLowerCase().trim();
+    return effectiveTeachers.filter(t => {
+      const matchQ = !q ||
+        t.name.toLowerCase().includes(q) ||
+        (t.subject && t.subject.toLowerCase().includes(q)) ||
+        (t.role && t.role.toLowerCase().includes(q)) ||
+        (t.phone && t.phone.includes(q)) ||
+        (t.coordinator && t.coordinator.toLowerCase().includes(q)) ||
+        (t.address && t.address.toLowerCase().includes(q));
+
+      const matchStatus = teacherStatusFilter === 'all' || t.status === teacherStatusFilter;
+      const matchRole = teacherRoleFilter === 'all' || 
+        (teacherRoleFilter === 'homeroom' && t.role?.toLowerCase().includes('chủ nhiệm')) ||
+        (teacherRoleFilter === 'subject' && !t.role?.toLowerCase().includes('chủ nhiệm'));
+
+      return matchQ && matchStatus && matchRole;
+    });
+  }, [effectiveTeachers, teacherSearch, teacherStatusFilter, teacherRoleFilter]);
+
+  // Thống kê thầy cô
+  const teacherStats = useMemo(() => {
+    const total = effectiveTeachers.length;
+    const attending = effectiveTeachers.filter(t => t.status === 'attending').length;
+    const wishing = effectiveTeachers.filter(t => t.status === 'wishing').length;
+    const pending = effectiveTeachers.filter(t => !t.status || t.status === 'pending').length;
+    const needCar = effectiveTeachers.filter(t => t.transportation && t.transportation.includes('đón')).length;
+    const invitedHand = effectiveTeachers.filter(t => t.inviteProgress && t.inviteProgress.includes('tận tay')).length;
+    return { total, attending, wishing, pending, needCar, invitedHand };
+  }, [effectiveTeachers]);
+
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [expenseFormData, setExpenseFormData] = useState<Partial<ExpenseItem>>({
@@ -3008,6 +3246,23 @@ export default function AdminManagementHub({
           </button>
 
           <button
+            onClick={() => setActiveTab('teachers')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              activeTab === 'teachers'
+                ? 'bg-[#1E293B] text-amber-300 shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>3. Quý Thầy Cô ({effectiveTeachers.length})</span>
+            {teacherStats.attending > 0 && (
+              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">
+                {teacherStats.attending} tham dự
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('wishes')}
             className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'wishes'
@@ -3016,7 +3271,7 @@ export default function AdminManagementHub({
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>3. Lưu Bút & Lời Chúc</span>
+            <span>4. Lưu Bút & Lời Chúc</span>
           </button>
 
           <button
@@ -3028,7 +3283,7 @@ export default function AdminManagementHub({
             }`}
           >
             <Video className="w-3.5 h-3.5" />
-            <span>4. Ảnh Bìa, Video & Gallery</span>
+            <span>5. Ảnh Bìa, Video & Gallery</span>
           </button>
 
           <button
@@ -3040,7 +3295,7 @@ export default function AdminManagementHub({
             }`}
           >
             <Settings className="w-3.5 h-3.5" />
-            <span>5. Cấu Hình Sự Kiện & Hệ Thống</span>
+            <span>6. Cấu Hình Sự Kiện & Hệ Thống</span>
             {isAdmin ? (
               <span className="text-[9px] bg-amber-800 text-amber-200 px-1.5 py-0.2 rounded font-mono">Admin 👑</span>
             ) : isTreasurer ? (
@@ -5163,7 +5418,301 @@ export default function AdminManagementHub({
       )}
 
           {/* --------------------------------------------------------------- */}
-          {/* TAB 3: WISHES GUESTBOOK CRUD */}
+          {/* TAB 3: QUÝ THẦY CÔ GIÁO K8A1 (SHEET: "Thay_Co_K8A1") */}
+          {/* --------------------------------------------------------------- */}
+          {activeTab === 'teachers' && (
+            <div className="space-y-4">
+              {/* Header card with Stats */}
+              <div className="bg-white p-4 rounded-xl border border-amber-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100 pb-3">
+                  <div>
+                    <h3 className="text-base font-bold font-serif text-slate-900 flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-amber-600" />
+                      <span>Danh Sách Quý Thầy Cô Giáo K8A1 (Niên Khóa 2003 — 2006)</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-sans">
+                      Quản lý công tác tri ân, tiến độ gửi thiệp mời, phương án đưa đón và đón tiếp tại Hội Khóa 20 Năm.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleSyncTeachersFromSheet}
+                      disabled={isSyncingTeachers}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs"
+                      title="Tải lại danh sách Thầy Cô từ Google Sheet (Thay_Co_K8A1)"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 text-amber-700 ${isSyncingTeachers ? 'animate-spin' : ''}`} />
+                      <span>{isSyncingTeachers ? 'Đang tải...' : 'Đồng Bộ Sheet'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenAddTeacher}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm Quý Thầy Cô</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Mini KPI Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+                  <div className="p-2.5 bg-amber-50/70 border border-amber-200/80 rounded-xl">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase block">Tổng Thầy Cô</span>
+                    <span className="text-base font-serif font-bold text-amber-950">{teacherStats.total} Thầy/Cô</span>
+                  </div>
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <span className="text-[10px] text-emerald-700 font-bold uppercase block">Chắc Chắn Về Dự</span>
+                    <span className="text-base font-serif font-bold text-emerald-900">{teacherStats.attending} Thầy/Cô</span>
+                  </div>
+                  <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl">
+                    <span className="text-[10px] text-blue-700 font-bold uppercase block">Lớp Cử Xe Đón</span>
+                    <span className="text-base font-serif font-bold text-blue-900">{teacherStats.needCar} Thầy/Cô</span>
+                  </div>
+                  <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl">
+                    <span className="text-[10px] text-purple-700 font-bold uppercase block">Đã Trao Thiệp</span>
+                    <span className="text-base font-serif font-bold text-purple-900">{teacherStats.invitedHand} Thầy/Cô</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters Toolbar */}
+              <div className="bg-white p-3 rounded-xl border border-amber-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={teacherSearch}
+                    onChange={(e) => setTeacherSearch(e.target.value)}
+                    placeholder="Tìm theo tên Thầy Cô, môn dạy, SĐT, BLL phụ trách..."
+                    className="w-full pl-9 pr-3 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg text-xs font-serif text-slate-900 focus:outline-none focus:border-amber-500"
+                  />
+                  {teacherSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setTeacherSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <select
+                    value={teacherStatusFilter}
+                    onChange={(e) => setTeacherStatusFilter(e.target.value)}
+                    className="px-2.5 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg font-sans text-xs focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="attending">Chắc chắn tham dự</option>
+                    <option value="pending">Đang liên hệ</option>
+                    <option value="wishing">Gửi lời chúc từ xa</option>
+                    <option value="declined">Báo bận / Không về</option>
+                    <option value="memorial">Tưởng nhớ tri ân</option>
+                  </select>
+
+                  <select
+                    value={teacherRoleFilter}
+                    onChange={(e) => setTeacherRoleFilter(e.target.value)}
+                    className="px-2.5 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg font-sans text-xs focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="all">Tất cả vai trò</option>
+                    <option value="homeroom">Giáo viên Chủ nhiệm</option>
+                    <option value="subject">Giáo viên Bộ môn</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Table / List */}
+              <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider border-b border-amber-200">
+                      <tr>
+                        <th className="py-3 px-3 w-10 text-center">STT</th>
+                        <th className="py-3 px-3">Quý Thầy / Cô</th>
+                        <th className="py-3 px-3">Môn & Vai Trò</th>
+                        <th className="py-3 px-3">Liên Hệ & Địa Chỉ</th>
+                        <th className="py-3 px-3 text-center">Tiến Độ Thiệp</th>
+                        <th className="py-3 px-3 text-center">Tham Dự</th>
+                        <th className="py-3 px-3">Đưa Đón & Đi Kèm</th>
+                        <th className="py-3 px-3">BLL Phụ Trách</th>
+                        <th className="py-3 px-3 text-right">Thao Tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-sans">
+                      {filteredAdminTeachers.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="py-12 text-center text-slate-400">
+                            <GraduationCap className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                            <p className="font-serif italic text-sm">Chưa có Thầy Cô nào phù hợp bộ lọc.</p>
+                            <button
+                              type="button"
+                              onClick={handleOpenAddTeacher}
+                              className="mt-2 text-xs text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer"
+                            >
+                              + Thêm Thầy Cô đầu tiên
+                            </button>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredAdminTeachers.map((t, idx) => {
+                          const isAttending = t.status === 'attending';
+                          const isWishing = t.status === 'wishing';
+                          const isMemorial = t.status === 'memorial';
+
+                          return (
+                            <tr key={t.id} className="hover:bg-amber-50/40 transition">
+                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                                {idx + 1}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="flex items-center gap-2.5">
+                                  <img
+                                    src={t.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'}
+                                    alt={t.name}
+                                    referrerPolicy="no-referrer"
+                                    className="w-10 h-10 rounded-full object-cover border border-amber-300 shrink-0"
+                                    onError={(e: any) => {
+                                      e.target.src = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80';
+                                    }}
+                                  />
+                                  <div>
+                                    <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                                      <span>{t.name}</span>
+                                      <span className="text-[10px] font-mono text-slate-400">({t.id})</span>
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 font-serif italic">
+                                      {t.gender || 'Cô'} {t.birthYear ? `• Sinh năm ${t.birthYear}` : ''} {t.workStatus ? `• ${t.workStatus}` : ''}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="font-semibold text-amber-900 text-xs">
+                                  {t.role || 'Giáo viên'}
+                                </div>
+                                <div className="text-[11px] text-slate-500 font-medium">
+                                  Môn: {t.subject || 'Toàn trường'}
+                                </div>
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="font-mono text-slate-800 text-xs">
+                                  {t.phone || 'Chưa có SĐT'}
+                                </div>
+                                {t.relativePhone && (
+                                  <div className="text-[10.5px] text-slate-500 font-sans">
+                                    Người thân: <span className="font-mono">{t.relativePhone}</span>
+                                  </div>
+                                )}
+                                {t.address && (
+                                  <div className="text-[10.5px] text-slate-500 truncate max-w-[180px]" title={t.address}>
+                                    📍 {t.address}
+                                  </div>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  t.inviteProgress?.includes('tận tay')
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                    : t.inviteProgress?.includes('điện tử') || t.inviteProgress?.includes('đã gửi')
+                                    ? 'bg-blue-50 text-blue-800 border-blue-300'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}>
+                                  {t.inviteProgress || 'Chưa gửi'}
+                                </span>
+                              </td>
+
+                              <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                {isAttending ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Tham dự</span>
+                                  </span>
+                                ) : isWishing ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-300">
+                                    <Sparkles className="w-3 h-3 text-amber-600" />
+                                    <span>Gửi lời chúc</span>
+                                  </span>
+                                ) : isMemorial ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-300">
+                                    <Heart className="w-3 h-3 text-purple-600 fill-purple-200" />
+                                    <span>Tưởng nhớ</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-300">
+                                    <Clock className="w-3 h-3 text-sky-600" />
+                                    <span>Đang liên hệ</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                {t.transportation && (
+                                  <div className="text-slate-800 font-medium text-xs flex items-center gap-1">
+                                    <Car className="w-3 h-3 text-amber-700 shrink-0" />
+                                    <span>{t.transportation}</span>
+                                  </div>
+                                )}
+                                {t.companion && t.companion !== 'Đi một mình' && (
+                                  <div className="text-[11px] text-emerald-700 font-sans">
+                                    Đi kèm: {t.companion}
+                                  </div>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3">
+                                <div className="font-semibold text-slate-800 text-xs">
+                                  {t.coordinator || 'Chưa phân công'}
+                                </div>
+                                {t.healthNotes && (
+                                  <div className="text-[10.5px] text-rose-600 italic truncate max-w-[140px]" title={t.healthNotes}>
+                                    ⚠️ {t.healthNotes}
+                                  </div>
+                                )}
+                              </td>
+
+                              <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditTeacher(t)}
+                                    className="p-1.5 text-slate-500 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                                    title="Sửa thông tin Thầy Cô"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTeacherItem(t)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                    title="Xóa Thầy Cô này"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* --------------------------------------------------------------- */}
+          {/* TAB 4: WISHES GUESTBOOK CRUD */}
           {/* --------------------------------------------------------------- */}
           {activeTab === 'wishes' && (
             <div className="space-y-4">

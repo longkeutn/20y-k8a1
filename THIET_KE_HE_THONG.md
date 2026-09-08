@@ -108,6 +108,81 @@
 
 ---
 
+---
+
+### 2.4 Sheet Quản Lý Thầy Cô: `Thay_Co_K8A1` (Module Độc Lập)
+- **Tên sheet:** `Thay_Co_K8A1`.
+- **Cấu trúc 19 cột:**
+  | Cột | Tên Cột | Kiểu | Mô tả |
+  | :--- | :--- | :--- | :--- |
+  | **A** | `Mã Thầy Cô` | String (PK) | `tc01`, `tc02`, `tc03`... |
+  | **B** | `Danh Xưng & Họ Tên` | String | Thầy Nguyễn Văn A, Cô Trần Thị B |
+  | **C** | `Giới Tính` | Dropdown | `Thầy` / `Cô` |
+  | **D** | `Năm Sinh / Độ Tuổi` | String | 1952 (74 tuổi)... |
+  | **E** | `Số Điện Thoại Chính` | String | SĐT cá nhân (Bảo mật) |
+  | **F** | `SĐT Phụ / Người Thân` | String | SĐT phu nhân/con cháu |
+  | **G** | `Địa Chỉ Nhà Riêng` | String | Địa chỉ trao thiệp / đón rước |
+  | **H** | `Môn Giảng Dạy` | String | Ngữ Văn, Toán, Vật Lý, Hóa Học... |
+  | **I** | `Vai Trò Với K8A1` | Dropdown | Chủ nhiệm Lớp 10/11/12, Giáo viên Bộ môn, BGH |
+  | **J** | `Tình Trạng Công Tác` | Dropdown | Đã nghỉ hưu, Đang công tác, Đã chuyển trường, Đã mất |
+  | **K** | `Tiến Độ Gửi Thiệp` | Dropdown | Chưa gửi, Đã gửi thiệp điện tử, Đã trao thiệp tận tay |
+  | **L** | `Trạng Thái Tham Dự` | Dropdown | Chắc chắn tham dự 🟢, Đang cân nhắc 🟡, Báo bận ⚪, Gửi lời chúc 💌, Tưởng nhớ 🕯️ |
+  | **M** | `Người Đi Kèm` | String | Đi một mình, Kèm phu nhân (+1), Con cháu đưa đi |
+  | **N** | `Phương Án Đưa Đón` | String | Tự đến, Lớp cử xe đón tại nhà, Nhóm bạn học đón |
+  | **O** | `Đầu Mối BLL Phụ Trách` | String | Tên & SĐT thành viên BLL chăm sóc |
+  | **P** | `Lưu Ý Sức Khỏe` | String | Ngồi tầng trệt ít bậc thang, ăn kiêng... |
+  | **Q** | `Ảnh Chân Dung` | String (URL) | Link ảnh Google Drive / CDN |
+  | **R** | `Lời Dặn Dò / Kỷ Niệm` | Long Text | Lời nhắn gửi của thầy cô |
+  | **S** | `Ngày Cập Nhật` | String | Thời gian chỉnh sửa |
+
+---
+
+## 3. THIẾT KẾ BACKEND (GOOGLE APPS SCRIPT)
+
+### 3.1 Hàm `getActiveRsvpSheet()` (Dynamic Partitioning)
+- Thay thế toàn bộ hardcode `CONFIG.RSVP_SHEET_NAME`.
+- Tự động lấy tên sheet từ cấu hình. Nếu sheet chưa tồn tại, tự động tạo mới (`insertSheet`) và khởi tạo đầy đủ 17 cột với tiêu đề in đậm nền `#FAF3E0`.
+
+### 3.2 Thuật toán So khớp & Upsert (Ưu tiên Tuyệt Đối Khóa Ngoại)
+1. **Bước 1:** Khớp theo `Mã TV` (Cột Q = `postData.memberId`). Nếu khớp $\rightarrow$ Ghi đè cập nhật.
+2. **Bước 2:** Khớp theo `targetRowId` (nếu họ tên không mâu thuẫn).
+3. **Bước 3:** Khớp theo `normalizePhone(rawPhone)`.
+4. **Bước 4:** Khớp theo `normalizeName(rawName)` (chỉ áp dụng nếu trong danh bạ chỉ có đúng 1 bạn mang họ tên này).
+
+### 3.3 Đồng Bộ Tự Động 2 Chiều (Cascade Sync)
+- **Khi WebApp cập nhật danh bạ (`saveClassRoster` / `updateClassMember`):**
+  - Tự động dò sang sheet RSVP đang hoạt động: Tìm dòng có cùng `memberId`.
+  - Cập nhật tức thì: `Họ và Tên`, `Biệt danh`, `Số điện thoại`, `Size áo` và gán Cột Q = `memberId`.
+- **Khi sửa trực tiếp trên Google Sheets (`onEdit(e)` Trigger):**
+  - Nếu sửa tại sheet `Danh_Sach_Lop` (cột 2, 3, 4, 7): Trigger đọc `Mã TV` tại Cột A.
+  - Tìm dòng tương ứng bên Sheet Điểm danh và đồng bộ ngay lập tức!
+- **Hàm Quét & Migration 1-Chạm (`action: 'sync_roster_to_rsvp'`):**
+  - Quét toàn bộ dòng hiện tại của `Trang_tinh_1`.
+  - Ánh xạ với `Danh_Sach_Lop` theo tên/SĐT hiện có.
+  - Điền mã `m01`..`m65` vào Cột Q và chuẩn hóa thông tin.
+
+### 3.4 Quản Lý Thầy Cô Giáo K8A1 (Sheet: `Thay_Co_K8A1`)
+- Các hàm backend độc lập: `getTeachersList(isAdmin)`, `saveTeachersList(postData)`, `addTeacher(postData)`, `updateTeacher(postData)`, `deleteTeacher(postData)`.
+- Tuyệt đối cách ly không ảnh hưởng tới dữ liệu học sinh hay quỹ lớp.
+
+---
+
+## 4. THIẾT KẾ FRONTEND (REACT / VITE)
+
+### 4.1 Quản lý State & Đồng bộ
+- `sanitizeRsvp`: Chuẩn hóa bắt buộc có thuộc tính `memberId: item.memberId ? String(item.memberId).trim() : undefined`.
+- `handleUpdateClassRoster`: Khi danh bạ thay đổi, tự động duyệt `rsvpList` và cập nhật thông tin mới nhất cho các bản ghi có cùng `memberId`.
+- Mọi so khớp hiển thị tại `ClassGatheringCounter`, `ConfirmedAttendees`, `StudentPassModal`, `AdminManagementHub`, `BankTransfer`, `RsvpForm` đều lấy **`memberId === m.id` làm điều kiện tiên quyết**.
+- `teachersList`: Quản lý danh sách thầy cô động từ Backend.
+
+### 4.2 Giao diện Admin Hub
+- Thêm nút hành động: **"🔄 Đồng bộ Danh bạ sang Điểm danh (1-Chạm)"**.
+- Hiển thị huy hiệu `Mã TV` trên bảng Điểm danh và Quỹ lớp để Admin dễ dàng kiểm tra liên kết.
+- Tab Quản Trị Thầy Cô: Bảng điều phối thiệp mời, phân công xe đưa đón, lưu ý sức khỏe.
+
+---
+
 ## 5. BẢO MẬT & AUDIT TRAIL
 - Thao tác đồng bộ hàng loạt hoặc sửa danh bạ yêu cầu mã PIN Quản trị viên (`isAdmin`).
 - Số điện thoại ở chế độ Guest tiếp tục được bảo mật (che mờ 3 số giữa).
+

@@ -1,4 +1,4 @@
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem } from './types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute } from './types';
 
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
@@ -1753,6 +1753,103 @@ export const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfyc
 export const K8A1_DRIVE_FOLDER_ID = "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
 export const K8A1_DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1Skmip1HQhmXan-58kwbY_msamP-bWokq";
 
+export const TEACHERS_LIST: TeacherData[] = [
+  {
+    id: "tc01",
+    name: "Cô Trần Thị Lan",
+    gender: "Cô",
+    birthYear: "1960",
+    phone: "0912 ••• •88",
+    address: "P. Hoàng Văn Thụ, TP. Thái Nguyên",
+    subject: "Ngữ Văn",
+    role: "Chủ nhiệm Lớp 12A1",
+    workStatus: "Đã nghỉ hưu",
+    inviteProgress: "Đã trao thiệp tận tay",
+    status: "attending",
+    companion: "Kèm phu quân (+1)",
+    transportation: "Lớp cử xe đón tại nhà",
+    coordinator: "Long Kều (Admin)",
+    healthNotes: "Ngồi bàn danh dự tầng 1 ít bậc thang",
+    avatarUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80",
+    quote: "20 năm qua đi như một cái chớp mắt, chúc các cô cậu học trò 12A1 ngày nào luôn vững vàng và giữ trọn tình bạn!"
+  },
+  {
+    id: "tc02",
+    name: "Thầy Nguyễn Văn Đức",
+    gender: "Thầy",
+    birthYear: "1955",
+    phone: "0983 ••• •66",
+    address: "P. Phan Đình Phùng, TP. Thái Nguyên",
+    subject: "Toán Học",
+    role: "Chủ nhiệm Lớp 11A1",
+    workStatus: "Đã nghỉ hưu",
+    inviteProgress: "Đã trao thiệp tận tay",
+    status: "attending",
+    companion: "Đi một mình",
+    transportation: "Thầy tự đi cùng học trò",
+    coordinator: "Tuấn Báo",
+    avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80",
+    quote: "Toán học có những bài toán hóc búa, nhưng đường đời còn nhiều bài toán khó hơn. Thầy tự hào vì các em đều trưởng thành."
+  },
+  {
+    id: "tc03",
+    name: "Cô Lê Thị Mai",
+    gender: "Cô",
+    birthYear: "1965",
+    phone: "0977 ••• •33",
+    address: "Cầu Giấy, Hà Nội",
+    subject: "Tiếng Anh",
+    role: "Chủ nhiệm Lớp 10A1",
+    workStatus: "Đang công tác",
+    inviteProgress: "Đã gửi thiệp điện tử",
+    status: "wishing",
+    companion: "Đi một mình",
+    transportation: "Tự túc",
+    coordinator: "Hương Béo",
+    avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80",
+    quote: "Dù ở xa không về trực tiếp được, cô vẫn luôn dõi theo và chúc tập thể K8A1 một ngày hội khóa thật trọn vẹn và xúc động!"
+  },
+  {
+    id: "tc04",
+    name: "Thầy Phạm Quốc Hùng",
+    gender: "Thầy",
+    birthYear: "1958",
+    phone: "0913 ••• •99",
+    address: "P. Đồng Quang, TP. Thái Nguyên",
+    subject: "Vật Lý",
+    role: "Giáo viên Bộ môn",
+    workStatus: "Đã nghỉ hưu",
+    inviteProgress: "Đã gửi thiệp",
+    status: "pending",
+    companion: "Đi một mình",
+    transportation: "Lớp cử xe đón",
+    coordinator: "Thắng Đầu Gấu",
+    avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&auto=format&fit=crop&q=80",
+    quote: "Thời gian là đại lượng một chiều, nhưng kỷ niệm tuổi học trò sẽ luôn dao động tuần hoàn trong tim mỗi người."
+  }
+];
+
+export const INITIAL_TEACHER_TRIBUTES: TeacherTribute[] = [
+  {
+    id: "tr01",
+    teacherName: "Cô Trần Thị Lan",
+    studentName: "Đỗ Hoàng Long",
+    className: "12A1",
+    message: "Kính chúc Cô luôn an khang, dồi dào sức khỏe. 20 năm rồi chúng em vẫn nhớ như in những giờ giảng văn say sưa của Cô!",
+    submittedAt: "08/09/2026 09:30",
+    likes: 12
+  },
+  {
+    id: "tr02",
+    teacherName: "Thầy Nguyễn Văn Đức",
+    studentName: "Nguyễn Tuấn Anh",
+    className: "11A1",
+    message: "Em cảm ơn Thầy những nét chữ phấn trắng bảng đen và sự kiên nhẫn uốn nắn chúng em suốt năm tháng cấp 3!",
+    submittedAt: "08/09/2026 10:15",
+    likes: 8
+  }
+];
+
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * GOOGLE APPS SCRIPT (Code.gs)
  * Phục vụ WebApp "Hội Ngộ 20 Năm Lớp K8A1 — THPT Thái Nguyên"
@@ -1790,7 +1887,9 @@ const CONFIG = {
   // Tên trang tính lưu các khoản thu quỹ lớp (Sổ thu đa danh mục)
   INCOMES_SHEET_NAME: "Khoan_Thu",
   // Tên trang tính lưu trữ cấu hình bảo mật mã PIN phân quyền
-  SECURITY_SHEET_NAME: "Bao_Mat_PIN"
+  SECURITY_SHEET_NAME: "Bao_Mat_PIN",
+  // Tên trang tính lưu danh sách thầy cô giáo tri ân (Độc lập 100%)
+  TEACHERS_SHEET_NAME: "Thay_Co_K8A1"
 };
 
 // Chuẩn hóa phản hồi JSON cho WebApp (CORS tự động xử lý bởi Google Apps Script)
@@ -2195,6 +2294,11 @@ function doGet(e) {
       return handleResponse(getClassRoster(isAdmin));
     }
 
+    // 8. Lấy danh sách Quý Thầy Cô giáo K8A1 (Bảo mật: Che mờ SĐT nếu không phải Admin)
+    if (action === 'get_teachers' || action === 'get_teachers_list') {
+      return handleResponse(getTeachersList(isAdmin));
+    }
+
     // Dọn dẹp bản ghi trùng lặp (Chỉ Admin)
     if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
       if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên!' });
@@ -2294,6 +2398,27 @@ function doPost(e) {
     if (action === 'delete_member' || action === 'remove_member') {
       if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để xóa thành viên!' });
       return handleResponse(deleteClassMember(postData));
+    }
+
+    // Quản lý danh sách Thầy Cô giáo K8A1 (Sheet: "Thay_Co_K8A1")
+    if (action === 'save_teachers' || action === 'update_teachers') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu danh sách thầy cô!' });
+      return handleResponse(saveTeachersList(postData));
+    }
+
+    if (action === 'add_teacher') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để thêm thầy cô!' });
+      return handleResponse(addTeacher(postData));
+    }
+
+    if (action === 'update_teacher') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để cập nhật thông tin thầy cô!' });
+      return handleResponse(updateTeacher(postData));
+    }
+
+    if (action === 'delete_teacher') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để xóa thầy cô!' });
+      return handleResponse(deleteTeacher(postData));
     }
 
     // Cập nhật mã PIN bảo mật
@@ -4144,6 +4269,295 @@ function updateSecurityPins(data) {
  * 4. TOÀN BỘ CƠ SỞ DỮ LIỆU ĐỒNG BỘ 1 LỆNH (SINGLE SOURCE OF TRUTH)
  * -------------------------------------------------------------
  */
+/**
+ * -------------------------------------------------------------
+ * 4. QUẢN LÝ QUÝ THẦY CÔ GIÁO K8A1 (SHEET: "Thay_Co_K8A1")
+ * Hoàn toàn độc lập, không ảnh hưởng tới các sheet khác
+ * -------------------------------------------------------------
+ */
+function getTeachersSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.TEACHERS_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.TEACHERS_SHEET_NAME);
+    initTeachersSheet(sheet);
+  }
+  return sheet;
+}
+
+function initTeachersSheet(sheet) {
+  var headers = [
+    'Mã Thầy Cô', 
+    'Danh Xưng & Họ Tên', 
+    'Giới Tính', 
+    'Năm Sinh / Độ Tuổi', 
+    'Số Điện Thoại Chính', 
+    'SĐT Phụ / Người Thân', 
+    'Địa Chỉ Nhà Riêng', 
+    'Môn Giảng Dạy', 
+    'Vai Trò Với K8A1', 
+    'Tình Trạng Công Tác', 
+    'Tiến Độ Gửi Thiệp', 
+    'Trạng Thái Tham Dự', 
+    'Người Đi Kèm', 
+    'Phương Án Đưa Đón', 
+    'Đầu Mối BLL Phụ Trách', 
+    'Lưu Ý Sức Khỏe', 
+    'Ảnh Chân Dung', 
+    'Lời Dặn Dò / Kỷ Niệm', 
+    'Ngày Cập Nhật'
+  ];
+  sheet.appendRow(headers);
+  sheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#FAF3E0');
+
+  var defaultTeachers = [
+    ['tc01', 'Cô Trần Thị Lan', 'Cô', '1960', '', '', 'P. Hoàng Văn Thụ, TP. Thái Nguyên', 'Ngữ Văn', 'Chủ nhiệm Lớp 12A1', 'Đã nghỉ hưu', 'Đã trao thiệp tận tay', 'Chắc chắn tham dự', 'Kèm phu quân (+1)', 'Lớp cử xe đón tại nhà', 'Long Kều (Admin)', 'Ngồi bàn danh dự tầng 1 ít bậc thang', 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80', '20 năm qua đi như một cái chớp mắt, chúc các cô cậu học trò 12A1 ngày nào luôn vững vàng và giữ trọn tình bạn!', 'Khởi tạo'],
+    ['tc02', 'Thầy Nguyễn Văn Đức', 'Thầy', '1955', '', '', 'P. Phan Đình Phùng, TP. Thái Nguyên', 'Toán Học', 'Chủ nhiệm Lớp 11A1', 'Đã nghỉ hưu', 'Đã trao thiệp tận tay', 'Chắc chắn tham dự', 'Đi một mình', 'Thầy tự đi cùng học trò', 'Tuấn Báo', '', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80', 'Toán học có những bài toán hóc búa, nhưng đường đời còn nhiều bài toán khó hơn. Thầy tự hào vì các em đều trưởng thành.', 'Khởi tạo'],
+    ['tc03', 'Cô Lê Thị Mai', 'Cô', '1965', '', '', 'Cầu Giấy, Hà Nội', 'Tiếng Anh', 'Chủ nhiệm Lớp 10A1', 'Đang công tác', 'Đã gửi thiệp điện tử', 'Gửi lời chúc từ xa', 'Đi một mình', 'Tự túc', 'Hương Béo', '', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80', 'Dù ở xa không về trực tiếp được, cô vẫn luôn dõi theo và chúc tập thể K8A1 một ngày hội khóa thật trọn vẹn và xúc động!', 'Khởi tạo'],
+    ['tc04', 'Thầy Phạm Quốc Hùng', 'Thầy', '1958', '', '', 'P. Đồng Quang, TP. Thái Nguyên', 'Vật Lý', 'Giáo viên Bộ môn', 'Đã nghỉ hưu', 'Đã gửi thiệp', 'Đang liên hệ', 'Đi một mình', 'Lớp cử xe đón', 'Thắng Đầu Gấu', '', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&auto=format&fit=crop&q=80', 'Thời gian là đại lượng một chiều, nhưng kỷ niệm tuổi học trò sẽ luôn dao động tuần hoàn trong tim mỗi người.', 'Khởi tạo']
+  ];
+  sheet.getRange(2, 1, defaultTeachers.length, 19).setValues(defaultTeachers);
+}
+
+function getTeachersList(isAdmin) {
+  try {
+    var sheet = getTeachersSheet();
+    var rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) return { status: 'success', data: [] };
+
+    var teachers = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r[0] && !r[1]) continue;
+      var rawPhone = String(r[4] || '').trim();
+      if (rawPhone.startsWith("'")) rawPhone = rawPhone.substring(1);
+      var relPhone = String(r[5] || '').trim();
+      if (relPhone.startsWith("'")) relPhone = relPhone.substring(1);
+
+      var statusRaw = String(r[11] || 'Đang liên hệ').trim();
+      var mappedStatus = 'pending';
+      if (statusRaw.includes('Chắc chắn') || statusRaw === 'attending') mappedStatus = 'attending';
+      else if (statusRaw.includes('lời chúc') || statusRaw === 'wishing') mappedStatus = 'wishing';
+      else if (statusRaw.includes('bận') || statusRaw.includes('Không') || statusRaw === 'declined') mappedStatus = 'declined';
+      else if (statusRaw.includes('Tưởng nhớ') || statusRaw === 'memorial') mappedStatus = 'memorial';
+
+      teachers.push({
+        id: String(r[0] || ('tc' + (i < 10 ? '0' + i : i))).trim(),
+        name: String(r[1] || '').trim(),
+        gender: String(r[2] || 'Cô').trim(),
+        birthYear: String(r[3] || '').trim(),
+        phone: isAdmin ? rawPhone : maskPhoneScript(rawPhone),
+        relativePhone: isAdmin ? relPhone : maskPhoneScript(relPhone),
+        address: isAdmin ? String(r[6] || '').trim() : '',
+        subject: String(r[7] || '').trim(),
+        role: String(r[8] || 'Giáo viên Bộ môn').trim(),
+        workStatus: String(r[9] || 'Đã nghỉ hưu').trim(),
+        inviteProgress: String(r[10] || 'Chưa gửi').trim(),
+        status: mappedStatus,
+        companion: String(r[12] || 'Đi một mình').trim(),
+        transportation: String(r[13] || 'Tự túc').trim(),
+        coordinator: String(r[14] || '').trim(),
+        healthNotes: String(r[15] || '').trim(),
+        avatarUrl: String(r[16] || '').trim(),
+        quote: String(r[17] || '').trim(),
+        updatedAt: formatDate(r[18] || new Date())
+      });
+    }
+    return { status: 'success', data: teachers, total: teachers.length };
+  } catch (err) {
+    return { status: 'error', message: err.toString(), data: [] };
+  }
+}
+
+function saveTeachersList(postData) {
+  try {
+    var sheet = getTeachersSheet();
+    var teachers = postData.teachers || [];
+    if (!Array.isArray(teachers)) {
+      return { status: 'error', message: 'Dữ liệu không đúng định dạng mảng!' };
+    }
+
+    sheet.clearContents();
+    var headers = [
+      'Mã Thầy Cô', 
+      'Danh Xưng & Họ Tên', 
+      'Giới Tính', 
+      'Năm Sinh / Độ Tuổi', 
+      'Số Điện Thoại Chính', 
+      'SĐT Phụ / Người Thân', 
+      'Địa Chỉ Nhà Riêng', 
+      'Môn Giảng Dạy', 
+      'Vai Trò Với K8A1', 
+      'Tình Trạng Công Tác', 
+      'Tiến Độ Gửi Thiệp', 
+      'Trạng Thái Tham Dự', 
+      'Người Đi Kèm', 
+      'Phương Án Đưa Đón', 
+      'Đầu Mối BLL Phụ Trách', 
+      'Lưu Ý Sức Khỏe', 
+      'Ảnh Chân Dung', 
+      'Lời Dặn Dò / Kỷ Niệm', 
+      'Ngày Cập Nhật'
+    ];
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#FAF3E0');
+
+    var nowStr = formatDate(new Date());
+    var rows = teachers.map(function(t, idx) {
+      var p = String(t.phone || '').trim();
+      if (p && !p.startsWith("'")) p = "'" + p;
+      var rp = String(t.relativePhone || '').trim();
+      if (rp && !rp.startsWith("'")) rp = "'" + rp;
+
+      var st = t.status === 'attending' ? 'Chắc chắn tham dự' : (t.status === 'wishing' ? 'Gửi lời chúc từ xa' : (t.status === 'declined' ? 'Báo bận / Không tham dự' : (t.status === 'memorial' ? 'Tưởng nhớ tri ân' : 'Đang liên hệ')));
+
+      return [
+        t.id || ('tc' + (idx < 9 ? '0' + (idx + 1) : (idx + 1))),
+        t.name || '',
+        t.gender || 'Cô',
+        t.birthYear || '',
+        p,
+        rp,
+        t.address || '',
+        t.subject || '',
+        t.role || 'Giáo viên Bộ môn',
+        t.workStatus || 'Đã nghỉ hưu',
+        t.inviteProgress || 'Chưa gửi',
+        st,
+        t.companion || 'Đi một mình',
+        t.transportation || 'Tự túc',
+        t.coordinator || '',
+        t.healthNotes || '',
+        t.avatarUrl || '',
+        t.quote || '',
+        nowStr
+      ];
+    });
+
+    if (rows.length > 0) {
+      sheet.getRange(2, 1, rows.length, 19).setValues(rows);
+    }
+    return { status: 'success', message: 'Đã lưu danh sách ' + rows.length + ' thầy cô thành công!', count: rows.length };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function addTeacher(postData) {
+  try {
+    var sheet = getTeachersSheet();
+    var t = postData.teacher || postData;
+    if (!t.name) return { status: 'error', message: 'Tên thầy cô không được để trống!' };
+
+    var lastRow = sheet.getLastRow();
+    var id = t.id || ('tc' + (lastRow < 10 ? '0' + lastRow : lastRow));
+    var nowStr = formatDate(new Date());
+
+    var p = String(t.phone || '').trim();
+    if (p && !p.startsWith("'")) p = "'" + p;
+    var rp = String(t.relativePhone || '').trim();
+    if (rp && !rp.startsWith("'")) rp = "'" + rp;
+    var st = t.status === 'attending' ? 'Chắc chắn tham dự' : (t.status === 'wishing' ? 'Gửi lời chúc từ xa' : (t.status === 'declined' ? 'Báo bận / Không tham dự' : (t.status === 'memorial' ? 'Tưởng nhớ tri ân' : 'Đang liên hệ')));
+
+    sheet.appendRow([
+      id,
+      t.name,
+      t.gender || 'Cô',
+      t.birthYear || '',
+      p,
+      rp,
+      t.address || '',
+      t.subject || '',
+      t.role || 'Giáo viên Bộ môn',
+      t.workStatus || 'Đã nghỉ hưu',
+      t.inviteProgress || 'Chưa gửi',
+      st,
+      t.companion || 'Đi một mình',
+      t.transportation || 'Tự túc',
+      t.coordinator || '',
+      t.healthNotes || '',
+      t.avatarUrl || '',
+      t.quote || '',
+      nowStr
+    ]);
+    return { status: 'success', message: 'Đã thêm ' + t.name + ' vào danh sách Thầy Cô!', id: id };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function updateTeacher(postData) {
+  try {
+    var sheet = getTeachersSheet();
+    var t = postData.teacher || postData;
+    var tid = String(t.id || '').trim();
+    if (!tid) return { status: 'error', message: 'Thiếu ID thầy cô' };
+
+    var rows = sheet.getDataRange().getValues();
+    var targetRow = -1;
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === tid) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+
+    if (targetRow === -1) return { status: 'error', message: 'Không tìm thấy thầy cô có ID: ' + tid };
+
+    var nowStr = formatDate(new Date());
+    if (t.name) sheet.getRange(targetRow, 2).setValue(String(t.name).trim());
+    if (t.gender) sheet.getRange(targetRow, 3).setValue(String(t.gender).trim());
+    if (t.birthYear !== undefined) sheet.getRange(targetRow, 4).setValue(String(t.birthYear).trim());
+    if (t.phone !== undefined) {
+      var p = String(t.phone).trim();
+      sheet.getRange(targetRow, 5).setValue(p ? "'" + p : '');
+    }
+    if (t.relativePhone !== undefined) {
+      var rp = String(t.relativePhone).trim();
+      sheet.getRange(targetRow, 6).setValue(rp ? "'" + rp : '');
+    }
+    if (t.address !== undefined) sheet.getRange(targetRow, 7).setValue(String(t.address).trim());
+    if (t.subject) sheet.getRange(targetRow, 8).setValue(String(t.subject).trim());
+    if (t.role) sheet.getRange(targetRow, 9).setValue(String(t.role).trim());
+    if (t.workStatus !== undefined) sheet.getRange(targetRow, 10).setValue(String(t.workStatus).trim());
+    if (t.inviteProgress !== undefined) sheet.getRange(targetRow, 11).setValue(String(t.inviteProgress).trim());
+    if (t.status !== undefined) {
+      var st = t.status === 'attending' ? 'Chắc chắn tham dự' : (t.status === 'wishing' ? 'Gửi lời chúc từ xa' : (t.status === 'declined' ? 'Báo bận / Không tham dự' : (t.status === 'memorial' ? 'Tưởng nhớ tri ân' : 'Đang liên hệ')));
+      sheet.getRange(targetRow, 12).setValue(st);
+    }
+    if (t.companion !== undefined) sheet.getRange(targetRow, 13).setValue(String(t.companion).trim());
+    if (t.transportation !== undefined) sheet.getRange(targetRow, 14).setValue(String(t.transportation).trim());
+    if (t.coordinator !== undefined) sheet.getRange(targetRow, 15).setValue(String(t.coordinator).trim());
+    if (t.healthNotes !== undefined) sheet.getRange(targetRow, 16).setValue(String(t.healthNotes).trim());
+    if (t.avatarUrl !== undefined) sheet.getRange(targetRow, 17).setValue(String(t.avatarUrl).trim());
+    if (t.quote !== undefined) sheet.getRange(targetRow, 18).setValue(String(t.quote).trim());
+    sheet.getRange(targetRow, 19).setValue(nowStr);
+
+    return { status: 'success', message: 'Đã cập nhật thông tin ' + (t.name || 'thầy cô') + ' thành công!' };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function deleteTeacher(postData) {
+  try {
+    var sheet = getTeachersSheet();
+    var tid = String(postData.id || postData.teacherId || '').trim();
+    if (!tid) return { status: 'error', message: 'Thiếu ID thầy cô' };
+
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === tid) {
+        sheet.deleteRow(i + 1);
+        return { status: 'success', message: 'Đã xóa thầy cô khỏi danh sách' };
+      }
+    }
+    return { status: 'error', message: 'Không tìm thấy thầy cô có ID: ' + tid };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
 function getAllData(isAdmin) {
   try {
     // Tự động đảm bảo Sheet Bao_Mat_PIN luôn tồn tại
@@ -4176,6 +4590,9 @@ function getAllData(isAdmin) {
     let incomes = [];
     try { incomes = (getIncomesList() || {}).data || []; } catch (e) {}
 
+    let teachers = [];
+    try { teachers = (getTeachersList(isAdmin) || {}).data || []; } catch (e) {}
+
     return {
       status: 'success',
       data: {
@@ -4187,7 +4604,8 @@ function getAllData(isAdmin) {
         viewCount: viewCount,
         drivePhotos: drivePhotos,
         expenses: expenses,
-        incomes: incomes
+        incomes: incomes,
+        teachers: teachers
       }
     };
   } catch (err) {

@@ -21,11 +21,12 @@ import {
   Music,
   Edit3,
   ScrollText,
-  BookOpen
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch } from './data';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, TEACHERS_LIST } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -47,6 +48,7 @@ import ReceiptUploadModal from './components/ReceiptUploadModal';
 import ClassCharterModal from './components/ClassCharterModal';
 import RoleGuideModal from './components/RoleGuideModal';
 import QuickNavigation from './components/QuickNavigation';
+import TeachersHonorRoll from './components/TeachersHonorRoll';
 
 export default function App() {
   // Config state (Google Apps Script WebApp URL)
@@ -767,6 +769,81 @@ export default function App() {
     syncToBackend('save_incomes', { incomes: clean });
   };
 
+  // Helper chuẩn hóa dữ liệu Thầy Cô giáo K8A1
+  const sanitizeTeacher = (item: any, idx: number): TeacherData => ({
+    id: item.id ? String(item.id) : ('tc' + (idx < 9 ? '0' + (idx + 1) : (idx + 1))),
+    name: String(item.name || '').trim(),
+    gender: (item.gender === 'Thầy' || item.gender === 'Cô') ? item.gender : 'Cô',
+    birthYear: item.birthYear ? String(item.birthYear).trim() : '',
+    phone: item.phone ? String(item.phone).trim() : '',
+    relativePhone: item.relativePhone ? String(item.relativePhone).trim() : '',
+    address: item.address ? String(item.address).trim() : '',
+    subject: item.subject ? String(item.subject).trim() : '',
+    role: item.role ? String(item.role).trim() : 'Giáo viên Bộ môn',
+    workStatus: item.workStatus ? String(item.workStatus).trim() : 'Đã nghỉ hưu',
+    inviteProgress: item.inviteProgress ? String(item.inviteProgress).trim() : 'Chưa gửi',
+    status: (item.status || 'pending') as TeacherInvitationStatus,
+    companion: item.companion ? String(item.companion).trim() : 'Đi một mình',
+    transportation: item.transportation ? String(item.transportation).trim() : 'Tự túc',
+    coordinator: item.coordinator ? String(item.coordinator).trim() : '',
+    healthNotes: item.healthNotes ? String(item.healthNotes).trim() : '',
+    avatarUrl: item.avatarUrl ? String(item.avatarUrl).trim() : '',
+    quote: item.quote ? String(item.quote).trim() : '',
+    updatedAt: item.updatedAt ? String(item.updatedAt).trim() : ''
+  });
+
+  // Quản lý Danh Sách Quý Thầy Cô (Thay_Co_K8A1)
+  const [teachersList, setTeachersList] = useState<TeacherData[]>(() => {
+    try {
+      const local = localStorage.getItem('k8a1_teachers_list');
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(sanitizeTeacher);
+        }
+      }
+    } catch {}
+    return TEACHERS_LIST;
+  });
+
+  const handleAddTeacher = (newTeacher: TeacherData) => {
+    const clean = sanitizeTeacher(newTeacher, teachersList.length);
+    const updated = [...teachersList, clean];
+    setTeachersList(updated);
+    try {
+      localStorage.setItem('k8a1_teachers_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_teachers', { teachers: updated });
+  };
+
+  const handleUpdateTeacher = (updatedTeacher: TeacherData) => {
+    const clean = sanitizeTeacher(updatedTeacher, 0);
+    const updated = teachersList.map(t => t.id === clean.id ? clean : t);
+    setTeachersList(updated);
+    try {
+      localStorage.setItem('k8a1_teachers_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_teachers', { teachers: updated });
+  };
+
+  const handleDeleteTeacher = (id: string) => {
+    const updated = teachersList.filter(t => t.id !== id);
+    setTeachersList(updated);
+    try {
+      localStorage.setItem('k8a1_teachers_list', JSON.stringify(updated));
+    } catch (e) {}
+    syncToBackend('save_teachers', { teachers: updated });
+  };
+
+  const handleSaveAllTeachers = (newList: TeacherData[]) => {
+    const clean = newList.map(sanitizeTeacher);
+    setTeachersList(clean);
+    try {
+      localStorage.setItem('k8a1_teachers_list', JSON.stringify(clean));
+    } catch (e) {}
+    syncToBackend('save_teachers', { teachers: clean });
+  };
+
   // Helper chuẩn hóa & chống trùng lặp danh sách RSVP (bảo toàn người trùng tên, đối soát chính xác theo SĐT hoặc memberId)
   const processRsvpList = (rawRsvpList: any[], prevRsvpList: RsvpData[] = rsvpList): RsvpData[] => {
     if (!Array.isArray(rawRsvpList) || rawRsvpList.length === 0) return [];
@@ -962,6 +1039,13 @@ export default function App() {
               const cleanInc = result.data.incomes.map((item: any, idx: number) => sanitizeIncome(item, idx));
               setIncomes(cleanInc);
               try { localStorage.setItem('k8a1_incomes_list', JSON.stringify(cleanInc)); } catch (e) {}
+            }
+
+            // I. Đồng bộ Danh Sách Quý Thầy Cô từ Google Sheet (tab "Thay_Co_K8A1")
+            if (Array.isArray(result.data?.teachers) && result.data.teachers.length > 0) {
+              const cleanTeachers = result.data.teachers.map((item: any, idx: number) => sanitizeTeacher(item, idx));
+              setTeachersList(cleanTeachers);
+              try { localStorage.setItem('k8a1_teachers_list', JSON.stringify(cleanTeachers)); } catch (e) {}
             }
           } else {
             // Dự phòng hai lớp: Nếu get_all_data trả về lỗi, nạp fallback cả config và rsvp
@@ -1346,6 +1430,14 @@ export default function App() {
               </button>
               <button
                 type="button"
+                onClick={() => document.getElementById('thay-co')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
+              >
+                <GraduationCap className="w-3 h-3 text-amber-400" />
+                <span>Quý Thầy Cô</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => document.getElementById('ky-uc')?.scrollIntoView({ behavior: 'smooth' })}
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
               >
@@ -1604,7 +1696,14 @@ export default function App() {
             </section>
 
             {/* ======================================================== */}
-            {/* 🎞️ PHÂN VÙNG 4: KHO KÝ ỨC THANH XUÂN K8A1 */}
+            {/* 🎓 PHÂN VÙNG 4: TRI ÂN QUÝ THẦY CÔ GIÁO K8A1 */}
+            {/* ======================================================== */}
+            <TeachersHonorRoll
+              teachers={teachersList}
+            />
+
+            {/* ======================================================== */}
+            {/* 🎞️ PHÂN VÙNG 5: KHO KÝ ỨC THANH XUÂN K8A1 */}
             {/* ======================================================== */}
             <section id="ky-uc" className="space-y-6 scroll-mt-20">
               <MemoryCorner 
@@ -1806,6 +1905,11 @@ export default function App() {
           onUpdateIncome={handleUpdateIncome}
           onDeleteIncome={handleDeleteIncome}
           onSaveAllIncomes={handleSaveAllIncomes}
+          teachersList={teachersList}
+          onAddTeacher={handleAddTeacher}
+          onUpdateTeacher={handleUpdateTeacher}
+          onDeleteTeacher={handleDeleteTeacher}
+          onSaveAllTeachers={handleSaveAllTeachers}
           onSaveAppsScriptUrl={(url) => {
             setAppsScriptUrl(url);
             if (url) {
