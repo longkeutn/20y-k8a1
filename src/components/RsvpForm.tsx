@@ -1448,17 +1448,17 @@ export default function RsvpForm({
                         Size áo đã lưu hiện tại: <strong className="text-amber-950 font-mono text-sm px-2 py-0.5 bg-amber-200/90 border border-amber-300 rounded-md font-bold">Size {matchedExistingAttendee.shirtSize || 'Chưa chọn'}</strong>
                       </div>
                       <span className="text-[11px] text-blue-900 font-sans font-semibold">
-                        👉 Muốn đổi size áo? Bấm chọn size mới bên dưới rồi nhấn <strong>"Lưu Thay Đổi Size Áo"</strong>!
+                        👉 Muốn đổi size áo? Bấm chọn size mới bên dưới rồi nhấn <strong>"Cập Nhật Điểm Danh"</strong>!
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* 2. LỜI NHẮC CỰC KỲ NỔI BẬT: BẮT BUỘC CHỌN SIZE ÁO ĐỂ ĐẶT MAY RIÊNG */}
+                {/* 2. KHỐI CHỌN SIZE ÁO POLO KỶ NIỆM K8A1 */}
                 <div className="p-3 bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-500/15 border-2 border-amber-400 rounded-xl space-y-1 shadow-2xs">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white font-sans font-black text-[10.5px] uppercase tracking-wider shadow-2xs animate-pulse">
-                      👕 BẮT BUỘC: CHỌN SIZE ÁO POLO KỶ NIỆM K8A1 *
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-600 to-amber-700 text-white font-sans font-bold text-[11px] uppercase tracking-wider shadow-2xs">
+                      👕 CHỌN SIZE ÁO POLO KỶ NIỆM K8A1
                     </span>
                     <button
                       type="button"
