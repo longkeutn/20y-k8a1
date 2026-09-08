@@ -12,6 +12,7 @@ import {
   UserX,
   UserPlus,
   Edit,
+  Edit3,
   Trash2,
   DollarSign,
   Receipt,
