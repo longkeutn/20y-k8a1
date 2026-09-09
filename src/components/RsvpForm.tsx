@@ -605,7 +605,7 @@ export default function RsvpForm({
         uniqueMatch = rosterList.filter(m => isPhoneMatch(m.phone, finalPhone));
       }
       if (uniqueMatch.length === 0) {
-        uniqueMatch = rosterList.filter(m => isVietnameseNameMatch(m, fullName.trim()));
+        uniqueMatch = rosterList.filter(m => isVietnameseNameMatch(m, fullName.trim(), nickname));
       }
       if (uniqueMatch.length === 1) {
         effectiveMemberId = uniqueMatch[0].id;
@@ -757,13 +757,55 @@ export default function RsvpForm({
     return false;
   }, [status, submitSuccess, lastSubmittedAttendee, matchedExistingAttendee]);
 
+  // Xác định mã thành viên chính xác (effectiveMemberId) cho thẻ kỷ niệm và checkin
+  const effectiveMemberId = useMemo(() => {
+    // 1. Nếu activeMember đang được chọn và khớp tên
+    if (activeMember && fullName.trim()) {
+      if (
+        normalizeName(activeMember.fullName) === normalizeName(fullName) ||
+        isVietnameseNameMatch(activeMember, fullName.trim(), nickname)
+      ) {
+        return activeMember.id;
+      }
+    }
+    // 2. Nếu đã có dữ liệu RSVP đã xác nhận trước đó mang memberId
+    if (lastSubmittedAttendee?.memberId) return lastSubmittedAttendee.memberId;
+    if (matchedExistingAttendee?.memberId) return matchedExistingAttendee.memberId;
+
+    // 3. Khớp từ danh bạ lớp rosterList theo họ tên & biệt danh
+    if (fullName.trim() && rosterList && rosterList.length > 0) {
+      const n = normalizeName(fullName);
+      const exactMatch = rosterList.find((m) => normalizeName(m.fullName) === n);
+      if (exactMatch) return exactMatch.id;
+
+      const aliasMatch = rosterList.find((m) => isVietnameseNameMatch(m, fullName.trim(), nickname));
+      if (aliasMatch) return aliasMatch.id;
+    }
+
+    // 4. Fallback: Nếu activeMember có sẵn và form chưa gõ tên
+    if (activeMember && !fullName.trim()) return activeMember.id;
+
+    return undefined;
+  }, [activeMember, fullName, nickname, lastSubmittedAttendee, matchedExistingAttendee, rosterList]);
+
   // Thông tin đối tượng tham dự dùng để mở Modal Thẻ Học Sinh hoặc Nộp Quỹ
   const currentPassAttendee = useMemo(() => {
-    if (lastSubmittedAttendee) return lastSubmittedAttendee;
-    if (matchedExistingAttendee) return matchedExistingAttendee;
+    if (lastSubmittedAttendee) {
+      return {
+        ...lastSubmittedAttendee,
+        memberId: lastSubmittedAttendee.memberId || effectiveMemberId
+      };
+    }
+    if (matchedExistingAttendee) {
+      return {
+        ...matchedExistingAttendee,
+        memberId: matchedExistingAttendee.memberId || effectiveMemberId
+      };
+    }
     if (fullName && fullName.trim()) {
       return {
-        id: activeMember?.id || 'temp',
+        id: effectiveMemberId || 'temp',
+        memberId: effectiveMemberId,
         fullName: fullName.trim(),
         nickname: nickname ? nickname.trim() : '',
         shirtSize: shirtSize || 'L',
@@ -773,7 +815,7 @@ export default function RsvpForm({
       } as RsvpData;
     }
     return null;
-  }, [lastSubmittedAttendee, matchedExistingAttendee, fullName, nickname, shirtSize, status, phone, activeMember]);
+  }, [lastSubmittedAttendee, matchedExistingAttendee, fullName, nickname, shirtSize, status, phone, effectiveMemberId]);
 
   // Cuộn mượt mà xuống khối thanh toán VietQR & Thông tin quỹ lớp (#bank-transfer-card)
   const handleGoToVietQrPayment = () => {
@@ -1125,7 +1167,7 @@ export default function RsvpForm({
             shirtSize={shirtSize}
             status={status}
             className="K8A1"
-            memberId={activeMember?.id}
+            memberId={effectiveMemberId}
             isConfirmed={isPassConfirmed}
             onOpenPassModal={currentPassAttendee ? () => onOpenPassModal && onOpenPassModal(currentPassAttendee) : undefined}
           />

@@ -3,6 +3,7 @@ import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilesto
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
     "id": "1",
+    "memberId": "m06",
     "rowId": "2",
     "fullName": "Thành Long",
     "nickname": "Long Kều",
@@ -1772,9 +1773,10 @@ export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
  */
 export function isVietnameseNameMatch(
   rosterMember: { fullName: string; nickname?: string },
-  targetName?: string
+  targetName?: string,
+  targetNickname?: string
 ): boolean {
-  if (!targetName || !rosterMember || !rosterMember.fullName) return false;
+  if (!rosterMember || !rosterMember.fullName) return false;
 
   const normalize = (s: string) =>
     String(s)
@@ -1782,13 +1784,18 @@ export function isVietnameseNameMatch(
       .toLowerCase()
       .replace(/\s+/g, ' ');
 
-  const rName = normalize(targetName);
+  const rName = targetName ? normalize(targetName) : '';
+  const rNick = targetNickname ? normalize(targetNickname) : '';
   const mName = normalize(rosterMember.fullName);
   const mNick = rosterMember.nickname ? normalize(rosterMember.nickname) : '';
+
+  // Khớp trực tiếp theo nickname nếu cả 2 bên đều có biệt danh
+  if (rNick && mNick && rNick === mNick) return true;
 
   if (!rName || !mName) return false;
   if (mName === rName) return true;
   if (mNick && mNick === rName) return true;
+  if (rNick && mName === rNick) return true;
 
   const rTokens = rName.split(' ').filter(Boolean);
   const mTokens = mName.split(' ').filter(Boolean);
@@ -1807,6 +1814,15 @@ export function isVietnameseNameMatch(
   if (mNick && mNick.length >= 2) {
     const nickTokens = mNick.split(' ').filter(Boolean);
     if (nickTokens.length >= 2 && nickTokens.every(t => rTokens.includes(t))) {
+      return true;
+    }
+  }
+
+  // 4. Trùng tên gọi (given name) và trùng biệt danh
+  if (rTokens.length > 0 && mTokens.length > 0) {
+    const rGivenName = rTokens[rTokens.length - 1];
+    const mGivenName = mTokens[mTokens.length - 1];
+    if (rGivenName === mGivenName && ((rNick && mNick && rNick === mNick) || (mNick && rName.includes(mNick)))) {
       return true;
     }
   }

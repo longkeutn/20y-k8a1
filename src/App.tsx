@@ -2011,6 +2011,8 @@ export default function App() {
         onClose={() => setIsPassModalOpen(false)}
         defaultAttendee={selectedPassAttendee}
         allAttendees={rsvpList}
+        classRoster={classRoster}
+        activeMember={activeMember}
         eventConfig={eventConfig}
       />
 
