@@ -148,6 +148,40 @@ export default function RsvpForm({
     };
   }, [activeMember]);
 
+  // Tự động nhận diện thành viên đã chọn từ đầu trang (Hero / Navbar) khi mở form
+  useEffect(() => {
+    try {
+      const savedVisitorId = localStorage.getItem('k8a1_visitor_id');
+      if (savedVisitorId && !selectedMemberId && rosterList.length > 0) {
+        const member = rosterList.find(m => m.id === savedVisitorId);
+        if (member) {
+          handleSelectMember(member.id);
+        }
+      }
+    } catch {}
+  }, [rosterList]);
+
+  // Lắng nghe sự kiện nhận diện danh tính hoặc đổi size áo từ Hero / Navbar
+  useEffect(() => {
+    const handleSelectVisitorIdentity = (e: any) => {
+      const detail = e.detail;
+      if (detail && detail.memberId) {
+        const member = rosterList.find(m => m.id === detail.memberId);
+        if (member) {
+          handleSelectMember(member.id);
+        }
+      } else if (detail && detail.fullName) {
+        const member = rosterList.find(m => m.fullName.toLowerCase().trim() === detail.fullName.toLowerCase().trim());
+        if (member) {
+          handleSelectMember(member.id);
+        }
+      }
+    };
+
+    window.addEventListener('select-visitor-identity', handleSelectVisitorIdentity);
+    return () => window.removeEventListener('select-visitor-identity', handleSelectVisitorIdentity);
+  }, [rosterList]);
+
   // Lắng nghe sự kiện yêu cầu đổi size áo từ danh sách hoặc nút bấm bên ngoài
   useEffect(() => {
     const handleUpdateShirtSize = (e: any) => {

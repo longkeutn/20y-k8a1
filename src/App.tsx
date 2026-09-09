@@ -49,6 +49,7 @@ import ClassCharterModal from './components/ClassCharterModal';
 import RoleGuideModal from './components/RoleGuideModal';
 import QuickNavigation from './components/QuickNavigation';
 import TeachersHonorRoll from './components/TeachersHonorRoll';
+import { HeroIdentityWidget, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 
 export default function App() {
   // Config state (Google Apps Script WebApp URL)
@@ -259,6 +260,48 @@ export default function App() {
     shirtSize: item.shirtSize ? String(item.shirtSize).trim().toUpperCase() : 'L',
     note: item.note ? String(item.note).trim() : ''
   });
+
+  // Visitor Identity State (Cá nhân hóa thành viên đang truy cập web)
+  const [currentVisitor, setCurrentVisitor] = useState<ClassMember | null>(() => {
+    try {
+      const savedId = localStorage.getItem('k8a1_visitor_id');
+      if (savedId) {
+        const localRoster = localStorage.getItem('k8a1_class_roster');
+        const roster: ClassMember[] = localRoster ? JSON.parse(localRoster) : CLASS_ROSTER_K8A1;
+        const found = roster.find(m => m.id === savedId);
+        if (found) return found;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleSelectVisitor = (member: ClassMember | null) => {
+    setCurrentVisitor(member);
+    try {
+      if (member) {
+        localStorage.setItem('k8a1_visitor_id', member.id);
+        window.dispatchEvent(new CustomEvent('select-visitor-identity', {
+          detail: { memberId: member.id, fullName: member.fullName }
+        }));
+      } else {
+        localStorage.removeItem('k8a1_visitor_id');
+      }
+    } catch (e) {
+      console.warn('Lỗi lưu visitor identity:', e);
+    }
+  };
+
+  // Đồng bộ visitor khi classRoster được cập nhật từ Google Sheet
+  useEffect(() => {
+    if (currentVisitor && classRoster.length > 0) {
+      const updated = classRoster.find(m => m.id === currentVisitor.id);
+      if (updated && (updated.fullName !== currentVisitor.fullName || updated.nickname !== currentVisitor.nickname || updated.phone !== currentVisitor.phone)) {
+        setCurrentVisitor(updated);
+      }
+    }
+  }, [classRoster]);
 
   // Class Roster Master Directory state (Sĩ số học sinh lớp K8A1)
   const [classRoster, setClassRoster] = useState<ClassMember[]>(() => {
