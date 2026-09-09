@@ -972,6 +972,7 @@ export default function AdminManagementHub({
   // ---------------------------------------------------------------------------
   const confirmedCount = useMemo(() => rsvpList.filter(a => a.status === 'yes').length, [rsvpList]);
   const absentMembersCount = useMemo(() => rsvpList.filter(a => a.status === 'no').length, [rsvpList]);
+  const declinedCount = absentMembersCount;
   const checkedInCount = useMemo(() => rsvpList.filter(a => a.status === 'yes' && a.checkedIn).length, [rsvpList]);
   
   // Total expected fund based on standard fee (chỉ tính những bạn xác nhận tham gia)
