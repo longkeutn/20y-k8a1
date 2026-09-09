@@ -1887,8 +1887,12 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   bankCode: "vietcombank",
   qrTemplate: "compact",
   heroBannerUrl: "",
-  heroBannerPosition: 50
+  heroBannerPosition: 50,
+  schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
 };
+
+// Logo chính thức Trường THPT Thái Nguyên (thuộc ĐH Sư Phạm - ĐH Thái Nguyên)
+export const SCHOOL_LOGO_URL = "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg";
 
 // URL Google Apps Script WebApp mặc định toàn hệ thống
 // BLL có thể dán URL triển khai (/exec) vào đây để mọi thiết bị/ẩn danh tự động đồng bộ cùng 1 Sheet

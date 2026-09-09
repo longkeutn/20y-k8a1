@@ -3133,7 +3133,15 @@ export default function AdminManagementHub({
         {/* TOP HEADER BAR */}
         {/* =================================================================== */}
         <header className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white px-3 sm:px-5 py-1.5 sm:py-2.5 border-b border-amber-500/30 flex items-center justify-between shrink-0 shadow-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <img 
+              src="https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
+              alt="Logo Trường THPT Thái Nguyên"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover bg-white p-0.5 border border-amber-400/60 shadow-xs shrink-0"
+              onError={(e: any) => {
+                e.target.src = '/logo-thpt-thai-nguyen.jpg';
+              }}
+            />
             <div className={`p-1 sm:p-1.5 rounded-lg flex items-center justify-center shadow-inner ${
               isAdmin 
                 ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white' 
@@ -6740,6 +6748,30 @@ export default function AdminManagementHub({
                           placeholder="VD: Lớp K8A1 — Trường THPT Thái Nguyên"
                           className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
                         />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-bold text-slate-700 flex items-center justify-between">
+                          <span>Logo Trường THPT Thái Nguyên:</span>
+                          <span className="text-[10px] text-amber-700 font-normal">Hiển thị ở Navbar, Hero, Bảng vàng & Footer</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <img 
+                            src={eventConfigForm.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
+                            alt="Logo Trường" 
+                            className="w-9 h-9 rounded-full object-cover bg-white p-0.5 border border-amber-300 shrink-0 shadow-2xs"
+                            onError={(e: any) => {
+                              e.target.src = '/logo-thpt-thai-nguyen.jpg';
+                            }}
+                          />
+                          <input
+                            type="text"
+                            value={eventConfigForm.schoolLogoUrl || ''}
+                            onChange={(e) => setEventConfigForm({ ...eventConfigForm, schoolLogoUrl: e.target.value })}
+                            placeholder="https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
+                            className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
                       </div>
 
                       <div className="space-y-1.5">

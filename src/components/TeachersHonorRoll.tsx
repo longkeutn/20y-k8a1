@@ -150,9 +150,17 @@ export default function TeachersHonorRoll({ teachers: propTeachers, onAddTribute
     <section id="thay-co" className="space-y-8 scroll-mt-20">
       {/* Header */}
       <div className="text-center space-y-2.5 border-b border-amber-200/80 pb-5">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100/70 border border-amber-300/80 text-amber-900 text-[11px] font-sans uppercase tracking-[0.2em] font-bold shadow-2xs">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100/70 border border-amber-300/80 text-amber-900 text-[11px] font-sans uppercase tracking-[0.15em] font-bold shadow-2xs">
+          <img
+            src="https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
+            alt="Logo Trường THPT Thái Nguyên"
+            className="w-4 h-4 rounded-full object-cover bg-white shrink-0 border border-amber-400/50"
+            onError={(e: any) => {
+              e.target.src = '/logo-thpt-thai-nguyen.jpg';
+            }}
+          />
           <GraduationCap className="w-3.5 h-3.5 text-amber-700" />
-          <span>Bụi Phấn Năm Nào • Khắc Ghi Ơn Người</span>
+          <span>Trường THPT Thái Nguyên • Khắc Ghi Ơn Người</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-serif text-[#1E293B] font-bold tracking-tight">
           Bảng Vàng Tri Ân Quý Thầy Cô Giáo K8A1

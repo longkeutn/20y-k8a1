@@ -225,6 +225,7 @@ export interface EventConfig {
   qrTemplate?: 'compact' | 'compact2' | 'qr_only';
   heroBannerUrl?: string;
   heroBannerPosition?: number;
+  schoolLogoUrl?: string;
 }
 
 export type ExpenseCategory = 

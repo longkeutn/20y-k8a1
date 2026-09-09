@@ -88,8 +88,15 @@ export default function ClassCharterModal({
           
           <div className="flex items-start justify-between gap-3 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/20 border border-amber-300/40 flex items-center justify-center text-amber-300 shadow-inner shrink-0">
-                <ScrollText className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/95 border border-amber-300/60 p-1 flex items-center justify-center shadow-md shrink-0 overflow-hidden">
+                <img
+                  src="https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
+                  alt="Logo Trường THPT Thái Nguyên"
+                  className="w-full h-full object-cover rounded-xl"
+                  onError={(e: any) => {
+                    e.target.src = '/logo-thpt-thai-nguyen.jpg';
+                  }}
+                />
               </div>
               <div>
                 <div className="flex items-center gap-2">

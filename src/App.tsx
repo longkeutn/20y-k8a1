@@ -107,7 +107,8 @@ export default function App() {
     bankCode: cfg?.bankCode ? String(cfg.bankCode) : DEFAULT_EVENT_CONFIG.bankCode,
     qrTemplate: cfg?.qrTemplate || DEFAULT_EVENT_CONFIG.qrTemplate,
     heroBannerUrl: cfg?.heroBannerUrl ? normalizeImageUrl(String(cfg.heroBannerUrl)) : DEFAULT_EVENT_CONFIG.heroBannerUrl,
-    heroBannerPosition: cfg?.heroBannerPosition !== undefined ? (Number(cfg.heroBannerPosition) || 50) : 50
+    heroBannerPosition: cfg?.heroBannerPosition !== undefined ? (Number(cfg.heroBannerPosition) || 50) : 50,
+    schoolLogoUrl: cfg?.schoolLogoUrl ? String(cfg.schoolLogoUrl) : DEFAULT_EVENT_CONFIG.schoolLogoUrl
   });
 
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
@@ -1208,8 +1209,18 @@ export default function App() {
           
           {/* Brand Logo & Class Name */}
           <a href="#hero" className="flex items-center space-x-2 sm:space-x-2.5 group">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-300 flex items-center justify-center font-serif font-bold text-[#1A1613] shadow-md group-hover:scale-105 transition">
-              20
+            <div className="relative shrink-0">
+              <img 
+                src={eventConfig.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
+                alt="Logo Trường THPT Thái Nguyên"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover bg-white p-0.5 border border-amber-400/60 shadow-md group-hover:scale-105 transition"
+                onError={(e: any) => {
+                  e.target.src = '/logo-thpt-thai-nguyen.jpg';
+                }}
+              />
+              <span className="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-600 to-amber-500 text-white text-[8px] font-bold px-1 rounded-full border border-[#161B26] font-mono leading-tight shadow-xs">
+                20y
+              </span>
             </div>
             <div>
               <span className="font-serif font-bold text-sm sm:text-base tracking-wide text-amber-200 group-hover:text-amber-300 transition">
@@ -1401,9 +1412,16 @@ export default function App() {
           
           {/* Top Badge Strip */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-400/50 text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.2em] shadow-md">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>Họp Lớp 20 Năm • Niên Khóa 2003 — 2006</span>
+            <div className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-400/50 text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.15em] shadow-md">
+              <img
+                src={eventConfig.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
+                alt="Logo THPT Thái Nguyên"
+                className="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover bg-white p-0.5 border border-amber-300 shrink-0"
+                onError={(e: any) => {
+                  e.target.src = '/logo-thpt-thai-nguyen.jpg';
+                }}
+              />
+              <span>Trường THPT Thái Nguyên • Khóa 2003 — 2006</span>
             </div>
 
             {/* Quick Button for Admin / BLL to change Hero Cover Banner */}
@@ -1833,16 +1851,21 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pb-6 border-b border-amber-200/60">
                 {/* Cột 1: Thông tin Lớp & Tâm tình */}
                 <div className="space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-900 font-serif font-bold text-xs">
-                      20y
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={eventConfig.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
+                      alt="Logo Trường THPT Thái Nguyên"
+                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover bg-white p-0.5 border border-amber-300 shadow-xs shrink-0"
+                      onError={(e: any) => {
+                        e.target.src = '/logo-thpt-thai-nguyen.jpg';
+                      }}
+                    />
                     <div>
-                      <h4 className="font-bold text-[#1E293B] font-serif text-sm">
-                        Lớp K8A1 — THPT Thái Nguyên
+                      <h4 className="font-bold text-[#1E293B] font-serif text-sm sm:text-base">
+                        Lớp K8A1 — Trường THPT Thái Nguyên
                       </h4>
                       <p className="text-[11px] text-amber-800/80 font-serif">
-                        Niên khóa 2003 — 2006
+                        Niên khóa 2003 — 2006 • 20 Năm Ngày Trở Về
                       </p>
                     </div>
                   </div>
