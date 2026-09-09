@@ -79,7 +79,6 @@ export default function RsvpForm({
   const [phone, setPhone] = useState('');
   const [savedExistingPhone, setSavedExistingPhone] = useState('');
   const [useSavedPhone, setUseSavedPhone] = useState(false);
-  const [isPhoneMasked, setIsPhoneMasked] = useState(false);
   const [shirtSize, setShirtSize] = useState('L');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [status, setStatus] = useState<'yes' | 'no'>('yes');
@@ -472,18 +471,16 @@ export default function RsvpForm({
         return false;
       });
 
-      // Xác định SĐT đã lưu (nếu có): điền sẵn vào ô input để thành viên xem rõ và sửa trực tiếp nếu muốn
+      // Xác định SĐT đã lưu (nếu có): bảo vệ PII bằng cách lưu vào savedExistingPhone và che mờ, không in số trần
       const existingPhone = existing?.phone ? String(existing.phone).trim() : (activeMember.phone ? String(activeMember.phone).trim() : '');
       if (existingPhone) {
         setSavedExistingPhone(existingPhone);
         setUseSavedPhone(true);
-        setPhone(existingPhone);
       } else {
         setSavedExistingPhone('');
         setUseSavedPhone(false);
-        setPhone('');
       }
-      setIsPhoneMasked(false);
+      setPhone('');
 
       if (existing) {
         if (existing.shirtSize) {
@@ -545,8 +542,7 @@ export default function RsvpForm({
         const mPhone = member.phone ? String(member.phone).trim() : '';
         setSavedExistingPhone(mPhone);
         setUseSavedPhone(!!mPhone);
-        setPhone(mPhone);
-        setIsPhoneMasked(false);
+        setPhone('');
       }
     }
   };
@@ -1432,66 +1428,84 @@ export default function RsvpForm({
               )}
             </div>
 
-            {/* SỐ ĐIỆN THOẠI LIÊN HỆ (Ô NHẬP CHUẨN 100% WIDTH, HIỂN THỊ RÕ RÀNG, DỄ SỬA) */}
+            {/* SỐ ĐIỆN THOẠI LIÊN HỆ (BẢO VỆ THÔNG TIN CÁ NHÂN PII) */}
             <div className="space-y-1.5 pt-0.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="rsvp-phone" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1.5">
+                <label className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1.5">
                   <Phone className="w-3 h-3 text-amber-700" />
                   <span>Số điện thoại liên hệ</span>
                   <span className="text-rose-500">*</span>
                 </label>
-                {savedExistingPhone && (
-                  <span className="text-[10px] text-emerald-700 font-sans font-medium flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                    <Check className="w-2.5 h-2.5 text-emerald-600" />
-                    <span>Số từ danh bạ lớp</span>
-                  </span>
-                )}
+                <span className="text-[10px] text-emerald-700 font-sans font-medium flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                  <span>Bảo mật thông tin PII</span>
+                </span>
               </div>
 
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="tel"
-                  id="rsvp-phone"
-                  placeholder="Nhập số điện thoại liên hệ (VD: 0912 345 678)"
-                  required
-                  value={isPhoneMasked ? maskPhone(phone) : phone}
-                  onFocus={() => {
-                    if (isPhoneMasked) setIsPhoneMasked(false);
-                  }}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    setUseSavedPhone(false);
-                  }}
-                  className="w-full pl-9 pr-10 py-2 sm:py-2.5 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-xl text-xs sm:text-[13px] text-slate-800 font-mono outline-none transition"
-                />
-                {phone && (
-                  <button
-                    type="button"
-                    onClick={() => setIsPhoneMasked(!isPhoneMasked)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
-                    title={isPhoneMasked ? "Hiện số điện thoại đầy đủ" : "Ẩn bớt số điện thoại"}
-                  >
-                    {isPhoneMasked ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                )}
-              </div>
+              {savedExistingPhone && useSavedPhone ? (
+                /* Card hiển thị SĐT đã lưu: Che bảo mật PII, thiết kế tinh tế, không co ép trên mobile */
+                <div className="p-3 bg-stone-50 border border-slate-200 hover:border-amber-300 rounded-xl transition-all shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs text-slate-600 font-sans shrink-0">SĐT đã lưu:</span>
+                      <span className="font-mono font-bold text-sm text-slate-900 tracking-wider">
+                        {maskPhone(savedExistingPhone)}
+                      </span>
+                    </div>
 
-              {/* Nút khôi phục nếu người dùng đã sửa khác số ban đầu */}
-              {savedExistingPhone && phone.trim() !== savedExistingPhone.trim() && (
-                <div className="flex items-center justify-between text-[11px] px-1 text-slate-500 font-sans">
-                  <span className="text-amber-800">✍️ Đang nhập số điện thoại mới</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPhone(savedExistingPhone);
-                      setUseSavedPhone(true);
-                      setIsPhoneMasked(false);
-                    }}
-                    className="text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
-                  >
-                    Dùng lại số ban đầu ({savedExistingPhone})
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseSavedPhone(false);
+                        setPhone('');
+                      }}
+                      className="px-2.5 py-1 text-xs font-semibold text-amber-900 hover:text-amber-950 bg-white hover:bg-amber-100/60 border border-amber-300 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0 flex items-center gap-1"
+                    >
+                      <Edit className="w-3 h-3 text-amber-700" />
+                      <span>Đổi số khác</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 font-sans border-t border-slate-200/60 pt-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>Hệ thống dùng số này để gửi vé & liên hệ. Bấm <strong>"Đổi số khác"</strong> nếu bạn đã đổi SĐT mới.</span>
+                  </div>
+                </div>
+              ) : (
+                /* Ô nhập số điện thoại mới trực quan, thoáng đãng */
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="tel"
+                      id="rsvp-phone"
+                      autoFocus
+                      placeholder={savedExistingPhone ? "Nhập số điện thoại mới (VD: 0912 345 678)" : "Nhập số điện thoại liên hệ (VD: 0912 345 678)"}
+                      required={!savedExistingPhone}
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setUseSavedPhone(false);
+                      }}
+                      className="w-full pl-9 pr-3 py-2 sm:py-2.5 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-xl text-xs sm:text-[13px] text-slate-800 font-mono outline-none transition shadow-2xs"
+                    />
+                  </div>
+
+                  {savedExistingPhone && (
+                    <div className="flex items-center justify-between text-[11px] px-1 text-slate-500 font-sans">
+                      <span className="text-amber-800">✍️ Đang nhập số mới</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseSavedPhone(true);
+                          setPhone('');
+                        }}
+                        className="text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
+                      >
+                        Dùng lại số đã lưu ({maskPhone(savedExistingPhone)})
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -1618,9 +1618,9 @@ export function maskPhone(phone?: any): string {
   const clean = String(phone).replace(/[^0-9]/g, '');
   if (clean.length < 7) return clean;
   if (clean.length === 10) {
-    return `${clean.slice(0, 4)} ••• •${clean.slice(-2)}`;
+    return `${clean.slice(0, 4)} ••• ${clean.slice(-3)}`;
   }
-  return `${clean.slice(0, 3)} ••• •${clean.slice(-2)}`;
+  return `${clean.slice(0, 3)} ••• ${clean.slice(-3)}`;
 }
 
 /**
