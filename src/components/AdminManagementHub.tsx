@@ -3131,48 +3131,39 @@ export default function AdminManagementHub({
         {/* =================================================================== */}
         {/* TOP HEADER BAR */}
         {/* =================================================================== */}
-        <header className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white px-4 sm:px-6 py-3.5 border-b border-amber-500/30 flex items-center justify-between shrink-0 shadow-md">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl flex items-center justify-center shadow-inner ${
+        <header className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white px-3.5 sm:px-5 py-2 sm:py-2.5 border-b border-amber-500/30 flex items-center justify-between shrink-0 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <div className={`p-1.5 rounded-lg flex items-center justify-center shadow-inner ${
               isAdmin 
                 ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white' 
                 : isTreasurer
                 ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
                 : 'bg-gradient-to-br from-indigo-600 to-blue-700 text-white'
             }`}>
-              {isAdmin ? <Crown className="w-5 h-5" /> : isTreasurer ? <Coins className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+              {isAdmin ? <Crown className="w-4 h-4" /> : isTreasurer ? <Coins className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-serif font-bold text-amber-200 leading-tight">
-                  Trung Tâm Quản Trị & Điều Hành K8A1
-                </h2>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider ${
-                  isAdmin 
-                    ? 'bg-amber-400 text-amber-950 shadow-xs' 
-                    : isTreasurer
-                    ? 'bg-emerald-400 text-emerald-950 shadow-xs'
-                    : 'bg-indigo-300 text-indigo-950 shadow-xs'
-                }`}>
-                  {isAdmin ? '👑 ADMIN (Toàn Quyền)' : isTreasurer ? '💰 THỦ QUỸ LỚP' : '🛡️ BAN LIÊN LẠC'}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-300 font-sans">
-                {isAdmin 
-                  ? 'Quản lý toàn diện thành viên, sổ quỹ thu chi, media kỷ niệm & cấu hình' 
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-serif font-bold text-amber-200 leading-tight">
+                Trung Tâm Quản Trị & Điều Hành K8A1
+              </h2>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-sans font-bold uppercase tracking-wider shrink-0 ${
+                isAdmin 
+                  ? 'bg-amber-400 text-amber-950 shadow-xs' 
                   : isTreasurer
-                  ? 'Đối soát thu quỹ chuyển khoản, quản lý các khoản chi tiêu & hóa đơn chứng từ'
-                  : 'Tiếp đón thành viên, check-in điểm danh, lưu bút & giám sát hoạt động lớp'}
-              </p>
+                  ? 'bg-emerald-400 text-emerald-950 shadow-xs'
+                  : 'bg-indigo-300 text-indigo-950 shadow-xs'
+              }`}>
+                {isAdmin ? '👑 ADMIN' : isTreasurer ? '💰 THỦ QUỸ' : '🛡️ BLL'}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {onOpenGuideModal && (
               <button
                 type="button"
                 onClick={onOpenGuideModal}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/40 transition cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/40 transition cursor-pointer"
                 title="Mở Cẩm nang hoạt động & Hướng dẫn nghiệp vụ K8A1"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-amber-300" />
@@ -3183,7 +3174,7 @@ export default function AdminManagementHub({
             {onRefreshData && (
               <button
                 onClick={onRefreshData}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/30 transition cursor-pointer"
+                className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/30 transition cursor-pointer"
                 title="Đồng bộ dữ liệu mới nhất từ Google Sheet"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -3193,7 +3184,7 @@ export default function AdminManagementHub({
 
             <button
               onClick={onLogout}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-sans font-bold rounded-lg border border-rose-500/40 transition cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-sans font-bold rounded-lg border border-rose-500/40 transition cursor-pointer"
               title="Đăng xuất khỏi phiên làm việc"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -3202,7 +3193,7 @@ export default function AdminManagementHub({
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+              className="p-1 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer ml-1"
               title="Đóng bảng điều khiển"
             >
               <X className="w-5 h-5" />
@@ -3211,66 +3202,12 @@ export default function AdminManagementHub({
         </header>
 
         {/* =================================================================== */}
-        {/* KPI SUMMARY CARDS STRIP */}
-        {/* =================================================================== */}
-        <div className="bg-gradient-to-r from-amber-50 via-white to-amber-50 px-4 sm:px-6 py-2.5 border-b border-amber-200 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 shrink-0 text-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold">
-              <Users className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Xác Nhận Về Lớp</p>
-              <p className="font-serif font-bold text-slate-900 text-sm">{confirmedCount} bạn</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-bold">
-              <UserCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Đã Có Mặt (Check-in)</p>
-              <p className="font-serif font-bold text-emerald-800 text-sm">{checkedInCount} / {confirmedCount}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-700 flex items-center justify-center font-bold">
-              <Receipt className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Đã Đóng Quỹ ({standardFundAmount.toLocaleString('vi-VN')}đ)</p>
-              <p className="font-serif font-bold text-blue-800 text-sm">
-                {paidConfirmedCount} / {confirmedCount} bạn
-                {absentSupportersCount > 0 && (
-                  <span className="text-[11px] font-normal text-indigo-700 ml-1 font-sans">
-                    (+{absentSupportersCount} bạn vắng ủng hộ)
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold">
-              <DollarSign className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Tổng Quỹ Đã Thu</p>
-              <p className="font-serif font-bold text-amber-900 text-sm">
-                {collectedFund.toLocaleString('vi-VN')} đ
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* =================================================================== */}
         {/* NAVIGATION TABS */}
         {/* =================================================================== */}
-        <div className="bg-white border-b border-amber-200 px-4 sm:px-6 flex items-center gap-1 sm:gap-2 overflow-x-auto shrink-0 py-2">
+        <div className="bg-white border-b border-amber-200 px-3 sm:px-5 flex items-center gap-1 sm:gap-1.5 overflow-x-auto shrink-0 py-1.5 scrollbar-none">
           <button
             onClick={() => setActiveTab('members')}
-            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'members'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -3282,7 +3219,7 @@ export default function AdminManagementHub({
 
           <button
             onClick={() => setActiveTab('fund')}
-            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'fund'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -3299,7 +3236,7 @@ export default function AdminManagementHub({
 
           <button
             onClick={() => setActiveTab('teachers')}
-            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'teachers'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -3316,7 +3253,7 @@ export default function AdminManagementHub({
 
           <button
             onClick={() => setActiveTab('wishes')}
-            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'wishes'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -3328,7 +3265,7 @@ export default function AdminManagementHub({
 
           <button
             onClick={() => setActiveTab('media')}
-            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'media'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -3340,7 +3277,7 @@ export default function AdminManagementHub({
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
               activeTab === 'settings'
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'text-amber-900 hover:bg-amber-100/70 bg-amber-50/50'
@@ -3361,20 +3298,20 @@ export default function AdminManagementHub({
         {/* =================================================================== */}
         {/* TAB BODY CONTAINER */}
         {/* =================================================================== */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
 
           {/* --------------------------------------------------------------- */}
           {/* TAB 1: MEMBER MANAGEMENT */}
           {/* --------------------------------------------------------------- */}
           {activeTab === 'members' && (
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {/* Header Sub-navigation: Sĩ Số Toàn Lớp vs Phản Hồi Web */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 p-3 rounded-xl shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 p-2 rounded-xl shadow-2xs">
                 <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-200/80 shadow-2xs">
                   <button
                     type="button"
                     onClick={() => setMemberTabSubView('roster')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
                       memberTabSubView === 'roster'
                         ? 'bg-amber-600 text-white shadow-xs'
                         : 'text-slate-700 hover:bg-amber-50'
@@ -3387,7 +3324,7 @@ export default function AdminManagementHub({
                   <button
                     type="button"
                     onClick={() => setMemberTabSubView('rsvp')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
                       memberTabSubView === 'rsvp'
                         ? 'bg-amber-600 text-white shadow-xs'
                         : 'text-slate-700 hover:bg-amber-50'
@@ -3398,10 +3335,10 @@ export default function AdminManagementHub({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-sans text-amber-900">
-                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                <div className="flex items-center gap-2 text-xs font-sans text-amber-900 pr-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span>
-                    Xác nhận có mặt: <strong className="text-emerald-700">{rosterConfirmedCount}</strong> / {rosterList.length} bạn
+                    Xác nhận có mặt: <strong className="text-emerald-700 font-bold">{rosterConfirmedCount}</strong> / {rosterList.length} bạn
                     <span className="text-slate-500 font-mono ml-1">({Math.round((rosterConfirmedCount / (rosterList.length || 1)) * 100)}%)</span>
                   </span>
                 </div>
@@ -3411,9 +3348,9 @@ export default function AdminManagementHub({
               {/* SUBVIEW 1: SĨ SỐ TOÀN LỚP (DANH BẠ 40 BẠN HỌC K8A1) */}
               {/* ======================================================== */}
               {memberTabSubView === 'roster' && (
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   {/* Thanh công cụ quản trị & Lọc trạng thái 1-chạm (Interactive Filter Chips) */}
-                  <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-2xs space-y-2.5">
+                  <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs space-y-2">
                     {/* Hàng 1: Ô tìm kiếm + Các nút tác vụ (Thêm bạn, Đồng bộ Sheet) */}
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                       <div className="relative flex-1">
@@ -3423,7 +3360,7 @@ export default function AdminManagementHub({
                           value={memberSearch}
                           onChange={(e) => setMemberSearch(e.target.value)}
                           placeholder="Tìm trong danh bạ (Tên, Biệt danh, Chức vụ, SĐT)..."
-                          className="w-full pl-9 pr-8 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                          className="w-full pl-9 pr-8 py-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
                         />
                         {memberSearch && (
                           <button
@@ -3439,7 +3376,7 @@ export default function AdminManagementHub({
                       <div className="flex items-center gap-1.5 flex-wrap shrink-0">
                         <button
                           onClick={handleOpenAddRosterMember}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer shrink-0"
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer shrink-0"
                         >
                           <UserPlus className="w-3.5 h-3.5" />
                           <span>+ Thêm Bạn Mới</span>
@@ -3449,7 +3386,7 @@ export default function AdminManagementHub({
                           <button
                             type="button"
                             onClick={onRefreshData}
-                            className="inline-flex items-center gap-1 px-2.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-lg font-bold text-xs transition shadow-2xs cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-lg font-bold text-xs transition shadow-2xs cursor-pointer"
                             title="Tải lại dữ liệu mới nhất từ Google Sheet"
                           >
                             <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
@@ -3461,7 +3398,7 @@ export default function AdminManagementHub({
                           type="button"
                           onClick={handleForceSyncRoster}
                           disabled={isRosterSyncing}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
                           title="Đẩy toàn bộ danh bạ hiện tại lưu vào Google Sheet"
                         >
                           <Save className={`w-3.5 h-3.5 ${isRosterSyncing ? 'animate-spin' : ''}`} />
@@ -3471,12 +3408,12 @@ export default function AdminManagementHub({
                     </div>
 
                     {/* Hàng 2: Các nút lọc tương tác thay thế 4 thẻ tĩnh (Filter Chips 1-Chạm) */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-100">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('all')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer ${
                             rosterStatusFilter === 'all'
                               ? 'bg-[#1E293B] text-amber-300 shadow-xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -3488,7 +3425,7 @@ export default function AdminManagementHub({
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('confirmed')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
                             rosterStatusFilter === 'confirmed'
                               ? 'bg-emerald-700 text-white shadow-xs'
                               : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
@@ -3501,7 +3438,7 @@ export default function AdminManagementHub({
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('declined')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
                             rosterStatusFilter === 'declined'
                               ? 'bg-rose-700 text-white shadow-xs'
                               : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
@@ -3514,9 +3451,9 @@ export default function AdminManagementHub({
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('pending')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
                             rosterStatusFilter === 'pending'
-                              ? 'bg-amber-700 text-white shadow-xs'
+                              ? 'bg-amber-600 text-white shadow-xs'
                               : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200'
                           }`}
                         >
@@ -3698,9 +3635,9 @@ export default function AdminManagementHub({
               {/* SUBVIEW 2: DANH SÁCH PHẢN HỒI WEB (RSVP LIST) */}
               {/* ======================================================== */}
               {memberTabSubView === 'rsvp' && (
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   {/* Controls Toolbar */}
-                  <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-2xs space-y-2.5">
+                  <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs space-y-2">
                     {/* Hàng 1: Ô tìm kiếm, lọc size áo và các nút tác vụ */}
                     <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
                       <div className="flex flex-1 items-center gap-2">
@@ -3711,7 +3648,7 @@ export default function AdminManagementHub({
                             value={memberSearch}
                             onChange={(e) => setMemberSearch(e.target.value)}
                             placeholder="Tìm theo tên bạn, biệt danh, số điện thoại..."
-                            className="w-full pl-9 pr-8 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                            className="w-full pl-9 pr-8 py-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
                           />
                           {memberSearch && (
                             <button
@@ -3727,7 +3664,7 @@ export default function AdminManagementHub({
                         <select
                           value={memberShirtFilter}
                           onChange={(e) => setMemberShirtFilter(e.target.value)}
-                          className="hidden sm:block px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                          className="hidden sm:block px-2.5 py-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
                         >
                           <option value="all">Tất cả size áo</option>
                           {SHIRT_SIZE_OPTIONS.map((opt) => (
@@ -3739,7 +3676,7 @@ export default function AdminManagementHub({
                       <div className="flex items-center gap-1.5 flex-wrap shrink-0">
                         <button
                           onClick={handleOpenAddMember}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer"
                         >
                           <UserPlus className="w-3.5 h-3.5" />
                           <span>+ Thêm Bạn Học</span>
@@ -3749,7 +3686,7 @@ export default function AdminManagementHub({
                           type="button"
                           onClick={handleSyncRosterToRsvp}
                           disabled={isSyncingRosterToRsvp}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
                           title="Quét toàn bộ sheet Điểm Danh, tự động ánh xạ và điền Mã TV từ Danh Bạ Lớp"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingRosterToRsvp ? 'animate-spin' : ''}`} />
@@ -3760,7 +3697,7 @@ export default function AdminManagementHub({
                           type="button"
                           onClick={handleCleanDuplicates}
                           disabled={isCleaningDuplicates}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
                           title="Quét và xóa tự động các dòng trùng lặp trong Google Sheet"
                         >
                           <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isCleaningDuplicates ? 'animate-spin' : ''}`} />
@@ -3769,7 +3706,7 @@ export default function AdminManagementHub({
 
                         <button
                           onClick={handleExportRsvpCsv}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-sans font-bold rounded-lg transition cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-sans font-bold rounded-lg transition cursor-pointer"
                           title="Xuất file danh sách điểm danh Excel/CSV"
                         >
                           <Download className="w-3.5 h-3.5 text-slate-500" />
@@ -3779,11 +3716,11 @@ export default function AdminManagementHub({
                     </div>
 
                     {/* Hàng 2: Filter Chips trạng thái tham gia */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('all')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer ${
                           memberStatusFilter === 'all'
                             ? 'bg-[#1E293B] text-amber-300 shadow-xs'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -3795,7 +3732,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('yes')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
                           memberStatusFilter === 'yes'
                             ? 'bg-emerald-700 text-white shadow-xs'
                             : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
@@ -3808,7 +3745,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('checkedIn')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
                           memberStatusFilter === 'checkedIn'
                             ? 'bg-blue-700 text-white shadow-xs'
                             : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200'
@@ -3821,27 +3758,27 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('notCheckedIn')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
                           memberStatusFilter === 'notCheckedIn'
-                            ? 'bg-indigo-700 text-white shadow-xs'
-                            : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200'
                         }`}
                       >
-                        <Clock className="w-3 h-3 text-indigo-500" />
+                        <Clock className="w-3 h-3 text-amber-600" />
                         <span>Chưa check-in ({confirmedCount - checkedInCount})</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('no')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
                           memberStatusFilter === 'no'
                             ? 'bg-rose-700 text-white shadow-xs'
                             : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
                         }`}
                       >
                         <XCircle className="w-3 h-3 text-rose-500" />
-                        <span>Vắng mặt ({rsvpList.length - confirmedCount})</span>
+                        <span>Vắng mặt ({declinedCount})</span>
                       </button>
                     </div>
                   </div>
@@ -4025,76 +3962,69 @@ export default function AdminManagementHub({
                 </div>
               )}
 
-              {/* Thanh Tóm Tắt Tài Chính Tinh Gọn (Slim Financial Summary Bar) */}
-              <div className="bg-gradient-to-r from-[#1A1613] via-[#241E18] to-[#1A1613] text-white p-3.5 sm:p-4 rounded-2xl border border-amber-400/40 shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-sans">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">Tổng Đã Thu:</span>
-                    <span className="font-mono font-bold text-emerald-300 text-sm sm:text-base">
+              {/* Thanh Tóm Tắt Tài Chính & Tiến Độ Hợp Nhất (Single Ultra-Compact Financial Bar) */}
+              <div className="bg-[#181512] text-white px-3.5 py-2 rounded-xl border border-amber-400/30 shadow-xs flex flex-wrap items-center justify-between gap-2.5 text-xs font-sans">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-[11px]">Đã Thu:</span>
+                    <span className="font-mono font-bold text-emerald-400 text-xs sm:text-sm">
                       {collectedFund.toLocaleString('vi-VN')} đ
                     </span>
-                    <span className="text-[11px] text-slate-400 font-sans">({paidMembersCount} bạn)</span>
+                    <span className="text-[10px] text-slate-400">({paidMembersCount} bạn)</span>
                   </div>
 
-                  <div className="w-[1px] h-4 bg-slate-700 hidden md:block" />
+                  <span className="text-slate-600 hidden sm:inline">•</span>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">Tổng Đã Chi:</span>
-                    <span className="font-mono font-bold text-rose-300 text-sm sm:text-base">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-[11px]">Đã Chi:</span>
+                    <span className="font-mono font-bold text-rose-400 text-xs sm:text-sm">
                       {totalExpense.toLocaleString('vi-VN')} đ
                     </span>
-                    <span className="text-[11px] text-slate-400 font-sans">({effectiveExpenses.length} khoản)</span>
+                    <span className="text-[10px] text-slate-400">({effectiveExpenses.length} khoản)</span>
                   </div>
 
-                  <div className="w-[1px] h-4 bg-slate-700 hidden md:block" />
+                  <span className="text-slate-600 hidden sm:inline">•</span>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-medium">Số Dư Quỹ Còn Lại:</span>
-                    <span className={`font-mono font-bold text-sm sm:text-base ${fundBalance >= 0 ? 'text-amber-200' : 'text-rose-400'}`}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-[11px]">Dư Quỹ:</span>
+                    <span className={`font-mono font-bold text-xs sm:text-sm ${fundBalance >= 0 ? 'text-amber-300' : 'text-rose-400'}`}>
                       {fundBalance.toLocaleString('vi-VN')} đ
                     </span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
                       fundBalance >= 0 
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
                         : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                     }`}>
-                      {fundBalance >= 0 ? '✓ Quỹ Thặng Dư An Toàn' : '⚠️ Cần Thu Bổ Sung'}
+                      {fundBalance >= 0 ? '✓ Thặng Dư' : '⚠️ Cần Thu Thêm'}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-300">
+                    <span>Tiến độ: <strong className="text-emerald-300">{paidMembersCount}/{confirmedCount}</strong> ({expectedFund > 0 ? Math.round((collectedFund / expectedFund) * 100) : 0}%)</span>
+                    <div className="w-16 bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-emerald-500 h-full rounded-full"
+                        style={{ width: `${expectedFund > 0 ? Math.min(100, Math.round((collectedFund / expectedFund) * 100)) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
                   <button
+                    type="button"
                     onClick={handleExportFundCsv}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-xs font-sans font-bold rounded-xl shadow-xs transition cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-[11px] font-sans font-semibold rounded-lg transition cursor-pointer"
                     title="Xuất cả Sổ Thu và Sổ Chi ra file Excel/CSV"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Xuất Sổ Quỹ (CSV)</span>
+                    <Download className="w-3 h-3" />
+                    <span>Xuất CSV</span>
                   </button>
                 </div>
               </div>
 
-              {/* Tiến độ thu quỹ sự kiện 20 năm (Slim Progress Bar) */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#FAF8F5] px-3.5 py-2 rounded-xl border border-amber-200/80 text-xs font-sans text-slate-700">
-                <span>
-                  Tiến độ thu quỹ 20 năm: <strong className="text-emerald-800">{paidMembersCount} / {confirmedCount}</strong> bạn tham dự ({expectedFund > 0 ? Math.round((collectedFund / expectedFund) * 100) : 0}%)
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="w-28 sm:w-40 bg-slate-200 h-2 rounded-full overflow-hidden p-0.5 border border-slate-300">
-                    <div 
-                      className="bg-gradient-to-r from-amber-500 to-emerald-600 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${expectedFund > 0 ? Math.min(100, Math.round((collectedFund / expectedFund) * 100)) : 0}%` }}
-                    />
-                  </div>
-                  <span className="font-mono text-emerald-800 font-bold text-xs">
-                    {collectedFund.toLocaleString('vi-VN')} / {expectedFund.toLocaleString('vi-VN')} đ
-                  </span>
-                </div>
-              </div>
-
-              {/* Sub-Tab Navigation Hợp Nhất: [Đối Soát Thành Viên] • [Sổ Thu Chi Tiết] • [Chi Tiêu Lớp] */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-2">
+              {/* Sub-Tab Navigation Hợp Nhất */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-1.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
@@ -4102,14 +4032,14 @@ export default function AdminManagementHub({
                       setFundSubTab('income');
                       setFundIncomeViewMode('rsvp_members');
                     }}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
                       fundSubTab === 'income' && fundIncomeViewMode === 'rsvp_members'
                         ? 'bg-amber-700 text-white shadow-xs'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
                     <UserCheck className="w-3.5 h-3.5" />
-                    <span>1. Đối Soát Thành Viên Lớp</span>
+                    <span>1. Đối Soát Thành Viên</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                       fundSubTab === 'income' && fundIncomeViewMode === 'rsvp_members' ? 'bg-amber-800 text-white' : 'bg-slate-100 text-slate-700'
                     }`}>
@@ -4123,14 +4053,14 @@ export default function AdminManagementHub({
                       setFundSubTab('income');
                       setFundIncomeViewMode('income_ledger');
                     }}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
                       fundSubTab === 'income' && fundIncomeViewMode === 'income_ledger'
                         ? 'bg-emerald-700 text-white shadow-xs'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
                     <Coins className="w-3.5 h-3.5" />
-                    <span>2. Sổ Thu Chi Tiết (Toàn Bộ)</span>
+                    <span>2. Sổ Thu Chi Tiết</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                       fundSubTab === 'income' && fundIncomeViewMode === 'income_ledger' ? 'bg-emerald-800 text-white' : 'bg-slate-100 text-slate-700'
                     }`}>
@@ -4141,14 +4071,14 @@ export default function AdminManagementHub({
                   <button
                     type="button"
                     onClick={() => setFundSubTab('expense')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
                       fundSubTab === 'expense'
                         ? 'bg-rose-700 text-white shadow-xs'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
                     <Receipt className="w-3.5 h-3.5" />
-                    <span>3. Chi Tiêu (Khoản Chi & Hóa Đơn)</span>
+                    <span>3. Chi Tiêu Lớp</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                       fundSubTab === 'expense' ? 'bg-rose-800 text-white' : 'bg-slate-100 text-slate-700'
                     }`}>
@@ -4163,14 +4093,14 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => handleOpenAddIncome()}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-xl shadow-xs transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-lg shadow-xs transition cursor-pointer"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-3.5 h-3.5" />
                         <span>+ Thêm Khoản Thu Mới</span>
                       </button>
                     ) : (
-                      <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5">
-                        👁️ Quyền thu quỹ dành cho Thủ Quỹ
+                      <span className="text-xs text-indigo-700 font-sans italic px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center gap-1.5">
+                        👁️ Quyền thu quỹ: Thủ Quỹ
                       </span>
                     )
                   )}
@@ -4180,14 +4110,14 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => handleOpenAddExpense()}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-xl shadow-xs transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-lg shadow-xs transition cursor-pointer"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-3.5 h-3.5" />
                         <span>+ Thêm Khoản Chi Mới</span>
                       </button>
                     ) : (
-                      <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5">
-                        👁️ Quyền chi quỹ dành cho Thủ Quỹ
+                      <span className="text-xs text-indigo-700 font-sans italic px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center gap-1.5">
+                        👁️ Quyền chi quỹ: Thủ Quỹ
                       </span>
                     )
                   )}
@@ -4198,222 +4128,183 @@ export default function AdminManagementHub({
               {/* PHÂN HỆ 1: THU QUỸ (BẠN BÈ ĐÓNG) */}
               {/* ------------------------------------------------------------- */}
               {fundSubTab === 'income' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
 
                   {/* ------------------------------------------------------------- */}
                   {/* VIEW 1: ĐỐI SOÁT THEO THÀNH VIÊN LỚP (RSVP RECONCILIATION) */}
                   {/* ------------------------------------------------------------- */}
                   {fundIncomeViewMode === 'rsvp_members' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Fund Search & Filter Toolbar */}
-                  <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={fundSearch}
-                      onChange={(e) => setFundSearch(e.target.value)}
-                      placeholder="Tìm theo tên bạn, số điện thoại, ghi chú, người đối soát..."
-                      className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs space-y-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={fundSearch}
+                          onChange={(e) => setFundSearch(e.target.value)}
+                          placeholder="Tìm theo tên bạn, số điện thoại, ghi chú, người đối soát..."
+                          className="w-full pl-9 pr-8 py-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                        />
+                        {fundSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setFundSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={fundStatusFilter}
-                      onChange={(e) => setFundStatusFilter(e.target.value as any)}
-                      className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
-                    >
-                      <option value="all">Tất cả danh sách ({rsvpList.length})</option>
-                      <option value="paid">Đã đóng / ủng hộ ({paidMembersCount})</option>
-                      <option value="unpaid">Tham dự chưa nộp ({unpaidMembersCount})</option>
-                      <option value="absent">Báo vắng ({absentMembersCount}) — Miễn đóng</option>
-                      <option value="pending">Chờ đối soát ({pendingMembersCount})</option>
-                      <option value="has_receipt">Có ảnh Bill/UNC ({hasReceiptCount})</option>
-                      <option value="no_receipt">Chưa có ảnh Bill ({paidMembersCount - hasReceiptCount})</option>
-                      <option value="extra">Đóng thêm ủng hộ ({extraMembersCount})</option>
-                      <option value="bank_transfer">Chuyển khoản Ngân hàng</option>
-                      <option value="cash">Tiền mặt bàn đón tiếp</option>
-                    </select>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1 bg-[#FAF8F5] border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-sans">
+                          <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                          <select
+                            value={fundDateFilter}
+                            onChange={(e) => setFundDateFilter(e.target.value as any)}
+                            className="bg-transparent focus:outline-none cursor-pointer text-slate-700 font-medium text-xs"
+                          >
+                            <option value="all">Toàn bộ thời gian</option>
+                            <option value="today">Hôm nay</option>
+                            <option value="7days">7 ngày qua</option>
+                            <option value="this_month">Tháng này</option>
+                            <option value="year_2026">Năm 2026 (Họp lớp)</option>
+                            <option value="custom">Khoảng ngày tùy chọn...</option>
+                          </select>
+                        </div>
 
-                    <div className="flex items-center gap-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-sans">
-                      <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                      <select
-                        value={fundDateFilter}
-                        onChange={(e) => setFundDateFilter(e.target.value as any)}
-                        className="bg-transparent focus:outline-none cursor-pointer text-slate-700 font-medium"
-                      >
-                        <option value="all">Toàn bộ thời gian</option>
-                        <option value="today">Hôm nay</option>
-                        <option value="7days">7 ngày qua</option>
-                        <option value="this_month">Tháng này</option>
-                        <option value="year_2026">Năm 2026 (Họp lớp)</option>
-                        <option value="custom">Tùy chọn khoảng ngày...</option>
-                      </select>
+                        <span className="text-[11px] font-sans text-slate-600 hidden sm:inline">
+                          Hiển thị: <strong className="text-slate-900">{filteredFundList.length}</strong> bạn • Thu: <strong className="text-emerald-700 font-mono">{filteredFundCollected.toLocaleString('vi-VN')} đ</strong>
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Custom Date Range Picker for Income */}
-                {fundDateFilter === 'custom' && (
-                  <div className="flex flex-wrap items-center gap-2 p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg text-xs font-sans">
-                    <span className="font-bold text-amber-900 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-amber-700" />
-                      Khoảng ngày nộp:
-                    </span>
-                    <label className="flex items-center gap-1 text-slate-600">
-                      <span>Từ:</span>
-                      <input
-                        type="date"
-                        value={fundCustomStartDate}
-                        onChange={(e) => setFundCustomStartDate(e.target.value)}
-                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
-                      />
-                    </label>
-                    <label className="flex items-center gap-1 text-slate-600">
-                      <span>Đến:</span>
-                      <input
-                        type="date"
-                        value={fundCustomEndDate}
-                        onChange={(e) => setFundCustomEndDate(e.target.value)}
-                        className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
-                      />
-                    </label>
-                    {(fundCustomStartDate || fundCustomEndDate) && (
+                    {/* Custom Date Range Picker for Income */}
+                    {fundDateFilter === 'custom' && (
+                      <div className="flex flex-wrap items-center gap-2 p-2 bg-amber-50/70 border border-amber-200 rounded-lg text-xs font-sans">
+                        <span className="font-bold text-amber-900 flex items-center gap-1 text-[11px]">
+                          <Calendar className="w-3 h-3 text-amber-700" />
+                          Khoảng ngày nộp:
+                        </span>
+                        <label className="flex items-center gap-1 text-slate-600 text-xs">
+                          <span>Từ:</span>
+                          <input
+                            type="date"
+                            value={fundCustomStartDate}
+                            onChange={(e) => setFundCustomStartDate(e.target.value)}
+                            className="px-2 py-0.5 bg-white border border-slate-300 rounded text-xs"
+                          />
+                        </label>
+                        <label className="flex items-center gap-1 text-slate-600 text-xs">
+                          <span>Đến:</span>
+                          <input
+                            type="date"
+                            value={fundCustomEndDate}
+                            onChange={(e) => setFundCustomEndDate(e.target.value)}
+                            className="px-2 py-0.5 bg-white border border-slate-300 rounded text-xs"
+                          />
+                        </label>
+                        {(fundCustomStartDate || fundCustomEndDate) && (
+                          <button
+                            type="button"
+                            onClick={() => { setFundCustomStartDate(''); setFundCustomEndDate(''); }}
+                            className="px-2 py-0.5 text-[11px] text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                          >
+                            Xóa mốc
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Quick Status Filter Chips */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100 text-[11px] font-sans">
+                      <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Lọc nhanh:</span>
                       <button
                         type="button"
-                        onClick={() => { setFundCustomStartDate(''); setFundCustomEndDate(''); }}
-                        className="px-2 py-1 text-[11px] text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                        onClick={() => setFundStatusFilter('all')}
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                          fundStatusFilter === 'all'
+                            ? 'bg-amber-700 text-white shadow-2xs font-bold'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
                       >
-                        Xóa mốc
+                        Tất cả ({rsvpList.length})
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => setFundStatusFilter('paid')}
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                          fundStatusFilter === 'paid'
+                            ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        ✓ Đã đóng ({paidMembersCount})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFundStatusFilter('pending')}
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                          fundStatusFilter === 'pending'
+                            ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                            : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                        }`}
+                      >
+                        <span>⏳ Chờ đối soát ({pendingMembersCount})</span>
+                        {pendingMembersCount > 0 && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping inline-block" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFundStatusFilter('unpaid')}
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                          fundStatusFilter === 'unpaid'
+                            ? 'bg-rose-600 text-white shadow-2xs font-bold'
+                            : 'bg-rose-50 hover:bg-rose-100 text-rose-700'
+                        }`}
+                        title="Chỉ lọc danh sách các bạn xác nhận tham gia mà chưa hoàn tất đóng quỹ"
+                      >
+                        ⚠️ Chưa nộp ({unpaidMembersCount})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFundStatusFilter('absent')}
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                          fundStatusFilter === 'absent'
+                            ? 'bg-slate-700 text-white shadow-2xs font-bold'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300/80'
+                        }`}
+                        title="Các bạn báo vắng họp lớp (không bắt buộc đóng tiền hay ủng hộ)"
+                      >
+                        <span>🕊️ Báo vắng ({absentMembersCount})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFundStatusFilter('has_receipt')}
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                          fundStatusFilter === 'has_receipt'
+                            ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                            : 'bg-blue-50 hover:bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        🧾 Có ảnh Bill ({hasReceiptCount})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFundStatusFilter('extra')}
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                          fundStatusFilter === 'extra'
+                            ? 'bg-amber-700 text-white shadow-2xs font-bold'
+                            : 'bg-amber-100/70 hover:bg-amber-200 text-amber-900'
+                        }`}
+                      >
+                        + Ủng hộ thêm ({extraMembersCount})
+                      </button>
+                    </div>
                   </div>
-                )}
-
-                {/* Quick Status Filter Chips */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Lọc nhanh:</span>
-                  <button
-                    type="button"
-                    onClick={() => setFundStatusFilter('all')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
-                      fundStatusFilter === 'all'
-                        ? 'bg-amber-600 text-white shadow-2xs font-bold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    Tất cả ({rsvpList.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFundStatusFilter('paid')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
-                      fundStatusFilter === 'paid'
-                        ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
-                    }`}
-                  >
-                    Đã đóng ({paidMembersCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFundStatusFilter('pending')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
-                      fundStatusFilter === 'pending'
-                        ? 'bg-amber-600 text-white shadow-2xs font-bold'
-                        : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
-                    }`}
-                  >
-                    <span>⏳ Chờ đối soát ({pendingMembersCount})</span>
-                    {pendingMembersCount > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping inline-block" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFundStatusFilter('unpaid')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
-                      fundStatusFilter === 'unpaid'
-                        ? 'bg-rose-600 text-white shadow-2xs font-bold'
-                        : 'bg-rose-50 hover:bg-rose-100 text-rose-700'
-                    }`}
-                    title="Chỉ lọc danh sách các bạn xác nhận tham gia mà chưa hoàn tất đóng quỹ"
-                  >
-                    Tham dự chưa nộp ({unpaidMembersCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFundStatusFilter('absent')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
-                      fundStatusFilter === 'absent'
-                        ? 'bg-slate-700 text-white shadow-2xs font-bold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300/80'
-                    }`}
-                    title="Các bạn báo vắng họp lớp (không bắt buộc đóng tiền hay ủng hộ)"
-                  >
-                    <span>🕊️ Báo vắng ({absentMembersCount})</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFundStatusFilter('has_receipt')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
-                      fundStatusFilter === 'has_receipt'
-                        ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                        : 'bg-blue-50 hover:bg-blue-100 text-blue-800'
-                    }`}
-                  >
-                    Có ảnh Bill ({hasReceiptCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFundStatusFilter('extra')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
-                      fundStatusFilter === 'extra'
-                        ? 'bg-amber-700 text-white shadow-2xs font-bold'
-                        : 'bg-amber-100/70 hover:bg-amber-200 text-amber-900'
-                    }`}
-                  >
-                    + Ủng hộ thêm ({extraMembersCount})
-                  </button>
-                </div>
-
-                {/* Time Quick Chips */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[11px] font-sans">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Thời gian:</span>
-                    {(['all', 'today', '7days', 'this_month', 'year_2026'] as const).map(f => {
-                      const labels = {
-                        all: 'Tất cả',
-                        today: 'Hôm nay',
-                        '7days': '7 ngày qua',
-                        this_month: 'Tháng này',
-                        year_2026: 'Năm 2026'
-                      };
-                      const isActive = fundDateFilter === f;
-                      return (
-                        <button
-                          key={f}
-                          type="button"
-                          onClick={() => setFundDateFilter(f)}
-                          className={`px-2.5 py-0.5 rounded-full transition cursor-pointer ${
-                            isActive
-                              ? 'bg-amber-600 text-white font-bold shadow-2xs'
-                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          {labels[f]}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <span className="text-[11px] font-sans text-slate-600">
-                    Hiển thị: <strong>{filteredFundList.length}</strong> bạn • Thu: <strong className="text-emerald-700 font-mono">{filteredFundCollected.toLocaleString('vi-VN')} đ</strong>
-                  </span>
-                </div>
-              </div>
 
               {/* Fund Table */}
               <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
