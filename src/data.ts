@@ -2128,7 +2128,7 @@ function getRosterLookupMap() {
       phone: phone,
       role: String(r[4] || '').trim(),
       gender: String(r[5] || '').trim(),
-      shirtSize: String(r[6] || 'L').trim().toUpperCase(),
+      shirtSize: String(r[6] || '').trim().toUpperCase(),
       rowIndex: i + 1
     };
 
@@ -2719,7 +2719,7 @@ function getRSVPList(isAdmin) {
       nickname: String(row[1] || ''),
       phone: isAdmin ? (normPhone || rawPhone) : maskPhoneScript(normPhone || rawPhone),
       status: row[3] === 'Có tham gia' || row[3] === 'yes' ? 'yes' : 'no',
-      shirtSize: String(row[4] || 'L'),
+      shirtSize: String(row[4] || ''),
       message: String(row[5] || ''),
       submittedAt: formatDate(row[6] || new Date()),
       checkedIn: row[7] === 'ĐÃ ĐẾN' || row[7] === true,
@@ -2893,7 +2893,7 @@ function saveRSVP(data) {
       (data.nickname !== undefined && data.nickname !== '') ? data.nickname : (existingRow[1] || ''),
       phoneValue || existingRow[2] || '',
       data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
-      data.shirtSize || existingRow[4] || 'L',
+      data.shirtSize || existingRow[4] || '',
       (data.message !== undefined && data.message !== '') ? data.message : (existingRow[5] || ''),
       new Date(),
       isAlreadyCheckedIn ? 'ĐÃ ĐẾN' : (data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN'),
@@ -2934,7 +2934,7 @@ function saveRSVP(data) {
       data.nickname || '',
       phoneValue,
       data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
-      data.shirtSize || 'L',
+      data.shirtSize || '',
       data.message || '',
       new Date(),
       data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
@@ -3804,7 +3804,7 @@ function getClassRoster(isAdmin) {
       const role = String(row[4] || 'Thành viên').trim();
       const genderStr = String(row[5] || 'Nam').toLowerCase();
       const gender = (genderStr.includes('nữ') || genderStr === 'female') ? 'female' : 'male';
-      const shirtSize = String(row[6] || 'L').trim().toUpperCase();
+      const shirtSize = String(row[6] || '').trim().toUpperCase();
       const note = String(row[7] || '').trim();
 
       members.push({
@@ -3851,7 +3851,7 @@ function saveClassRoster(postData) {
       if (phone && !phone.startsWith("'")) phone = "'" + phone;
       const role = String(m.role || 'Thành viên').trim();
       const gender = (m.gender === 'female' || String(m.gender).includes('Nữ')) ? 'Nữ' : 'Nam';
-      const shirtSize = String(m.shirtSize || 'L').trim().toUpperCase();
+      const shirtSize = String(m.shirtSize || '').trim().toUpperCase();
       const note = String(m.note || '').trim();
       return [id, fullName, nickname, phone, role, gender, shirtSize, note, nowStr];
     });
@@ -3894,7 +3894,7 @@ function addClassMember(postData) {
     if (phone && !phone.startsWith("'")) phone = "'" + phone;
     const role = String(member.role || 'Thành viên').trim();
     const gender = (member.gender === 'female' || String(member.gender).includes('Nữ')) ? 'Nữ' : 'Nam';
-    const shirtSize = String(member.shirtSize || 'L').trim().toUpperCase();
+    const shirtSize = String(member.shirtSize || '').trim().toUpperCase();
     const note = String(member.note || '').trim();
     const nowStr = formatDate(new Date());
 
