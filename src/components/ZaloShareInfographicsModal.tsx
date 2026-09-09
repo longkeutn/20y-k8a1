@@ -28,6 +28,7 @@ interface ZaloShareInfographicsModalProps {
   classRoster?: ClassMember[];
   eventConfig?: EventConfig;
   activeMember?: ClassMember | null;
+  onRefreshData?: () => void;
 }
 
 type TemplateId = 'milestone' | 'attendees' | 'shirts' | 'finances';
@@ -38,7 +39,8 @@ export default function ZaloShareInfographicsModal({
   rsvpList,
   classRoster,
   eventConfig,
-  activeMember
+  activeMember,
+  onRefreshData
 }: ZaloShareInfographicsModalProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('milestone');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -46,6 +48,7 @@ export default function ZaloShareInfographicsModal({
   const [copiedText, setCopiedText] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewImgRef = useRef<HTMLImageElement>(null);
@@ -53,6 +56,40 @@ export default function ZaloShareInfographicsModal({
 
   const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
   const totalRoster = rosterList.length || 65;
+
+  const handleManualRefresh = async () => {
+    if (onRefreshData) {
+      setIsRefreshing(true);
+      try {
+        await Promise.resolve(onRefreshData());
+        setFeedbackMsg('✓ Đã cập nhật số liệu mới nhất từ Google Sheets!');
+        setTimeout(() => setFeedbackMsg(''), 3500);
+      } catch (e) {
+        setFeedbackMsg('⚠️ Lỗi khi tải dữ liệu mới từ Google Sheets');
+      } finally {
+        setTimeout(() => setIsRefreshing(false), 800);
+      }
+    }
+  };
+
+  // Bản đồ tra cứu thông tin học sinh từ danh bạ lớp (Master Roster)
+  const rosterMap = useMemo(() => {
+    const map = new Map<string, ClassMember>();
+    rosterList.forEach(m => {
+      if (m.id) map.set(m.id.toLowerCase(), m);
+      if (m.fullName) map.set(m.fullName.trim().toLowerCase(), m);
+    });
+    return map;
+  }, [rosterList]);
+
+  // Lấy size áo chính xác nhất của thành viên (kết hợp cả điểm danh & danh bạ)
+  const getAttendeeShirtSize = (att: RsvpData): string => {
+    const fromRsvp = normalizeShirtSize(att.shirtSize);
+    if (fromRsvp) return fromRsvp;
+    const rosterMem = (att.memberId ? rosterMap.get(att.memberId.toLowerCase()) : null) || 
+                      rosterMap.get(att.fullName?.trim().toLowerCase());
+    return normalizeShirtSize(rosterMem?.shirtSize) || '';
+  };
 
   // Tính toán số liệu thống kê
   const confirmedAttendees = useMemo(() => rsvpList.filter(r => r.status === 'yes'), [rsvpList]);
@@ -78,18 +115,18 @@ export default function ZaloShareInfographicsModal({
       'XXXL': 0
     };
     confirmedAttendees.forEach(r => {
-      const s = normalizeShirtSize(r.shirtSize);
+      const s = getAttendeeShirtSize(r);
       if (s && counts[s] !== undefined) {
         counts[s]++;
       }
     });
     return counts;
-  }, [confirmedAttendees]);
+  }, [confirmedAttendees, rosterMap]);
 
   // Các bạn đã xác nhận CÓ THAM GIA nhưng CHƯA CHỌN SIZE ÁO
   const confirmedPendingShirt = useMemo(() => {
-    return confirmedAttendees.filter(r => !normalizeShirtSize(r.shirtSize));
-  }, [confirmedAttendees]);
+    return confirmedAttendees.filter(r => !getAttendeeShirtSize(r));
+  }, [confirmedAttendees, rosterMap]);
 
   // Tính quỹ
   const standardFund = Number(eventConfig?.fundAmountPerPerson) || 700000;
@@ -531,7 +568,7 @@ export default function ZaloShareInfographicsModal({
           const cleanNick = (att.nickname || '').trim().replace(/^["'(]+|[)"']+$/g, '').trim();
           const isDistinctNick = cleanNick && cleanNick.toLowerCase() !== cleanName.toLowerCase();
 
-          const shirt = normalizeShirtSize(att.shirtSize);
+          const shirt = getAttendeeShirtSize(att);
           const shirtLabel = shirt ? `Size ${shirt}` : 'Chưa chọn size';
 
           // DÒNG 1: Họ và tên (In đậm, màu navy sẫm, độ rộng thoải mái)
@@ -907,23 +944,38 @@ export default function ZaloShareInfographicsModal({
             </div>
             <div>
               <h3 className="font-bold text-sm sm:text-base font-serif flex items-center gap-1.5 text-amber-100">
-                <span>Xuất Ảnh Thống Kê Gửi Nhóm Zalo Lớp K8A1</span>
+                <span>🎨 Tạo Poster & Bản Tin Hội Ngộ K8A1</span>
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               </h3>
               <p className="text-[11px] text-amber-200/80 font-sans hidden sm:block">
-                Tạo thẻ ảnh infographic sắc nét, chuẩn nhận diện 20 năm để kêu gọi và khuấy động không khí lớp
+                Xuất hình ảnh infographic sắc nét, chuẩn nhận diện 20 năm để chia sẻ lên nhóm lớp Zalo / Facebook
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
-            title="Đóng (ESC)"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {onRefreshData && (
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-amber-100 hover:text-white text-xs font-sans font-medium transition cursor-pointer border border-white/20"
+                title="Tải lại số liệu mới nhất từ Google Sheets"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-300' : ''}`} />
+                <span className="hidden sm:inline">Làm mới số liệu</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
+              title="Đóng (ESC)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* FEEDBACK BANNER (NẾU VỪA THAO TÁC) */}

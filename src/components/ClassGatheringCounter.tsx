@@ -268,7 +268,7 @@ export default function ClassGatheringCounter({
           )}
         </div>
 
-        {/* NÚT XUẤT ẢNH ZALO KHUẤY ĐỘNG PHONG TRÀO */}
+        {/* NÚT TẠO POSTER BẢN TIN CHIA SẺ NHÓM LỚP */}
         {onOpenZaloShareModal && (
           <button
             type="button"
@@ -276,7 +276,7 @@ export default function ClassGatheringCounter({
             className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 group active:scale-[0.99] border border-amber-400/80"
           >
             <Share2 className="w-4 h-4 text-amber-200 transition-transform group-hover:scale-110" />
-            <span>📸 Xuất Ảnh Thống Kê Gửi Nhóm Zalo Lớp (Khuấy Động Phong Trào)</span>
+            <span>🎨 Tạo Poster Bản Tin K8A1 (Chia Sẻ Nhóm Lớp)</span>
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
           </button>
         )}

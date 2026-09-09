@@ -1633,6 +1633,25 @@ export default function AdminManagementHub({
       localStorage.setItem('rsvp_list', JSON.stringify(updated));
     }
 
+    // Đồng bộ ngược lại Danh bạ sĩ số (classRoster) nếu có size áo
+    if (onUpdateClassRoster && rosterList && rosterList.length > 0 && memberPayload.shirtSize) {
+      const targetMid = autoMemberId || memberPayload.memberId;
+      const updatedRoster = rosterList.map(m => {
+        const isMatch = (targetMid && m.id === targetMid) || 
+                        (m.fullName && cleanFullName && m.fullName.trim().toLowerCase() === cleanFullName.toLowerCase()) ||
+                        (m.phone && cleanPhone && isPhoneMatch(m.phone, cleanPhone));
+        if (isMatch) {
+          return {
+            ...m,
+            shirtSize: memberPayload.shirtSize
+          };
+        }
+        return m;
+      });
+      onUpdateClassRoster(updatedRoster);
+      try { localStorage.setItem('class_roster_custom', JSON.stringify(updatedRoster)); } catch(e) {}
+    }
+
     // Đồng bộ tức thì lên Google Sheet tab "Diem_Danh"
     if (appsScriptUrl && appsScriptUrl.trim()) {
       fetch(appsScriptUrl, {
@@ -1762,8 +1781,13 @@ export default function AdminManagementHub({
     // Đồng bộ tức thời sang rsvpList nếu đang sửa bạn học đã có trong danh bạ
     if (editingRosterMember && rsvpList && rsvpList.length > 0) {
       const targetMid = editingRosterMember.id;
+      const cleanTargetName = editingRosterMember.fullName.trim().toLowerCase();
       const updatedRsvp = rsvpList.map(r => {
-        if (r.memberId === targetMid) {
+        const isMatch = (r.memberId && r.memberId === targetMid) ||
+                        (r.fullName && cleanTargetName && r.fullName.trim().toLowerCase() === cleanTargetName) ||
+                        (r.fullName && cleanName && r.fullName.trim().toLowerCase() === cleanName.toLowerCase()) ||
+                        (r.phone && rosterFormData.phone && isPhoneMatch(r.phone, String(rosterFormData.phone)));
+        if (isMatch) {
           return {
             ...r,
             fullName: cleanName,

@@ -287,12 +287,12 @@ export default function QuickNavigation({
               type="button"
               onClick={onOpenZaloShareModal}
               className="relative flex items-center gap-1 p-2 sm:px-2.5 sm:py-2 rounded-full font-sans transition-all duration-200 cursor-pointer shrink-0 bg-gradient-to-r from-amber-500/25 to-amber-600/25 hover:from-amber-500/40 hover:to-amber-600/40 text-amber-200 hover:text-white border border-amber-400/50 shadow-2xs"
-              title="Xuất ảnh infographic thống kê gửi Zalo lớp"
-              aria-label="Xuất ảnh thống kê Zalo"
+              title="Tạo poster bản tin thống kê chia sẻ nhóm lớp"
+              aria-label="Tạo poster bản tin thống kê chia sẻ nhóm lớp"
             >
               <Share2 className="w-3.5 h-3.5 text-amber-300" />
               <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
-                Ảnh Zalo
+                Poster Lớp
               </span>
             </button>
           )}

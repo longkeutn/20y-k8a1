@@ -1679,10 +1679,10 @@ export default function App() {
                 type="button"
                 onClick={() => setIsZaloShareModalOpen(true)}
                 className="inline-flex items-center gap-2 px-4 sm:px-5 py-3.5 bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-600 hover:to-indigo-600 text-white font-sans font-semibold text-xs sm:text-sm rounded-xl border border-blue-400/40 backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-                title="Xuất ảnh infographic thống kê chất lượng cao gửi nhóm Zalo lớp"
+                title="Tạo ảnh infographic bản tin hội ngộ sắc nét để chia sẻ lên nhóm lớp"
               >
                 <Camera className="w-4 h-4 text-blue-200" />
-                <span>Xuất Ảnh Zalo Lớp</span>
+                <span>Tạo Poster Nhóm Lớp</span>
               </button>
 
               <QuickShare 
@@ -2315,7 +2315,7 @@ export default function App() {
         }}
       />
 
-      {/* 📸 MODAL XUẤT ẢNH THỐNG KÊ GỬI ZALO LỚP K8A1 */}
+      {/* 📸 MODAL TẠO POSTER BẢN TIN HỘI NGỘ K8A1 */}
       <ZaloShareInfographicsModal
         isOpen={isZaloShareModalOpen}
         onClose={() => setIsZaloShareModalOpen(false)}
@@ -2323,6 +2323,7 @@ export default function App() {
         classRoster={classRoster}
         eventConfig={eventConfig}
         activeMember={activeMember}
+        onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
       />
 
       {/* Toast thông báo realtime */}
