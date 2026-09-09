@@ -28,6 +28,9 @@ interface ZaloShareInfographicsModalProps {
   classRoster?: ClassMember[];
   eventConfig?: EventConfig;
   activeMember?: ClassMember | null;
+  appsScriptUrl?: string;
+  onUpdateRsvpList?: (list: RsvpData[]) => void;
+  onUpdateClassRoster?: (list: ClassMember[]) => void;
   onRefreshData?: () => void;
 }
 
@@ -40,6 +43,9 @@ export default function ZaloShareInfographicsModal({
   classRoster,
   eventConfig,
   activeMember,
+  appsScriptUrl,
+  onUpdateRsvpList,
+  onUpdateClassRoster,
   onRefreshData
 }: ZaloShareInfographicsModalProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('milestone');
@@ -50,27 +56,98 @@ export default function ZaloShareInfographicsModal({
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Bộ nhớ đệm dữ liệu trực tiếp lấy từ Google Sheet
+  const [liveRsvpList, setLiveRsvpList] = useState<RsvpData[]>(rsvpList);
+  const [liveClassRoster, setLiveClassRoster] = useState<ClassMember[]>(classRoster || []);
+
+  // Tự động đồng bộ khi props bên ngoài thay đổi
+  useEffect(() => {
+    if (rsvpList && rsvpList.length > 0) {
+      setLiveRsvpList(rsvpList);
+    }
+  }, [rsvpList]);
+
+  useEffect(() => {
+    if (classRoster && classRoster.length > 0) {
+      setLiveClassRoster(classRoster);
+    }
+  }, [classRoster]);
+
+  const effectiveRsvp = liveRsvpList && liveRsvpList.length > 0 ? liveRsvpList : rsvpList;
+  const rosterList = liveClassRoster && liveClassRoster.length > 0 ? liveClassRoster : (classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1);
+  const totalRoster = rosterList.length || 65;
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewImgRef = useRef<HTMLImageElement>(null);
   const [previewDataUrl, setPreviewDataUrl] = useState<string>('');
 
-  const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
-  const totalRoster = rosterList.length || 65;
+  // ⚡ TẢI DỮ LIỆU GỐC TRỰC TIẾP TỪ GOOGLE SHEET (KHÔNG THÔNG QUA CACHE)
+  const fetchFreshDataFromSheet = async () => {
+    const targetUrl = appsScriptUrl;
+    if (!targetUrl || !targetUrl.startsWith('http')) {
+      if (onRefreshData) onRefreshData();
+      return;
+    }
 
-  const handleManualRefresh = async () => {
-    if (onRefreshData) {
-      setIsRefreshing(true);
-      try {
-        await Promise.resolve(onRefreshData());
-        setFeedbackMsg('✓ Đã cập nhật số liệu mới nhất từ Google Sheets!');
-        setTimeout(() => setFeedbackMsg(''), 3500);
-      } catch (e) {
-        setFeedbackMsg('⚠️ Lỗi khi tải dữ liệu mới từ Google Sheets');
-      } finally {
-        setTimeout(() => setIsRefreshing(false), 800);
+    setIsRefreshing(true);
+    setFeedbackMsg('⏳ Đang tự động nạp dữ liệu gốc mới nhất từ Google Sheet...');
+
+    try {
+      const adminPinToken = sessionStorage.getItem('admin_pin_token') || '';
+      const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
+      const timestamp = Date.now();
+
+      // Tải song song siêu tốc cả sheet Điểm danh (Trang_tinh_1) và Danh bạ (Danh_Sach_Lop)
+      const [rsvpRes, rosterRes] = await Promise.allSettled([
+        fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${timestamp}`, { cache: 'no-store' }).then(r => r.json()),
+        fetch(`${targetUrl}?action=get_roster${pinQuery}&t=${timestamp}`, { cache: 'no-store' }).then(r => r.json())
+      ]);
+
+      let updatedRsvp = false;
+      let updatedRoster = false;
+
+      if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data) && rsvpRes.value.data.length > 0) {
+        setLiveRsvpList(rsvpRes.value.data);
+        if (onUpdateRsvpList) onUpdateRsvpList(rsvpRes.value.data);
+        try { localStorage.setItem('rsvp_list', JSON.stringify(rsvpRes.value.data)); } catch (e) {}
+        updatedRsvp = true;
       }
+
+      if (rosterRes.status === 'fulfilled' && rosterRes.value?.status === 'success' && Array.isArray(rosterRes.value.data) && rosterRes.value.data.length > 0) {
+        setLiveClassRoster(rosterRes.value.data);
+        if (onUpdateClassRoster) onUpdateClassRoster(rosterRes.value.data);
+        try { localStorage.setItem('k8a1_class_roster', JSON.stringify(rosterRes.value.data)); } catch (e) {}
+        updatedRoster = true;
+      }
+
+      const syncTimeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      if (updatedRsvp || updatedRoster) {
+        setFeedbackMsg(`✓ Đã nạp dữ liệu gốc từ Google Sheet thành công (${syncTimeStr})!`);
+      } else {
+        setFeedbackMsg(`✓ Dữ liệu hiện tại đã khớp 100% với Google Sheet (${syncTimeStr})`);
+      }
+
+      // Kích hoạt ngầm toàn bộ app
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (err) {
+      console.warn('Lỗi tải dữ liệu gốc từ Google Sheet:', err);
+      setFeedbackMsg('⚠️ Lỗi kết nối Google Sheet. Đang dùng dữ liệu sẵn có.');
+      if (onRefreshData) onRefreshData();
+    } finally {
+      setIsRefreshing(false);
+      setTimeout(() => setFeedbackMsg(''), 4500);
     }
   };
+
+  // 🚀 TỰ ĐỘNG NẠP DỮ LIỆU GỐC TỪ GOOGLE SHEET MỖI KHI MỞ MODAL XUẤT ẢNH
+  useEffect(() => {
+    if (isOpen) {
+      fetchFreshDataFromSheet();
+    }
+  }, [isOpen]);
 
   // Bản đồ tra cứu thông tin học sinh từ danh bạ lớp (Master Roster)
   const rosterMap = useMemo(() => {
@@ -82,27 +159,44 @@ export default function ZaloShareInfographicsModal({
     return map;
   }, [rosterList]);
 
-  // Lấy size áo chính xác nhất của thành viên (kết hợp cả điểm danh & danh bạ)
+  // Lấy size áo chính xác nhất của thành viên (kết hợp thông minh giữa Điểm danh & Danh bạ)
   const getAttendeeShirtSize = (att: RsvpData): string => {
     const fromRsvp = normalizeShirtSize(att.shirtSize);
-    if (fromRsvp) return fromRsvp;
     const rosterMem = (att.memberId ? rosterMap.get(att.memberId.toLowerCase()) : null) || 
                       rosterMap.get(att.fullName?.trim().toLowerCase());
-    return normalizeShirtSize(rosterMem?.shirtSize) || '';
+    const fromRoster = normalizeShirtSize(rosterMem?.shirtSize);
+
+    // 1. Nếu trên phiếu điểm danh RSVP đã chọn size
+    if (fromRsvp) {
+      // Nếu trong Danh bạ được admin cập nhật size mới khác 'L'
+      if (fromRsvp === 'L' && fromRoster && fromRoster !== 'L') {
+        return fromRoster;
+      }
+      return fromRsvp;
+    }
+
+    // 2. Nếu trên phiếu RSVP để trống (chưa chọn size hoặc bị xóa trống):
+    // Chỉ lấy từ Danh bạ nếu Danh bạ có size cụ thể KHÁC 'L' (để không bị dính chữ L mặc định cũ)
+    if (fromRoster && fromRoster !== 'L') {
+      return fromRoster;
+    }
+
+    // 3. Mặc định: Chưa chọn size
+    return '';
   };
 
-  // Tính toán số liệu thống kê
-  const confirmedAttendees = useMemo(() => rsvpList.filter(r => r.status === 'yes'), [rsvpList]);
-  const absentAttendees = useMemo(() => rsvpList.filter(r => r.status === 'no'), [rsvpList]);
+  // Tính toán số liệu thống kê dựa trên dữ liệu gốc
+  const confirmedAttendees = useMemo(() => effectiveRsvp.filter(r => r.status === 'yes'), [effectiveRsvp]);
+  const absentAttendees = useMemo(() => effectiveRsvp.filter(r => r.status === 'no'), [effectiveRsvp]);
   const confirmedCount = confirmedAttendees.length;
   const absentCount = absentAttendees.length;
   
   // Tính danh sách chưa phản hồi
   const pendingMembers = useMemo(() => {
     return rosterList.filter(m => {
-      return !rsvpList.some(r => (r.memberId && r.memberId === m.id) || r.fullName.trim().toLowerCase() === m.fullName.trim().toLowerCase());
+      return !effectiveRsvp.some(r => (r.memberId && r.memberId === m.id) || r.fullName.trim().toLowerCase() === m.fullName.trim().toLowerCase());
     });
-  }, [rosterList, rsvpList]);
+  }, [rosterList, effectiveRsvp]);
 
   // Phân bổ size áo trong số các bạn đã xác nhận tham dự
   const shirtDistribution = useMemo(() => {
@@ -130,15 +224,15 @@ export default function ZaloShareInfographicsModal({
 
   // Tính quỹ
   const standardFund = Number(eventConfig?.fundAmountPerPerson) || 700000;
-  const paidAttendees = useMemo(() => rsvpList.filter(r => r.fundStatus === 'paid'), [rsvpList]);
+  const paidAttendees = useMemo(() => effectiveRsvp.filter(r => r.fundStatus === 'paid'), [effectiveRsvp]);
   const totalFundCollected = useMemo(() => {
-    return rsvpList.reduce((acc, cur) => {
+    return effectiveRsvp.reduce((acc, cur) => {
       if (cur.fundStatus === 'paid') {
         return acc + (Number(cur.fundAmount) || standardFund);
       }
       return acc;
     }, 0);
-  }, [rsvpList, standardFund]);
+  }, [effectiveRsvp, standardFund]);
 
   // Đếm ngược ngày
   const daysLeft = useMemo(() => {
@@ -845,7 +939,7 @@ export default function ZaloShareInfographicsModal({
 
     const t = setTimeout(renderCard, 80);
     return () => clearTimeout(t);
-  }, [isOpen, selectedTemplate, rsvpList, rosterList, eventConfig, daysLeft]);
+  }, [isOpen, selectedTemplate, effectiveRsvp, rosterList, eventConfig, daysLeft]);
 
   // Bộ lời bình Zalo dí dỏm, kích thích tương tác cho từng template
   const getZaloShareText = () => {
@@ -954,18 +1048,18 @@ export default function ZaloShareInfographicsModal({
           </div>
 
           <div className="flex items-center gap-2">
-            {onRefreshData && (
-              <button
-                type="button"
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-amber-100 hover:text-white text-xs font-sans font-medium transition cursor-pointer border border-white/20"
-                title="Tải lại số liệu mới nhất từ Google Sheets"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-300' : ''}`} />
-                <span className="hidden sm:inline">Làm mới số liệu</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={fetchFreshDataFromSheet}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-amber-100 hover:text-white text-xs font-sans font-medium transition cursor-pointer border border-white/20 disabled:opacity-60"
+              title="Tải lại số liệu gốc mới nhất trực tiếp từ Google Sheets"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-300' : ''}`} />
+              <span className="hidden sm:inline">
+                {isRefreshing ? 'Đang nạp...' : 'Làm mới số liệu'}
+              </span>
+            </button>
 
             <button
               type="button"
@@ -978,13 +1072,18 @@ export default function ZaloShareInfographicsModal({
           </div>
         </div>
 
-        {/* FEEDBACK BANNER (NẾU VỪA THAO TÁC) */}
+        {/* FEEDBACK BANNER (NẾU VỪA THAO TÁC HOẶC ĐANG TẢI) */}
         {feedbackMsg && (
-          <div className="px-4 py-2 bg-emerald-600 text-white text-xs font-sans font-bold flex items-center justify-between animate-fadeIn">
-            <span>{feedbackMsg}</span>
+          <div className={`px-4 py-2 text-white text-xs font-sans font-bold flex items-center justify-between animate-fadeIn ${
+            feedbackMsg.startsWith('⏳') ? 'bg-amber-600' : feedbackMsg.startsWith('⚠️') ? 'bg-rose-600' : 'bg-emerald-600'
+          }`}>
+            <span className="flex items-center gap-2">
+              {isRefreshing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>{feedbackMsg}</span>
+            </span>
             <button 
               onClick={() => setFeedbackMsg('')} 
-              className="text-white/80 hover:text-white cursor-pointer ml-2"
+              className="text-white/80 hover:text-white cursor-pointer ml-2 text-sm"
             >
               ✕
             </button>

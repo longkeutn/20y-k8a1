@@ -2323,6 +2323,9 @@ export default function App() {
         classRoster={classRoster}
         eventConfig={eventConfig}
         activeMember={activeMember}
+        appsScriptUrl={activeAppsScriptUrl}
+        onUpdateRsvpList={handleUpdateRsvpList}
+        onUpdateClassRoster={handleUpdateClassRoster}
         onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
       />
 
