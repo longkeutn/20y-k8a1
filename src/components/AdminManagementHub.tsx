@@ -3616,7 +3616,7 @@ export default function AdminManagementHub({
 
                                 <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 border-b border-slate-100">
                                   <div className="flex items-center gap-2">
-                                    {(m.matchedRsvp?.shirtSize || m.shirtSize) ? (
+                                    {normalizeShirtSize(m.matchedRsvp?.shirtSize || m.shirtSize) ? (
                                       <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
                                         <Shirt className="w-3 h-3 text-amber-600" />
                                         <span>Size {normalizeShirtSize(m.matchedRsvp?.shirtSize || m.shirtSize)}</span>
@@ -3934,7 +3934,7 @@ export default function AdminManagementHub({
                             </td>
 
                             <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 border-b border-slate-100">
-                              {item.shirtSize ? (
+                              {normalizeShirtSize(item.shirtSize) ? (
                                 <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
                                   <Shirt className="w-3 h-3 text-amber-600" />
                                   <span>Size {normalizeShirtSize(item.shirtSize)}</span>

@@ -613,8 +613,8 @@ export default function RsvpForm({
 
     if (targetStatus === 'yes') {
       const cleanShirtSize = normalizeShirtSize(shirtSize);
-      if (!cleanShirtSize) {
-        setSubmitError('Vui lòng chọn Size Áo polo đồng phục kỷ niệm 20 năm của bạn trước khi xác nhận tham dự!');
+      if (!cleanShirtSize && shirtSize !== 'CHƯA CHỌN' && shirtSize !== 'pending') {
+        setSubmitError('Vui lòng chọn Size Áo polo đồng phục (hoặc bấm "Tôi chưa rõ số đo / Báo size sau") trước khi hoàn tất!');
         const shirtSection = document.getElementById('rsvp-shirt-size-section');
         if (shirtSection) {
           shirtSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -655,7 +655,7 @@ export default function RsvpForm({
     setSubmitError(null);
     setSubmitSuccess(null);
 
-    const cleanChosenShirtSize = targetStatus === 'yes' ? normalizeShirtSize(shirtSize) : undefined;
+    const cleanChosenShirtSize = targetStatus === 'yes' ? (normalizeShirtSize(shirtSize) || 'CHƯA CHỌN') : undefined;
 
     const rsvpPayload: RsvpData = {
       id: effectiveId || (matchedExistingAttendee ? matchedExistingAttendee.id : `rsvp-${Date.now()}`),
@@ -1547,7 +1547,12 @@ export default function RsvpForm({
                       <Shirt className="w-3.5 h-3.5 text-amber-700" />
                       <span>Size áo polo kỷ niệm:</span>
                     </label>
-                    {normalizeShirtSize(shirtSize) ? (
+                    {shirtSize === 'CHƯA CHỌN' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-950 font-sans font-bold text-xs border border-amber-300 shadow-2xs">
+                        <span>⏳ Đã chọn: Báo size sau</span>
+                        <span className="text-emerald-700 font-bold ml-0.5">✓</span>
+                      </span>
+                    ) : normalizeShirtSize(shirtSize) ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-900 font-mono font-bold text-xs border border-emerald-300 shadow-2xs">
                         <span className="font-sans font-bold text-[11px] text-emerald-700">Đã chọn:</span>
                         <span>Size {normalizeShirtSize(shirtSize)}</span>
@@ -1557,9 +1562,9 @@ export default function RsvpForm({
                         <span className="text-emerald-600 font-bold ml-0.5">✓</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-950 font-sans font-bold text-xs border border-amber-300 animate-pulse shadow-2xs">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-950 font-sans font-bold text-xs border border-amber-300 shadow-2xs">
                         <span>⚠️ Chưa chọn size</span>
-                        <span className="font-medium text-[10.5px] text-amber-800">(Bắt buộc chọn cỡ bên dưới)</span>
+                        <span className="font-medium text-[10.5px] text-amber-800">(Chọn cỡ hoặc báo size sau)</span>
                       </span>
                     )}
                   </div>
@@ -1574,11 +1579,11 @@ export default function RsvpForm({
                 </div>
 
                 {/* THÔNG BÁO HƯỚNG DẪN NẾU CHƯA CHỌN SIZE */}
-                {!normalizeShirtSize(shirtSize) && (
+                {!normalizeShirtSize(shirtSize) && shirtSize !== 'CHƯA CHỌN' && (
                   <div className="p-2.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-300/80 rounded-xl flex items-center gap-2.5 text-xs text-amber-950 shadow-2xs animate-fadeIn">
                     <span className="text-lg shrink-0">👉</span>
                     <p className="leading-tight">
-                      <strong>Bạn chưa chọn size áo đồng phục!</strong> Vui lòng bấm vào 1 trong 6 ô kích cỡ bên dưới (từ <strong>S</strong> đến <strong>3XL</strong>) để hoàn tất xác nhận tham dự.
+                      <strong>Bạn chưa chọn size áo đồng phục!</strong> Vui lòng bấm vào 1 trong 6 ô kích cỡ bên dưới (từ <strong>S</strong> đến <strong>3XL</strong>) hoặc bấm <strong>"Báo size sau"</strong>.
                     </p>
                   </div>
                 )}
@@ -1612,6 +1617,34 @@ export default function RsvpForm({
                       </button>
                     );
                   })}
+                </div>
+
+                {/* TÙY CHỌN BÁO SIZE SAU & BỎ CHỌN */}
+                <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShirtSize(shirtSize === 'CHƯA CHỌN' ? '' : 'CHƯA CHỌN')}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans transition-all cursor-pointer ${
+                      shirtSize === 'CHƯA CHỌN'
+                        ? 'bg-amber-100 text-amber-950 border-amber-400 font-bold shadow-2xs'
+                        : 'bg-white text-slate-600 border-dashed border-slate-300 hover:bg-amber-50 hover:text-amber-900'
+                    }`}
+                  >
+                    <span>⏳ Tôi chưa rõ số đo / Báo size áo sau</span>
+                    {shirtSize === 'CHƯA CHỌN' && (
+                      <span className="text-emerald-700 font-bold ml-0.5">✓</span>
+                    )}
+                  </button>
+
+                  {normalizeShirtSize(shirtSize) && (
+                    <button
+                      type="button"
+                      onClick={() => setShirtSize('CHƯA CHỌN')}
+                      className="text-[11px] text-slate-500 hover:text-rose-600 underline cursor-pointer ml-auto"
+                    >
+                      Bỏ chọn size này
+                    </button>
+                  )}
                 </div>
 
                 {/* BẢNG SIZE MỞ RỘNG (NẾU MỞ) */}

@@ -22,6 +22,7 @@ import {
   ArrowUp
 } from 'lucide-react';
 import { RsvpData, EventConfig } from '../types';
+import { normalizeShirtSize } from '../data';
 
 interface ConfirmedAttendeesProps {
   appsScriptUrl: string;
@@ -59,10 +60,12 @@ export default function ConfirmedAttendees({
   // Calculate shirt size breakdown for BTC
   const shirtStats = useMemo(() => {
     return rsvpList
-      .filter(i => i.status === 'yes' && i.shirtSize)
+      .filter(i => i.status === 'yes' && normalizeShirtSize(i.shirtSize))
       .reduce((acc, curr) => {
-        const size = curr.shirtSize || 'Khác';
-        acc[size] = (acc[size] || 0) + 1;
+        const size = normalizeShirtSize(curr.shirtSize);
+        if (size) {
+          acc[size] = (acc[size] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
   }, [rsvpList]);
@@ -124,7 +127,7 @@ export default function ConfirmedAttendees({
     text += `------------------------------------\n`;
     confirmedAttendees.forEach((att, idx) => {
       const nick = att.nickname ? ` ("${att.nickname}")` : '';
-      const shirt = att.shirtSize ? ` - Size ${att.shirtSize}` : '';
+      const shirt = normalizeShirtSize(att.shirtSize) ? ` - Size ${normalizeShirtSize(att.shirtSize)}` : '';
       text += `${idx + 1}. ${att.fullName}${nick}${shirt}\n`;
     });
     text += `------------------------------------\n`;
@@ -402,7 +405,7 @@ export default function ConfirmedAttendees({
 
                       {/* Shirt Size - Cho phép bấm để đổi size nhanh */}
                       <td className="py-3 px-3 text-center">
-                        {attendee.status === 'yes' && attendee.shirtSize ? (
+                        {attendee.status === 'yes' && normalizeShirtSize(attendee.shirtSize) ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -413,7 +416,7 @@ export default function ConfirmedAttendees({
                             className="font-sans font-bold text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80 hover:bg-amber-100 hover:border-amber-400 transition cursor-pointer inline-flex items-center gap-1 group/size"
                             title="Bấm vào đây nếu bạn muốn đổi cỡ áo polo khác"
                           >
-                            <span>Size {attendee.shirtSize}</span>
+                            <span>Size {normalizeShirtSize(attendee.shirtSize)}</span>
                             <span className="text-[9px] text-amber-600 opacity-60 group-hover/size:opacity-100">✏️</span>
                           </button>
                         ) : (
@@ -571,9 +574,9 @@ export default function ConfirmedAttendees({
                 {/* Dòng 2: Chi tiết Size áo, Quỹ lớp & Thẻ học sinh / Lời nhắn */}
                 <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 text-[11px]">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {attendee.status === 'yes' && attendee.shirtSize ? (
+                    {attendee.status === 'yes' && normalizeShirtSize(attendee.shirtSize) ? (
                       <span className="font-sans font-bold text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80">
-                        Áo: <strong>Size {attendee.shirtSize}</strong>
+                        Áo: <strong>Size {normalizeShirtSize(attendee.shirtSize)}</strong>
                       </span>
                     ) : (
                       <span className="text-slate-400 text-[10px]">Chưa chọn size</span>
@@ -689,10 +692,10 @@ export default function ConfirmedAttendees({
 
                 {attendee.status === 'yes' && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    {attendee.shirtSize && (
+                    {normalizeShirtSize(attendee.shirtSize) && (
                       <div className="inline-flex items-center gap-1 text-[10px] font-sans text-slate-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-amber-200/80">
                         <Shirt className="w-3 h-3 text-amber-700" />
-                        <span>Áo: <strong>Size {attendee.shirtSize}</strong></span>
+                        <span>Áo: <strong>Size {normalizeShirtSize(attendee.shirtSize)}</strong></span>
                       </div>
                     )}
 

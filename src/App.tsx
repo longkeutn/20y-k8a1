@@ -321,7 +321,7 @@ export default function App() {
             fullName: m.fullName,
             nickname: m.nickname || r.nickname,
             phone: m.phone || r.phone,
-            shirtSize: m.shirtSize || r.shirtSize
+            shirtSize: normalizeShirtSize(m.shirtSize) || normalizeShirtSize(r.shirtSize)
           };
         }
         return r;

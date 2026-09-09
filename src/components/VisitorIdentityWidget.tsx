@@ -15,6 +15,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { ClassMember, RsvpData } from '../types';
+import { normalizeShirtSize } from '../data';
 
 interface VisitorIdentityWidgetProps {
   currentVisitor: ClassMember | null;
@@ -285,9 +286,9 @@ export function IdentitySelectorModal({
                         ) : (
                           <span>Cựu học sinh K8A1</span>
                         )}
-                        {member.shirtSize && (
+                        {normalizeShirtSize(member.shirtSize) && (
                           <span className="text-slate-400 font-mono text-[10px]">
-                            • Size {member.shirtSize}
+                            • Size {normalizeShirtSize(member.shirtSize)}
                           </span>
                         )}
                       </div>
@@ -495,10 +496,10 @@ export function HeroIdentityWidget({
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Đã xác nhận tham gia</span>
                     </span>
-                    {matchedRsvp.shirtSize ? (
+                    {normalizeShirtSize(matchedRsvp.shirtSize) ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/40 text-[11px] font-mono font-bold">
                         <Shirt className="w-3 h-3 text-amber-300" />
-                        <span>Size {matchedRsvp.shirtSize}</span>
+                        <span>Size {normalizeShirtSize(matchedRsvp.shirtSize)}</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/30 text-amber-200 border border-amber-400/50 text-[11px] font-sans font-medium animate-pulse">
@@ -556,7 +557,7 @@ export function HeroIdentityWidget({
                     title="Đổi cỡ áo polo hoặc thông tin tham dự"
                   >
                     <Shirt className="w-3.5 h-3.5 text-amber-300" />
-                    <span>{matchedRsvp.shirtSize ? `Đổi Size Áo (${matchedRsvp.shirtSize})` : 'Chọn Size Áo Ngay 👕'}</span>
+                    <span>{normalizeShirtSize(matchedRsvp.shirtSize) ? `Đổi Size Áo (${normalizeShirtSize(matchedRsvp.shirtSize)})` : 'Chọn Size Áo Ngay 👕'}</span>
                   </button>
 
                   {/* Nút đóng quỹ nếu chưa đóng */}
@@ -707,7 +708,7 @@ export function NavbarIdentityBadge({
                 <span className="text-slate-500">Điểm danh:</span>
                 {matchedRsvp ? (
                   matchedRsvp.status === 'yes' ? (
-                    <span className="text-emerald-700 font-bold">✓ Đã tham gia {matchedRsvp.shirtSize ? `(Size ${matchedRsvp.shirtSize})` : '(Chưa chọn size)'}</span>
+                    <span className="text-emerald-700 font-bold">✓ Đã tham gia {normalizeShirtSize(matchedRsvp.shirtSize) ? `(Size ${normalizeShirtSize(matchedRsvp.shirtSize)})` : '(Chưa chọn size)'}</span>
                   ) : (
                     <span className="text-slate-600 font-medium">🕊️ Báo vắng</span>
                   )
