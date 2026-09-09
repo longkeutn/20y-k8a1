@@ -68,7 +68,7 @@ export default function StudentPassModal({
 }: StudentPassModalProps) {
   const [name, setName] = useState(defaultAttendee?.fullName || 'Thành Long');
   const [className, setClassName] = useState(defaultAttendee?.className || 'K8A1');
-  const [shirtSize, setShirtSize] = useState(defaultAttendee?.shirtSize || '3XL');
+  const [shirtSize, setShirtSize] = useState(defaultAttendee?.shirtSize ? normalizeShirtSize(defaultAttendee.shirtSize) : '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(defaultAttendee?.avatarUrl || null);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -93,7 +93,7 @@ export default function StudentPassModal({
     if (defaultAttendee) {
       setName(defaultAttendee.fullName);
       if (defaultAttendee.className) setClassName(defaultAttendee.className);
-      if (defaultAttendee.shirtSize) setShirtSize(defaultAttendee.shirtSize);
+      setShirtSize(defaultAttendee.shirtSize ? normalizeShirtSize(defaultAttendee.shirtSize) : '');
       setAvatarUrl(getSavedAvatar(defaultAttendee.fullName, defaultAttendee));
     } else {
       setAvatarUrl(getSavedAvatar(name));
@@ -275,7 +275,7 @@ export default function StudentPassModal({
     const timeText = eventConfig?.eventTimeText || eventConfig?.eventDateText || 'Từ 08:30 Sáng • Chủ Nhật, 27/09/2026';
     const text = `🎓 TẤM VÉ VÀNG THANH XUÂN & THẺ HỌC SINH TRI KỶ 20 NĂM LỚP K8A1 (2006 — 2026)\n👤 Cựu học sinh: ${name}${
       currentNickname ? ` ("${currentNickname}")` : ''
-    }\n🏫 Lớp: ${className || 'K8A1'} • Trường THPT Thái Nguyên\n🎟️ Mã thẻ: #${passCode}\n👕 Quyền lợi đón tiếp: Áo Polo Size ${normalizeShirtSize(shirtSize)}\n📍 Địa điểm: ${venue}\n⏰ Thời gian: ${timeText}\n✨ 20 Năm Ngày Trở Về - K8A1 Mãi Là Anh Em!`;
+    }\n🏫 Lớp: ${className || 'K8A1'} • Trường THPT Thái Nguyên\n🎟️ Mã thẻ: #${passCode}\n👕 Quyền lợi đón tiếp: ${normalizeShirtSize(shirtSize) ? `Áo Polo Size ${normalizeShirtSize(shirtSize)}` : 'Chưa chọn size áo'}\n📍 Địa điểm: ${venue}\n⏰ Thời gian: ${timeText}\n✨ 20 Năm Ngày Trở Về - K8A1 Mãi Là Anh Em!`;
     try {
       if (navigator.clipboard?.writeText) {
         navigator.clipboard
@@ -555,8 +555,8 @@ export default function StudentPassModal({
       ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.fillText('QUYỀN LỢI ĐÓN TIẾP', box2X + 16, gridY + 26);
       ctx.fillStyle = '#0F172A';
-      ctx.font = 'bold 20px Georgia, serif';
-      ctx.fillText(`Áo Polo Size ${normalizeShirtSize(shirtSize)}`, box2X + 16, gridY + 54);
+      const passShirtText = normalizeShirtSize(shirtSize) ? `Áo Polo Size ${normalizeShirtSize(shirtSize)}` : 'Áo Polo (Chưa chọn)';
+      ctx.fillText(passShirtText, box2X + 16, gridY + 54);
 
       // Box 3: Thời Gian
       const gridY2 = gridY + boxH + 15;
@@ -754,8 +754,13 @@ export default function StudentPassModal({
               <select
                 value={normalizeShirtSize(shirtSize)}
                 onChange={(e) => setShirtSize(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-brand-border rounded bg-white text-xs font-serif font-bold text-brand-text focus:outline-none focus:border-brand-gold cursor-pointer"
+                className={`w-full px-2.5 py-1.5 border rounded bg-white text-xs font-serif font-bold cursor-pointer focus:outline-none ${
+                  !normalizeShirtSize(shirtSize)
+                    ? 'border-amber-400 bg-amber-50 text-amber-900 focus:border-amber-500 ring-1 ring-amber-300'
+                    : 'border-brand-border text-brand-text focus:border-brand-gold'
+                }`}
               >
+                <option value="">-- Chưa chọn size áo --</option>
                 {SHIRT_SIZE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -914,10 +919,17 @@ export default function StudentPassModal({
 
                   <div className="flex items-center gap-1">
                     <span className="text-[8.5px] uppercase font-sans text-slate-500 font-bold">Áo Polo:</span>
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded text-amber-950 font-sans font-bold text-[11px] whitespace-nowrap">
-                      <Shirt className="w-3 h-3 text-amber-800 shrink-0" />
-                      <span>Size {normalizeShirtSize(shirtSize)}</span>
-                    </span>
+                    {normalizeShirtSize(shirtSize) ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded text-amber-950 font-sans font-bold text-[11px] whitespace-nowrap">
+                        <Shirt className="w-3 h-3 text-amber-800 shrink-0" />
+                        <span>Size {normalizeShirtSize(shirtSize)}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 border border-amber-300 rounded text-amber-900 font-sans font-semibold text-[10px] whitespace-nowrap">
+                        <Shirt className="w-3 h-3 text-amber-700 shrink-0" />
+                        <span>Chưa chọn size</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 

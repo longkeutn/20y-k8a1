@@ -164,10 +164,17 @@ export default function LiveGoldenPass({
                 Quyền Lợi Áo Polo
               </span>
               {isAttending ? (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-sans font-bold text-xs rounded-md shadow-2xs">
-                  <Shirt className="w-3 h-3 text-amber-100 shrink-0" />
-                  <span>Size {normalizedSize}</span>
-                </div>
+                normalizedSize ? (
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-sans font-bold text-xs rounded-md shadow-2xs">
+                    <Shirt className="w-3 h-3 text-amber-100 shrink-0" />
+                    <span>Size {normalizedSize}</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 font-sans font-bold text-[10px] rounded-md shadow-2xs">
+                    <Shirt className="w-3 h-3 text-amber-700 shrink-0" />
+                    <span>Chưa chọn size</span>
+                  </div>
+                )
               ) : (
                 <span className="text-[11px] font-sans font-medium text-slate-400 block">—</span>
               )}

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Sparkles, Users, CheckCircle2, ArrowRight, Eye, Heart, Coins, MapPin, Camera, Loader2 } from 'lucide-react';
+import { Sparkles, Users, CheckCircle2, ArrowRight, Eye, Heart, Coins, MapPin, Camera, Loader2, Share2 } from 'lucide-react';
 import { RsvpData, ClassMember } from '../types';
 import { CLASS_ROSTER_K8A1, isPhoneMatch } from '../data';
 
@@ -8,6 +8,7 @@ interface ClassGatheringCounterProps {
   classRoster?: ClassMember[];
   activeMember?: ClassMember | null;
   isSyncing?: boolean;
+  onOpenZaloShareModal?: () => void;
 }
 
 // Bảng màu avatar luân phiên ấm áp
@@ -266,8 +267,21 @@ export default function ClassGatheringCounter({
           )}
         </div>
 
+        {/* NÚT XUẤT ẢNH ZALO KHUẤY ĐỘNG PHONG TRÀO */}
+        {onOpenZaloShareModal && (
+          <button
+            type="button"
+            onClick={onOpenZaloShareModal}
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 group active:scale-[0.99] border border-amber-400/80"
+          >
+            <Share2 className="w-4 h-4 text-amber-200 transition-transform group-hover:scale-110" />
+            <span>📸 Xuất Ảnh Thống Kê Gửi Nhóm Zalo Lớp (Khuấy Động Phong Trào)</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+          </button>
+        )}
+
         {/* HÀNG 5: 2 NÚT HÀNH ĐỘNG RÕ RÀNG, DỄ BẤM */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-0.5">
           {/* Nút Chính: Báo danh ngay */}
           <button
             type="button"

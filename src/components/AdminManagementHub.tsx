@@ -505,7 +505,7 @@ export default function AdminManagementHub({
         phone: m.phone || '',
         className: 'K8A1',
         status: 'yes',
-        shirtSize: m.shirtSize || 'L',
+        shirtSize: m.shirtSize ? normalizeShirtSize(m.shirtSize) : '',
         message: 'Ban Liên Lạc ghi nhận thông tin tham dự',
         fundStatus: 'unpaid',
         fundAmount: standardFundAmount,
@@ -531,7 +531,7 @@ export default function AdminManagementHub({
     phone: '',
     className: 'K8A1',
     status: 'yes',
-    shirtSize: 'L',
+    shirtSize: '',
     message: '',
     fundStatus: 'unpaid',
     fundAmount: standardFundAmount,
@@ -547,7 +547,7 @@ export default function AdminManagementHub({
     phone: '',
     role: 'Thành viên',
     gender: 'male',
-    shirtSize: 'L',
+    shirtSize: '',
     note: ''
   });
   const [isRosterSyncing, setIsRosterSyncing] = useState(false);
@@ -1429,7 +1429,7 @@ export default function AdminManagementHub({
           phone: itemToSave.payerPhone || rosterMember?.phone || '0900000000',
           status: 'yes',
           className: 'K8A1',
-          shirtSize: rosterMember?.shirtSize || 'L',
+          shirtSize: rosterMember?.shirtSize ? normalizeShirtSize(rosterMember.shirtSize) : '',
           fundStatus: 'paid',
           fundAmount: itemToSave.amount,
           fundPaidAt: nowStr,
@@ -1557,7 +1557,7 @@ export default function AdminManagementHub({
       phone: '',
       className: 'K8A1',
       status: 'yes',
-      shirtSize: 'L',
+      shirtSize: '',
       message: '',
       fundStatus: 'unpaid',
       fundAmount: standardFundAmount,
@@ -1573,6 +1573,7 @@ export default function AdminManagementHub({
       fullName: String(attendee.fullName || ''),
       nickname: String(attendee.nickname || ''),
       phone: String(attendee.phone || ''),
+      shirtSize: attendee.shirtSize ? normalizeShirtSize(attendee.shirtSize) : '',
       fundAmount: attendee.fundAmount !== undefined ? attendee.fundAmount : standardFundAmount,
       fundStatus: attendee.fundStatus || 'unpaid'
     });
@@ -1600,7 +1601,7 @@ export default function AdminManagementHub({
       fullName: cleanFullName,
       phone: cleanPhone,
       className: memberFormData.className || 'K8A1',
-      shirtSize: memberFormData.shirtSize || 'L',
+      shirtSize: memberFormData.shirtSize ? normalizeShirtSize(memberFormData.shirtSize) : '',
       status: memberFormData.status || 'yes',
       fundStatus: memberFormData.fundStatus || 'unpaid',
       fundAmount: memberFormData.fundAmount !== undefined ? memberFormData.fundAmount : standardFundAmount,
@@ -1689,7 +1690,7 @@ export default function AdminManagementHub({
       phone: '',
       role: 'Thành viên',
       gender: 'male',
-      shirtSize: 'L',
+      shirtSize: '',
       note: ''
     });
     setIsRosterModalOpen(true);
@@ -1704,7 +1705,7 @@ export default function AdminManagementHub({
       phone: String(member.phone || ''),
       role: String(member.role || 'Thành viên'),
       gender: member.gender || 'male',
-      shirtSize: String(member.shirtSize || 'L'),
+      shirtSize: member.shirtSize ? normalizeShirtSize(member.shirtSize) : '',
       note: String(member.note || '')
     });
     setIsRosterModalOpen(true);
@@ -1718,6 +1719,8 @@ export default function AdminManagementHub({
       return;
     }
 
+    const cleanShirt = rosterFormData.shirtSize ? normalizeShirtSize(rosterFormData.shirtSize) : '';
+
     let updatedList: ClassMember[] = [];
     if (editingRosterMember) {
       updatedList = rosterList.map(item => {
@@ -1729,7 +1732,7 @@ export default function AdminManagementHub({
             phone: String(rosterFormData.phone || '').trim(),
             role: String(rosterFormData.role || 'Thành viên').trim(),
             gender: (rosterFormData.gender === 'female' ? 'female' : 'male'),
-            shirtSize: String(rosterFormData.shirtSize || 'L').trim().toUpperCase(),
+            shirtSize: cleanShirt,
             note: String(rosterFormData.note || '').trim()
           };
         }
@@ -1745,7 +1748,7 @@ export default function AdminManagementHub({
         phone: String(rosterFormData.phone || '').trim(),
         role: String(rosterFormData.role || 'Thành viên').trim(),
         gender: (rosterFormData.gender === 'female' ? 'female' : 'male'),
-        shirtSize: String(rosterFormData.shirtSize || 'L').trim().toUpperCase(),
+        shirtSize: cleanShirt,
         note: String(rosterFormData.note || '').trim()
       };
       updatedList = [...rosterList, newMember];
@@ -1766,7 +1769,7 @@ export default function AdminManagementHub({
             fullName: cleanName,
             nickname: String(rosterFormData.nickname || '').trim(),
             phone: String(rosterFormData.phone || '').trim(),
-            shirtSize: String(rosterFormData.shirtSize || 'L').trim().toUpperCase()
+            shirtSize: cleanShirt
           };
         }
         return r;
@@ -1825,7 +1828,7 @@ export default function AdminManagementHub({
       `"${a.phone || ''}"`,
       `"${a.className || 'K8A1'}"`,
       a.status === 'yes' ? 'CÓ THAM GIA' : 'VẮNG MẶT',
-      `"${a.shirtSize || 'L'}"`,
+      `"${a.shirtSize ? normalizeShirtSize(a.shirtSize) : 'Chưa chọn'}"`,
       a.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
       `"${a.checkedInAt || ''}"`,
       a.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : 'CHƯA ĐÓNG',
@@ -3051,7 +3054,9 @@ export default function AdminManagementHub({
         (memberStatusFilter === 'checkedIn' && item.checkedIn) ||
         (memberStatusFilter === 'notCheckedIn' && item.status === 'yes' && !item.checkedIn);
 
-      const matchShirt = memberShirtFilter === 'all' || normalizeShirtSize(item.shirtSize) === normalizeShirtSize(memberShirtFilter);
+      const matchShirt = 
+        memberShirtFilter === 'all' ||
+        (memberShirtFilter === 'unselected' ? !normalizeShirtSize(item.shirtSize) : normalizeShirtSize(item.shirtSize) === normalizeShirtSize(memberShirtFilter));
 
       return matchQuery && matchStatus && matchShirt;
     });
@@ -3557,10 +3562,17 @@ export default function AdminManagementHub({
 
                                 <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 border-b border-slate-100">
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
-                                      <Shirt className="w-3 h-3 text-amber-600" />
-                                      <span>{m.matchedRsvp?.shirtSize || m.shirtSize || 'L'}</span>
-                                    </span>
+                                    {(m.matchedRsvp?.shirtSize || m.shirtSize) ? (
+                                      <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
+                                        <Shirt className="w-3 h-3 text-amber-600" />
+                                        <span>Size {normalizeShirtSize(m.matchedRsvp?.shirtSize || m.shirtSize)}</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-800 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded shadow-2xs">
+                                        <Shirt className="w-3 h-3 text-amber-600" />
+                                        <span>Chưa chọn size</span>
+                                      </span>
+                                    )}
                                     {m.matchedRsvp?.fundStatus === 'paid' ? (
                                       <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                                         ✓ Đã đóng quỹ
@@ -3685,6 +3697,7 @@ export default function AdminManagementHub({
                           className="hidden sm:block px-2.5 py-1.5 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
                         >
                           <option value="all">Tất cả size áo</option>
+                          <option value="unselected">⚠️ Chưa chọn size áo</option>
                           {SHIRT_SIZE_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>Size {opt.value} ({opt.weightHint})</option>
                           ))}
@@ -3856,10 +3869,17 @@ export default function AdminManagementHub({
                             </td>
 
                             <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 border-b border-slate-100">
-                              <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                                <Shirt className="w-3 h-3 text-amber-600" />
-                                <span>{item.shirtSize || 'L'}</span>
-                              </span>
+                              {item.shirtSize ? (
+                                <span className="inline-flex items-center gap-1 font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
+                                  <Shirt className="w-3 h-3 text-amber-600" />
+                                  <span>Size {normalizeShirtSize(item.shirtSize)}</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-800 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded shadow-2xs">
+                                  <Shirt className="w-3 h-3 text-amber-600" />
+                                  <span>Chưa chọn size</span>
+                                </span>
+                              )}
                             </td>
 
                             <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 border-b border-slate-100">
@@ -7723,10 +7743,11 @@ export default function AdminManagementHub({
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Size Áo Dự Kiến:</label>
                     <select
-                      value={normalizeShirtSize(rosterFormData.shirtSize || 'L')}
+                      value={normalizeShirtSize(rosterFormData.shirtSize)}
                       onChange={(e) => setRosterFormData({ ...rosterFormData, shirtSize: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer text-xs sm:text-sm"
                     >
+                      <option value="">-- Chưa chọn size áo --</option>
                       {SHIRT_SIZE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
@@ -7864,10 +7885,11 @@ export default function AdminManagementHub({
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Size Áo Đồng Phục:</label>
                     <select
-                      value={normalizeShirtSize(memberFormData.shirtSize || 'L')}
+                      value={normalizeShirtSize(memberFormData.shirtSize)}
                       onChange={(e) => setMemberFormData({ ...memberFormData, shirtSize: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer text-xs sm:text-sm"
                     >
+                      <option value="">-- Chưa chọn size áo --</option>
                       {SHIRT_SIZE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}

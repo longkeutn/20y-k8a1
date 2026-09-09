@@ -10,7 +10,8 @@ import {
   ChevronUp, 
   Sparkles,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  Share2
 } from 'lucide-react';
 
 import { ClassMember } from '../types';
@@ -20,6 +21,7 @@ interface QuickNavigationProps {
   hasTeachers?: boolean;
   activeMember?: ClassMember | null;
   onOpenIdentityModal?: () => void;
+  onOpenZaloShareModal?: () => void;
 }
 
 interface NavItem {
@@ -35,7 +37,8 @@ export default function QuickNavigation({
   confirmedCount = 0, 
   hasTeachers = false,
   activeMember,
-  onOpenIdentityModal
+  onOpenIdentityModal,
+  onOpenZaloShareModal
 }: QuickNavigationProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -277,6 +280,22 @@ export default function QuickNavigation({
               {activeMember ? (activeMember.fullName.split(' ').pop() || 'Tên bạn') : 'Chọn tên'}
             </span>
           </button>
+
+          {/* Nút Xuất Ảnh Thống Kê Zalo */}
+          {onOpenZaloShareModal && (
+            <button
+              type="button"
+              onClick={onOpenZaloShareModal}
+              className="relative flex items-center gap-1 p-2 sm:px-2.5 sm:py-2 rounded-full font-sans transition-all duration-200 cursor-pointer shrink-0 bg-gradient-to-r from-amber-500/25 to-amber-600/25 hover:from-amber-500/40 hover:to-amber-600/40 text-amber-200 hover:text-white border border-amber-400/50 shadow-2xs"
+              title="Xuất ảnh infographic thống kê gửi Zalo lớp"
+              aria-label="Xuất ảnh thống kê Zalo"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-300" />
+              <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
+                Ảnh Zalo
+              </span>
+            </button>
+          )}
 
           {/* Vạch ngăn cách trang nhã */}
           <div className="w-[1px] h-4 bg-slate-700 mx-0.5 shrink-0" />

@@ -721,46 +721,46 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
 // Danh sách sĩ số chính thức K8A1 THPT Thái Nguyên (2003 - 2006)
 // Dùng làm nguồn chuẩn (Master Roster) giúp thành viên chọn nhanh tên mình, chống gõ sai và chống trùng lặp
 export const CLASS_ROSTER_K8A1: ClassMember[] = [
-  { id: 'm01', fullName: 'Nguyễn Tuấn Anh', nickname: 'Tuấn Báo', phone: '', role: 'Bí thư', gender: 'male', shirtSize: 'L' },
-  { id: 'm02', fullName: 'Trần Thị Thanh Hương', nickname: 'Hương Béo', phone: '', role: 'Lớp phó', gender: 'female', shirtSize: 'M' },
-  { id: 'm03', fullName: 'Lê Hoàng Nam', nickname: 'Nam Còi', phone: '', role: 'Thành viên', gender: 'male', shirtSize: 'XL' },
-  { id: 'm04', fullName: 'Phạm Đức Thắng', nickname: 'Thắng Đầu Gấu', phone: '', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm05', fullName: 'Vũ Mai Phương', nickname: 'Phương Mèo', phone: '', role: 'Thủ quỹ', gender: 'female', shirtSize: 'S' },
-  { id: 'm06', fullName: 'Đỗ Hoàng Long', nickname: 'Long Kều', phone: '', role: 'Ban Liên Lạc (Admin)', gender: 'male', shirtSize: 'XL' },
-  { id: 'm07', fullName: 'Nguyễn Thái Bảo', nickname: 'Bảo Cận', role: 'Lớp trưởng', gender: 'male', shirtSize: 'L' },
-  { id: 'm08', fullName: 'Bùi Quang Huy', nickname: 'Huy Lắc', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm09', fullName: 'Hoàng Văn Hải', nickname: 'Hải Bánh', role: 'Thành viên', gender: 'male', shirtSize: 'M' },
-  { id: 'm10', fullName: 'Đặng Thùy Dung', nickname: 'Dung Điệu', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
-  { id: 'm11', fullName: 'Lê Thu Trang', nickname: 'Trang Ốc', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm12', fullName: 'Nguyễn Minh Đức', nickname: 'Đức Còi', role: 'Thành viên', gender: 'male', shirtSize: 'M' },
-  { id: 'm13', fullName: 'Phạm Thùy Linh', nickname: 'Linh Nhím', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm14', fullName: 'Dương Quốc Toàn', nickname: 'Toàn Xoăn', role: 'Thành viên', gender: 'male', shirtSize: 'XL' },
-  { id: 'm15', fullName: 'Vũ Tuấn Dũng', nickname: 'Dũng Béo', role: 'Thành viên', gender: 'male', shirtSize: 'XXL' },
-  { id: 'm16', fullName: 'Trần Phương Thảo', nickname: 'Thảo Xinh', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
-  { id: 'm17', fullName: 'Ngô Quang Vinh', nickname: 'Vinh Râu', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm18', fullName: 'Đoàn Thị Bích Ngọc', nickname: 'Ngọc Nấm', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm19', fullName: 'Trịnh Văn Quân', nickname: 'Quân Tàu', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm20', fullName: 'Đinh Hoàng Yến', nickname: 'Yến Phụng', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
-  { id: 'm21', fullName: 'Phan Minh Trí', nickname: 'Trí Rùa', role: 'Thành viên', gender: 'male', shirtSize: 'M' },
-  { id: 'm22', fullName: 'Mai Anh Tuấn', nickname: 'Tuấn Đen', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm23', fullName: 'Đỗ Thúy Hằng', nickname: 'Hằng Nga', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm24', fullName: 'Hà Việt Cường', nickname: 'Cường Đôla', role: 'Thành viên', gender: 'male', shirtSize: 'XL' },
-  { id: 'm25', fullName: 'Tạ Thị Thu Hà', nickname: 'Hà Mít', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
-  { id: 'm26', fullName: 'Lưu Đức Trọng', nickname: 'Trọng Kính', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm27', fullName: 'Đào Diệu Linh', nickname: 'Linh Tít', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm28', fullName: 'Lý Tuấn Phong', nickname: 'Phong Gió', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm29', fullName: 'Chu Thị Mai Anh', nickname: 'Mai Hoa', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
-  { id: 'm30', fullName: 'Dương Đình Khoa', nickname: 'Khoa Học', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm31', fullName: 'Phùng Thị Kim Oanh', nickname: 'Oanh Vàng', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm32', fullName: 'Lương Việt Hưng', nickname: 'Hưng Híp', role: 'Thành viên', gender: 'male', shirtSize: 'M' },
-  { id: 'm33', fullName: 'Bùi Thu Hương', nickname: 'Hương Mây', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
-  { id: 'm34', fullName: 'Nguyễn Xuân Kiên', nickname: 'Kiên Nhẫn', role: 'Thành viên', gender: 'male', shirtSize: 'XL' },
-  { id: 'm35', fullName: 'Hoàng Thị Minh Châu', nickname: 'Châu Báu', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm36', fullName: 'Phạm Ngọc Long', nickname: 'Long Nhỏ', role: 'Thành viên', gender: 'male', shirtSize: 'M' },
-  { id: 'm37', fullName: 'Lê Thị Quỳnh Trang', nickname: 'Trang Moon', role: 'Thành viên', gender: 'female', shirtSize: 'M' },
-  { id: 'm38', fullName: 'Vũ Trọng Nghĩa', nickname: 'Nghĩa Khí', role: 'Thành viên', gender: 'male', shirtSize: 'L' },
-  { id: 'm39', fullName: 'Cao Thị Bích Thủy', nickname: 'Thủy Tiên', role: 'Thành viên', gender: 'female', shirtSize: 'S' },
-  { id: 'm40', fullName: 'Triệu Văn Đạt', nickname: 'Đạt Chuẩn', role: 'Thành viên', gender: 'male', shirtSize: 'L' }
+  { id: 'm01', fullName: 'Nguyễn Tuấn Anh', nickname: 'Tuấn Báo', phone: '', role: 'Bí thư', gender: 'male', shirtSize: '' },
+  { id: 'm02', fullName: 'Trần Thị Thanh Hương', nickname: 'Hương Béo', phone: '', role: 'Lớp phó', gender: 'female', shirtSize: '' },
+  { id: 'm03', fullName: 'Lê Hoàng Nam', nickname: 'Nam Còi', phone: '', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm04', fullName: 'Phạm Đức Thắng', nickname: 'Thắng Đầu Gấu', phone: '', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm05', fullName: 'Vũ Mai Phương', nickname: 'Phương Mèo', phone: '', role: 'Thủ quỹ', gender: 'female', shirtSize: '' },
+  { id: 'm06', fullName: 'Đỗ Hoàng Long', nickname: 'Long Kều', phone: '', role: 'Ban Liên Lạc (Admin)', gender: 'male', shirtSize: '' },
+  { id: 'm07', fullName: 'Nguyễn Thái Bảo', nickname: 'Bảo Cận', role: 'Lớp trưởng', gender: 'male', shirtSize: '' },
+  { id: 'm08', fullName: 'Bùi Quang Huy', nickname: 'Huy Lắc', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm09', fullName: 'Hoàng Văn Hải', nickname: 'Hải Bánh', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm10', fullName: 'Đặng Thùy Dung', nickname: 'Dung Điệu', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm11', fullName: 'Lê Thu Trang', nickname: 'Trang Ốc', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm12', fullName: 'Nguyễn Minh Đức', nickname: 'Đức Còi', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm13', fullName: 'Phạm Thùy Linh', nickname: 'Linh Nhím', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm14', fullName: 'Dương Quốc Toàn', nickname: 'Toàn Xoăn', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm15', fullName: 'Vũ Tuấn Dũng', nickname: 'Dũng Béo', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm16', fullName: 'Trần Phương Thảo', nickname: 'Thảo Xinh', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm17', fullName: 'Ngô Quang Vinh', nickname: 'Vinh Râu', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm18', fullName: 'Đoàn Thị Bích Ngọc', nickname: 'Ngọc Nấm', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm19', fullName: 'Trịnh Văn Quân', nickname: 'Quân Tàu', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm20', fullName: 'Đinh Hoàng Yến', nickname: 'Yến Phụng', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm21', fullName: 'Phan Minh Trí', nickname: 'Trí Rùa', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm22', fullName: 'Mai Anh Tuấn', nickname: 'Tuấn Đen', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm23', fullName: 'Đỗ Thúy Hằng', nickname: 'Hằng Nga', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm24', fullName: 'Hà Việt Cường', nickname: 'Cường Đôla', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm25', fullName: 'Tạ Thị Thu Hà', nickname: 'Hà Mít', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm26', fullName: 'Lưu Đức Trọng', nickname: 'Trọng Kính', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm27', fullName: 'Đào Diệu Linh', nickname: 'Linh Tít', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm28', fullName: 'Lý Tuấn Phong', nickname: 'Phong Gió', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm29', fullName: 'Chu Thị Mai Anh', nickname: 'Mai Hoa', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm30', fullName: 'Dương Đình Khoa', nickname: 'Khoa Học', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm31', fullName: 'Phùng Thị Kim Oanh', nickname: 'Oanh Vàng', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm32', fullName: 'Lương Việt Hưng', nickname: 'Hưng Híp', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm33', fullName: 'Bùi Thu Hương', nickname: 'Hương Mây', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm34', fullName: 'Nguyễn Xuân Kiên', nickname: 'Kiên Nhẫn', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm35', fullName: 'Hoàng Thị Minh Châu', nickname: 'Châu Báu', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm36', fullName: 'Phạm Ngọc Long', nickname: 'Long Nhỏ', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm37', fullName: 'Lê Thị Quỳnh Trang', nickname: 'Trang Moon', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm38', fullName: 'Vũ Trọng Nghĩa', nickname: 'Nghĩa Khí', role: 'Thành viên', gender: 'male', shirtSize: '' },
+  { id: 'm39', fullName: 'Cao Thị Bích Thủy', nickname: 'Thủy Tiên', role: 'Thành viên', gender: 'female', shirtSize: '' },
+  { id: 'm40', fullName: 'Triệu Văn Đạt', nickname: 'Đạt Chuẩn', role: 'Thành viên', gender: 'male', shirtSize: '' }
 ];
 
 // Kiểm tra xem một thành viên có thuộc Ban Tổ Chức / Ban Liên Lạc hay không
@@ -1419,8 +1419,9 @@ export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
 ];
 
 export function normalizeShirtSize(size?: string): string {
-  if (!size) return 'L';
+  if (!size) return '';
   const s = size.trim().toUpperCase();
+  if (!s || s === 'CHƯA CHỌN' || s === 'CHUA CHON' || s === 'NONE' || s === 'NULL' || s === 'UNDEFINED') return '';
   if (s === '2XL') return 'XXL';
   if (s === '3XL') return 'XXXL';
   return s;

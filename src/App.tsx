@@ -50,6 +50,7 @@ import RoleGuideModal from './components/RoleGuideModal';
 import QuickNavigation from './components/QuickNavigation';
 import TeachersHonorRoll from './components/TeachersHonorRoll';
 import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
+import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
 
 export default function App() {
   // Config state (Google Apps Script WebApp URL)
@@ -258,7 +259,9 @@ export default function App() {
     phone: String(item.phone || ''),
     nickname: item.nickname ? String(item.nickname) : '',
     className: item.className ? String(item.className) : 'K8A1',
-    shirtSize: item.shirtSize ? String(item.shirtSize) : 'L',
+    shirtSize: (item.shirtSize && String(item.shirtSize).trim() !== '' && !String(item.shirtSize).toLowerCase().includes('chưa chọn') && !String(item.shirtSize).toLowerCase().includes('chua chon'))
+      ? String(item.shirtSize).trim().toUpperCase()
+      : '',
     status: item.status === 'no' ? 'no' : 'yes',
     message: item.message ? String(item.message) : '',
     submittedAt: item.submittedAt ? String(item.submittedAt) : '',
@@ -279,7 +282,9 @@ export default function App() {
     phone: item.phone ? String(item.phone).trim() : '',
     role: item.role ? String(item.role).trim() : 'Thành viên',
     gender: (item.gender === 'female' || String(item.gender).toLowerCase().includes('nữ')) ? 'female' : 'male',
-    shirtSize: item.shirtSize ? String(item.shirtSize).trim().toUpperCase() : 'L',
+    shirtSize: (item.shirtSize && String(item.shirtSize).trim() !== '' && !String(item.shirtSize).toLowerCase().includes('chưa chọn') && !String(item.shirtSize).toLowerCase().includes('chua chon'))
+      ? String(item.shirtSize).trim().toUpperCase()
+      : '',
     note: item.note ? String(item.note).trim() : ''
   });
 
@@ -381,11 +386,17 @@ export default function App() {
 
   // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
+  const [isZaloShareModalOpen, setIsZaloShareModalOpen] = useState(false);
 
   useEffect(() => {
     const handleOpenIdentity = () => setIsIdentityModalOpen(true);
+    const handleOpenZaloShare = () => setIsZaloShareModalOpen(true);
     window.addEventListener('open-identity-modal', handleOpenIdentity);
-    return () => window.removeEventListener('open-identity-modal', handleOpenIdentity);
+    window.addEventListener('open-zalo-share-modal', handleOpenZaloShare);
+    return () => {
+      window.removeEventListener('open-identity-modal', handleOpenIdentity);
+      window.removeEventListener('open-zalo-share-modal', handleOpenZaloShare);
+    };
   }, []);
 
   // RSVP list state
@@ -1507,6 +1518,16 @@ export default function App() {
                 <span>Xem Bạn Bè ({confirmedCount})</span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setIsZaloShareModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 sm:px-5 py-3.5 bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-600 hover:to-indigo-600 text-white font-sans font-semibold text-xs sm:text-sm rounded-xl border border-blue-400/40 backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                title="Xuất ảnh infographic thống kê chất lượng cao gửi nhóm Zalo lớp"
+              >
+                <Camera className="w-4 h-4 text-blue-200" />
+                <span>Xuất Ảnh Zalo Lớp</span>
+              </button>
+
               <QuickShare 
                 variant="pill"
                 eventConfig={eventConfig}
@@ -1631,6 +1652,7 @@ export default function App() {
               classRoster={classRoster}
               activeMember={activeMember}
               isSyncing={isRefreshing}
+              onOpenZaloShareModal={() => setIsZaloShareModalOpen(true)}
             />
 
             {/* 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}
@@ -2129,6 +2151,7 @@ export default function App() {
         hasTeachers={teachersList.length > 0} 
         activeMember={activeMember}
         onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
+        onOpenZaloShareModal={() => setIsZaloShareModalOpen(true)}
       />
 
       {/* 🎓 BẢNG DANH BẠ 65 BẠN HỌC K8A1 (CHỌN TÊN ĐỂ NHẬN DIỆN & CÁ NHÂN HÓA) */}
@@ -2142,6 +2165,16 @@ export default function App() {
           handleSelectActiveMember(member);
           setIsIdentityModalOpen(false);
         }}
+      />
+
+      {/* 📸 MODAL XUẤT ẢNH THỐNG KÊ GỬI ZALO LỚP K8A1 */}
+      <ZaloShareInfographicsModal
+        isOpen={isZaloShareModalOpen}
+        onClose={() => setIsZaloShareModalOpen(false)}
+        rsvpList={rsvpList}
+        classRoster={classRoster}
+        eventConfig={eventConfig}
+        activeMember={activeMember}
       />
 
       {/* Toast thông báo realtime */}

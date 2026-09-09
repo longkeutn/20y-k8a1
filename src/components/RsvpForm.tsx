@@ -79,7 +79,7 @@ export default function RsvpForm({
   const [phone, setPhone] = useState('');
   const [savedExistingPhone, setSavedExistingPhone] = useState('');
   const [useSavedPhone, setUseSavedPhone] = useState(false);
-  const [shirtSize, setShirtSize] = useState('L');
+  const [shirtSize, setShirtSize] = useState('');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [status, setStatus] = useState<'yes' | 'no'>('yes');
   const [message, setMessage] = useState('');
@@ -440,9 +440,9 @@ export default function RsvpForm({
       setNickname(activeMember.nickname || '');
       if (activeMember.shirtSize) {
         const normalizedSize = activeMember.shirtSize.toUpperCase() === 'XXL' ? '2XL' : activeMember.shirtSize.toUpperCase();
-        setShirtSize(normalizedSize);
+        setShirtSize(normalizeShirtSize(normalizedSize));
       } else {
-        setShirtSize('L');
+        setShirtSize('');
       }
       setIsCustomMode(false);
 
@@ -485,6 +485,10 @@ export default function RsvpForm({
       if (existing) {
         if (existing.shirtSize) {
           setShirtSize(normalizeShirtSize(existing.shirtSize));
+        } else if (activeMember.shirtSize) {
+          setShirtSize(normalizeShirtSize(activeMember.shirtSize));
+        } else {
+          setShirtSize('');
         }
         if (existing.status) setStatus(existing.status);
         if (existing.message) setMessage(String(existing.message));
@@ -493,11 +497,15 @@ export default function RsvpForm({
         // Bạn này chưa từng đăng ký => khởi tạo form mới sạch sẽ, không giữ message hay status của bạn khác
         setStatus('yes');
         setMessage('');
+        if (!activeMember.shirtSize) {
+          setShirtSize('');
+        }
       }
     } else if (!isCustomMode) {
       setFullName('');
       setNickname('');
       setPhone('');
+      setShirtSize('');
       setSavedExistingPhone('');
       setUseSavedPhone(false);
       setMessage('');
@@ -513,6 +521,7 @@ export default function RsvpForm({
       setFullName('');
       setNickname('');
       setPhone('');
+      setShirtSize('');
       setSavedExistingPhone('');
       setUseSavedPhone(false);
       return;
@@ -523,6 +532,7 @@ export default function RsvpForm({
       setFullName('');
       setNickname('');
       setPhone('');
+      setShirtSize('');
       setSavedExistingPhone('');
       setUseSavedPhone(false);
       return;
@@ -538,6 +548,8 @@ export default function RsvpForm({
         if (member.nickname) setNickname(member.nickname);
         if (member.shirtSize) {
           setShirtSize(normalizeShirtSize(member.shirtSize));
+        } else {
+          setShirtSize('');
         }
         const mPhone = member.phone ? String(member.phone).trim() : '';
         setSavedExistingPhone(mPhone);
@@ -553,6 +565,7 @@ export default function RsvpForm({
     setFullName('');
     setNickname('');
     setPhone('');
+    setShirtSize('');
     setSavedExistingPhone('');
     setUseSavedPhone(false);
     setMessage('');
@@ -598,6 +611,18 @@ export default function RsvpForm({
       return;
     }
 
+    if (targetStatus === 'yes') {
+      const cleanShirtSize = normalizeShirtSize(shirtSize);
+      if (!cleanShirtSize) {
+        setSubmitError('Vui lòng chọn Size Áo polo đồng phục kỷ niệm 20 năm của bạn trước khi xác nhận tham dự!');
+        const shirtSection = document.getElementById('rsvp-shirt-size-section');
+        if (shirtSection) {
+          shirtSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+    }
+
     // Tự động nhận diện và bảo vệ chống trùng lặp nếu người dùng tự gõ họ tên trùng khớp 1 bạn duy nhất trong danh bạ
     let effectiveMemberId = activeMember?.id;
     let effectiveRowId = matchedExistingAttendee?.rowId;
@@ -630,6 +655,8 @@ export default function RsvpForm({
     setSubmitError(null);
     setSubmitSuccess(null);
 
+    const cleanChosenShirtSize = targetStatus === 'yes' ? normalizeShirtSize(shirtSize) : undefined;
+
     const rsvpPayload: RsvpData = {
       id: effectiveId || (matchedExistingAttendee ? matchedExistingAttendee.id : `rsvp-${Date.now()}`),
       rowId: effectiveRowId,
@@ -638,7 +665,7 @@ export default function RsvpForm({
       nickname: nickname.trim() || undefined,
       phone: finalPhone,
       className: 'K8A1',
-      shirtSize: targetStatus === 'yes' ? shirtSize : undefined,
+      shirtSize: cleanChosenShirtSize,
       status: targetStatus,
       message: message.trim(),
       submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
@@ -1520,12 +1547,21 @@ export default function RsvpForm({
                       <Shirt className="w-3.5 h-3.5 text-amber-700" />
                       <span>Size áo polo kỷ niệm:</span>
                     </label>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100/80 text-amber-900 font-mono font-bold text-xs border border-amber-200">
-                      <span>Size {shirtSize}</span>
-                      <span className="font-sans font-medium text-[10.5px] text-amber-800">
-                        ({SHIRT_SIZE_OPTIONS.find((o) => o.value === normalizeShirtSize(shirtSize))?.weightHint || ''})
+                    {normalizeShirtSize(shirtSize) ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-900 font-mono font-bold text-xs border border-emerald-300 shadow-2xs">
+                        <span className="font-sans font-bold text-[11px] text-emerald-700">Đã chọn:</span>
+                        <span>Size {normalizeShirtSize(shirtSize)}</span>
+                        <span className="font-sans font-medium text-[10.5px] text-emerald-700">
+                          ({SHIRT_SIZE_OPTIONS.find((o) => o.value === normalizeShirtSize(shirtSize))?.weightHint || ''})
+                        </span>
+                        <span className="text-emerald-600 font-bold ml-0.5">✓</span>
                       </span>
-                    </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-950 font-sans font-bold text-xs border border-amber-300 animate-pulse shadow-2xs">
+                        <span>⚠️ Chưa chọn size</span>
+                        <span className="font-medium text-[10.5px] text-amber-800">(Bắt buộc chọn cỡ bên dưới)</span>
+                      </span>
+                    )}
                   </div>
 
                   <button
@@ -1536,6 +1572,16 @@ export default function RsvpForm({
                     <span>📐 {showSizeGuide ? 'Đóng số đo' : 'Xem số đo áo'}</span>
                   </button>
                 </div>
+
+                {/* THÔNG BÁO HƯỚNG DẪN NẾU CHƯA CHỌN SIZE */}
+                {!normalizeShirtSize(shirtSize) && (
+                  <div className="p-2.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-300/80 rounded-xl flex items-center gap-2.5 text-xs text-amber-950 shadow-2xs animate-fadeIn">
+                    <span className="text-lg shrink-0">👉</span>
+                    <p className="leading-tight">
+                      <strong>Bạn chưa chọn size áo đồng phục!</strong> Vui lòng bấm vào 1 trong 6 ô kích cỡ bên dưới (từ <strong>S</strong> đến <strong>3XL</strong>) để hoàn tất xác nhận tham dự.
+                    </p>
+                  </div>
+                )}
 
                 {/* BẢNG 6 NÚT SIZE ÁO TRỰC QUAN CỰC KỲ DỄ BẤM */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
