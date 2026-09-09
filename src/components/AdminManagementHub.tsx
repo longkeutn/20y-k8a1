@@ -3412,69 +3412,10 @@ export default function AdminManagementHub({
               {/* ======================================================== */}
               {memberTabSubView === 'roster' && (
                 <div className="space-y-4">
-                  {/* Summary Stat Cards */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-                      <div className="text-[10px] font-sans uppercase font-bold text-slate-500">Sĩ Số Chính Thức</div>
-                      <div className="text-xl font-bold font-serif text-slate-800 mt-0.5">{rosterList.length} <span className="text-xs font-normal font-sans">bạn</span></div>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-2xs">
-                      <div className="text-[10px] font-sans uppercase font-bold text-emerald-700">Đã Xác Nhận Đi</div>
-                      <div className="text-xl font-bold font-serif text-emerald-800 mt-0.5">{rosterConfirmedCount} <span className="text-xs font-normal font-sans">bạn</span></div>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-rose-200 bg-rose-50/30 shadow-2xs">
-                      <div className="text-[10px] font-sans uppercase font-bold text-rose-700">Báo Bận / Vắng</div>
-                      <div className="text-xl font-bold font-serif text-rose-800 mt-0.5">{rosterDeclinedCount} <span className="text-xs font-normal font-sans">bạn</span></div>
-                    </div>
-                    <div className="bg-white p-3 rounded-xl border border-amber-300 bg-amber-50/40 shadow-2xs">
-                      <div className="text-[10px] font-sans uppercase font-bold text-amber-800">Chưa Phản Hồi</div>
-                      <div className="text-xl font-bold font-serif text-amber-900 mt-0.5">{rosterPendingCount} <span className="text-xs font-normal font-sans">bạn</span></div>
-                    </div>
-                  </div>
-
-                  {/* Google Sheet Status & Quick Sync Banner */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 rounded-xl text-xs text-amber-950 shadow-2xs">
-                    <div className="flex items-center gap-2">
-                      <FileSpreadsheet className="w-4 h-4 text-emerald-700 shrink-0" />
-                      <div>
-                        <span>
-                          Quản lý danh bạ thành viên chính thức đồng bộ với Google Sheets ({rosterList.length} bạn).
-                        </span>
-                        {rosterFeedbackMsg && (
-                          <span className="block sm:inline sm:ml-2 font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded text-[11px] animate-pulse">
-                            {rosterFeedbackMsg}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {onRefreshData && (
-                        <button
-                          type="button"
-                          onClick={onRefreshData}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-lg font-bold text-[11px] transition shadow-2xs cursor-pointer"
-                          title="Tải lại dữ liệu mới nhất từ Google Sheet"
-                        >
-                          <RefreshCw className="w-3 h-3 text-slate-500" />
-                          <span>Tải lại Sheet</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleForceSyncRoster}
-                        disabled={isRosterSyncing}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] transition shadow-xs cursor-pointer"
-                        title="Đẩy toàn bộ danh bạ hiện tại lưu vĩnh viễn vào Google Sheet"
-                      >
-                        <Save className={`w-3 h-3 ${isRosterSyncing ? 'animate-spin' : ''}`} />
-                        <span>{isRosterSyncing ? 'Đang lưu...' : 'Lưu Danh Bạ Lên Sheet'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Roster Controls Toolbar */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-amber-200 shadow-2xs">
-                    <div className="flex flex-1 items-center gap-2">
+                  {/* Thanh công cụ quản trị & Lọc trạng thái 1-chạm (Interactive Filter Chips) */}
+                  <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-2xs space-y-2.5">
+                    {/* Hàng 1: Ô tìm kiếm + Các nút tác vụ (Thêm bạn, Đồng bộ Sheet) */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                       <div className="relative flex-1">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -3482,29 +3423,114 @@ export default function AdminManagementHub({
                           value={memberSearch}
                           onChange={(e) => setMemberSearch(e.target.value)}
                           placeholder="Tìm trong danh bạ (Tên, Biệt danh, Chức vụ, SĐT)..."
-                          className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                          className="w-full pl-9 pr-8 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
                         />
+                        {memberSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setMemberSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
 
-                      <select
-                        value={rosterStatusFilter}
-                        onChange={(e) => setRosterStatusFilter(e.target.value as any)}
-                        className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
-                      >
-                        <option value="all">Tất cả ({rosterList.length})</option>
-                        <option value="confirmed">Đã xác nhận ({rosterConfirmedCount})</option>
-                        <option value="declined">Báo vắng ({rosterDeclinedCount})</option>
-                        <option value="pending">Chưa phản hồi ({rosterPendingCount})</option>
-                      </select>
+                      <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+                        <button
+                          onClick={handleOpenAddRosterMember}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer shrink-0"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>+ Thêm Bạn Mới</span>
+                        </button>
+
+                        {onRefreshData && (
+                          <button
+                            type="button"
+                            onClick={onRefreshData}
+                            className="inline-flex items-center gap-1 px-2.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-lg font-bold text-xs transition shadow-2xs cursor-pointer"
+                            title="Tải lại dữ liệu mới nhất từ Google Sheet"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                            <span className="hidden sm:inline">Tải lại</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleForceSyncRoster}
+                          disabled={isRosterSyncing}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
+                          title="Đẩy toàn bộ danh bạ hiện tại lưu vào Google Sheet"
+                        >
+                          <Save className={`w-3.5 h-3.5 ${isRosterSyncing ? 'animate-spin' : ''}`} />
+                          <span>{isRosterSyncing ? 'Đang lưu...' : 'Lưu Sheet'}</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <button
-                      onClick={handleOpenAddRosterMember}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer shrink-0"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>+ Thêm Bạn Vào Danh Bạ Lớp</span>
-                    </button>
+                    {/* Hàng 2: Các nút lọc tương tác thay thế 4 thẻ tĩnh (Filter Chips 1-Chạm) */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setRosterStatusFilter('all')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer ${
+                            rosterStatusFilter === 'all'
+                              ? 'bg-[#1E293B] text-amber-300 shadow-xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          Tất cả ({rosterList.length})
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setRosterStatusFilter('confirmed')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                            rosterStatusFilter === 'confirmed'
+                              ? 'bg-emerald-700 text-white shadow-xs'
+                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                          <span>Đã xác nhận ({rosterConfirmedCount})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setRosterStatusFilter('declined')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                            rosterStatusFilter === 'declined'
+                              ? 'bg-rose-700 text-white shadow-xs'
+                              : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
+                          }`}
+                        >
+                          <XCircle className="w-3 h-3 text-rose-500" />
+                          <span>Báo vắng ({rosterDeclinedCount})</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setRosterStatusFilter('pending')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                            rosterStatusFilter === 'pending'
+                              ? 'bg-amber-700 text-white shadow-xs'
+                              : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200'
+                          }`}
+                        >
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span>Chưa phản hồi ({rosterPendingCount})</span>
+                        </button>
+                      </div>
+
+                      {rosterFeedbackMsg && (
+                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded animate-pulse">
+                          {rosterFeedbackMsg}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Roster Table */}
@@ -3674,84 +3700,151 @@ export default function AdminManagementHub({
               {memberTabSubView === 'rsvp' && (
                 <div className="space-y-4">
                   {/* Controls Toolbar */}
-                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-amber-200 shadow-2xs">
-                    <div className="flex flex-1 items-center gap-2">
-                      <div className="relative flex-1">
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={memberSearch}
-                          onChange={(e) => setMemberSearch(e.target.value)}
-                          placeholder="Tìm theo tên bạn, biệt danh, số điện thoại..."
-                          className="w-full pl-9 pr-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
-                        />
+                  <div className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-2xs space-y-2.5">
+                    {/* Hàng 1: Ô tìm kiếm, lọc size áo và các nút tác vụ */}
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+                      <div className="flex flex-1 items-center gap-2">
+                        <div className="relative flex-1">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={memberSearch}
+                            onChange={(e) => setMemberSearch(e.target.value)}
+                            placeholder="Tìm theo tên bạn, biệt danh, số điện thoại..."
+                            className="w-full pl-9 pr-8 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500"
+                          />
+                          {memberSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setMemberSearch('')}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        <select
+                          value={memberShirtFilter}
+                          onChange={(e) => setMemberShirtFilter(e.target.value)}
+                          className="hidden sm:block px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
+                        >
+                          <option value="all">Tất cả size áo</option>
+                          {SHIRT_SIZE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>Size {opt.value} ({opt.weightHint})</option>
+                          ))}
+                        </select>
                       </div>
 
-                  <select
-                    value={memberStatusFilter}
-                    onChange={(e) => setMemberStatusFilter(e.target.value as any)}
-                    className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
-                  >
-                    <option value="all">Tất cả ({rsvpList.length})</option>
-                    <option value="yes">Có tham gia ({confirmedCount})</option>
-                    <option value="checkedIn">Đã check-in ({checkedInCount})</option>
-                    <option value="notCheckedIn">Chưa check-in ({confirmedCount - checkedInCount})</option>
-                    <option value="no">Vắng mặt ({rsvpList.length - confirmedCount})</option>
-                  </select>
+                      <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+                        <button
+                          onClick={handleOpenAddMember}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>+ Thêm Bạn Học</span>
+                        </button>
 
-                  <select
-                    value={memberShirtFilter}
-                    onChange={(e) => setMemberShirtFilter(e.target.value)}
-                    className="hidden sm:block px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
-                  >
-                    <option value="all">Tất cả size áo</option>
-                    {SHIRT_SIZE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>Size {opt.value} ({opt.weightHint})</option>
-                    ))}
-                  </select>
-                </div>
+                        <button
+                          type="button"
+                          onClick={handleSyncRosterToRsvp}
+                          disabled={isSyncingRosterToRsvp}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                          title="Quét toàn bộ sheet Điểm Danh, tự động ánh xạ và điền Mã TV từ Danh Bạ Lớp"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingRosterToRsvp ? 'animate-spin' : ''}`} />
+                          <span className="hidden sm:inline">{isSyncingRosterToRsvp ? 'Đang đồng bộ...' : 'Đồng Bộ Danh Bạ'}</span>
+                        </button>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={handleOpenAddMember}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>+ Thêm Bạn Học</span>
-                  </button>
+                        <button
+                          type="button"
+                          onClick={handleCleanDuplicates}
+                          disabled={isCleaningDuplicates}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                          title="Quét và xóa tự động các dòng trùng lặp trong Google Sheet"
+                        >
+                          <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isCleaningDuplicates ? 'animate-spin' : ''}`} />
+                          <span className="hidden sm:inline">{isCleaningDuplicates ? 'Đang lọc...' : 'Dọn Trùng'}</span>
+                        </button>
 
-                  <button
-                    type="button"
-                    onClick={handleSyncRosterToRsvp}
-                    disabled={isSyncingRosterToRsvp}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
-                    title="Quét toàn bộ sheet Điểm Danh, tự động ánh xạ và điền Mã TV (Cột 17) từ Danh Bạ Lớp"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingRosterToRsvp ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">{isSyncingRosterToRsvp ? 'Đang đồng bộ...' : '🔄 Đồng Bộ Danh Bạ'}</span>
-                  </button>
+                        <button
+                          onClick={handleExportRsvpCsv}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-sans font-bold rounded-lg transition cursor-pointer"
+                          title="Xuất file danh sách điểm danh Excel/CSV"
+                        >
+                          <Download className="w-3.5 h-3.5 text-slate-500" />
+                          <span className="hidden sm:inline">Xuất CSV</span>
+                        </button>
+                      </div>
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={handleCleanDuplicates}
-                    disabled={isCleaningDuplicates}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
-                    title="Quét và xóa tự động các dòng trùng lặp trong Google Sheet"
-                  >
-                    <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isCleaningDuplicates ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">{isCleaningDuplicates ? 'Đang lọc...' : '🧹 Dọn Trùng Lặp'}</span>
-                  </button>
+                    {/* Hàng 2: Filter Chips trạng thái tham gia */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setMemberStatusFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer ${
+                          memberStatusFilter === 'all'
+                            ? 'bg-[#1E293B] text-amber-300 shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        Tất cả ({rsvpList.length})
+                      </button>
 
-                  <button
-                    onClick={handleExportRsvpCsv}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-sans font-bold rounded-lg transition cursor-pointer"
-                    title="Xuất file danh sách điểm danh Excel/CSV"
-                  >
-                    <Download className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="hidden sm:inline">Xuất CSV</span>
-                  </button>
-                </div>
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => setMemberStatusFilter('yes')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          memberStatusFilter === 'yes'
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        <span>Có mặt ({confirmedCount})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setMemberStatusFilter('checkedIn')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          memberStatusFilter === 'checkedIn'
+                            ? 'bg-blue-700 text-white shadow-xs'
+                            : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}
+                      >
+                        <UserCheck className="w-3 h-3 text-blue-500" />
+                        <span>Đã check-in ({checkedInCount})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setMemberStatusFilter('notCheckedIn')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          memberStatusFilter === 'notCheckedIn'
+                            ? 'bg-indigo-700 text-white shadow-xs'
+                            : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200'
+                        }`}
+                      >
+                        <Clock className="w-3 h-3 text-indigo-500" />
+                        <span>Chưa check-in ({confirmedCount - checkedInCount})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setMemberStatusFilter('no')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          memberStatusFilter === 'no'
+                            ? 'bg-rose-700 text-white shadow-xs'
+                            : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
+                        }`}
+                      >
+                        <XCircle className="w-3 h-3 text-rose-500" />
+                        <span>Vắng mặt ({rsvpList.length - confirmedCount})</span>
+                      </button>
+                    </div>
+                  </div>
 
               {/* Members Table */}
               <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
@@ -3932,139 +4025,130 @@ export default function AdminManagementHub({
                 </div>
               )}
 
-              {/* Header Sổ Quỹ Thu - Chi K8A1 */}
-              <div className="bg-gradient-to-r from-[#1A1613] via-[#26201A] to-[#14110F] text-white p-5 rounded-2xl border border-amber-400/40 shadow-xl relative overflow-hidden">
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px] font-sans font-bold uppercase tracking-wider">
-                        Sổ Quỹ Thu — Chi Minh Bạch
-                      </span>
-                      <span className="text-xs text-slate-400">• Chuẩn Quy chế Lớp K8A1</span>
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-serif font-bold text-amber-100 flex items-center gap-2">
-                      <span>Quản Lý Thu — Chi Quỹ Lớp K8A1</span>
-                    </h3>
-                    <p className="text-xs text-slate-300 font-sans max-w-2xl">
-                      Bao quát cả sự kiện Họp lớp 20 năm, quỹ thường niên định kỳ 100k/năm và các chế độ thăm hỏi hiếu hỷ theo Điều 3 & 4 Quy chế tổ chức.
-                    </p>
+              {/* Thanh Tóm Tắt Tài Chính Tinh Gọn (Slim Financial Summary Bar) */}
+              <div className="bg-gradient-to-r from-[#1A1613] via-[#241E18] to-[#1A1613] text-white p-3.5 sm:p-4 rounded-2xl border border-amber-400/40 shadow-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-sans">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-medium">Tổng Đã Thu:</span>
+                    <span className="font-mono font-bold text-emerald-300 text-sm sm:text-base">
+                      {collectedFund.toLocaleString('vi-VN')} đ
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-sans">({paidMembersCount} bạn)</span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <button
-                      onClick={handleExportFundCsv}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-sans font-bold uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer"
-                      title="Xuất cả Sổ Thu và Sổ Chi ra file Excel/CSV"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Xuất Sổ Quỹ (CSV)</span>
-                    </button>
+                  <div className="w-[1px] h-4 bg-slate-700 hidden md:block" />
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-medium">Tổng Đã Chi:</span>
+                    <span className="font-mono font-bold text-rose-300 text-sm sm:text-base">
+                      {totalExpense.toLocaleString('vi-VN')} đ
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-sans">({effectiveExpenses.length} khoản)</span>
+                  </div>
+
+                  <div className="w-[1px] h-4 bg-slate-700 hidden md:block" />
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-medium">Số Dư Quỹ Còn Lại:</span>
+                    <span className={`font-mono font-bold text-sm sm:text-base ${fundBalance >= 0 ? 'text-amber-200' : 'text-rose-400'}`}>
+                      {fundBalance.toLocaleString('vi-VN')} đ
+                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      fundBalance >= 0 
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    }`}>
+                      {fundBalance >= 0 ? '✓ Quỹ Thặng Dư An Toàn' : '⚠️ Cần Thu Bổ Sung'}
+                    </span>
                   </div>
                 </div>
 
-                {/* 3 Master Financial KPIs: Tổng Thu • Tổng Chi • Số Dư Quỹ */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-amber-400/20">
-                  {/* KPI 1: TỔNG THU */}
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-emerald-500/30 backdrop-blur-xs flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 font-sans block flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        Tổng Tiền Đã Thu
-                      </span>
-                      <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-300 mt-1">
-                        {collectedFund.toLocaleString('vi-VN')} đ
-                      </div>
-                      <span className="text-[10px] text-slate-300 mt-0.5 block">
-                        Từ <strong>{paidMembersCount}</strong> bạn đã đóng quỹ
-                      </span>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                      <Coins className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  {/* KPI 2: TỔNG CHI */}
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-rose-500/30 backdrop-blur-xs flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-rose-400 font-sans block flex items-center gap-1">
-                        <TrendingDown className="w-3 h-3" />
-                        Tổng Tiền Đã Chi
-                      </span>
-                      <div className="text-xl sm:text-2xl font-bold font-mono text-rose-300 mt-1">
-                        {totalExpense.toLocaleString('vi-VN')} đ
-                      </div>
-                      <span className="text-[10px] text-slate-300 mt-0.5 block">
-                        Gồm <strong>{effectiveExpenses.length}</strong> khoản chi phí
-                      </span>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-                      <Receipt className="w-5 h-5" />
-                    </div>
-                  </div>
-
-                  {/* KPI 3: SỐ DƯ QUỸ (CÒN LẠI) */}
-                  <div className={`p-3.5 rounded-xl border backdrop-blur-xs flex items-center justify-between ${
-                    fundBalance >= 0 
-                      ? 'bg-amber-950/40 border-amber-400/40' 
-                      : 'bg-rose-950/40 border-rose-500/50'
-                  }`}>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-amber-300 font-sans block flex items-center gap-1">
-                        <Wallet className="w-3 h-3" />
-                        Số Dư Quỹ Còn Lại
-                      </span>
-                      <div className={`text-xl sm:text-2xl font-bold font-mono mt-1 ${
-                        fundBalance >= 0 ? 'text-amber-200' : 'text-rose-400'
-                      }`}>
-                        {fundBalance.toLocaleString('vi-VN')} đ
-                      </div>
-                      <span className={`text-[10px] font-bold mt-0.5 inline-block px-1.5 py-0.2 rounded ${
-                        fundBalance >= 0 
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                      }`}>
-                        {fundBalance >= 0 ? '✓ Quỹ Thặng Dư An Toàn' : '⚠️ Cần Thu Bổ Sung'}
-                      </span>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-400/20 flex items-center justify-center text-amber-300 shrink-0">
-                      <Scale className="w-5 h-5" />
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                  <button
+                    onClick={handleExportFundCsv}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-xs font-sans font-bold rounded-xl shadow-xs transition cursor-pointer"
+                    title="Xuất cả Sổ Thu và Sổ Chi ra file Excel/CSV"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Xuất Sổ Quỹ (CSV)</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Sub-Tab Navigation: [Thu Quỹ] vs [Chi Tiêu Quỹ] */}
+              {/* Tiến độ thu quỹ sự kiện 20 năm (Slim Progress Bar) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#FAF8F5] px-3.5 py-2 rounded-xl border border-amber-200/80 text-xs font-sans text-slate-700">
+                <span>
+                  Tiến độ thu quỹ 20 năm: <strong className="text-emerald-800">{paidMembersCount} / {confirmedCount}</strong> bạn tham dự ({expectedFund > 0 ? Math.round((collectedFund / expectedFund) * 100) : 0}%)
+                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="w-28 sm:w-40 bg-slate-200 h-2 rounded-full overflow-hidden p-0.5 border border-slate-300">
+                    <div 
+                      className="bg-gradient-to-r from-amber-500 to-emerald-600 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${expectedFund > 0 ? Math.min(100, Math.round((collectedFund / expectedFund) * 100)) : 0}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-emerald-800 font-bold text-xs">
+                    {collectedFund.toLocaleString('vi-VN')} / {expectedFund.toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
+              </div>
+
+              {/* Sub-Tab Navigation Hợp Nhất: [Đối Soát Thành Viên] • [Sổ Thu Chi Tiết] • [Chi Tiêu Lớp] */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => setFundSubTab('income')}
-                    className={`px-4 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-2 transition cursor-pointer ${
-                      fundSubTab === 'income'
-                        ? 'bg-emerald-700 text-white shadow-sm'
+                    onClick={() => {
+                      setFundSubTab('income');
+                      setFundIncomeViewMode('rsvp_members');
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      fundSubTab === 'income' && fundIncomeViewMode === 'rsvp_members'
+                        ? 'bg-amber-700 text-white shadow-xs'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    <Coins className="w-4 h-4" />
-                    <span>Thu Quỹ (Bạn Bè Đóng)</span>
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>1. Đối Soát Thành Viên Lớp</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      fundSubTab === 'income' ? 'bg-emerald-800 text-white' : 'bg-slate-100 text-slate-700'
+                      fundSubTab === 'income' && fundIncomeViewMode === 'rsvp_members' ? 'bg-amber-800 text-white' : 'bg-slate-100 text-slate-700'
                     }`}>
-                      {paidMembersCount}/{confirmedCount}
+                      {paidConfirmedCount}/{confirmedCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFundSubTab('income');
+                      setFundIncomeViewMode('income_ledger');
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      fundSubTab === 'income' && fundIncomeViewMode === 'income_ledger'
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    <Coins className="w-3.5 h-3.5" />
+                    <span>2. Sổ Thu Chi Tiết (Toàn Bộ)</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      fundSubTab === 'income' && fundIncomeViewMode === 'income_ledger' ? 'bg-emerald-800 text-white' : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {effectiveIncomes.length}
                     </span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setFundSubTab('expense')}
-                    className={`px-4 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-2 transition cursor-pointer ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
                       fundSubTab === 'expense'
-                        ? 'bg-rose-700 text-white shadow-sm'
+                        ? 'bg-rose-700 text-white shadow-xs'
                         : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    <Receipt className="w-4 h-4" />
-                    <span>Chi Tiêu (Khoản Chi Lớp)</span>
+                    <Receipt className="w-3.5 h-3.5" />
+                    <span>3. Chi Tiêu (Khoản Chi & Hóa Đơn)</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                       fundSubTab === 'expense' ? 'bg-rose-800 text-white' : 'bg-slate-100 text-slate-700'
                     }`}>
@@ -4073,39 +4157,41 @@ export default function AdminManagementHub({
                   </button>
                 </div>
 
-                {fundSubTab === 'expense' && (
-                  canAuditAndSpend ? (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition cursor-pointer self-start sm:self-auto"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>+ Thêm Khoản Chi Mới</span>
-                    </button>
-                  ) : (
-                    <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5 self-start sm:self-auto">
-                      👁️ Quyền thêm chi tiêu dành cho Thủ Quỹ
-                    </span>
-                  )
-                )}
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  {fundSubTab === 'income' && (
+                    canAuditAndSpend ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddIncome()}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-xl shadow-xs transition cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>+ Thêm Khoản Thu Mới</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5">
+                        👁️ Quyền thu quỹ dành cho Thủ Quỹ
+                      </span>
+                    )
+                  )}
 
-                {fundSubTab === 'income' && (
-                  canAuditAndSpend ? (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddIncome()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition cursor-pointer self-start sm:self-auto"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>+ Thêm Khoản Thu Mới</span>
-                    </button>
-                  ) : (
-                    <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5 self-start sm:self-auto">
-                      👁️ Quyền ghi nhận thu dành cho Thủ Quỹ
-                    </span>
-                  )
-                )}
+                  {fundSubTab === 'expense' && (
+                    canAuditAndSpend ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddExpense()}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white text-xs font-sans font-bold rounded-xl shadow-xs transition cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>+ Thêm Khoản Chi Mới</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-indigo-700 font-sans italic px-3 py-1.5 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-1.5">
+                        👁️ Quyền chi quỹ dành cho Thủ Quỹ
+                      </span>
+                    )
+                  )}
+                </div>
               </div>
 
               {/* ------------------------------------------------------------- */}
@@ -4113,160 +4199,11 @@ export default function AdminManagementHub({
               {/* ------------------------------------------------------------- */}
               {fundSubTab === 'income' && (
                 <div className="space-y-4">
-                  {/* Progress Bar đóng quỹ sự kiện */}
-                  <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-amber-200/80 space-y-1.5">
-                    <div className="flex justify-between text-xs font-sans">
-                      <span className="text-slate-700">
-                        Tiến độ đóng quỹ sự kiện 20 năm: <strong className="text-emerald-800">{paidMembersCount} / {confirmedCount}</strong> bạn tham dự ({expectedFund > 0 ? Math.round((collectedFund / expectedFund) * 100) : 0}%)
-                      </span>
-                      <span className="font-mono text-emerald-800 font-bold">
-                        {collectedFund.toLocaleString('vi-VN')} / {expectedFund.toLocaleString('vi-VN')} đ
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-300">
-                      <div 
-                        className="bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-600 h-full rounded-full transition-all duration-500 shadow-sm"
-                        style={{ width: `${expectedFund > 0 ? Math.min(100, Math.round((collectedFund / expectedFund) * 100)) : 0}%` }}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Dải phím tắt gợi ý thu nhanh theo danh mục (Quick Category Shortcuts) */}
-                  {canAuditAndSpend && (
-                    <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-emerald-200/80 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] uppercase tracking-wider font-sans font-bold text-emerald-950 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                          Gợi ý thu nhanh theo danh mục (Bấm để mở form ghi nhận):
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-sans hidden sm:inline">
-                          8 danh mục thu chuẩn K8A1
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs font-sans">
-                        {INCOME_CATEGORIES.map(cat => (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => handleOpenAddIncome({
-                              category: cat.id,
-                              title: cat.quickTitle,
-                              amount: cat.defaultAmount || standardFundAmount,
-                              note: cat.description
-                            })}
-                            className={`px-2.5 py-1.5 ${cat.badgeBg} hover:opacity-90 ${cat.badgeText} border ${cat.badgeBorder} rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-2xs font-medium`}
-                            title={cat.description}
-                          >
-                            <span>{cat.icon}</span>
-                            <span>{cat.shortLabel}</span>
-                            {cat.defaultAmount && (
-                              <span className="text-[10.5px] opacity-75 font-mono">
-                                ({cat.defaultAmount >= 1000000 ? `${cat.defaultAmount / 1000000}tr` : `${cat.defaultAmount / 1000}k`})
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Chuyển đổi góc nhìn View Mode Toggle: [📋 Theo Thành Viên Đóng Quỹ] vs [📑 Sổ Thu Chi Tiết Toàn Bộ] */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-amber-200">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setFundIncomeViewMode('rsvp_members')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                          fundIncomeViewMode === 'rsvp_members'
-                            ? 'bg-amber-700 text-white shadow-2xs'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        <UserCheck className="w-3.5 h-3.5" />
-                        <span>Đối Soát Thành Viên Lớp</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/10">
-                          {paidConfirmedCount}/{confirmedCount}
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setFundIncomeViewMode('income_ledger')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                          fundIncomeViewMode === 'income_ledger'
-                            ? 'bg-emerald-700 text-white shadow-2xs'
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        <Coins className="w-3.5 h-3.5" />
-                        <span>Sổ Thu Chi Tiết (Toàn Bộ Khoản Thu)</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/10">
-                          {effectiveIncomes.length}
-                        </span>
-                      </button>
-                    </div>
-
-                    {canAuditAndSpend && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenAddIncome()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-lg shadow-2xs transition cursor-pointer self-start sm:self-auto"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Thêm Khoản Thu</span>
-                      </button>
-                    )}
-                  </div>
-
-              {/* 4 Financial KPI Summary Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
-                  <span className="text-[11px] text-slate-500 font-sans block">Tổng Thực Thu</span>
-                  <div className="text-xl font-bold font-mono text-emerald-700 mt-1">
-                    {collectedFund.toLocaleString('vi-VN')} đ
-                  </div>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">
-                    Mục tiêu: {expectedFund.toLocaleString('vi-VN')} đ
-                  </span>
-                </div>
-
-                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
-                  <span className="text-[11px] text-slate-500 font-sans block">Đã Nộp / Tham Dự</span>
-                  <div className="text-xl font-bold font-mono text-slate-900 mt-1">
-                    {paidConfirmedCount} / {confirmedCount} <span className="text-xs font-normal text-slate-500">bạn</span>
-                  </div>
-                  <span className="text-[10px] text-rose-600 font-semibold mt-0.5 block">
-                    Còn {unpaidMembersCount} bạn tham dự chưa nộp{absentSupportersCount > 0 ? ` • ${absentSupportersCount} bạn vắng ủng hộ` : ''}
-                  </span>
-                </div>
-
-                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
-                  <span className="text-[11px] text-slate-500 font-sans block">Chứng Từ / Bill Đã Lưu</span>
-                  <div className="text-xl font-bold font-mono text-blue-700 mt-1 flex items-center gap-1.5">
-                    <span>{hasReceiptCount} / {paidMembersCount}</span>
-                    <span className="text-xs font-normal text-slate-500">bill</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500 mt-0.5 block truncate" title="Lưu trữ chứng từ an toàn trên Google Drive">
-                    Lưu trữ Google Drive an toàn
-                  </span>
-                </div>
-
-                <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
-                  <span className="text-[11px] text-slate-500 font-sans block">Ủng Hộ Thêm (Mạnh Thường Quân)</span>
-                  <div className="text-xl font-bold font-mono text-amber-700 mt-1">
-                    {totalExtraFund.toLocaleString('vi-VN')} đ
-                  </div>
-                  <span className="text-[10px] text-amber-800 font-semibold mt-0.5 block">
-                    Từ {extraMembersCount} bạn đóng thêm
-                  </span>
-                </div>
-              </div>
-
-              {/* ------------------------------------------------------------- */}
-              {/* VIEW 1: ĐỐI SOÁT THEO THÀNH VIÊN LỚP (RSVP RECONCILIATION) */}
-              {/* ------------------------------------------------------------- */}
-              {fundIncomeViewMode === 'rsvp_members' && (
+                  {/* ------------------------------------------------------------- */}
+                  {/* VIEW 1: ĐỐI SOÁT THEO THÀNH VIÊN LỚP (RSVP RECONCILIATION) */}
+                  {/* ------------------------------------------------------------- */}
+                  {fundIncomeViewMode === 'rsvp_members' && (
                 <div className="space-y-4">
                   {/* Fund Search & Filter Toolbar */}
                   <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3">
@@ -5107,111 +5044,6 @@ export default function AdminManagementHub({
           {/* ------------------------------------------------------------- */}
           {fundSubTab === 'expense' && (
             <div className="space-y-4">
-              {/* Quick Shortcut Presets based on Class Charter (Quy chế K8A1 Điều 3 & 4) */}
-              {canAuditAndSpend && (
-                <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-amber-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-wider font-sans font-bold text-amber-900 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                      Gợi ý chi nhanh theo Quy chế & Kỷ niệm 20 năm (Bấm để điền mẫu):
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-sans hidden sm:inline">
-                      Chuẩn định mức Điều 3 & Điều 4
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs font-sans">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense({
-                        title: 'Phúng viếng tứ thân phụ mẫu (kèm vòng hoa)',
-                        category: 'care',
-                        amount: 500000,
-                        eventScope: 'Thường niên theo quy chế',
-                        note: 'Mức chi 500.000 đ/người gồm cả vòng hoa (Điều 3 Quy chế K8A1)'
-                      })}
-                      className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                    >
-                      <span>🌹 Viếng phụ mẫu (500k)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense({
-                        title: 'Thăm hỏi ốm đau / khó khăn đột xuất',
-                        category: 'care',
-                        amount: 300000,
-                        eventScope: 'Thường niên theo quy chế',
-                        note: 'Mức chi 300.000 đ/trường hợp theo Điều 3 Quy chế K8A1'
-                      })}
-                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                    >
-                      <span>🩹 Thăm ốm đau (300k)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense({
-                        title: 'Đặt cọc sảnh tiệc Crown Palace Thái Nguyên',
-                        category: 'party',
-                        amount: 5000000,
-                        recipient: 'Trung tâm Tiệc cưới Crown Palace Thái Nguyên',
-                        eventScope: 'Kỷ niệm 20 năm',
-                        note: 'Cọc sảnh tiệc trưa Chủ Nhật 27/09/2026'
-                      })}
-                      className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                    >
-                      <span>🍽️ Cọc tiệc Crown Palace</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense({
-                        title: 'Đặt may in áo polo đồng phục 20 năm K8A1',
-                        category: 'souvenir',
-                        amount: 6750000,
-                        recipient: 'Xưởng may đồng phục Thái Nguyên',
-                        eventScope: 'Kỷ niệm 20 năm',
-                        note: 'May áo polo cá sấu thêu logo 20 năm theo size đăng ký'
-                      })}
-                      className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                    >
-                      <span>👕 May áo polo K8A1</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense({
-                        title: 'Hoa tươi & quà tri ân các Thầy Cô giáo cũ',
-                        category: 'teacher',
-                        amount: 3000000,
-                        recipient: 'Tiệm hoa & Quà tặng Thái Nguyên',
-                        eventScope: 'Kỷ niệm 20 năm',
-                        note: 'Tri ân thầy cô chủ nhiệm và bộ môn gắn bó cùng K8A1'
-                      })}
-                      className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                    >
-                      <span>💐 Quà tri ân Thầy Cô</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddExpense({
-                        title: 'In ấn Backdrop sân khấu, check-in & Thẻ học sinh',
-                        category: 'media',
-                        amount: 2500000,
-                        recipient: 'Công ty In ấn & Quảng cáo Thái Nguyên',
-                        eventScope: 'Kỷ niệm 20 năm',
-                        note: 'Backdrop sân khấu + 45 thẻ cựu học sinh kèm dây đeo'
-                      })}
-                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-2xs font-medium"
-                    >
-                      <span>📸 Backdrop & Thẻ học sinh</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Expense Search & Category Filters Toolbar */}
               <div className="bg-white p-3.5 rounded-xl border border-amber-200 space-y-3">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -5541,13 +5373,13 @@ export default function AdminManagementHub({
           {/* --------------------------------------------------------------- */}
           {activeTab === 'teachers' && (
             <div className="space-y-4">
-              {/* Header card with Stats */}
-              <div className="bg-white p-4 rounded-xl border border-amber-200 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100 pb-3">
+              {/* Header card with Action Toolbar */}
+              <div className="bg-white p-3.5 rounded-xl border border-amber-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold font-serif text-slate-900 flex items-center gap-2">
                       <GraduationCap className="w-5 h-5 text-amber-600" />
-                      <span>Danh Sách Quý Thầy Cô Giáo K8A1 (Niên Khóa 2003 — 2006)</span>
+                      <span>Danh Sách Quý Thầy Cô K8A1 ({teacherStats.total} Thầy Cô)</span>
                     </h3>
                     <p className="text-xs text-slate-500 font-sans">
                       Quản lý công tác tri ân, tiến độ gửi thiệp mời, phương án đưa đón và đón tiếp tại Hội Khóa 20 Năm.
@@ -5576,73 +5408,115 @@ export default function AdminManagementHub({
                     </button>
                   </div>
                 </div>
-
-                {/* 4 Mini KPI Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
-                  <div className="p-2.5 bg-amber-50/70 border border-amber-200/80 rounded-xl">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase block">Tổng Thầy Cô</span>
-                    <span className="text-base font-serif font-bold text-amber-950">{teacherStats.total} Thầy/Cô</span>
-                  </div>
-                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                    <span className="text-[10px] text-emerald-700 font-bold uppercase block">Chắc Chắn Về Dự</span>
-                    <span className="text-base font-serif font-bold text-emerald-900">{teacherStats.attending} Thầy/Cô</span>
-                  </div>
-                  <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl">
-                    <span className="text-[10px] text-blue-700 font-bold uppercase block">Lớp Cử Xe Đón</span>
-                    <span className="text-base font-serif font-bold text-blue-900">{teacherStats.needCar} Thầy/Cô</span>
-                  </div>
-                  <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl">
-                    <span className="text-[10px] text-purple-700 font-bold uppercase block">Đã Trao Thiệp</span>
-                    <span className="text-base font-serif font-bold text-purple-900">{teacherStats.invitedHand} Thầy/Cô</span>
-                  </div>
-                </div>
               </div>
 
-              {/* Filters Toolbar */}
-              <div className="bg-white p-3 rounded-xl border border-amber-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={teacherSearch}
-                    onChange={(e) => setTeacherSearch(e.target.value)}
-                    placeholder="Tìm theo tên Thầy Cô, môn dạy, SĐT, BLL phụ trách..."
-                    className="w-full pl-9 pr-3 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg text-xs font-serif text-slate-900 focus:outline-none focus:border-amber-500"
-                  />
-                  {teacherSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setTeacherSearch('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              {/* Filters Toolbar with Interactive Chips */}
+              <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-2.5">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={teacherSearch}
+                      onChange={(e) => setTeacherSearch(e.target.value)}
+                      placeholder="Tìm theo tên Thầy Cô, môn dạy, SĐT, BLL phụ trách..."
+                      className="w-full pl-9 pr-3 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg text-xs font-serif text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                    {teacherSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setTeacherSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <select
+                      value={teacherStatusFilter}
+                      onChange={(e) => setTeacherStatusFilter(e.target.value)}
+                      className="px-2.5 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg font-sans text-xs focus:outline-none focus:border-amber-500"
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                      <option value="all">Tất cả trạng thái</option>
+                      <option value="attending">Chắc chắn tham dự</option>
+                      <option value="pending">Đang liên hệ</option>
+                      <option value="wishing">Gửi lời chúc từ xa</option>
+                      <option value="declined">Báo bận / Không về</option>
+                      <option value="memorial">Tưởng nhớ tri ân</option>
+                    </select>
+
+                    <select
+                      value={teacherRoleFilter}
+                      onChange={(e) => setTeacherRoleFilter(e.target.value)}
+                      className="px-2.5 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg font-sans text-xs focus:outline-none focus:border-amber-500"
+                    >
+                      <option value="all">Tất cả vai trò</option>
+                      <option value="homeroom">Giáo viên Chủ nhiệm</option>
+                      <option value="subject">Giáo viên Bộ môn</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <select
-                    value={teacherStatusFilter}
-                    onChange={(e) => setTeacherStatusFilter(e.target.value)}
-                    className="px-2.5 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg font-sans text-xs focus:outline-none focus:border-amber-500"
+                {/* Quick Status Filter Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-[11px] font-sans">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Lọc nhanh:</span>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherStatusFilter('all')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      teacherStatusFilter === 'all'
+                        ? 'bg-amber-800 text-white shadow-xs font-bold'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                   >
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="attending">Chắc chắn tham dự</option>
-                    <option value="pending">Đang liên hệ</option>
-                    <option value="wishing">Gửi lời chúc từ xa</option>
-                    <option value="declined">Báo bận / Không về</option>
-                    <option value="memorial">Tưởng nhớ tri ân</option>
-                  </select>
-
-                  <select
-                    value={teacherRoleFilter}
-                    onChange={(e) => setTeacherRoleFilter(e.target.value)}
-                    className="px-2.5 py-1.5 bg-[#FAF9F5] border border-slate-300 rounded-lg font-sans text-xs focus:outline-none focus:border-amber-500"
+                    Tất cả ({teacherStats.total})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherStatusFilter('attending')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      teacherStatusFilter === 'attending'
+                        ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                    }`}
                   >
-                    <option value="all">Tất cả vai trò</option>
-                    <option value="homeroom">Giáo viên Chủ nhiệm</option>
-                    <option value="subject">Giáo viên Bộ môn</option>
-                  </select>
+                    ✓ Chắc chắn về ({teacherStats.attending})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherStatusFilter('pending')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      teacherStatusFilter === 'pending'
+                        ? 'bg-amber-600 text-white shadow-xs font-bold'
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-900'
+                    }`}
+                  >
+                    ⏳ Đang liên hệ ({teacherStats.pending})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherStatusFilter('wishing')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      teacherStatusFilter === 'wishing'
+                        ? 'bg-purple-700 text-white shadow-xs font-bold'
+                        : 'bg-purple-50 hover:bg-purple-100 text-purple-800'
+                    }`}
+                  >
+                    💌 Lời chúc từ xa ({teacherStats.wishing})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherStatusFilter('declined')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                      teacherStatusFilter === 'declined'
+                        ? 'bg-rose-700 text-white shadow-xs font-bold'
+                        : 'bg-rose-50 hover:bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    ✕ Báo bận
+                  </button>
                 </div>
               </div>
 
@@ -9045,6 +8919,42 @@ export default function AdminManagementHub({
               </div>
 
               <form onSubmit={handleSaveExpense} className="space-y-3 overflow-y-auto pr-1 flex-1">
+                {/* Gợi ý chi nhanh theo Quy chế & Sự kiện 20 năm */}
+                <div className="bg-amber-50/60 p-2.5 rounded-2xl border border-amber-200/80 space-y-1.5">
+                  <span className="text-[11px] font-sans font-bold text-amber-900 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Chọn nhanh mẫu chi theo Quy chế:</span>
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs font-sans">
+                    {[
+                      { title: 'Phúng viếng tứ thân phụ mẫu (kèm vòng hoa)', cat: 'care', amt: 500000, label: '🌹 Viếng phụ mẫu (500k)', scope: 'Thường niên theo quy chế' },
+                      { title: 'Thăm hỏi ốm đau / khó khăn đột xuất', cat: 'care', amt: 300000, label: '🩹 Thăm ốm đau (300k)', scope: 'Thường niên theo quy chế' },
+                      { title: 'Đặt cọc sảnh tiệc Crown Palace Thái Nguyên', cat: 'party', amt: 5000000, label: '🍽️ Cọc tiệc Crown Palace (5tr)', scope: 'Kỷ niệm 20 năm' },
+                      { title: 'Đặt may in áo polo đồng phục 20 năm K8A1', cat: 'souvenir', amt: 6750000, label: '👕 May áo polo K8A1 (6.75tr)', scope: 'Kỷ niệm 20 năm' },
+                      { title: 'Hoa tươi & quà tri ân các Thầy Cô giáo cũ', cat: 'teacher', amt: 3000000, label: '💐 Quà tri ân Thầy Cô (3tr)', scope: 'Kỷ niệm 20 năm' },
+                      { title: 'In ấn Backdrop sân khấu & Thẻ học sinh', cat: 'media', amt: 2500000, label: '📸 Backdrop & Thẻ (2.5tr)', scope: 'Kỷ niệm 20 năm' },
+                    ].map(p => (
+                      <button
+                        key={p.title}
+                        type="button"
+                        onClick={() => {
+                          setExpenseFormData(prev => ({
+                            ...prev,
+                            title: p.title,
+                            category: p.cat as ExpenseCategory,
+                            amount: p.amt,
+                            eventScope: p.scope
+                          }));
+                          setExpenseAmountFormatted(p.amt.toLocaleString('vi-VN'));
+                        }}
+                        className="px-2 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-medium transition cursor-pointer shadow-2xs"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* 1. Tên khoản chi */}
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700 flex items-center gap-1">
