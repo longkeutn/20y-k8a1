@@ -7,7 +7,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     "rowId": "2",
     "fullName": "Thành Long",
     "nickname": "Long Kều",
-    "phone": "0919 ••• •88",
+    "phone": "0919 ••• 588",
     "status": "yes",
     "shirtSize": "3XL",
     "message": "",
@@ -1615,7 +1615,19 @@ export function formatDateOnlyVi(rawDate?: any): string {
  */
 export function maskPhone(phone?: any): string {
   if (!phone) return '';
-  const clean = String(phone).replace(/[^0-9]/g, '');
+  const str = String(phone).trim();
+
+  // 1. Nếu chuỗi ĐÃ ĐƯỢC CHE MỜ trước đó (chứa • hoặc *):
+  if (str.includes('•') || str.includes('*')) {
+    const match = str.match(/^([0-9]{3,4})[^0-9]+([0-9]{2,4})$/);
+    if (match) {
+      return `${match[1]} ••• ${match[2]}`;
+    }
+    return str.replace(/\s+/g, ' ').trim();
+  }
+
+  // 2. Nếu là số thô (chưa che):
+  const clean = str.replace(/[^0-9]/g, '');
   if (clean.length < 7) return clean;
   if (clean.length === 10) {
     return `${clean.slice(0, 4)} ••• ${clean.slice(-3)}`;
@@ -2300,9 +2312,9 @@ function maskPhoneScript(phone) {
   var clean = String(phone).replace(/[^0-9]/g, '');
   if (clean.length < 7) return clean;
   if (clean.length === 10) {
-    return clean.slice(0, 4) + ' ••• •' + clean.slice(-2);
+    return clean.slice(0, 4) + ' ••• ' + clean.slice(-3);
   }
-  return clean.slice(0, 3) + ' ••• •' + clean.slice(-2);
+  return clean.slice(0, 3) + ' ••• ' + clean.slice(-3);
 }
 
 /**
