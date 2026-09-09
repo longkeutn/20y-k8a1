@@ -479,8 +479,15 @@ export default function ConfirmedAttendees({
                               <span>+ Nộp quỹ</span>
                             </a>
                           )
+                        ) : attendee.fundStatus === 'paid' ? (
+                          <span 
+                            className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-800 border border-indigo-200 whitespace-nowrap"
+                            title={attendee.fundAmount ? `Đã ủng hộ ${attendee.fundAmount.toLocaleString('vi-VN')}đ` : 'Tự nguyện ủng hộ quỹ'}
+                          >
+                            <span>💜 Đã ủng hộ</span>
+                          </span>
                         ) : (
-                          <span className="text-slate-400 text-[10px]">—</span>
+                          <span className="text-slate-400 text-[10px]" title="Báo vắng — Không bắt buộc đóng quỹ">—</span>
                         )}
                       </td>
 

@@ -516,7 +516,7 @@ export default function AdminManagementHub({
 
   // Search & Filters for Fund Reconciliation Tab
   const [fundSearch, setFundSearch] = useState('');
-  const [fundStatusFilter, setFundStatusFilter] = useState<'all' | 'paid' | 'unpaid' | 'pending' | 'extra' | 'has_receipt' | 'no_receipt' | 'bank_transfer' | 'cash'>('all');
+  const [fundStatusFilter, setFundStatusFilter] = useState<'all' | 'paid' | 'unpaid' | 'pending' | 'extra' | 'has_receipt' | 'no_receipt' | 'bank_transfer' | 'cash' | 'absent'>('all');
   const [fundDateFilter, setFundDateFilter] = useState<'all' | 'today' | '7days' | 'this_month' | 'year_2026' | 'custom'>('all');
   const [fundCustomStartDate, setFundCustomStartDate] = useState('');
   const [fundCustomEndDate, setFundCustomEndDate] = useState('');
@@ -967,12 +967,13 @@ export default function AdminManagementHub({
   }, [heroBannerPosition]);
 
   // ---------------------------------------------------------------------------
-  // KPI COMPUTATIONS
+  // KPI COMPUTATIONS (ĐÃ TÁCH BẠCH CHUẨN XÁC GIỮA THAM DỰ & BÁO VẮNG)
   // ---------------------------------------------------------------------------
   const confirmedCount = useMemo(() => rsvpList.filter(a => a.status === 'yes').length, [rsvpList]);
+  const absentMembersCount = useMemo(() => rsvpList.filter(a => a.status === 'no').length, [rsvpList]);
   const checkedInCount = useMemo(() => rsvpList.filter(a => a.status === 'yes' && a.checkedIn).length, [rsvpList]);
   
-  // Total expected fund based on standard fee
+  // Total expected fund based on standard fee (chỉ tính những bạn xác nhận tham gia)
   const expectedFund = useMemo(() => confirmedCount * standardFundAmount, [confirmedCount, standardFundAmount]);
   
   // Tổng các khoản thu ngoài quỹ sự kiện trong Sổ Thu (áo polo, người thân, tài trợ ngoài, quỹ thường niên...)
@@ -984,35 +985,56 @@ export default function AdminManagementHub({
   const collectedFund = useMemo(() => {
     const rsvpCollected = rsvpList.reduce((acc, curr) => {
       if (curr.fundStatus === 'paid') {
-        return acc + (curr.fundAmount !== undefined ? curr.fundAmount : standardFundAmount);
+        return acc + (curr.fundAmount !== undefined ? curr.fundAmount : (curr.status === 'yes' ? standardFundAmount : 0));
       }
       return acc;
     }, 0);
     return rsvpCollected + totalExtraIncomes;
   }, [rsvpList, standardFundAmount, totalExtraIncomes]);
 
+  // Số bạn THAM DỰ đã đóng quỹ sự kiện:
+  const paidConfirmedCount = useMemo(() => {
+    return rsvpList.filter(a => a.status === 'yes' && a.fundStatus === 'paid').length;
+  }, [rsvpList]);
+
+  // Số bạn BÁO VẮNG tự nguyện ủng hộ quỹ:
+  const absentSupportersCount = useMemo(() => {
+    return rsvpList.filter(a => a.status === 'no' && a.fundStatus === 'paid').length;
+  }, [rsvpList]);
+
+  // Tổng số bạn đã đóng quỹ hoặc ủng hộ (cả tham gia + vắng ủng hộ):
   const paidMembersCount = useMemo(() => rsvpList.filter(a => a.fundStatus === 'paid').length, [rsvpList]);
 
-  // Extra sponsorship fund (> standardFundAmount)
+  // Extra sponsorship fund (> standardFundAmount đối với bạn tham gia, hoặc toàn bộ tiền ủng hộ từ bạn báo vắng)
   const totalExtraFund = useMemo(() => {
     return rsvpList.reduce((acc, curr) => {
-      if (curr.fundStatus === 'paid' && (curr.fundAmount || 0) > standardFundAmount) {
-        return acc + ((curr.fundAmount || 0) - standardFundAmount);
+      if (curr.fundStatus === 'paid') {
+        if (curr.status === 'yes' && (curr.fundAmount || 0) > standardFundAmount) {
+          return acc + ((curr.fundAmount || 0) - standardFundAmount);
+        } else if (curr.status === 'no' && (curr.fundAmount || 0) > 0) {
+          return acc + (curr.fundAmount || 0);
+        }
       }
       return acc;
     }, 0);
   }, [rsvpList, standardFundAmount]);
 
   const extraMembersCount = useMemo(() => {
-    return rsvpList.filter(a => a.fundStatus === 'paid' && (a.fundAmount || 0) > standardFundAmount).length;
+    return rsvpList.filter(a => {
+      if (a.fundStatus !== 'paid') return false;
+      if (a.status === 'yes') return (a.fundAmount || 0) > standardFundAmount;
+      if (a.status === 'no') return (a.fundAmount || 0) > 0;
+      return false;
+    }).length;
   }, [rsvpList, standardFundAmount]);
 
   const hasReceiptCount = useMemo(() => {
     return rsvpList.filter(a => Boolean(a.fundReceiptUrl && a.fundReceiptUrl.trim())).length;
   }, [rsvpList]);
 
+  // CHỈ ĐẾM CÁC BẠN XÁC NHẬN THAM GIA MÀ CHƯA NỘP (KHÔNG ĐẾM BẠN VẮNG)
   const unpaidMembersCount = useMemo(() => {
-    return rsvpList.filter(a => a.fundStatus !== 'paid').length;
+    return rsvpList.filter(a => a.status === 'yes' && a.fundStatus !== 'paid' && a.fundStatus !== 'exempt').length;
   }, [rsvpList]);
 
   const pendingMembersCount = useMemo(() => {
@@ -3047,12 +3069,14 @@ export default function AdminManagementHub({
       const isPaid = item.fundStatus === 'paid';
       const hasReceipt = Boolean(item.fundReceiptUrl && item.fundReceiptUrl.trim());
 
+      const isAbsent = item.status === 'no';
       const matchFundStatus =
         fundStatusFilter === 'all' ||
         (fundStatusFilter === 'paid' && isPaid) ||
-        (fundStatusFilter === 'unpaid' && (item.fundStatus === 'unpaid' || !item.fundStatus)) ||
+        (fundStatusFilter === 'unpaid' && !isPaid && item.status === 'yes' && item.fundStatus !== 'exempt') ||
+        (fundStatusFilter === 'absent' && isAbsent) ||
         (fundStatusFilter === 'pending' && item.fundStatus === 'pending') ||
-        (fundStatusFilter === 'extra' && isPaid && (item.fundAmount || 0) > standardFundAmount) ||
+        (fundStatusFilter === 'extra' && isPaid && ((item.status === 'yes' && (item.fundAmount || 0) > standardFundAmount) || (item.status === 'no' && (item.fundAmount || 0) > 0))) ||
         (fundStatusFilter === 'has_receipt' && hasReceipt) ||
         (fundStatusFilter === 'no_receipt' && !hasReceipt && isPaid) ||
         (fundStatusFilter === 'bank_transfer' && (item.fundPaymentMethod === 'bank_transfer' || !item.fundPaymentMethod)) ||
@@ -3215,7 +3239,14 @@ export default function AdminManagementHub({
             </div>
             <div>
               <p className="text-[10px] uppercase font-sans text-slate-500 font-bold">Đã Đóng Quỹ ({standardFundAmount.toLocaleString('vi-VN')}đ)</p>
-              <p className="font-serif font-bold text-blue-800 text-sm">{paidMembersCount} / {confirmedCount} bạn</p>
+              <p className="font-serif font-bold text-blue-800 text-sm">
+                {paidConfirmedCount} / {confirmedCount} bạn
+                {absentSupportersCount > 0 && (
+                  <span className="text-[11px] font-normal text-indigo-700 ml-1 font-sans">
+                    (+{absentSupportersCount} bạn vắng ủng hộ)
+                  </span>
+                )}
+              </p>
             </div>
           </div>
 
@@ -4154,7 +4185,7 @@ export default function AdminManagementHub({
                         <UserCheck className="w-3.5 h-3.5" />
                         <span>Đối Soát Thành Viên Lớp</span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-black/10">
-                          {paidMembersCount}/{confirmedCount}
+                          {paidConfirmedCount}/{confirmedCount}
                         </span>
                       </button>
 
@@ -4202,10 +4233,10 @@ export default function AdminManagementHub({
                 <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
                   <span className="text-[11px] text-slate-500 font-sans block">Đã Nộp / Tham Dự</span>
                   <div className="text-xl font-bold font-mono text-slate-900 mt-1">
-                    {paidMembersCount} / {confirmedCount} <span className="text-xs font-normal text-slate-500">bạn</span>
+                    {paidConfirmedCount} / {confirmedCount} <span className="text-xs font-normal text-slate-500">bạn</span>
                   </div>
                   <span className="text-[10px] text-rose-600 font-semibold mt-0.5 block">
-                    Còn {unpaidMembersCount} bạn chưa nộp
+                    Còn {unpaidMembersCount} bạn tham dự chưa nộp{absentSupportersCount > 0 ? ` • ${absentSupportersCount} bạn vắng ủng hộ` : ''}
                   </span>
                 </div>
 
@@ -4256,9 +4287,10 @@ export default function AdminManagementHub({
                       onChange={(e) => setFundStatusFilter(e.target.value as any)}
                       className="px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg text-xs font-sans focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
-                      <option value="all">Tất cả trạng thái ({rsvpList.length})</option>
-                      <option value="paid">Đã đóng tiền ({paidMembersCount})</option>
-                      <option value="unpaid">Chưa đóng tiền ({unpaidMembersCount})</option>
+                      <option value="all">Tất cả danh sách ({rsvpList.length})</option>
+                      <option value="paid">Đã đóng / ủng hộ ({paidMembersCount})</option>
+                      <option value="unpaid">Tham dự chưa nộp ({unpaidMembersCount})</option>
+                      <option value="absent">Báo vắng ({absentMembersCount}) — Miễn đóng</option>
                       <option value="pending">Chờ đối soát ({pendingMembersCount})</option>
                       <option value="has_receipt">Có ảnh Bill/UNC ({hasReceiptCount})</option>
                       <option value="no_receipt">Chưa có ảnh Bill ({paidMembersCount - hasReceiptCount})</option>
@@ -4369,8 +4401,21 @@ export default function AdminManagementHub({
                         ? 'bg-rose-600 text-white shadow-2xs font-bold'
                         : 'bg-rose-50 hover:bg-rose-100 text-rose-700'
                     }`}
+                    title="Chỉ lọc danh sách các bạn xác nhận tham gia mà chưa hoàn tất đóng quỹ"
                   >
-                    Chưa đóng ({unpaidMembersCount})
+                    Tham dự chưa nộp ({unpaidMembersCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFundStatusFilter('absent')}
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                      fundStatusFilter === 'absent'
+                        ? 'bg-slate-700 text-white shadow-2xs font-bold'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300/80'
+                    }`}
+                    title="Các bạn báo vắng họp lớp (không bắt buộc đóng tiền hay ủng hộ)"
+                  >
+                    <span>🕊️ Báo vắng ({absentMembersCount})</span>
                   </button>
                   <button
                     type="button"
@@ -4459,12 +4504,13 @@ export default function AdminManagementHub({
                       ) : (
                         filteredFundList.map((item, idx) => {
                           const isPaid = item.fundStatus === 'paid';
-                          const amount = item.fundAmount !== undefined ? item.fundAmount : (isPaid ? standardFundAmount : 0);
+                          const isAbsent = item.status === 'no';
+                          const amount = item.fundAmount !== undefined ? item.fundAmount : (isPaid ? (isAbsent ? 0 : standardFundAmount) : 0);
                           const hasReceipt = Boolean(item.fundReceiptUrl && item.fundReceiptUrl.trim());
-                          const isExtra = isPaid && amount > standardFundAmount;
+                          const isExtra = isPaid && (isAbsent ? amount > 0 : amount > standardFundAmount);
 
                           return (
-                            <tr key={item.id || item.phone} className="hover:bg-amber-50/40 transition">
+                            <tr key={item.id || item.phone} className={`transition ${isAbsent && !isPaid ? 'bg-slate-50/60 hover:bg-slate-100/70 text-slate-600' : 'hover:bg-amber-50/40'}`}>
                               <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
                                 {idx + 1}
                               </td>
@@ -4510,10 +4556,14 @@ export default function AdminManagementHub({
                               <td className="py-2.5 px-3">
                                 {isPaid ? (
                                   <>
-                                    <span className="font-mono font-bold text-xs text-emerald-700">
+                                    <span className={`font-mono font-bold text-xs ${isAbsent ? 'text-indigo-700' : 'text-emerald-700'}`}>
                                       {amount.toLocaleString('vi-VN')} đ
                                     </span>
-                                    {isExtra && (
+                                    {isAbsent ? (
+                                      <span className="block text-[10px] font-sans font-bold text-indigo-600">
+                                        💜 Tự nguyện ủng hộ
+                                      </span>
+                                    ) : isExtra && (
                                       <span className="block text-[10px] font-sans font-bold text-amber-700 uppercase">
                                         + Ủng hộ {(amount - standardFundAmount).toLocaleString('vi-VN')}đ
                                       </span>
@@ -4522,10 +4572,19 @@ export default function AdminManagementHub({
                                 ) : item.fundStatus === 'pending' ? (
                                   <div>
                                     <span className="font-mono font-bold text-xs text-amber-700">
-                                      {(item.fundAmount || standardFundAmount).toLocaleString('vi-VN')} đ
+                                      {(item.fundAmount || (isAbsent ? 500000 : standardFundAmount)).toLocaleString('vi-VN')} đ
                                     </span>
                                     <span className="block text-[9px] font-sans font-bold text-amber-600 uppercase">
                                       ⏳ Khai báo chờ duyệt
+                                    </span>
+                                  </div>
+                                ) : isAbsent ? (
+                                  <div>
+                                    <span className="font-mono font-medium text-xs text-slate-400">
+                                      —
+                                    </span>
+                                    <span className="block text-[9.5px] font-sans text-slate-400 italic">
+                                      Miễn đóng (Báo vắng)
                                     </span>
                                   </div>
                                 ) : (
@@ -4536,20 +4595,30 @@ export default function AdminManagementHub({
                               </td>
 
                               <td className="py-2.5 px-3">
-                                <div className="space-y-0.5">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    item.fundPaymentMethod === 'cash'
-                                      ? 'bg-amber-100 text-amber-900'
-                                      : 'bg-blue-50 text-blue-800 border border-blue-200/60'
-                                  }`}>
-                                    {item.fundPaymentMethod === 'cash' ? '💵 Tiền mặt' : '🏦 Chuyển khoản'}
-                                  </span>
-                                  {item.fundPaidAt && (
-                                    <span className="text-[11px] text-slate-500 block font-mono font-medium whitespace-nowrap pt-0.5">
-                                      {formatDateTimeVi(item.fundPaidAt)}
+                                {isPaid ? (
+                                  <div className="space-y-0.5">
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      item.fundPaymentMethod === 'cash'
+                                        ? 'bg-amber-100 text-amber-900'
+                                        : 'bg-blue-50 text-blue-800 border border-blue-200/60'
+                                    }`}>
+                                      {item.fundPaymentMethod === 'cash' ? '💵 Tiền mặt' : '🏦 Chuyển khoản'}
                                     </span>
-                                  )}
-                                </div>
+                                    {item.fundPaidAt && (
+                                      <span className="text-[11px] text-slate-500 block font-mono font-medium whitespace-nowrap pt-0.5">
+                                        {formatDateTimeVi(item.fundPaidAt)}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : isAbsent ? (
+                                  <span className="text-slate-400 text-xs font-mono">—</span>
+                                ) : (
+                                  <div className="space-y-0.5">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">
+                                      {item.fundPaymentMethod === 'cash' ? '💵 Tiền mặt' : '🏦 Chuyển khoản'}
+                                    </span>
+                                  </div>
+                                )}
                               </td>
 
                               {/* Receipt Image Thumbnail & Zoom */}
@@ -4586,6 +4655,8 @@ export default function AdminManagementHub({
                                       Bill
                                     </span>
                                   </button>
+                                ) : isAbsent && !isPaid ? (
+                                  <span className="text-[10px] text-slate-400 italic">—</span>
                                 ) : canAuditAndSpend ? (
                                   <button
                                     type="button"
@@ -4603,16 +4674,37 @@ export default function AdminManagementHub({
 
                               {/* 1-Touch Status Toggle */}
                               <td className="py-2.5 px-3 text-center">
-                                {!canAuditAndSpend ? (
+                                {isAbsent && !isPaid && item.fundStatus !== 'pending' ? (
+                                  <div className="inline-flex flex-col items-center gap-0.5">
+                                    <span
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-medium bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs"
+                                      title="Thành viên báo vắng mặt — Không bắt buộc đóng tiền hay ủng hộ"
+                                    >
+                                      <span>🕊️ Miễn Đóng (Vắng)</span>
+                                    </span>
+                                    {canAuditAndSpend && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenAdjustFund(item)}
+                                        className="text-[9.5px] text-indigo-600 hover:text-indigo-800 hover:underline pt-0.5 cursor-pointer font-sans"
+                                        title="Ghi nhận nếu bạn ấy tự nguyện gửi tiền ủng hộ quỹ lớp"
+                                      >
+                                        + Nhận ủng hộ
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : !canAuditAndSpend ? (
                                   item.fundStatus === 'pending' ? (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                                       <Clock className="w-3 h-3 text-amber-600" />
                                       <span>Chờ duyệt</span>
                                     </span>
                                   ) : isPaid ? (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                      <span>Đã Thu Tiền</span>
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                                      isAbsent ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    }`}>
+                                      {isAbsent ? <Heart className="w-3.5 h-3.5 text-indigo-600" /> : <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
+                                      <span>{isAbsent ? 'Đã Ủng Hộ' : 'Đã Thu Tiền'}</span>
                                     </span>
                                   ) : (
                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
@@ -4628,23 +4720,25 @@ export default function AdminManagementHub({
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => handleApproveFundDirect(item, item.fundAmount || standardFundAmount)}
+                                      onClick={() => handleApproveFundDirect(item, item.fundAmount || (isAbsent ? 500000 : standardFundAmount))}
                                       className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold shadow-2xs transition cursor-pointer"
                                       title={`Khớp lệnh duyệt ${(item.fundAmount || standardFundAmount).toLocaleString('vi-VN')}đ cho bạn này`}
                                     >
                                       <Check className="w-3 h-3" />
-                                      <span>Duyệt {(item.fundAmount || standardFundAmount).toLocaleString('vi-VN')}đ</span>
+                                      <span>Duyệt {(item.fundAmount || (isAbsent ? 500000 : standardFundAmount)).toLocaleString('vi-VN')}đ</span>
                                     </button>
                                   </div>
                                 ) : isPaid ? (
                                   <button
                                     type="button"
                                     onClick={() => handleToggleFundPaid(item)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.2 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs transition cursor-pointer"
-                                    title="Bấm để chuyển về Chưa Thu"
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1.2 rounded-full text-[11px] font-bold shadow-2xs transition cursor-pointer ${
+                                      isAbsent ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    }`}
+                                    title="Bấm để chuyển trạng thái"
                                   >
-                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Đã Thu Tiền</span>
+                                    {isAbsent ? <Heart className="w-3.5 h-3.5 text-indigo-600" /> : <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
+                                    <span>{isAbsent ? 'Đã Ủng Hộ' : 'Đã Thu Tiền'}</span>
                                   </button>
                                 ) : (
                                   <button
@@ -4663,7 +4757,7 @@ export default function AdminManagementHub({
                               <td className="py-2.5 px-3 text-slate-600 text-xs">
                                 <div className="space-y-0.5">
                                   <p className="italic text-slate-700 line-clamp-2">
-                                    {item.fundNote || (isPaid ? `Đã thu đủ ${standardFundAmount.toLocaleString('vi-VN')}đ` : 'Chưa nộp')}
+                                    {item.fundNote || (isPaid ? (isAbsent ? 'Tự nguyện ủng hộ quỹ chung' : `Đã thu đủ ${standardFundAmount.toLocaleString('vi-VN')}đ`) : (isAbsent ? 'Báo vắng (Không bắt buộc đóng)' : 'Chưa nộp'))}
                                   </p>
                                   {item.fundAuditedBy && (
                                     <span className="text-[10px] text-amber-800 font-sans font-semibold block">
@@ -4679,8 +4773,12 @@ export default function AdminManagementHub({
                                   <button
                                     type="button"
                                     onClick={() => handleOpenAdjustFund(item)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-bold text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg shadow-2xs transition cursor-pointer"
-                                    title="Đối soát chi tiết, sửa tiền hoặc upload ảnh chứng từ"
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-bold rounded-lg shadow-2xs transition cursor-pointer ${
+                                      isAbsent && !isPaid
+                                        ? 'text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300'
+                                        : 'text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300'
+                                    }`}
+                                    title={isAbsent ? 'Ghi nhận tiền ủng hộ tự nguyện (nếu có)' : 'Đối soát chi tiết, sửa tiền hoặc upload ảnh chứng từ'}
                                   >
                                     <Edit className="w-3 h-3 text-amber-700" />
                                     <span>Đối Soát</span>
@@ -7737,6 +7835,15 @@ export default function AdminManagementHub({
               </div>
 
               <form onSubmit={handleSaveAdjustFund} className="space-y-4">
+                {adjustFundMember.status === 'no' && (
+                  <div className="bg-slate-100 border border-slate-300 rounded-xl p-3 flex items-center gap-2 text-xs text-slate-700 shadow-2xs">
+                    <span className="text-base shrink-0">🕊️</span>
+                    <span>
+                      <strong>Thành viên báo vắng mặt:</strong> Theo quy chế họp lớp K8A1, thành viên vắng <strong>không bắt buộc đóng tiền hay ủng hộ</strong>. Bạn chỉ cần nhập số tiền nếu bạn ấy <strong>tự nguyện đóng góp / ủng hộ quỹ lớp</strong>.
+                    </span>
+                  </div>
+                )}
+
                 {!canAuditAndSpend && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex items-center gap-2.5 text-xs text-indigo-900 shadow-2xs">
                     <span className="text-base shrink-0">👁️</span>
@@ -7774,6 +7881,56 @@ export default function AdminManagementHub({
                   {/* Preset Buttons */}
                   {canAuditAndSpend && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
+                      {adjustFundMember.status === 'no' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { setFundAdjustAmount(0); setFundAdjustStatus('exempt'); }}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                              fundAdjustAmount === 0 ? 'bg-slate-700 text-white' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
+                            }`}
+                          >
+                            0đ (Miễn đóng)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setFundAdjustAmount(500000); setFundAdjustStatus('paid'); }}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                              fundAdjustAmount === 500000 ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white hover:bg-indigo-50 text-indigo-900 border border-indigo-200'
+                            }`}
+                          >
+                            500k (Ủng hộ)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setFundAdjustAmount(1000000); setFundAdjustStatus('paid'); }}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                              fundAdjustAmount === 1000000 ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white hover:bg-indigo-50 text-indigo-900 border border-indigo-200'
+                            }`}
+                          >
+                            1 Triệu (Ủng hộ)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setFundAdjustAmount(2000000); setFundAdjustStatus('paid'); }}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                              fundAdjustAmount === 2000000 ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-white hover:bg-indigo-50 text-indigo-900 border border-indigo-200'
+                            }`}
+                          >
+                            2 Triệu (Ủng hộ)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setFundAdjustAmount(5000000); setFundAdjustStatus('paid'); }}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                              fundAdjustAmount === 5000000 ? 'bg-amber-600 text-white shadow-2xs' : 'bg-white hover:bg-amber-50 text-amber-900 border border-amber-200'
+                            }`}
+                          >
+                            5 Triệu (Tài trợ)
+                          </button>
+                        </>
+                      ) : (
+                        <>
                       <button
                         type="button"
                         onClick={() => { setFundAdjustAmount(standardFundAmount); setFundAdjustStatus('paid'); }}
@@ -7828,6 +7985,8 @@ export default function AdminManagementHub({
                       >
                         0đ (Chưa nộp)
                       </button>
+                        </>
+                      )}
                     </div>
                   )}
 
