@@ -12,9 +12,13 @@ import {
   GraduationCap
 } from 'lucide-react';
 
+import { ClassMember } from '../types';
+
 interface QuickNavigationProps {
   confirmedCount?: number;
   hasTeachers?: boolean;
+  activeMember?: ClassMember | null;
+  onOpenIdentityModal?: () => void;
 }
 
 interface NavItem {
@@ -26,7 +30,12 @@ interface NavItem {
   badge?: number;
 }
 
-export default function QuickNavigation({ confirmedCount = 0, hasTeachers = false }: QuickNavigationProps) {
+export default function QuickNavigation({ 
+  confirmedCount = 0, 
+  hasTeachers = false,
+  activeMember,
+  onOpenIdentityModal
+}: QuickNavigationProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
@@ -235,6 +244,26 @@ export default function QuickNavigation({ confirmedCount = 0, hasTeachers = fals
               </button>
             );
           })}
+
+          {/* Nút Chọn Tên / Nhận Diện Bạn Học K8A1 ở Bottom Floating Dock */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenIdentityModal) onOpenIdentityModal();
+              else window.dispatchEvent(new CustomEvent('open-identity-modal'));
+            }}
+            className={`relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full text-xs font-sans transition-all duration-200 cursor-pointer ${
+              activeMember
+                ? 'bg-amber-500/20 text-amber-200 hover:text-white hover:bg-amber-500/30 border border-amber-400/60 font-bold shadow-2xs'
+                : 'text-amber-300 hover:text-white hover:bg-white/10'
+            }`}
+            title={activeMember ? `Đang nhận diện: ${activeMember.fullName} (Bấm để xem/đổi)` : 'Bấm để chọn tên bạn trong danh sách 65 bạn học'}
+          >
+            <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
+            <span className="text-[11px] sm:text-xs font-medium truncate max-w-[85px]">
+              {activeMember ? (activeMember.fullName.split(' ').pop() || 'Tên bạn') : 'Chọn tên'}
+            </span>
+          </button>
 
           {/* Vạch ngăn cách trang nhã */}
           <div className="w-[1px] h-4 bg-slate-700 mx-0.5" />

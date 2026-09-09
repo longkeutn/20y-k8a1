@@ -49,7 +49,7 @@ import ClassCharterModal from './components/ClassCharterModal';
 import RoleGuideModal from './components/RoleGuideModal';
 import QuickNavigation from './components/QuickNavigation';
 import TeachersHonorRoll from './components/TeachersHonorRoll';
-import { HeroIdentityWidget, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
+import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 
 export default function App() {
   // Config state (Google Apps Script WebApp URL)
@@ -356,6 +356,15 @@ export default function App() {
       }
     }
   }, [classRoster]);
+
+  // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
+  const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenIdentity = () => setIsIdentityModalOpen(true);
+    window.addEventListener('open-identity-modal', handleOpenIdentity);
+    return () => window.removeEventListener('open-identity-modal', handleOpenIdentity);
+  }, []);
 
   // RSVP list state
   const [rsvpList, setRsvpList] = useState<RsvpData[]>(() => {
@@ -1242,6 +1251,7 @@ export default function App() {
                 setSelectedPassAttendee(attendee);
                 setIsPassModalOpen(true);
               }}
+              onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
             />
 
             {/* Primary Action Button Duy Nhất: Điểm Danh */}
@@ -1427,20 +1437,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Khối Nhận Diện Bạn Học K8A1 (Ưu Tiên 1 - Hero Banner Đầu Trang) */}
-          <HeroIdentityWidget
-            currentVisitor={activeMember}
-            onSelectVisitor={handleSelectActiveMember}
-            classRoster={classRoster}
-            rsvpList={rsvpList}
-            onOpenPassModal={(attendee) => {
-              setSelectedPassAttendee(attendee);
-              setIsPassModalOpen(true);
-            }}
-            onOpenReceiptModal={handleOpenReceiptModal}
-            standardFundAmount={eventConfig.fundAmountPerPerson}
-          />
-
           {/* Primary Action Buttons & Quick Jump Pills in Hero */}
           <div className="pt-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -1477,6 +1473,15 @@ export default function App() {
             {/* Quick Jump Ribbon Pills within Hero */}
             <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-sans">
               <span className="text-slate-300/80 font-medium">Chuyển nhanh tới:</span>
+              <button
+                type="button"
+                onClick={() => setIsIdentityModalOpen(true)}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 hover:text-white border border-amber-400/60 backdrop-blur-md transition cursor-pointer font-medium"
+                title="Bấm để chọn tên bạn trong danh sách 65 bạn học K8A1"
+              >
+                <GraduationCap className="w-3 h-3 text-amber-300" />
+                <span>{activeMember ? activeMember.fullName : 'Chọn Tên Bạn'}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => document.getElementById('dia-diem')?.scrollIntoView({ behavior: 'smooth' })}
@@ -2054,7 +2059,25 @@ export default function App() {
       />
 
       {/* 🚀 THANH ĐIỀU HƯỚNG NỔI THÔNG MINH & BACK TO TOP */}
-      <QuickNavigation confirmedCount={confirmedCount} hasTeachers={teachersList.length > 0} />
+      <QuickNavigation 
+        confirmedCount={confirmedCount} 
+        hasTeachers={teachersList.length > 0} 
+        activeMember={activeMember}
+        onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
+      />
+
+      {/* 🎓 BẢNG DANH BẠ 65 BẠN HỌC K8A1 (CHỌN TÊN ĐỂ NHẬN DIỆN & CÁ NHÂN HÓA) */}
+      <IdentitySelectorModal
+        isOpen={isIdentityModalOpen}
+        onClose={() => setIsIdentityModalOpen(false)}
+        classRoster={classRoster}
+        rsvpList={rsvpList}
+        currentVisitor={activeMember}
+        onSelect={(member) => {
+          handleSelectActiveMember(member);
+          setIsIdentityModalOpen(false);
+        }}
+      />
 
       {/* Toast thông báo realtime */}
       <ActivityToastManager

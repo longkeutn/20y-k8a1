@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   GraduationCap,
   Sparkles,
@@ -108,9 +109,15 @@ export function IdentitySelectorModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
-      <div className="bg-[#FFFDF9] border-2 border-amber-400/80 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scaleUp flex flex-col max-h-[90vh]">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-[#FFFDF9] border-2 border-amber-400/80 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scaleUp flex flex-col max-h-[85vh] my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Modal */}
         <div className="bg-gradient-to-r from-[#8B1E2F] via-[#A82B3E] to-[#731826] p-4 text-white relative shrink-0">
           <button
@@ -127,10 +134,10 @@ export function IdentitySelectorModal({
             </div>
             <div>
               <h3 className="font-serif font-bold text-base sm:text-lg text-amber-100">
-                Bạn Là Ai Trong K8A1?
+                Danh Bạ Học Sinh Lớp K8A1
               </h3>
               <p className="text-[11px] text-rose-100 font-sans opacity-90">
-                Chọn tên bạn trong 65 bạn học để cá nhân hóa toàn bộ trang web
+                Chọn tên bạn để hệ thống tự động nhận diện & làm thẻ kỷ niệm
               </p>
             </div>
           </div>
@@ -143,7 +150,7 @@ export function IdentitySelectorModal({
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Gõ tên bạn, biệt danh hoặc mã (VD: Phương, m16)..."
+              placeholder="Tìm theo tên bạn, biệt danh hoặc mã (VD: Phương, Thảo, m16)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-8 py-2 bg-white border border-amber-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 rounded-xl text-xs sm:text-sm font-sans outline-none shadow-2xs"
@@ -332,6 +339,8 @@ export function IdentitySelectorModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
 
 // =============================================================================
@@ -593,6 +602,7 @@ interface NavbarIdentityBadgeProps {
   classRoster: ClassMember[];
   rsvpList: RsvpData[];
   onOpenPassModal?: (attendee: RsvpData) => void;
+  onOpenIdentityModal?: () => void;
 }
 
 export function NavbarIdentityBadge({
@@ -600,9 +610,9 @@ export function NavbarIdentityBadge({
   onSelectVisitor,
   classRoster,
   rsvpList,
-  onOpenPassModal
+  onOpenPassModal,
+  onOpenIdentityModal
 }: NavbarIdentityBadgeProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -628,21 +638,23 @@ export function NavbarIdentityBadge({
   }, [currentVisitor, rsvpList]);
 
   return (
-    <>
-      <div ref={dropdownRef} className="relative">
-        {!currentVisitor ? (
-          /* Nút khi CHƯA CHỌN TÊN */
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-200 hover:text-white text-xs font-sans font-bold transition cursor-pointer shadow-xs"
-            title="Bấm để chọn tên bạn trong danh bạ 65 bạn học K8A1"
-          >
-            <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
-            <span className="hidden sm:inline">Bạn là ai?</span>
-            <span className="sm:hidden">Tôi là ai?</span>
-            <ChevronDown className="w-3 h-3 opacity-70" />
-          </button>
+    <div ref={dropdownRef} className="relative">
+      {!currentVisitor ? (
+        /* Nút khi CHƯA CHỌN TÊN: Ngắn gọn, nhã nhặn, tự nhiên */
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenIdentityModal) onOpenIdentityModal();
+            else window.dispatchEvent(new CustomEvent('open-identity-modal'));
+          }}
+          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 hover:text-white text-xs font-sans font-bold transition cursor-pointer shadow-xs"
+          title="Bấm để chọn tên bạn trong danh sách 65 bạn học K8A1"
+        >
+          <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
+          <span className="hidden sm:inline">Chọn tên bạn</span>
+          <span className="sm:hidden">Chọn tên</span>
+          <ChevronDown className="w-3 h-3 opacity-70" />
+        </button>
         ) : (
           /* Huy hiệu khi ĐÃ CHỌN TÊN */
           <button
@@ -744,27 +756,17 @@ export function NavbarIdentityBadge({
                 type="button"
                 onClick={() => {
                   setIsDropdownOpen(false);
-                  setIsModalOpen(true);
+                  if (onOpenIdentityModal) onOpenIdentityModal();
+                  else window.dispatchEvent(new CustomEvent('open-identity-modal'));
                 }}
                 className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-700 font-medium flex items-center gap-2 cursor-pointer transition"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                <span>Đổi sang bạn học khác</span>
+                <span>Chọn bạn học khác</span>
               </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Modal chọn danh tính */}
-      <IdentitySelectorModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        classRoster={classRoster}
-        rsvpList={rsvpList}
-        currentVisitor={currentVisitor}
-        onSelect={onSelectVisitor}
-      />
-    </>
   );
 }
