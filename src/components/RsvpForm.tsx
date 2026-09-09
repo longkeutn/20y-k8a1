@@ -848,7 +848,7 @@ export default function RsvpForm({
         memberId: effectiveMemberId,
         fullName: fullName.trim(),
         nickname: nickname ? nickname.trim() : '',
-        shirtSize: shirtSize || 'L',
+        shirtSize: shirtSize ? normalizeShirtSize(shirtSize) : '',
         status: status,
         phone: phone ? phone.trim() : '',
         className: 'K8A1'

@@ -443,7 +443,7 @@ export default function ReceiptUploadModal({
           phone: finalPhone,
           className: 'K8A1',
           status: 'yes',
-          shirtSize: 'L',
+          shirtSize: '',
           submittedAt: nowStr,
           fundStatus: 'pending',
           fundAmount: transferAmount,

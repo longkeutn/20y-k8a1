@@ -19,7 +19,7 @@ interface LiveGoldenPassProps {
 export default function LiveGoldenPass({
   fullName,
   nickname,
-  shirtSize = 'L',
+  shirtSize = '',
   status,
   className = 'K8A1',
   memberId,

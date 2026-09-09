@@ -495,10 +495,17 @@ export function HeroIdentityWidget({
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Đã xác nhận tham gia</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/40 text-[11px] font-mono font-bold">
-                      <Shirt className="w-3 h-3 text-amber-300" />
-                      <span>Size {matchedRsvp.shirtSize || 'L'}</span>
-                    </span>
+                    {matchedRsvp.shirtSize ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/40 text-[11px] font-mono font-bold">
+                        <Shirt className="w-3 h-3 text-amber-300" />
+                        <span>Size {matchedRsvp.shirtSize}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/30 text-amber-200 border border-amber-400/50 text-[11px] font-sans font-medium animate-pulse">
+                        <Shirt className="w-3 h-3 text-amber-300" />
+                        <span>⚠️ Chưa chọn size</span>
+                      </span>
+                    )}
                     {matchedRsvp.fundStatus === 'paid' ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-500/25 text-indigo-200 border border-indigo-400/50 font-sans font-bold text-[11px]">
                         <Coins className="w-3.5 h-3.5 text-indigo-300" />
@@ -549,7 +556,7 @@ export function HeroIdentityWidget({
                     title="Đổi cỡ áo polo hoặc thông tin tham dự"
                   >
                     <Shirt className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Đổi Size Áo ({matchedRsvp.shirtSize || 'L'})</span>
+                    <span>{matchedRsvp.shirtSize ? `Đổi Size Áo (${matchedRsvp.shirtSize})` : 'Chọn Size Áo Ngay 👕'}</span>
                   </button>
 
                   {/* Nút đóng quỹ nếu chưa đóng */}
@@ -700,7 +707,7 @@ export function NavbarIdentityBadge({
                 <span className="text-slate-500">Điểm danh:</span>
                 {matchedRsvp ? (
                   matchedRsvp.status === 'yes' ? (
-                    <span className="text-emerald-700 font-bold">✓ Đã tham gia (Size {matchedRsvp.shirtSize || 'L'})</span>
+                    <span className="text-emerald-700 font-bold">✓ Đã tham gia {matchedRsvp.shirtSize ? `(Size ${matchedRsvp.shirtSize})` : '(Chưa chọn size)'}</span>
                   ) : (
                     <span className="text-slate-600 font-medium">🕊️ Báo vắng</span>
                   )

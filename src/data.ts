@@ -2014,6 +2014,7 @@ function onOpen(e) {
       .createMenu('⚙️ Quản Trị K8A1')
       .addItem('🛡️ Khởi Tạo / Mở Sheet Bảo Mật PIN', 'openSecuritySheet')
       .addItem('🔄 Đồng Bộ Danh Bạ Sang Điểm Danh (1-Chạm)', 'syncRosterToRSVP')
+      .addItem('👕 Đồng Bộ Size Áo Từ Điểm Danh Về Danh Sách Lớp', 'syncAllRsvpSizesToRoster')
       .addItem('🧹 Dọn Dẹp Bản Ghi Trùng Lặp RSVP', 'deduplicateRSVP')
       .addItem('🔄 Kiểm Tra Cơ Sở Dữ Liệu', 'getAllData')
       .addToUi();
@@ -2201,6 +2202,70 @@ function cascadeSyncMemberToRSVP(member) {
 }
 
 /**
+ * ĐỒNG BỘ NGƯỢC: Tự động lưu Size áo từ Điểm danh (Trang_tinh_1) về Danh bạ lớp (Danh_Sach_Lop)
+ * Giúp lưu giữ size may áo của thành viên lâu dài để phục vụ các kỳ họp lớp sau này!
+ */
+function syncRSVPToRoster(rsvpData) {
+  if (!rsvpData) return;
+  var rawSize = String(rsvpData.shirtSize || '').trim().toUpperCase();
+  if (!rawSize) return;
+
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var rSheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (!rSheet) return;
+
+    var rows = rSheet.getDataRange().getValues();
+    var targetMid = String(rsvpData.memberId || '').trim();
+    var targetPhone = normalizePhone(rsvpData.phone);
+    var targetName = normalizeName(rsvpData.fullName);
+
+    var targetRowIdx = -1;
+
+    // 1. Khớp theo Mã TV (Cột 1)
+    if (targetMid) {
+      for (var i = 1; i < rows.length; i++) {
+        if (String(rows[i][0] || '').trim() === targetMid) {
+          targetRowIdx = i + 1;
+          break;
+        }
+      }
+    }
+
+    // 2. Khớp theo SĐT (Cột 4)
+    if (targetRowIdx === -1 && targetPhone) {
+      for (var j = 1; j < rows.length; j++) {
+        var rowPhone = normalizePhone(rows[j][3]);
+        if (rowPhone && rowPhone === targetPhone) {
+          targetRowIdx = j + 1;
+          break;
+        }
+      }
+    }
+
+    // 3. Khớp theo Họ tên (Cột 2)
+    if (targetRowIdx === -1 && targetName) {
+      for (var k = 1; k < rows.length; k++) {
+        var rowName = normalizeName(rows[k][1]);
+        if (rowName && rowName === targetName) {
+          targetRowIdx = k + 1;
+          break;
+        }
+      }
+    }
+
+    if (targetRowIdx !== -1) {
+      // Cột 7: Size áo (Col G)
+      rSheet.getRange(targetRowIdx, 7).setValue(rawSize);
+      // Cột 9: Ngày cập nhật (Col I)
+      rSheet.getRange(targetRowIdx, 9).setValue(formatDate(new Date()));
+    }
+  } catch (errSyncBack) {
+    console.warn("Lỗi syncRSVPToRoster: " + errSyncBack);
+  }
+}
+
+/**
  * Quét toàn bộ sheet RSVP hiện tại và đồng bộ chuẩn xác với Danh bạ lớp K8A1 (1-Chạm)
  * Tự động Backfill Mã TV (Cột 17) cho mọi bạn đã đăng ký từ trước tới nay
  */
@@ -2273,6 +2338,76 @@ function syncRosterToRSVP() {
 }
 
 /**
+ * Quét toàn bộ sheet RSVP hiện tại và đồng bộ ngược tất cả Size áo về Danh_Sach_Lop (1-Chạm)
+ */
+function syncAllRsvpSizesToRoster() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var rSheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (!rSheet) return { status: 'error', message: 'Không tìm thấy sheet ' + CONFIG.ROSTER_SHEET_NAME };
+
+    var rsvpSheet = getActiveRsvpSheet();
+    var rsvpRows = rsvpSheet.getDataRange().getValues();
+    if (rsvpRows.length <= 1) {
+      return { status: 'success', message: 'Chưa có dữ liệu điểm danh nào.', syncedCount: 0 };
+    }
+
+    var rosterRows = rSheet.getDataRange().getValues();
+    var rosterLookup = {};
+    for (var ri = 1; ri < rosterRows.length; ri++) {
+      var rRow = rosterRows[ri];
+      var mid = String(rRow[0] || '').trim();
+      var name = normalizeName(rRow[1]);
+      var phone = normalizePhone(rRow[3]);
+      var rowNum = ri + 1;
+      if (mid) rosterLookup['mid_' + mid] = rowNum;
+      if (phone) rosterLookup['p_' + phone] = rowNum;
+      if (name) rosterLookup['n_' + name] = rowNum;
+    }
+
+    var syncedCount = 0;
+    var nowStr = formatDate(new Date());
+
+    for (var i = 1; i < rsvpRows.length; i++) {
+      var rRow = rsvpRows[i];
+      var size = String(rRow[4] || '').trim().toUpperCase();
+      if (!size) continue;
+
+      var rMid = String(rRow[16] || '').trim();
+      var rPhone = normalizePhone(rRow[2]);
+      var rName = normalizeName(rRow[0]);
+
+      var matchedRowNum = -1;
+      if (rMid && rosterLookup['mid_' + rMid]) {
+        matchedRowNum = rosterLookup['mid_' + rMid];
+      } else if (rPhone && rosterLookup['p_' + rPhone]) {
+        matchedRowNum = rosterLookup['p_' + rPhone];
+      } else if (rName && rosterLookup['n_' + rName]) {
+        matchedRowNum = rosterLookup['n_' + rName];
+      }
+
+      if (matchedRowNum !== -1) {
+        var currentRosterSize = String(rosterRows[matchedRowNum - 1][6] || '').trim().toUpperCase();
+        if (currentRosterSize !== size) {
+          rSheet.getRange(matchedRowNum, 7).setValue(size);
+          rSheet.getRange(matchedRowNum, 9).setValue(nowStr);
+          rosterRows[matchedRowNum - 1][6] = size;
+          syncedCount++;
+        }
+      }
+    }
+
+    return {
+      status: 'success',
+      message: 'Đã đồng bộ thành công size áo cho ' + syncedCount + ' thành viên về Danh Sách Lớp!',
+      syncedCount: syncedCount
+    };
+  } catch (err) {
+    return { status: 'error', message: 'Lỗi đồng bộ size áo: ' + err.toString() };
+  }
+}
+
+/**
  * Trigger tự động chạy khi người dùng gõ sửa trực tiếp trên giao diện Google Sheets
  */
 function onEdit(e) {
@@ -2282,7 +2417,7 @@ function onEdit(e) {
     var sheet = range.getSheet();
     var sheetName = sheet.getName();
 
-    // Nếu sửa tại tab Danh_Sach_Lop (cột 2: Tên, cột 3: Biệt danh, cột 4: SĐT, cột 7: Size áo)
+    // 1. Nếu sửa tại tab Danh_Sach_Lop (cột 2: Tên, cột 3: Biệt danh, cột 4: SĐT, cột 7: Size áo)
     if (sheetName === CONFIG.ROSTER_SHEET_NAME) {
       var row = range.getRow();
       var col = range.getColumn();
@@ -2300,6 +2435,33 @@ function onEdit(e) {
             nickname: nickname,
             phone: phone,
             shirtSize: shirtSize
+          });
+        }
+      }
+    }
+
+    // 2. Nếu sửa tại tab RSVP (Trang_tinh_1 hoặc sheet điểm danh đang active) - Cột 5: Size áo
+    var activeRsvpName = CONFIG.RSVP_SHEET_NAME;
+    try {
+      var aSheet = getActiveRsvpSheet();
+      if (aSheet) activeRsvpName = aSheet.getName();
+    } catch (eR) {}
+
+    if (sheetName === activeRsvpName) {
+      var rRow = range.getRow();
+      var rCol = range.getColumn();
+      if (rRow > 1 && rCol === 5) {
+        var rShirtSize = String(sheet.getRange(rRow, 5).getValue() || '').trim().toUpperCase();
+        var rFullName = String(sheet.getRange(rRow, 1).getValue() || '').trim();
+        var rPhone = String(sheet.getRange(rRow, 3).getValue() || '').trim();
+        var rMemberId = String(sheet.getRange(rRow, 17).getValue() || '').trim();
+
+        if (rShirtSize) {
+          syncRSVPToRoster({
+            memberId: rMemberId,
+            fullName: rFullName,
+            phone: rPhone,
+            shirtSize: rShirtSize
           });
         }
       }
@@ -2424,6 +2586,12 @@ function doGet(e) {
     if (action === 'sync_roster_to_rsvp' || action === 'sync_roster') {
       if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên!' });
       return handleResponse(syncRosterToRSVP());
+    }
+
+    // Quét và đồng bộ ngược Size Áo từ Điểm Danh RSVP về Danh Bạ Lớp (1-Chạm)
+    if (action === 'sync_rsvp_to_roster' || action === 'sync_sizes_to_roster') {
+      if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên!' });
+      return handleResponse(syncAllRsvpSizesToRoster());
     }
 
     // 7. Lấy số lượt xem trang
@@ -2576,6 +2744,11 @@ function doPost(e) {
     if (action === 'sync_roster_to_rsvp' || action === 'sync_roster') {
       if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để đồng bộ danh bạ!' });
       return handleResponse(syncRosterToRSVP());
+    }
+
+    if (action === 'sync_rsvp_to_roster' || action === 'sync_sizes_to_roster') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để đồng bộ size áo!' });
+      return handleResponse(syncAllRsvpSizesToRoster());
     }
 
     if (action === 'record_view' || action === 'hit_view') {
@@ -2917,6 +3090,10 @@ function saveRSVP(data) {
       }
     }
 
+    if (data.shirtSize) {
+      syncRSVPToRoster(data);
+    }
+
     return { status: 'success', message: 'Đã cập nhật thông tin thành công (không tạo bản ghi trùng lặp)!' };
   } else {
     // THÊM MỚI BẢN GHI
@@ -2950,6 +3127,9 @@ function saveRSVP(data) {
     ];
 
     sheet.appendRow(newRow);
+    if (data.shirtSize) {
+      syncRSVPToRoster(data);
+    }
     return { status: 'success', message: 'Điểm danh thành công!' };
   }
 }
@@ -2999,6 +3179,10 @@ function updateRSVP(data) {
       updated = true;
       break;
     }
+  }
+
+  if (updated && data.shirtSize) {
+    syncRSVPToRoster(data);
   }
 
   return { status: updated ? 'success' : 'not_found', message: updated ? 'Cập nhật thành công' : 'Không tìm thấy dòng tương ứng' };

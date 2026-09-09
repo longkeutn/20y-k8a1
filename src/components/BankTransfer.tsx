@@ -211,7 +211,7 @@ export default function BankTransfer({
           phone: activeMember.phone || '',
           className: 'K8A1',
           status: 'yes',
-          shirtSize: activeMember.shirtSize || 'L',
+          shirtSize: activeMember.shirtSize || '',
           message: '',
           submittedAt: new Date().toISOString()
         });

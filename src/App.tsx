@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -658,7 +658,64 @@ export default function App() {
       return updated;
     });
 
-    // Đồng bộ trực tiếp lên Google Apps Script tab "Trang_tinh_1" / "Diem_Danh"
+    // ĐỒNG BỘ NGƯỢC: Cập nhật size áo (và SĐT, biệt danh) của bạn học vào Danh bạ 65 thành viên K8A1 để lưu giữ lâu dài
+    const chosenSize = normalizeShirtSize(newRsvp.shirtSize);
+    if (chosenSize) {
+      setClassRoster((prevRoster) => {
+        const normName = normalizeNameForMatch(newRsvp.fullName);
+        const normPhone = normalizePhoneForMatch(newRsvp.phone);
+        let updated = false;
+
+        const nextRoster = prevRoster.map((m) => {
+          const isMatch = (newRsvp.memberId && m.id === newRsvp.memberId) ||
+            (normPhone && normalizePhoneForMatch(m.phone) === normPhone) ||
+            (normName && normalizeNameForMatch(m.fullName) === normName);
+
+          if (isMatch) {
+            updated = true;
+            return {
+              ...m,
+              shirtSize: chosenSize,
+              phone: m.phone || (normPhone ? normPhone : (newRsvp.phone || '')),
+              nickname: m.nickname || (newRsvp.nickname ? newRsvp.nickname.trim() : '')
+            };
+          }
+          return m;
+        });
+
+        if (updated) {
+          try {
+            localStorage.setItem('k8a1_class_roster', JSON.stringify(nextRoster));
+          } catch (e) {}
+        }
+        return nextRoster;
+      });
+
+      // Cập nhật activeMember nếu trùng với người vừa điểm danh
+      setActiveMember((prevActive) => {
+        if (!prevActive) return null;
+        const normActiveName = normalizeNameForMatch(prevActive.fullName);
+        const normRsvpName = normalizeNameForMatch(newRsvp.fullName);
+        const isMatch = (newRsvp.memberId && prevActive.id === newRsvp.memberId) ||
+          (normActiveName && normActiveName === normRsvpName);
+
+        if (isMatch) {
+          const updatedActive = {
+            ...prevActive,
+            shirtSize: chosenSize,
+            phone: prevActive.phone || newRsvp.phone || '',
+            nickname: prevActive.nickname || newRsvp.nickname || ''
+          };
+          try {
+            localStorage.setItem('k8a1_active_member', JSON.stringify(updatedActive));
+          } catch (e) {}
+          return updatedActive;
+        }
+        return prevActive;
+      });
+    }
+
+    // Đồng bộ trực tiếp lên Google Apps Script tab "Trang_tinh_1" / "Diem_Danh" (Backend sẽ tự động đồng bộ ngược sang "Danh_Sach_Lop")
     syncToBackend('rsvp', newRsvp);
 
     setLatestAction({
@@ -673,6 +730,75 @@ export default function App() {
             : 'vừa gửi phản hồi về ngày họp lớp K8A1.'),
       timeAgo: 'Vừa xong',
       isNew: true
+    });
+  };
+
+  // Cập nhật danh sách RSVP và tự động đồng bộ ngược Size áo về Danh Sách Lớp
+  const handleUpdateRsvpList = (updated: RsvpData[]) => {
+    setRsvpList(updated);
+    try {
+      localStorage.setItem('rsvp_list', JSON.stringify(updated));
+    } catch (e) {}
+
+    // REVERSE SYNC: Tự động lưu Size áo từ Điểm danh (RSVP) về Danh bạ lớp (Danh_Sach_Lop)
+    setClassRoster((prevRoster) => {
+      let changed = false;
+      const nextRoster = prevRoster.map((m) => {
+        const matched = updated.find((r) => {
+          if (m.id && r.memberId && m.id === r.memberId) return true;
+          const p1 = normalizePhoneForMatch(m.phone);
+          const p2 = normalizePhoneForMatch(r.phone);
+          if (p1 && p2 && p1 === p2) return true;
+          const n1 = normalizeNameForMatch(m.fullName);
+          const n2 = normalizeNameForMatch(r.fullName);
+          return n1 && n2 && n1 === n2;
+        });
+
+        if (matched && matched.shirtSize) {
+          const cleanSize = normalizeShirtSize(matched.shirtSize);
+          if (cleanSize && cleanSize !== m.shirtSize) {
+            changed = true;
+            return {
+              ...m,
+              shirtSize: cleanSize
+            };
+          }
+        }
+        return m;
+      });
+
+      if (changed) {
+        try {
+          localStorage.setItem('k8a1_class_roster', JSON.stringify(nextRoster));
+        } catch (e) {}
+        return nextRoster;
+      }
+      return prevRoster;
+    });
+
+    // Đồng bộ nếu activeMember đang chọn
+    setActiveMember((prevActive) => {
+      if (!prevActive) return null;
+      const matched = updated.find((r) => {
+        if (prevActive.id && r.memberId && prevActive.id === r.memberId) return true;
+        const p1 = normalizePhoneForMatch(prevActive.phone);
+        const p2 = normalizePhoneForMatch(r.phone);
+        if (p1 && p2 && p1 === p2) return true;
+        const n1 = normalizeNameForMatch(prevActive.fullName);
+        const n2 = normalizeNameForMatch(r.fullName);
+        return n1 && n2 && n1 === n2;
+      });
+      if (matched && matched.shirtSize) {
+        const cleanSize = normalizeShirtSize(matched.shirtSize);
+        if (cleanSize && cleanSize !== prevActive.shirtSize) {
+          const nextActive = { ...prevActive, shirtSize: cleanSize };
+          try {
+            localStorage.setItem('k8a1_active_member', JSON.stringify(nextActive));
+          } catch (e) {}
+          return nextActive;
+        }
+      }
+      return prevActive;
     });
   };
 
@@ -1080,12 +1206,43 @@ export default function App() {
 
             // E. Đồng bộ Danh bạ Sĩ số Lớp K8A1 từ Google Sheet
             if (Array.isArray(roster) && roster.length > 0) {
+              const rsvpArr = Array.isArray(rsvp) ? rsvp : [];
               const sanitizedRoster = roster
                 .filter((r: any) => r && (r.fullName || r.id))
-                .map((r: any, idx: number) => sanitizeClassMember(r, idx));
+                .map((r: any, idx: number) => {
+                  const baseMember = sanitizeClassMember(r, idx);
+                  // REVERSE SYNC: Nếu size áo trong danh bạ còn trống, tự động bù từ điểm danh RSVP
+                  if (!baseMember.shirtSize && rsvpArr.length > 0) {
+                    const matchedRsvp = rsvpArr.find((item: any) => {
+                      if (baseMember.id && item.memberId && baseMember.id === item.memberId) return true;
+                      const normP = normalizePhoneForMatch(baseMember.phone);
+                      const rNormP = normalizePhoneForMatch(item.phone);
+                      if (normP && rNormP && normP === rNormP) return true;
+                      const normN = normalizeNameForMatch(baseMember.fullName);
+                      const rNormN = normalizeNameForMatch(item.fullName);
+                      return normN && rNormN && normN === rNormN;
+                    });
+                    if (matchedRsvp && matchedRsvp.shirtSize) {
+                      baseMember.shirtSize = normalizeShirtSize(matchedRsvp.shirtSize);
+                    }
+                  }
+                  return baseMember;
+                });
               if (sanitizedRoster.length > 0) {
                 setClassRoster(sanitizedRoster);
                 try { localStorage.setItem('k8a1_class_roster', JSON.stringify(sanitizedRoster)); } catch (e) {}
+
+                // Đồng bộ nếu activeMember đang chọn mà chưa có size
+                setActiveMember((prevActive) => {
+                  if (!prevActive) return null;
+                  const foundInRoster = sanitizedRoster.find(m => m.id === prevActive.id || normalizeNameForMatch(m.fullName) === normalizeNameForMatch(prevActive.fullName));
+                  if (foundInRoster && foundInRoster.shirtSize && foundInRoster.shirtSize !== prevActive.shirtSize) {
+                    const nextActive = { ...prevActive, shirtSize: foundInRoster.shirtSize };
+                    try { localStorage.setItem('k8a1_active_member', JSON.stringify(nextActive)); } catch (e) {}
+                    return nextActive;
+                  }
+                  return prevActive;
+                });
               }
             }
 
@@ -1840,10 +1997,7 @@ export default function App() {
                 onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
                 onOpenReceiptModal={handleOpenReceiptModal}
                 onOpenCharterModal={() => setIsCharterModalOpen(true)}
-                onUpdateRsvpList={(updated) => {
-                  setRsvpList(updated);
-                  localStorage.setItem('rsvp_list', JSON.stringify(updated));
-                }}
+                onUpdateRsvpList={handleUpdateRsvpList}
               />
             </section>
 
@@ -2022,10 +2176,7 @@ export default function App() {
             hydrateAllData(activeAppsScriptUrl);
           }}
           rsvpList={rsvpList}
-          onUpdateRsvpList={(updated) => {
-            setRsvpList(updated);
-            localStorage.setItem('rsvp_list', JSON.stringify(updated));
-          }}
+          onUpdateRsvpList={handleUpdateRsvpList}
           classRoster={classRoster}
           onUpdateClassRoster={handleUpdateClassRoster}
           wishesList={wishesList}
@@ -2110,10 +2261,7 @@ export default function App() {
         classRoster={classRoster}
         eventConfig={eventConfig}
         defaultAttendee={selectedReceiptAttendee}
-        onUpdateRsvpList={(updated) => {
-          setRsvpList(updated);
-          localStorage.setItem('rsvp_list', JSON.stringify(updated));
-        }}
+        onUpdateRsvpList={handleUpdateRsvpList}
         incomes={incomes}
         onAddIncome={handleAddIncome}
       />

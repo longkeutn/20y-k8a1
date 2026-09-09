@@ -3037,6 +3037,36 @@ export default function AdminManagementHub({
     }
   };
 
+  const [isSyncingSizesToRoster, setIsSyncingSizesToRoster] = useState(false);
+  const handleSyncRsvpSizesToRoster = async () => {
+    const target = (scriptUrlInput || appsScriptUrl || '').trim();
+    if (!target || !target.startsWith('http')) {
+      alert('Vui lòng nhập URL Google Apps Script Web App trong tab Cấu Hình trước!');
+      return;
+    }
+    if (!confirm('Hệ thống sẽ quét toàn bộ Sheet Điểm Danh, tự động lưu giữ Size Áo của các bạn đã chọn về Sheet Danh Sách Lớp (65 thành viên) để lưu trữ sử dụng lâu dài cho các kỳ họp sau. Bạn có muốn thực hiện ngay?')) {
+      return;
+    }
+
+    setIsSyncingSizesToRoster(true);
+    try {
+      const adminPin = getAdminPinToken();
+      const pinQuery = adminPin ? `&pin=${encodeURIComponent(adminPin)}` : '';
+      const res = await fetch(`${target}?action=sync_rsvp_to_roster${pinQuery}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        alert(data.message || 'Đã đồng bộ thành công Size Áo về Danh Sách Lớp!');
+        if (onRefreshData) onRefreshData();
+      } else {
+        alert(data.message || 'Không thể đồng bộ lúc này.');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối khi đồng bộ size áo: ' + (err.message || 'Vui lòng kiểm tra lại'));
+    } finally {
+      setIsSyncingSizesToRoster(false);
+    }
+  };
+
   // Filtered members list
   const filteredMemberList = useMemo(() => {
     const q = (memberSearch || '').toLowerCase().trim();
@@ -3722,6 +3752,17 @@ export default function AdminManagementHub({
                         >
                           <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncingRosterToRsvp ? 'animate-spin' : ''}`} />
                           <span className="hidden sm:inline">{isSyncingRosterToRsvp ? 'Đang đồng bộ...' : 'Đồng Bộ Danh Bạ'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSyncRsvpSizesToRoster}
+                          disabled={isSyncingSizesToRoster}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                          title="Quét toàn bộ sheet Điểm Danh, lưu giữ size may áo của thành viên về Danh Sách Lớp lâu dài"
+                        >
+                          <Shirt className={`w-3.5 h-3.5 text-blue-600 ${isSyncingSizesToRoster ? 'animate-spin' : ''}`} />
+                          <span className="hidden sm:inline">{isSyncingSizesToRoster ? 'Đang lưu...' : 'Lưu Size Về Danh Bạ'}</span>
                         </button>
 
                         <button
