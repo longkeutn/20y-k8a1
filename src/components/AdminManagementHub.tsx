@@ -3121,32 +3121,33 @@ export default function AdminManagementHub({
   // ===========================================================================
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md overflow-hidden">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="bg-[#FAF9F5] text-[#1E293B] w-full max-w-5xl h-[92vh] max-h-[850px] rounded-2xl border-2 border-amber-500/60 shadow-2xl flex flex-col overflow-hidden"
+        className="bg-[#FAF9F5] text-[#1E293B] w-full max-w-5xl h-full sm:h-[92vh] sm:max-h-[850px] rounded-none sm:rounded-2xl border-0 sm:border-2 border-amber-500/60 shadow-2xl flex flex-col overflow-hidden"
       >
         {/* =================================================================== */}
         {/* TOP HEADER BAR */}
         {/* =================================================================== */}
-        <header className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white px-3.5 sm:px-5 py-2 sm:py-2.5 border-b border-amber-500/30 flex items-center justify-between shrink-0 shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <div className={`p-1.5 rounded-lg flex items-center justify-center shadow-inner ${
+        <header className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white px-3 sm:px-5 py-1.5 sm:py-2.5 border-b border-amber-500/30 flex items-center justify-between shrink-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className={`p-1 sm:p-1.5 rounded-lg flex items-center justify-center shadow-inner ${
               isAdmin 
                 ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white' 
                 : isTreasurer
                 ? 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
                 : 'bg-gradient-to-br from-indigo-600 to-blue-700 text-white'
             }`}>
-              {isAdmin ? <Crown className="w-4 h-4" /> : isTreasurer ? <Coins className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+              {isAdmin ? <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : isTreasurer ? <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
             </div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-serif font-bold text-amber-200 leading-tight">
-                Trung Tâm Quản Trị & Điều Hành K8A1
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h2 className="text-xs sm:text-base font-serif font-bold text-amber-200 leading-tight">
+                <span className="sm:hidden">Quản Trị K8A1</span>
+                <span className="hidden sm:inline">Trung Tâm Quản Trị & Điều Hành K8A1</span>
               </h2>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-sans font-bold uppercase tracking-wider shrink-0 ${
+              <span className={`px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full text-[8px] sm:text-[9px] font-sans font-bold uppercase tracking-wider shrink-0 ${
                 isAdmin 
                   ? 'bg-amber-400 text-amber-950 shadow-xs' 
                   : isTreasurer
@@ -3158,12 +3159,12 @@ export default function AdminManagementHub({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             {onOpenGuideModal && (
               <button
                 type="button"
                 onClick={onOpenGuideModal}
-                className="flex items-center gap-1 px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/40 transition cursor-pointer"
+                className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/40 transition cursor-pointer"
                 title="Mở Cẩm nang hoạt động & Hướng dẫn nghiệp vụ K8A1"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-amber-300" />
@@ -3184,7 +3185,7 @@ export default function AdminManagementHub({
 
             <button
               onClick={onLogout}
-              className="flex items-center gap-1 px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-sans font-bold rounded-lg border border-rose-500/40 transition cursor-pointer"
+              className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-sans font-bold rounded-lg border border-rose-500/40 transition cursor-pointer"
               title="Đăng xuất khỏi phiên làm việc"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -3193,7 +3194,7 @@ export default function AdminManagementHub({
 
             <button
               onClick={onClose}
-              className="p-1 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer ml-1"
+              className="p-1 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer ml-0.5"
               title="Đóng bảng điều khiển"
             >
               <X className="w-5 h-5" />
@@ -3204,48 +3205,51 @@ export default function AdminManagementHub({
         {/* =================================================================== */}
         {/* NAVIGATION TABS */}
         {/* =================================================================== */}
-        <div className="bg-white border-b border-amber-200 px-3 sm:px-5 flex items-center gap-1 sm:gap-1.5 overflow-x-auto shrink-0 py-1.5 scrollbar-none">
+        <div className="bg-white border-b border-amber-200 px-2 sm:px-5 flex items-center gap-1 sm:gap-1.5 overflow-x-auto shrink-0 py-1 sm:py-1.5 no-scrollbar">
           <button
             onClick={() => setActiveTab('members')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'members'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>1. Điểm Danh & Thành Viên</span>
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">1. Thành viên</span>
+            <span className="hidden sm:inline">1. Điểm Danh & Thành Viên</span>
           </button>
 
           <button
             onClick={() => setActiveTab('fund')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'fund'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>2. Thu & Chi Quỹ Lớp</span>
+            <Receipt className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">2. Quỹ lớp</span>
+            <span className="hidden sm:inline">2. Thu & Chi Quỹ Lớp</span>
             {canAuditAndSpend ? (
-              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">Thủ Quỹ 💰</span>
+              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Thủ Quỹ 💰</span>
             ) : (
-              <span className="text-[9px] bg-indigo-800 text-indigo-200 px-1.5 py-0.2 rounded font-mono">Giám Sát 👁️</span>
+              <span className="text-[9px] bg-indigo-800 text-indigo-200 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Giám Sát 👁️</span>
             )}
           </button>
 
           <button
             onClick={() => setActiveTab('teachers')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'teachers'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>3. Quý Thầy Cô ({effectiveTeachers.length})</span>
+            <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">3. Thầy cô ({effectiveTeachers.length})</span>
+            <span className="hidden sm:inline">3. Quý Thầy Cô ({effectiveTeachers.length})</span>
             {teacherStats.attending > 0 && (
-              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">
+              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">
                 {teacherStats.attending} tham dự
               </span>
             )}
@@ -3253,44 +3257,47 @@ export default function AdminManagementHub({
 
           <button
             onClick={() => setActiveTab('wishes')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'wishes'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>4. Lưu Bút & Lời Chúc</span>
+            <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">4. Lưu bút</span>
+            <span className="hidden sm:inline">4. Lưu Bút & Lời Chúc</span>
           </button>
 
           <button
             onClick={() => setActiveTab('media')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'media'
                 ? 'bg-[#1E293B] text-amber-300 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Video className="w-3.5 h-3.5" />
-            <span>5. Ảnh Bìa, Video & Gallery</span>
+            <Video className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">5. Media</span>
+            <span className="hidden sm:inline">5. Ảnh Bìa, Video & Gallery</span>
           </button>
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'settings'
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'text-amber-900 hover:bg-amber-100/70 bg-amber-50/50'
             }`}
           >
-            <Settings className="w-3.5 h-3.5" />
-            <span>6. Cấu Hình Sự Kiện & Hệ Thống</span>
+            <Settings className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">6. Cài đặt</span>
+            <span className="hidden sm:inline">6. Cấu Hình & Cài Đặt</span>
             {isAdmin ? (
-              <span className="text-[9px] bg-amber-800 text-amber-200 px-1.5 py-0.2 rounded font-mono">Admin 👑</span>
+              <span className="text-[9px] bg-amber-800 text-amber-200 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Admin 👑</span>
             ) : isTreasurer ? (
-              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono">Thủ Quỹ 💰</span>
+              <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Thủ Quỹ 💰</span>
             ) : (
-              <span className="text-[9px] bg-indigo-700 text-indigo-100 px-1.5 py-0.2 rounded font-mono">BLL 🛡️</span>
+              <span className="text-[9px] bg-indigo-700 text-indigo-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">BLL 🛡️</span>
             )}
           </button>
         </div>
@@ -3298,7 +3305,7 @@ export default function AdminManagementHub({
         {/* =================================================================== */}
         {/* TAB BODY CONTAINER */}
         {/* =================================================================== */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2.5 sm:space-y-3">
 
           {/* --------------------------------------------------------------- */}
           {/* TAB 1: MEMBER MANAGEMENT */}
@@ -3306,39 +3313,41 @@ export default function AdminManagementHub({
           {activeTab === 'members' && (
             <div className="space-y-2.5">
               {/* Header Sub-navigation: Sĩ Số Toàn Lớp vs Phản Hồi Web */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 p-2 rounded-xl shadow-2xs">
-                <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-amber-200/80 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 p-1.5 sm:p-2 rounded-xl shadow-2xs">
+                <div className="flex items-center gap-1 sm:gap-1.5 bg-white p-1 rounded-lg border border-amber-200/80 shadow-2xs">
                   <button
                     type="button"
                     onClick={() => setMemberTabSubView('roster')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-sans font-bold transition cursor-pointer shrink-0 ${
                       memberTabSubView === 'roster'
                         ? 'bg-amber-600 text-white shadow-xs'
                         : 'text-slate-700 hover:bg-amber-50'
                     }`}
                   >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Sĩ Số Lớp K8A1 ({rosterList.length} bạn)</span>
+                    <Users className="w-3.5 h-3.5 shrink-0" />
+                    <span className="sm:hidden">Sĩ số ({rosterList.length})</span>
+                    <span className="hidden sm:inline">Sĩ Số Lớp K8A1 ({rosterList.length} bạn)</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setMemberTabSubView('rsvp')}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-sans font-bold transition cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-md text-xs font-sans font-bold transition cursor-pointer shrink-0 ${
                       memberTabSubView === 'rsvp'
                         ? 'bg-amber-600 text-white shadow-xs'
                         : 'text-slate-700 hover:bg-amber-50'
                     }`}
                   >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Phản Hồi Web ({rsvpList.length})</span>
+                    <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                    <span className="sm:hidden">Web ({rsvpList.length})</span>
+                    <span className="hidden sm:inline">Phản Hồi Web ({rsvpList.length})</span>
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-sans text-amber-900 pr-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-sans text-amber-900 pr-1 sm:pr-2">
                   <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span>
-                    Xác nhận có mặt: <strong className="text-emerald-700 font-bold">{rosterConfirmedCount}</strong> / {rosterList.length} bạn
+                    Có mặt: <strong className="text-emerald-700 font-bold">{rosterConfirmedCount}</strong> / {rosterList.length} bạn
                     <span className="text-slate-500 font-mono ml-1">({Math.round((rosterConfirmedCount / (rosterList.length || 1)) * 100)}%)</span>
                   </span>
                 </div>
@@ -3350,9 +3359,9 @@ export default function AdminManagementHub({
               {memberTabSubView === 'roster' && (
                 <div className="space-y-2.5">
                   {/* Thanh công cụ quản trị & Lọc trạng thái 1-chạm (Interactive Filter Chips) */}
-                  <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs space-y-2">
+                  <div className="bg-white p-2 sm:p-2.5 rounded-xl border border-amber-200 shadow-2xs space-y-2">
                     {/* Hàng 1: Ô tìm kiếm + Các nút tác vụ (Thêm bạn, Đồng bộ Sheet) */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-2.5">
                       <div className="relative flex-1">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -3408,12 +3417,12 @@ export default function AdminManagementHub({
                     </div>
 
                     {/* Hàng 2: Các nút lọc tương tác thay thế 4 thẻ tĩnh (Filter Chips 1-Chạm) */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-100">
-                      <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full">
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('all')}
-                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer shrink-0 whitespace-nowrap ${
                             rosterStatusFilter === 'all'
                               ? 'bg-[#1E293B] text-amber-300 shadow-xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -3425,7 +3434,7 @@ export default function AdminManagementHub({
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('confirmed')}
-                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                             rosterStatusFilter === 'confirmed'
                               ? 'bg-emerald-700 text-white shadow-xs'
                               : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
@@ -3438,7 +3447,7 @@ export default function AdminManagementHub({
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('declined')}
-                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                             rosterStatusFilter === 'declined'
                               ? 'bg-rose-700 text-white shadow-xs'
                               : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
@@ -3451,7 +3460,7 @@ export default function AdminManagementHub({
                         <button
                           type="button"
                           onClick={() => setRosterStatusFilter('pending')}
-                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                             rosterStatusFilter === 'pending'
                               ? 'bg-amber-600 text-white shadow-xs'
                               : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200'
@@ -3463,7 +3472,7 @@ export default function AdminManagementHub({
                       </div>
 
                       {rosterFeedbackMsg && (
-                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded animate-pulse">
+                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded animate-pulse shrink-0">
                           {rosterFeedbackMsg}
                         </span>
                       )}
@@ -3472,19 +3481,19 @@ export default function AdminManagementHub({
 
                   {/* Roster Table */}
                   <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider border-b border-amber-200">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[58vh] sm:max-h-[66vh] relative">
+                      <table className="w-full text-left text-xs border-separate border-spacing-0">
+                        <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider">
                           <tr>
-                            <th className="py-3 px-3 w-10 text-center">STT</th>
-                            <th className="py-3 px-3">Bạn Học K8A1</th>
-                            <th className="py-3 px-3">Số Điện Thoại</th>
-                            <th className="py-3 px-3">Phản Hồi Tham Gia</th>
-                            <th className="py-3 px-3">Size Áo & Quỹ</th>
-                            <th className="py-3 px-3 text-right">Thao Tác BLL</th>
+                            <th className="py-2.5 px-3 w-10 min-w-[40px] max-w-[40px] text-center sticky top-0 left-0 z-30 bg-[#F8F5EE] border-b border-amber-200">STT</th>
+                            <th className="py-2.5 px-3 min-w-[130px] sm:min-w-[160px] sticky top-0 left-10 z-30 bg-[#F8F5EE] border-b border-r border-amber-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Bạn Học K8A1</th>
+                            <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Số Điện Thoại</th>
+                            <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Phản Hồi Tham Gia</th>
+                            <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Size Áo & Quỹ</th>
+                            <th className="py-2.5 px-3 text-right sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Thao Tác BLL</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 font-sans">
+                        <tbody className="font-sans">
                           {filteredRoster.length === 0 ? (
                             <tr>
                               <td colSpan={6} className="py-8 text-center text-slate-400 italic font-serif">
@@ -3493,12 +3502,12 @@ export default function AdminManagementHub({
                             </tr>
                           ) : (
                             filteredRoster.map((m) => (
-                              <tr key={m.id} className="hover:bg-amber-50/40 transition">
-                                <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                              <tr key={m.id} className="group hover:bg-amber-50/40 transition">
+                                <td className="py-2.5 px-3 text-center text-slate-400 font-mono sticky left-0 z-10 bg-white group-hover:bg-[#FFF9EE] w-10 min-w-[40px] max-w-[40px] border-b border-slate-100">
                                   {m.index}
                                 </td>
 
-                                <td className="py-2.5 px-3">
+                                <td className="py-2.5 px-3 sticky left-10 z-10 bg-white group-hover:bg-[#FFF9EE] min-w-[130px] sm:min-w-[160px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                                   <div className="font-bold text-slate-900 text-sm">
                                     {m.fullName}
                                   </div>
@@ -3514,11 +3523,11 @@ export default function AdminManagementHub({
                                   </div>
                                 </td>
 
-                                <td className="py-2.5 px-3 font-mono text-slate-600">
+                                <td className="py-2.5 px-3 font-mono text-slate-600 border-b border-slate-100">
                                   {m.matchedRsvp?.phone || m.phone || <span className="text-slate-400 italic">Chưa có SĐT</span>}
                                 </td>
 
-                                <td className="py-2.5 px-3">
+                                <td className="py-2.5 px-3 border-b border-slate-100">
                                   {m.rosterStatus === 'confirmed' ? (
                                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -3537,7 +3546,7 @@ export default function AdminManagementHub({
                                   )}
                                 </td>
 
-                                <td className="py-2.5 px-3">
+                                <td className="py-2.5 px-3 border-b border-slate-100">
                                   <div className="flex items-center gap-2">
                                     <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
                                       <Shirt className="w-3 h-3 text-amber-600" />
@@ -3557,7 +3566,7 @@ export default function AdminManagementHub({
                                   </div>
                                 </td>
 
-                                <td className="py-2.5 px-3 text-right">
+                                <td className="py-2.5 px-3 text-right border-b border-slate-100">
                                    <div className="flex items-center justify-end gap-1">
                                      {m.matchedRsvp ? (
                                        <>
@@ -3716,11 +3725,11 @@ export default function AdminManagementHub({
                     </div>
 
                     {/* Hàng 2: Filter Chips trạng thái tham gia */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 overflow-x-auto no-scrollbar py-0.5">
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('all')}
-                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer shrink-0 whitespace-nowrap ${
                           memberStatusFilter === 'all'
                             ? 'bg-[#1E293B] text-amber-300 shadow-xs'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -3732,7 +3741,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('yes')}
-                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           memberStatusFilter === 'yes'
                             ? 'bg-emerald-700 text-white shadow-xs'
                             : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
@@ -3745,7 +3754,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('checkedIn')}
-                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           memberStatusFilter === 'checkedIn'
                             ? 'bg-blue-700 text-white shadow-xs'
                             : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200'
@@ -3758,7 +3767,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('notCheckedIn')}
-                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           memberStatusFilter === 'notCheckedIn'
                             ? 'bg-amber-600 text-white shadow-xs'
                             : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200'
@@ -3771,7 +3780,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setMemberStatusFilter('no')}
-                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           memberStatusFilter === 'no'
                             ? 'bg-rose-700 text-white shadow-xs'
                             : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
@@ -3785,20 +3794,20 @@ export default function AdminManagementHub({
 
               {/* Members Table */}
               <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider border-b border-amber-200">
+                <div className="overflow-x-auto overflow-y-auto max-h-[58vh] sm:max-h-[66vh] relative">
+                  <table className="w-full text-left text-xs border-separate border-spacing-0">
+                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider">
                       <tr>
-                        <th className="py-3 px-3 w-10 text-center">STT</th>
-                        <th className="py-3 px-3">Họ và Tên</th>
-                        <th className="py-3 px-3">Số Điện Thoại</th>
-                        <th className="py-3 px-3">Size Áo</th>
-                        <th className="py-3 px-3">Điểm Danh Đến</th>
-                        <th className="py-3 px-3">Quỹ {standardFundAmount.toLocaleString('vi-VN')}đ</th>
-                        <th className="py-3 px-3 text-right">Thao Tác</th>
+                        <th className="py-2.5 px-3 w-10 min-w-[40px] max-w-[40px] text-center sticky top-0 left-0 z-30 bg-[#F8F5EE] border-b border-amber-200">STT</th>
+                        <th className="py-2.5 px-3 min-w-[130px] sm:min-w-[160px] sticky top-0 left-10 z-30 bg-[#F8F5EE] border-b border-r border-amber-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Họ và Tên</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Số Điện Thoại</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Size Áo</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Điểm Danh Đến</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Quỹ {standardFundAmount.toLocaleString('vi-VN')}đ</th>
+                        <th className="py-2.5 px-3 text-right sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Thao Tác</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-sans">
+                    <tbody className="font-sans">
                       {filteredMemberList.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="py-8 text-center text-slate-400 italic font-serif">
@@ -3807,12 +3816,12 @@ export default function AdminManagementHub({
                         </tr>
                       ) : (
                         filteredMemberList.map((item, idx) => (
-                          <tr key={item.id || item.phone} className="hover:bg-amber-50/40 transition">
-                            <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                          <tr key={item.id || item.phone} className="group hover:bg-amber-50/40 transition">
+                            <td className="py-2.5 px-3 text-center text-slate-400 font-mono sticky left-0 z-10 bg-white group-hover:bg-[#FFF9EE] w-10 min-w-[40px] max-w-[40px] border-b border-slate-100">
                               {idx + 1}
                             </td>
 
-                            <td className="py-2.5 px-3">
+                            <td className="py-2.5 px-3 sticky left-10 z-10 bg-white group-hover:bg-[#FFF9EE] min-w-[130px] sm:min-w-[160px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                               <div className="flex items-center gap-2">
                                 <div className="font-bold text-slate-900 text-sm">
                                   {item.fullName}
@@ -3833,18 +3842,18 @@ export default function AdminManagementHub({
                               </div>
                             </td>
 
-                            <td className="py-2.5 px-3 font-mono text-slate-600">
+                            <td className="py-2.5 px-3 font-mono text-slate-600 border-b border-slate-100">
                               {item.phone}
                             </td>
 
-                            <td className="py-2.5 px-3">
+                            <td className="py-2.5 px-3 border-b border-slate-100">
                               <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
                                 <Shirt className="w-3 h-3 text-amber-600" />
                                 <span>{item.shirtSize || 'L'}</span>
                               </span>
                             </td>
 
-                            <td className="py-2.5 px-3">
+                            <td className="py-2.5 px-3 border-b border-slate-100">
                               {item.status === 'yes' ? (
                                 <button
                                   onClick={() => handleToggleCheckIn(item)}
@@ -3871,7 +3880,7 @@ export default function AdminManagementHub({
                               )}
                             </td>
 
-                            <td className="py-2.5 px-3">
+                            <td className="py-2.5 px-3 border-b border-slate-100">
                               <button
                                 onClick={() => handleToggleFundPaid(item)}
                                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
@@ -3894,7 +3903,7 @@ export default function AdminManagementHub({
                               </button>
                             </td>
 
-                            <td className="py-2.5 px-3 text-right">
+                            <td className="py-2.5 px-3 text-right border-b border-slate-100">
                               <div className="flex items-center justify-end gap-1">
                                 {onOpenPassModal && (
                                   <button
@@ -4219,12 +4228,12 @@ export default function AdminManagementHub({
                     )}
 
                     {/* Quick Status Filter Chips */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100 text-[11px] font-sans">
-                      <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Lọc nhanh:</span>
+                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 text-[11px] font-sans overflow-x-auto no-scrollbar py-0.5">
+                      <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider shrink-0 mr-0.5">Lọc:</span>
                       <button
                         type="button"
                         onClick={() => setFundStatusFilter('all')}
-                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                           fundStatusFilter === 'all'
                             ? 'bg-amber-700 text-white shadow-2xs font-bold'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -4235,7 +4244,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setFundStatusFilter('paid')}
-                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                           fundStatusFilter === 'paid'
                             ? 'bg-emerald-600 text-white shadow-2xs font-bold'
                             : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
@@ -4246,7 +4255,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setFundStatusFilter('pending')}
-                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           fundStatusFilter === 'pending'
                             ? 'bg-amber-600 text-white shadow-2xs font-bold'
                             : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
@@ -4260,7 +4269,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setFundStatusFilter('unpaid')}
-                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                           fundStatusFilter === 'unpaid'
                             ? 'bg-rose-600 text-white shadow-2xs font-bold'
                             : 'bg-rose-50 hover:bg-rose-100 text-rose-700'
@@ -4272,7 +4281,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setFundStatusFilter('absent')}
-                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           fundStatusFilter === 'absent'
                             ? 'bg-slate-700 text-white shadow-2xs font-bold'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300/80'
@@ -4284,7 +4293,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setFundStatusFilter('has_receipt')}
-                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                           fundStatusFilter === 'has_receipt'
                             ? 'bg-blue-600 text-white shadow-2xs font-bold'
                             : 'bg-blue-50 hover:bg-blue-100 text-blue-800'
@@ -4295,7 +4304,7 @@ export default function AdminManagementHub({
                       <button
                         type="button"
                         onClick={() => setFundStatusFilter('extra')}
-                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                        className={`px-2.5 py-0.5 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                           fundStatusFilter === 'extra'
                             ? 'bg-amber-700 text-white shadow-2xs font-bold'
                             : 'bg-amber-100/70 hover:bg-amber-200 text-amber-900'
@@ -4308,22 +4317,22 @@ export default function AdminManagementHub({
 
               {/* Fund Table */}
               <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider border-b border-amber-200">
+                <div className="overflow-x-auto overflow-y-auto max-h-[58vh] sm:max-h-[66vh] relative">
+                  <table className="w-full text-left text-xs border-separate border-spacing-0">
+                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider">
                       <tr>
-                        <th className="py-3 px-3 w-10 text-center">STT</th>
-                        <th className="py-3 px-3">Họ và Tên</th>
-                        <th className="py-3 px-3">Số Điện Thoại</th>
-                        <th className="py-3 px-3">Số Tiền Đã Thu</th>
-                        <th className="py-3 px-3">Hình Thức & Giờ</th>
-                        <th className="py-3 px-3 text-center">Chứng Từ / Bill</th>
-                        <th className="py-3 px-3 text-center">Trạng Thái 1-Chạm</th>
-                        <th className="py-3 px-3">Người & Ghi Chú</th>
-                        <th className="py-3 px-3 text-right">Điều Chỉnh</th>
+                        <th className="py-2.5 px-3 w-10 min-w-[40px] max-w-[40px] text-center sticky top-0 left-0 z-30 bg-[#F8F5EE] border-b border-amber-200">STT</th>
+                        <th className="py-2.5 px-3 min-w-[130px] sm:min-w-[160px] sticky top-0 left-10 z-30 bg-[#F8F5EE] border-b border-r border-amber-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Họ và Tên</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Số Điện Thoại</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Số Tiền Đã Thu</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Hình Thức & Giờ</th>
+                        <th className="py-2.5 px-3 text-center sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Chứng Từ / Bill</th>
+                        <th className="py-2.5 px-3 text-center sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Trạng Thái 1-Chạm</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Người & Ghi Chú</th>
+                        <th className="py-2.5 px-3 text-right sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Điều Chỉnh</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-sans">
+                    <tbody className="font-sans">
                       {filteredFundList.length === 0 ? (
                         <tr>
                           <td colSpan={9} className="py-10 text-center text-slate-400">
@@ -4339,12 +4348,12 @@ export default function AdminManagementHub({
                           const isExtra = isPaid && (isAbsent ? amount > 0 : amount > standardFundAmount);
 
                           return (
-                            <tr key={item.id || item.phone} className={`transition ${isAbsent && !isPaid ? 'bg-slate-50/60 hover:bg-slate-100/70 text-slate-600' : 'hover:bg-amber-50/40'}`}>
-                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                            <tr key={item.id || item.phone} className={`group transition ${isAbsent && !isPaid ? 'bg-slate-50/60 hover:bg-slate-100/70 text-slate-600' : 'hover:bg-amber-50/40'}`}>
+                              <td className={`py-2.5 px-3 text-center text-slate-400 font-mono sticky left-0 z-10 ${isAbsent && !isPaid ? 'bg-[#F9FAFB] group-hover:bg-[#F3F4F6]' : 'bg-white group-hover:bg-[#FFF9EE]'} w-10 min-w-[40px] max-w-[40px] border-b border-slate-100`}>
                                 {idx + 1}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className={`py-2.5 px-3 sticky left-10 z-10 ${isAbsent && !isPaid ? 'bg-[#F9FAFB] group-hover:bg-[#F3F4F6]' : 'bg-white group-hover:bg-[#FFF9EE]'} min-w-[130px] sm:min-w-[160px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]`}>
                                 <div className="flex items-center gap-2">
                                   <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold flex items-center justify-center text-[11px] shrink-0">
                                     {(item.fullName || 'K').slice(0, 1).toUpperCase()}
@@ -4378,11 +4387,11 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3 font-mono text-slate-600">
+                              <td className="py-2.5 px-3 font-mono text-slate-600 border-b border-slate-100">
                                 {item.phone}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 {isPaid ? (
                                   <>
                                     <span className={`font-mono font-bold text-xs ${isAbsent ? 'text-indigo-700' : 'text-emerald-700'}`}>
@@ -4423,7 +4432,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 {isPaid ? (
                                   <div className="space-y-0.5">
                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -4451,7 +4460,7 @@ export default function AdminManagementHub({
                               </td>
 
                               {/* Receipt Image Thumbnail & Zoom */}
-                              <td className="py-2.5 px-3 text-center">
+                              <td className="py-2.5 px-3 text-center border-b border-slate-100">
                                 {hasReceipt ? (
                                   <button
                                     type="button"
@@ -4502,7 +4511,7 @@ export default function AdminManagementHub({
                               </td>
 
                               {/* 1-Touch Status Toggle */}
-                              <td className="py-2.5 px-3 text-center">
+                              <td className="py-2.5 px-3 text-center border-b border-slate-100">
                                 {isAbsent && !isPaid && item.fundStatus !== 'pending' ? (
                                   <div className="inline-flex flex-col items-center gap-0.5">
                                     <span
@@ -4583,7 +4592,7 @@ export default function AdminManagementHub({
                               </td>
 
                               {/* Audit Trail & Notes */}
-                              <td className="py-2.5 px-3 text-slate-600 text-xs">
+                              <td className="py-2.5 px-3 text-slate-600 text-xs border-b border-slate-100">
                                 <div className="space-y-0.5">
                                   <p className="italic text-slate-700 line-clamp-2">
                                     {item.fundNote || (isPaid ? (isAbsent ? 'Tự nguyện ủng hộ quỹ chung' : `Đã thu đủ ${standardFundAmount.toLocaleString('vi-VN')}đ`) : (isAbsent ? 'Báo vắng (Không bắt buộc đóng)' : 'Chưa nộp'))}
@@ -4597,7 +4606,7 @@ export default function AdminManagementHub({
                               </td>
 
                               {/* Action: Open Deep Reconciliation Modal */}
-                              <td className="py-2.5 px-3 text-right">
+                              <td className="py-2.5 px-3 text-right border-b border-slate-100">
                                 {canAuditAndSpend ? (
                                   <button
                                     type="button"
@@ -4724,12 +4733,12 @@ export default function AdminManagementHub({
                 )}
 
                 {/* Quick Category Chips Filter */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Danh mục:</span>
+                <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans overflow-x-auto no-scrollbar py-0.5">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider shrink-0 mr-0.5">Danh mục:</span>
                   <button
                     type="button"
                     onClick={() => setIncomeCategoryFilter('all')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                       incomeCategoryFilter === 'all'
                         ? 'bg-emerald-700 text-white shadow-2xs font-bold'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -4745,7 +4754,7 @@ export default function AdminManagementHub({
                         key={cat.id}
                         type="button"
                         onClick={() => setIncomeCategoryFilter(cat.id)}
-                        className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           isActive
                             ? `${cat.badgeBg} ${cat.badgeText} border ${cat.badgeBorder} ring-1 ring-emerald-600 font-bold shadow-2xs`
                             : `${cat.badgeBg} ${cat.badgeText} border ${cat.badgeBorder} hover:opacity-90`
@@ -4771,21 +4780,21 @@ export default function AdminManagementHub({
 
               {/* Sổ Thu Table */}
               <div className="bg-white rounded-xl border border-emerald-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F0FDF4] text-emerald-950 font-sans uppercase text-[10px] tracking-wider border-b border-emerald-200">
+                <div className="overflow-x-auto overflow-y-auto max-h-[58vh] sm:max-h-[66vh] relative">
+                  <table className="w-full text-left text-xs border-separate border-spacing-0">
+                    <thead className="bg-[#F0FDF4] text-emerald-950 font-sans uppercase text-[10px] tracking-wider">
                       <tr>
-                        <th className="py-3 px-3 w-10 text-center">STT</th>
-                        <th className="py-3 px-3">Khoản Thu & Danh Mục</th>
-                        <th className="py-3 px-3">Người Nộp / Đơn Vị</th>
-                        <th className="py-3 px-3">Số Tiền (VNĐ)</th>
-                        <th className="py-3 px-3">Hình Thức & Giờ</th>
-                        <th className="py-3 px-3 text-center">Chứng Từ / Bill</th>
-                        <th className="py-3 px-3">Người Thu & Ghi Chú</th>
-                        <th className="py-3 px-3 text-right">Thao Tác</th>
+                        <th className="py-2.5 px-3 w-10 min-w-[40px] max-w-[40px] text-center sticky top-0 left-0 z-30 bg-[#F0FDF4] border-b border-emerald-200">STT</th>
+                        <th className="py-2.5 px-3 min-w-[140px] sm:min-w-[180px] sticky top-0 left-10 z-30 bg-[#F0FDF4] border-b border-r border-emerald-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Khoản Thu & Danh Mục</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F0FDF4] border-b border-emerald-200">Người Nộp / Đơn Vị</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F0FDF4] border-b border-emerald-200">Số Tiền (VNĐ)</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F0FDF4] border-b border-emerald-200">Hình Thức & Giờ</th>
+                        <th className="py-2.5 px-3 text-center sticky top-0 z-20 bg-[#F0FDF4] border-b border-emerald-200">Chứng Từ / Bill</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F0FDF4] border-b border-emerald-200">Người Thu & Ghi Chú</th>
+                        <th className="py-2.5 px-3 text-right sticky top-0 z-20 bg-[#F0FDF4] border-b border-emerald-200">Thao Tác</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-sans">
+                    <tbody className="font-sans">
                       {filteredIncomesList.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="py-12 text-center text-slate-400 space-y-2">
@@ -4808,12 +4817,12 @@ export default function AdminManagementHub({
                           const hasReceipt = Boolean(item.receiptUrl && item.receiptUrl.trim());
 
                           return (
-                            <tr key={item.id} className="hover:bg-emerald-50/30 transition">
-                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                            <tr key={item.id} className="group hover:bg-emerald-50/30 transition">
+                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono sticky left-0 z-10 bg-white group-hover:bg-[#F0FDF4] w-10 min-w-[40px] max-w-[40px] border-b border-slate-100">
                                 {idx + 1}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 sticky left-10 z-10 bg-white group-hover:bg-[#F0FDF4] min-w-[140px] sm:min-w-[180px] border-b border-r border-emerald-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                                 <div>
                                   <span className="font-bold text-slate-900 text-xs block">
                                     {item.title}
@@ -4825,7 +4834,7 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <div>
                                   <span className="font-bold text-slate-900">
                                     {item.payerName}
@@ -4843,13 +4852,13 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <span className="font-mono font-bold text-xs text-emerald-700">
                                   +{(Number(item.amount) || 0).toLocaleString('vi-VN')} đ
                                 </span>
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <div className="space-y-0.5">
                                   <span className={`inline-block px-1.5 py-0.2 text-[10px] font-bold rounded ${
                                     item.paymentMethod === 'cash' 
@@ -4864,7 +4873,7 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3 text-center">
+                              <td className="py-2.5 px-3 text-center border-b border-slate-100">
                                 {hasReceipt ? (
                                   <button
                                     type="button"
@@ -4880,7 +4889,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <div>
                                   <span className="text-slate-700 text-[11px] font-semibold block">
                                     {item.auditor || 'Thủ Quỹ BLL'}
@@ -4893,7 +4902,7 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3 text-right">
+                              <td className="py-2.5 px-3 text-right border-b border-slate-100">
                                 {canAuditAndSpend ? (
                                   <div className="flex items-center justify-end gap-1">
                                     <button
@@ -5028,12 +5037,12 @@ export default function AdminManagementHub({
                 )}
 
                 {/* Quick Category Filter Badges */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Nhóm chi:</span>
+                <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans overflow-x-auto no-scrollbar py-0.5">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider shrink-0 mr-0.5">Nhóm chi:</span>
                   <button
                     type="button"
                     onClick={() => setExpenseCategoryFilter('all')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                       expenseCategoryFilter === 'all'
                         ? 'bg-slate-800 text-white shadow-2xs font-bold'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -5049,7 +5058,7 @@ export default function AdminManagementHub({
                         key={cat.id}
                         type="button"
                         onClick={() => setExpenseCategoryFilter(cat.id)}
-                        className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
                           expenseCategoryFilter === cat.id
                             ? 'bg-amber-700 text-white shadow-2xs font-bold'
                             : `${cat.badgeBg} ${cat.badgeText} border ${cat.badgeBorder} hover:opacity-80`
@@ -5063,14 +5072,14 @@ export default function AdminManagementHub({
                 </div>
 
                 {/* Time Quick Chips for Expense */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[11px] font-sans">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Thời gian:</span>
+                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-slate-100 text-[11px] font-sans">
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider shrink-0 mr-0.5">Thời gian:</span>
                     {(['all', 'today', '7days', 'this_month', 'year_2026'] as const).map(f => {
                       const labels = {
                         all: 'Tất cả',
                         today: 'Hôm nay',
-                        '7days': '7 ngày qua',
+                        '7days': '7 ngày',
                         this_month: 'Tháng này',
                         year_2026: 'Năm 2026'
                       };
@@ -5080,7 +5089,7 @@ export default function AdminManagementHub({
                           key={f}
                           type="button"
                           onClick={() => setExpenseDateFilter(f)}
-                          className={`px-2.5 py-0.5 rounded-full transition cursor-pointer ${
+                          className={`px-2.5 py-0.5 rounded-full transition cursor-pointer shrink-0 whitespace-nowrap ${
                             isActive
                               ? 'bg-rose-700 text-white font-bold shadow-2xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -5092,29 +5101,29 @@ export default function AdminManagementHub({
                     })}
                   </div>
 
-                  <span className="text-[11px] font-sans text-slate-600">
-                    Hiển thị: <strong>{filteredExpensesList.length}</strong> khoản • Tổng chi: <strong className="text-rose-700 font-mono">-{filteredExpensesTotal.toLocaleString('vi-VN')} đ</strong>
+                  <span className="text-[11px] font-sans text-slate-600 shrink-0">
+                    Hiển thị: <strong>{filteredExpensesList.length}</strong> • Tổng: <strong className="text-rose-700 font-mono">-{filteredExpensesTotal.toLocaleString('vi-VN')} đ</strong>
                   </span>
                 </div>
               </div>
 
               {/* Expense Items Table */}
               <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider border-b border-amber-200">
+                <div className="overflow-x-auto overflow-y-auto max-h-[58vh] sm:max-h-[66vh] relative">
+                  <table className="w-full text-left text-xs border-separate border-spacing-0">
+                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider">
                       <tr>
-                        <th className="py-3 px-3 w-10 text-center">STT</th>
-                        <th className="py-3 px-3 w-24">Ngày Chi</th>
-                        <th className="py-3 px-3">Khoản Chi & Mục Đích</th>
-                        <th className="py-3 px-3">Nhóm Chi</th>
-                        <th className="py-3 px-3 text-right">Số Tiền (VNĐ)</th>
-                        <th className="py-3 px-3">Người Chi ➔ Thụ Hưởng</th>
-                        <th className="py-3 px-3 text-center">Hóa Đơn / Bill</th>
-                        <th className="py-3 px-3 text-right">Thao Tác</th>
+                        <th className="py-2.5 px-3 w-10 min-w-[40px] max-w-[40px] text-center sticky top-0 left-0 z-30 bg-[#F8F5EE] border-b border-amber-200">STT</th>
+                        <th className="py-2.5 px-3 min-w-[140px] sm:min-w-[180px] sticky top-0 left-10 z-30 bg-[#F8F5EE] border-b border-r border-amber-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Khoản Chi & Mục Đích</th>
+                        <th className="py-2.5 px-3 w-24 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Ngày Chi</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Nhóm Chi</th>
+                        <th className="py-2.5 px-3 text-right sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Số Tiền (VNĐ)</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Người Chi ➔ Thụ Hưởng</th>
+                        <th className="py-2.5 px-3 text-center sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Hóa Đơn / Bill</th>
+                        <th className="py-2.5 px-3 text-right sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Thao Tác</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-sans">
+                    <tbody className="font-sans">
                       {filteredExpensesList.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="py-12 text-center text-slate-400">
@@ -5140,16 +5149,12 @@ export default function AdminManagementHub({
                           const hasReceipt = Boolean(item.receiptUrl && item.receiptUrl.trim());
 
                           return (
-                            <tr key={item.id} className="hover:bg-amber-50/40 transition">
-                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                            <tr key={item.id} className="group hover:bg-amber-50/40 transition">
+                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono sticky left-0 z-10 bg-white group-hover:bg-[#FFF9EE] w-10 min-w-[40px] max-w-[40px] border-b border-slate-100">
                                 {idx + 1}
                               </td>
 
-                              <td className="py-2.5 px-3 font-mono text-slate-700 whitespace-nowrap font-medium">
-                                {formatDateOnlyVi(item.date)}
-                              </td>
-
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 sticky left-10 z-10 bg-white group-hover:bg-[#FFF9EE] min-w-[140px] sm:min-w-[180px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                                 <div className="font-bold text-slate-900 text-sm">
                                   {item.title}
                                 </div>
@@ -5165,17 +5170,21 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3 whitespace-nowrap">
+                              <td className="py-2.5 px-3 font-mono text-slate-700 whitespace-nowrap font-medium border-b border-slate-100">
+                                {formatDateOnlyVi(item.date)}
+                              </td>
+
+                              <td className="py-2.5 px-3 whitespace-nowrap border-b border-slate-100">
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${catMeta.badgeBg} ${catMeta.badgeText} ${catMeta.badgeBorder}`}>
                                   {catMeta.label}
                                 </span>
                               </td>
 
-                              <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-700 text-sm whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-700 text-sm whitespace-nowrap border-b border-slate-100">
                                 -{Number(item.amount || 0).toLocaleString('vi-VN')} đ
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <div className="text-slate-900 font-semibold text-xs">
                                   {item.spender || 'Thủ Quỹ BLL'}
                                 </div>
@@ -5187,7 +5196,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3 text-center">
+                              <td className="py-2.5 px-3 text-center border-b border-slate-100">
                                 {hasReceipt ? (
                                   <button
                                     type="button"
@@ -5205,7 +5214,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-right whitespace-nowrap border-b border-slate-100">
                                 {canAuditAndSpend ? (
                                   <div className="flex items-center justify-end gap-1">
                                     <button
@@ -5237,7 +5246,7 @@ export default function AdminManagementHub({
                       )}
                     </tbody>
                     {filteredExpensesList.length > 0 && (
-                      <tfoot className="bg-[#FAF8F5] border-t border-amber-200 font-sans text-xs">
+                      <tfoot className="bg-[#FAF8F5] border-t border-amber-200 font-sans text-xs sticky bottom-0 z-20">
                         <tr>
                           <td colSpan={4} className="py-2.5 px-3 font-bold text-slate-700 text-right">
                             TỔNG CỘNG CHI ({filteredExpensesList.length} khoản):
@@ -5351,12 +5360,12 @@ export default function AdminManagementHub({
                 </div>
 
                 {/* Quick Status Filter Chips */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-[11px] font-sans">
-                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">Lọc nhanh:</span>
+                <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 text-[11px] font-sans overflow-x-auto no-scrollbar py-0.5">
+                  <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider shrink-0 mr-0.5">Lọc:</span>
                   <button
                     type="button"
                     onClick={() => setTeacherStatusFilter('all')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                       teacherStatusFilter === 'all'
                         ? 'bg-amber-800 text-white shadow-xs font-bold'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -5367,7 +5376,7 @@ export default function AdminManagementHub({
                   <button
                     type="button"
                     onClick={() => setTeacherStatusFilter('attending')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                       teacherStatusFilter === 'attending'
                         ? 'bg-emerald-700 text-white shadow-xs font-bold'
                         : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
@@ -5378,7 +5387,7 @@ export default function AdminManagementHub({
                   <button
                     type="button"
                     onClick={() => setTeacherStatusFilter('pending')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                       teacherStatusFilter === 'pending'
                         ? 'bg-amber-600 text-white shadow-xs font-bold'
                         : 'bg-amber-50 hover:bg-amber-100 text-amber-900'
@@ -5389,7 +5398,7 @@ export default function AdminManagementHub({
                   <button
                     type="button"
                     onClick={() => setTeacherStatusFilter('wishing')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                       teacherStatusFilter === 'wishing'
                         ? 'bg-purple-700 text-white shadow-xs font-bold'
                         : 'bg-purple-50 hover:bg-purple-100 text-purple-800'
@@ -5400,7 +5409,7 @@ export default function AdminManagementHub({
                   <button
                     type="button"
                     onClick={() => setTeacherStatusFilter('declined')}
-                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-full font-medium transition cursor-pointer shrink-0 whitespace-nowrap ${
                       teacherStatusFilter === 'declined'
                         ? 'bg-rose-700 text-white shadow-xs font-bold'
                         : 'bg-rose-50 hover:bg-rose-100 text-rose-800'
@@ -5413,22 +5422,22 @@ export default function AdminManagementHub({
 
               {/* Table / List */}
               <div className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider border-b border-amber-200">
+                <div className="overflow-x-auto overflow-y-auto max-h-[58vh] sm:max-h-[66vh] relative">
+                  <table className="w-full text-left text-xs border-separate border-spacing-0">
+                    <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[10px] tracking-wider">
                       <tr>
-                        <th className="py-3 px-3 w-10 text-center">STT</th>
-                        <th className="py-3 px-3">Quý Thầy / Cô</th>
-                        <th className="py-3 px-3">Môn & Vai Trò</th>
-                        <th className="py-3 px-3">Liên Hệ & Địa Chỉ</th>
-                        <th className="py-3 px-3 text-center">Tiến Độ Thiệp</th>
-                        <th className="py-3 px-3 text-center">Tham Dự</th>
-                        <th className="py-3 px-3">Đưa Đón & Đi Kèm</th>
-                        <th className="py-3 px-3">BLL Phụ Trách</th>
-                        <th className="py-3 px-3 text-right">Thao Tác</th>
+                        <th className="py-2.5 px-3 w-10 min-w-[40px] max-w-[40px] text-center sticky top-0 left-0 z-30 bg-[#F8F5EE] border-b border-amber-200">STT</th>
+                        <th className="py-2.5 px-3 min-w-[140px] sm:min-w-[170px] sticky top-0 left-10 z-30 bg-[#F8F5EE] border-b border-r border-amber-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Quý Thầy / Cô</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Môn & Vai Trò</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Liên Hệ & Địa Chỉ</th>
+                        <th className="py-2.5 px-3 text-center sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Tiến Độ Thiệp</th>
+                        <th className="py-2.5 px-3 text-center sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Tham Dự</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Đưa Đón & Đi Kèm</th>
+                        <th className="py-2.5 px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">BLL Phụ Trách</th>
+                        <th className="py-2.5 px-3 text-right sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Thao Tác</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-sans">
+                    <tbody className="font-sans">
                       {filteredAdminTeachers.length === 0 ? (
                         <tr>
                           <td colSpan={9} className="py-12 text-center text-slate-400">
@@ -5450,12 +5459,12 @@ export default function AdminManagementHub({
                           const isMemorial = t.status === 'memorial';
 
                           return (
-                            <tr key={t.id} className="hover:bg-amber-50/40 transition">
-                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono">
+                            <tr key={t.id} className="group hover:bg-amber-50/40 transition">
+                              <td className="py-2.5 px-3 text-center text-slate-400 font-mono sticky left-0 z-10 bg-white group-hover:bg-[#FFF9EE] w-10 min-w-[40px] max-w-[40px] border-b border-slate-100">
                                 {idx + 1}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 sticky left-10 z-10 bg-white group-hover:bg-[#FFF9EE] min-w-[140px] sm:min-w-[170px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                                 <div className="flex items-center gap-2.5">
                                   <img
                                     src={t.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'}
@@ -5478,7 +5487,7 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <div className="font-semibold text-amber-900 text-xs">
                                   {t.role || 'Giáo viên'}
                                 </div>
@@ -5487,7 +5496,7 @@ export default function AdminManagementHub({
                                 </div>
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <div className="font-mono text-slate-800 text-xs">
                                   {t.phone || 'Chưa có SĐT'}
                                 </div>
@@ -5503,7 +5512,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-center whitespace-nowrap border-b border-slate-100">
                                 <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                                   t.inviteProgress?.includes('tận tay')
                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
@@ -5515,7 +5524,7 @@ export default function AdminManagementHub({
                                 </span>
                               </td>
 
-                              <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-center whitespace-nowrap border-b border-slate-100">
                                 {isAttending ? (
                                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -5539,7 +5548,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 {t.transportation && (
                                   <div className="text-slate-800 font-medium text-xs flex items-center gap-1">
                                     <Car className="w-3 h-3 text-amber-700 shrink-0" />
@@ -5553,7 +5562,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3">
+                              <td className="py-2.5 px-3 border-b border-slate-100">
                                 <div className="font-semibold text-slate-800 text-xs">
                                   {t.coordinator || 'Chưa phân công'}
                                 </div>
@@ -5564,7 +5573,7 @@ export default function AdminManagementHub({
                                 )}
                               </td>
 
-                              <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-right whitespace-nowrap border-b border-slate-100">
                                 <div className="flex items-center justify-end gap-1">
                                   <button
                                     type="button"
