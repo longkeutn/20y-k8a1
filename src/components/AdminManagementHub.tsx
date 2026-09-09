@@ -367,6 +367,7 @@ export default function AdminManagementHub({
   const standardFundAmount = Number(eventConfigForm?.fundAmountPerPerson) || 700000;
 
   const [settingsSection, setSettingsSection] = useState<'all' | 'venue' | 'date' | 'letter' | 'bank' | 'security'>('all');
+  const [venueSettingsTab, setVenueSettingsTab] = useState<'stage1' | 'stage2' | 'route'>('stage1');
 
   // Search & Filters for Member Tab
   const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
@@ -6388,28 +6389,69 @@ export default function AdminManagementHub({
                 {/* SECTION 1: 📍 ĐỊA ĐIỂM TỔ CHỨC & BẢN ĐỒ GOOGLE MAPS */}
                 {/* ============================================================= */}
                 {(settingsSection === 'all' || settingsSection === 'venue') && (
-                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200 pb-3 gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="p-1.5 bg-amber-100 text-amber-800 rounded-lg">
-                          <MapPin className="w-4 h-4" />
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-5">
+                    {/* Header & Quick Action Presets */}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-amber-200 pb-3.5 gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="p-2 bg-amber-100 text-amber-800 rounded-xl">
+                          <MapPin className="w-5 h-5" />
                         </span>
                         <div>
-                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
-                            1. Địa Điểm Tổ Chức & Bản Đồ Google Maps
+                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                            <span>1. Địa Điểm Tổ Chức & Hành Trình Hội Ngộ</span>
+                            {eventConfigForm.enableTwoVenues !== false && (
+                              <span className="text-[10px] font-sans font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                                2 Chặng Liên Hoàn
+                              </span>
+                            )}
                           </h4>
                           <p className="text-[11px] text-slate-500 font-sans">
-                            Hiển thị tại mục Hội Ngộ, Thư Ngỏ thiệp mời và Thẻ học sinh
+                            Hiển thị tại mục Hội Ngộ, Thư Ngỏ thiệp mời, Thẻ học sinh và Lịch trình họp lớp
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                      {/* Presets Button Bar */}
+                      <div className="flex items-center gap-2 flex-wrap">
                         <button
                           type="button"
                           onClick={() => {
                             setEventConfigForm({
                               ...eventConfigForm,
+                              enableTwoVenues: true,
+                              venueName: "Trường THPT Thái Nguyên",
+                              venueSubtitle: "Chặng 1: Đón tiếp nhận áo, thăm trường xưa, chụp ảnh lưu niệm & tri ân Thầy Cô",
+                              venueAddress: "Số 127 đường Lương Thế Vinh, P. Quang Trung, TP. Thái Nguyên, Tỉnh Thái Nguyên",
+                              shortAddress: "127 Lương Thế Vinh, TP. Thái Nguyên",
+                              venueTime: "08:30 — 11:00 (Sáng)",
+                              venueActivity: "Đón tiếp nhận áo polo • Thẻ học sinh tri kỷ • Thăm lớp học xưa • Chụp ảnh lưu niệm sân trường • Tri ân Thầy Cô",
+                              mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.2798642279267!2d105.8285514!3d21.5740443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135272a24921915%3A0xe543df5e9e03fa54!2zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbg!5e0!3m2!1svi!2svn!4v1710000000000!5m2!1svi!2svn",
+                              mapDirectUrl: "https://www.google.com/maps/search/?api=1&query=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn",
+                              venue2Name: "Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên",
+                              venue2Subtitle: "Chặng 2: Khai tiệc liên hoan, nâng ly chúc mừng 20 năm, giao lưu văn nghệ & trao kỷ vật",
+                              venue2Address: "Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên",
+                              venue2ShortAddress: "Số 1 Hoàng Văn Thụ, TP. Thái Nguyên",
+                              venue2Time: "11:30 — 15:30 (Trưa & Chiều)",
+                              venue2Activity: "Khai tiệc liên hoan • Nâng ly chúc mừng 20 năm • Giao lưu âm nhạc & chuyện đời tri kỷ • Trao kỷ vật hội ngộ",
+                              venue2MapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d600!2d105.8386089!3d21.5949009!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e1!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn",
+                              venue2MapDirectUrl: "https://maps.app.goo.gl/a3utiYosZqGHKDjYA",
+                              routeDistanceText: "~1.5km (Di chuyển 5 - 10 phút)",
+                              routeDirectUrl: "https://www.google.com/maps/dir/?api=1&origin=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn&destination=Th%C3%A1p+%C4%91%C3%B4i+Prime+Th%C3%A1i+Nguy%C3%AAn,+S%E1%BB%91+1+Ho%C3%A0ng+V%C4%83n+Th%E1%BB%A5,+Th%C3%A1i+Nguy%C3%AAn"
+                            });
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                          title="Áp dụng cấu hình chuẩn 2 chặng: Trường THPT Thái Nguyên + Tháp đôi Prime"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                          <span>⚡ Mẫu Chuẩn 2 Chặng K8A1</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEventConfigForm({
+                              ...eventConfigForm,
+                              enableTwoVenues: false,
                               venueName: "Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên",
                               venueSubtitle: "Địa điểm tổ chức Họp Lớp 20 Năm Ngày Trở Về — Lớp K8A1",
                               venueAddress: "Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên",
@@ -6418,159 +6460,459 @@ export default function AdminManagementHub({
                               mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d600!2d105.8386089!3d21.5949009!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e1!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn"
                             });
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
+                          title="Chỉ dùng 1 địa điểm là Nhà hàng Prime"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                          <span>⚡ Điền nhanh: Tháp đôi Prime</span>
+                          <span>Chỉ Prime</span>
                         </button>
-                        <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
-                          BLL & Admin
-                        </span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="font-bold text-slate-700 flex items-center justify-between">
-                          <span>Tên Trung Tâm / Nhà Hàng (*):</span>
-                          <span className="text-[11px] font-normal text-slate-400">VD: Crown Palace hoặc Prime Thái Nguyên</span>
+                    {/* Toggle Bật/Tắt 2 Chặng */}
+                    <div className="p-3.5 bg-[#FAF9F6] rounded-xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <label className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={eventConfigForm.enableTwoVenues !== false}
+                            onChange={(e) => setEventConfigForm({ ...eventConfigForm, enableTwoVenues: e.target.checked })}
+                            className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                          />
+                          <span>Bật chế độ Hành Trình Hội Ngộ 2 Chặng (Trường Cũ + Nhà Hàng Liên Hoan)</span>
                         </label>
-                        <input
-                          type="text"
-                          required
-                          value={eventConfigForm.venueName}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueName: e.target.value })}
-                          placeholder="VD: Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-slate-900 focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="font-bold text-slate-700">
-                          Phụ Đề Sự Kiện Tại Địa Điểm:
-                        </label>
-                        <input
-                          type="text"
-                          value={eventConfigForm.venueSubtitle || ''}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueSubtitle: e.target.value })}
-                          placeholder="VD: Địa điểm tổ chức Họp Lớp 20 Năm Ngày Trở Về — Lớp K8A1"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="font-bold text-slate-700">
-                          Địa Chỉ Đầy Đủ (*):
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={eventConfigForm.venueAddress}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueAddress: e.target.value })}
-                          placeholder="VD: Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700">
-                          Địa Chỉ Rút Gọn (Hiển thị thiệp):
-                        </label>
-                        <input
-                          type="text"
-                          value={eventConfigForm.shortAddress}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, shortAddress: e.target.value })}
-                          placeholder="VD: Số 1 Hoàng Văn Thụ, TP. Thái Nguyên"
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="font-bold text-slate-700 flex items-center justify-between">
-                          <span>Link Google Maps Trực Tiếp / Chỉ Đường:</span>
-                          {eventConfigForm.mapDirectUrl && (
-                            <a
-                              href={eventConfigForm.mapDirectUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[11px] text-amber-700 hover:text-amber-900 inline-flex items-center gap-1 font-bold"
-                            >
-                              <span>Mở Thử</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
-                        </label>
-                        <input
-                          type="url"
-                          value={eventConfigForm.mapDirectUrl}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, mapDirectUrl: e.target.value })}
-                          placeholder="https://maps.app.goo.gl/..."
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="font-bold text-slate-700 flex items-center justify-between">
-                          <span>Link Nhúng Bản Đồ Google Maps (iframe embed):</span>
-                          <span className="text-[11px] text-slate-400 font-normal">Tự động trích xuất nếu bạn dán thẻ iframe</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={eventConfigForm.mapEmbedUrl}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            // Tự động bóc tách link nếu người dùng dán nguyên thẻ <iframe src="...">
-                            const iframeMatch = raw.match(/src=["']([^"']+)["']/i);
-                            const cleaned = iframeMatch && iframeMatch[1] ? iframeMatch[1] : raw.trim();
-                            setEventConfigForm({ ...eventConfigForm, mapEmbedUrl: cleaned });
-                          }}
-                          placeholder="https://www.google.com/maps/embed?pb=..."
-                          className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
-                        />
-                        <p className="text-[11px] text-slate-500">
-                          💡 <strong>Cách lấy link nhúng:</strong> Mở Google Maps trên máy tính → Bấm <em>Chia sẻ</em> → Chọn tab <em>Nhúng bản đồ</em> → Bạn có thể sao chép nguyên cả đoạn mã HTML iframe dán vào đây (hệ thống sẽ tự bóc tách đường dẫn).
+                        <p className="text-[11px] text-slate-500 pl-6">
+                          Hiển thị lộ trình liên hoàn: Sáng đón tiếp & thăm trường cũ (THPT Thái Nguyên), trưa di chuyển sang nhà hàng (Prime) khai tiệc.
                         </p>
+                      </div>
 
-                        {/* Cảnh báo thông minh nếu người dùng dán nhầm link chia sẻ / maps.app.goo.gl */}
-                        {eventConfigForm.mapEmbedUrl && (eventConfigForm.mapEmbedUrl.includes('maps.app.goo.gl') || (eventConfigForm.mapEmbedUrl.includes('google.com/maps') && !eventConfigForm.mapEmbedUrl.includes('/embed') && !eventConfigForm.mapEmbedUrl.includes('output=embed'))) && (
-                          <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 space-y-1.5 animate-in fade-in">
-                            <p className="font-bold flex items-center gap-1.5 text-amber-900">
-                              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                              <span>Link bạn vừa dán là Link xem/chia sẻ bản đồ (Google chặn không cho nhúng link này vào website)!</span>
-                            </p>
-                            <p className="text-[11px] text-slate-600 leading-relaxed">
-                              Khung bản đồ cần URL nhúng đặc thù có dạng <code>https://www.google.com/maps/embed?pb=...</code>. Bạn hãy bấm nút bên dưới để áp dụng ngay link nhúng chuẩn của Tháp đôi Prime Thái Nguyên:
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => setEventConfigForm({
-                                ...eventConfigForm,
-                                mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d600!2d105.8386089!3d21.5949009!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e1!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn"
-                              })}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-lg text-xs font-bold transition cursor-pointer"
-                            >
-                              <Check className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Chuyển Sang Link Nhúng Chuẩn Của Tháp Đôi Prime</span>
-                            </button>
+                      <span className={`self-start sm:self-center px-2.5 py-1 rounded-full text-[11px] font-sans font-bold uppercase tracking-wider shrink-0 ${
+                        eventConfigForm.enableTwoVenues !== false
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-slate-100 text-slate-600 border border-slate-300'
+                      }`}>
+                        {eventConfigForm.enableTwoVenues !== false ? '✓ Đang Bật 2 Chặng' : '1 Địa Điểm Đơn Lẻ'}
+                      </span>
+                    </div>
+
+                    {/* Sub-Tab Navigation (nếu bật 2 chặng) */}
+                    {eventConfigForm.enableTwoVenues !== false && (
+                      <div className="flex border-b border-amber-200 gap-2 overflow-x-auto">
+                        <button
+                          type="button"
+                          onClick={() => setVenueSettingsTab('stage1')}
+                          className={`pb-2.5 px-3 text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap border-b-2 -mb-px ${
+                            venueSettingsTab === 'stage1'
+                              ? 'border-amber-600 text-amber-900 bg-amber-50/50 rounded-t-lg'
+                              : 'border-transparent text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <GraduationCap className="w-4 h-4 text-amber-700" />
+                          <span>Chặng 1: Trường Cũ (Sáng)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setVenueSettingsTab('stage2')}
+                          className={`pb-2.5 px-3 text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap border-b-2 -mb-px ${
+                            venueSettingsTab === 'stage2'
+                              ? 'border-rose-600 text-rose-900 bg-rose-50/50 rounded-t-lg'
+                              : 'border-transparent text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <Utensils className="w-4 h-4 text-rose-700" />
+                          <span>Chặng 2: Nhà Hàng (Trưa & Chiều)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setVenueSettingsTab('route')}
+                          className={`pb-2.5 px-3 text-xs font-sans font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap border-b-2 -mb-px ${
+                            venueSettingsTab === 'route'
+                              ? 'border-slate-800 text-slate-900 bg-slate-50 rounded-t-lg'
+                              : 'border-transparent text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <Car className="w-4 h-4 text-slate-700" />
+                          <span>Lộ Trình Di Chuyển ({eventConfigForm.routeDistanceText || '~1.5km'})</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ======================================================== */}
+                    {/* SUB-PANEL 1: CHẶNG 1 (TRƯỜNG CŨ HOẶC ĐỊA ĐIỂM DUY NHẤT) */}
+                    {/* ======================================================== */}
+                    {(eventConfigForm.enableTwoVenues === false || venueSettingsTab === 'stage1') && (
+                      <div className="space-y-4 pt-1">
+                        {eventConfigForm.enableTwoVenues !== false && (
+                          <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
+                            <span className="font-semibold">🏫 Cấu hình Chặng 1: Tập trung đón tiếp, điểm danh nhận áo, chụp ảnh kỷ niệm & tri ân Thầy Cô</span>
+                            <span className="font-mono text-[11px] text-amber-700 bg-white px-2 py-0.5 rounded border border-amber-200">08:30 — 11:00</span>
                           </div>
                         )}
-                      </div>
 
-                      {/* Live Embed Preview */}
-                      {eventConfigForm.mapEmbedUrl && (
-                        <div className="sm:col-span-2 space-y-1.5">
-                          <label className="font-bold text-slate-600 text-[11px]">Xem trước bản đồ Google Maps:</label>
-                          <div className="rounded-xl overflow-hidden border border-amber-300/60 aspect-video max-h-56 bg-slate-100">
-                            <iframe
-                              title="Xem trước Google Maps"
-                              src={eventConfigForm.mapEmbedUrl}
-                              className="w-full h-full border-0"
-                              loading="lazy"
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>{eventConfigForm.enableTwoVenues !== false ? 'Tên Điểm Chặng 1 (*):' : 'Tên Địa Điểm (*):'}</span>
+                              <span className="text-[11px] font-normal text-slate-400">VD: Trường THPT Thái Nguyên</span>
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={eventConfigForm.venueName}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueName: e.target.value })}
+                              placeholder="VD: Trường THPT Thái Nguyên"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-slate-900 focus:outline-none focus:border-amber-500"
                             />
                           </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Khung Giờ Chặng 1:
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.venueTime || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueTime: e.target.value })}
+                              placeholder="VD: 08:30 — 11:00 (Sáng)"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700">
+                              Phụ Đề / Ý Nghĩa Chặng 1:
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.venueSubtitle || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueSubtitle: e.target.value })}
+                              placeholder="VD: Chặng 1: Đón tiếp nhận áo, thăm trường xưa, chụp ảnh lưu niệm & tri ân Thầy Cô"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700">
+                              Địa Chỉ Đầy Đủ Chặng 1 (*):
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={eventConfigForm.venueAddress}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueAddress: e.target.value })}
+                              placeholder="VD: Số 127 đường Lương Thế Vinh, P. Quang Trung, TP. Thái Nguyên, Tỉnh Thái Nguyên"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Địa Chỉ Rút Gọn (Hiển thị thiệp):
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.shortAddress}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, shortAddress: e.target.value })}
+                              placeholder="VD: 127 Lương Thế Vinh, TP. Thái Nguyên"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Link Google Maps Trực Tiếp:</span>
+                              {eventConfigForm.mapDirectUrl && (
+                                <a
+                                  href={eventConfigForm.mapDirectUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] text-amber-700 hover:text-amber-900 inline-flex items-center gap-1 font-bold"
+                                >
+                                  <span>Mở Thử</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </label>
+                            <input
+                              type="url"
+                              value={eventConfigForm.mapDirectUrl}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, mapDirectUrl: e.target.value })}
+                              placeholder="https://maps.app.goo.gl/..."
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Danh Sách Hoạt Động Chặng 1:</span>
+                              <span className="text-[11px] text-slate-400 font-normal">Ngăn cách các hoạt động bằng dấu • hoặc xuống dòng</span>
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={eventConfigForm.venueActivity || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venueActivity: e.target.value })}
+                              placeholder="Đón tiếp nhận áo polo • Thẻ học sinh tri kỷ • Thăm lớp học xưa • Chụp ảnh lưu niệm • Tri ân Thầy Cô"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Link Nhúng Bản Đồ Google Maps (iframe embed):</span>
+                              <span className="text-[11px] text-slate-400 font-normal">Dán nguyên thẻ iframe, hệ thống sẽ tự bóc tách link</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.mapEmbedUrl}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const iframeMatch = raw.match(/src=["']([^"']+)["']/i);
+                                const cleaned = iframeMatch && iframeMatch[1] ? iframeMatch[1] : raw.trim();
+                                setEventConfigForm({ ...eventConfigForm, mapEmbedUrl: cleaned });
+                              }}
+                              placeholder="https://www.google.com/maps/embed?pb=..."
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          {/* Live Preview Chặng 1 */}
+                          {eventConfigForm.mapEmbedUrl && (
+                            <div className="sm:col-span-2 space-y-1.5">
+                              <label className="font-bold text-slate-600 text-[11px]">Xem trước bản đồ Chặng 1:</label>
+                              <div className="rounded-xl overflow-hidden border border-amber-300/60 aspect-video max-h-52 bg-slate-100">
+                                <iframe
+                                  title="Xem trước bản đồ Chặng 1"
+                                  src={eventConfigForm.mapEmbedUrl}
+                                  className="w-full h-full border-0"
+                                  loading="lazy"
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* ======================================================== */}
+                    {/* SUB-PANEL 2: CHẶNG 2 (NHÀ HÀNG / TRUNG TÂM SỰ KIỆN) */}
+                    {/* ======================================================== */}
+                    {eventConfigForm.enableTwoVenues !== false && venueSettingsTab === 'stage2' && (
+                      <div className="space-y-4 pt-1">
+                        <div className="p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-center justify-between">
+                          <span className="font-semibold">🥂 Cấu hình Chặng 2: Khai tiệc liên hoan, nâng ly chúc mừng 20 năm, giao lưu văn nghệ & trao kỷ vật</span>
+                          <span className="font-mono text-[11px] text-rose-700 bg-white px-2 py-0.5 rounded border border-rose-200">11:30 — 15:30</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Tên Nhà Hàng / Trung Tâm Sự Kiện (*):</span>
+                              <span className="text-[11px] font-normal text-slate-400">VD: Tháp đôi Prime Thái Nguyên</span>
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={eventConfigForm.venue2Name || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venue2Name: e.target.value })}
+                              placeholder="VD: Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Khung Giờ Chặng 2:
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.venue2Time || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venue2Time: e.target.value })}
+                              placeholder="VD: 11:30 — 15:30 (Trưa & Chiều)"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700">
+                              Phụ Đề / Ý Nghĩa Chặng 2:
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.venue2Subtitle || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venue2Subtitle: e.target.value })}
+                              placeholder="VD: Chặng 2: Khai tiệc liên hoan, giao lưu văn nghệ & trao kỷ vật hội ngộ"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700">
+                              Địa Chỉ Đầy Đủ Nhà Hàng (*):
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={eventConfigForm.venue2Address || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venue2Address: e.target.value })}
+                              placeholder="VD: Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Địa Chỉ Rút Gọn Nhà Hàng:
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.venue2ShortAddress || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venue2ShortAddress: e.target.value })}
+                              placeholder="VD: Số 1 Hoàng Văn Thụ, TP. Thái Nguyên"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Link Google Maps Nhà Hàng:</span>
+                              {eventConfigForm.venue2MapDirectUrl && (
+                                <a
+                                  href={eventConfigForm.venue2MapDirectUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] text-rose-700 hover:text-rose-900 inline-flex items-center gap-1 font-bold"
+                                >
+                                  <span>Mở Thử</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </label>
+                            <input
+                              type="url"
+                              value={eventConfigForm.venue2MapDirectUrl || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venue2MapDirectUrl: e.target.value })}
+                              placeholder="https://maps.app.goo.gl/..."
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Danh Sách Hoạt Động Chặng 2:</span>
+                              <span className="text-[11px] text-slate-400 font-normal">Ngăn cách các hoạt động bằng dấu • hoặc xuống dòng</span>
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={eventConfigForm.venue2Activity || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, venue2Activity: e.target.value })}
+                              placeholder="Khai tiệc liên hoan • Nâng ly chúc mừng 20 năm • Giao lưu âm nhạc & chuyện đời • Trao quà kỷ niệm"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Link Nhúng Bản Đồ Nhà Hàng (iframe embed):</span>
+                              <span className="text-[11px] text-slate-400 font-normal">Dán nguyên thẻ iframe, hệ thống sẽ tự bóc tách link</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.venue2MapEmbedUrl || ''}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const iframeMatch = raw.match(/src=["']([^"']+)["']/i);
+                                const cleaned = iframeMatch && iframeMatch[1] ? iframeMatch[1] : raw.trim();
+                                setEventConfigForm({ ...eventConfigForm, venue2MapEmbedUrl: cleaned });
+                              }}
+                              placeholder="https://www.google.com/maps/embed?pb=..."
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-rose-500"
+                            />
+                          </div>
+
+                          {/* Live Preview Chặng 2 */}
+                          {eventConfigForm.venue2MapEmbedUrl && (
+                            <div className="sm:col-span-2 space-y-1.5">
+                              <label className="font-bold text-slate-600 text-[11px]">Xem trước bản đồ Chặng 2:</label>
+                              <div className="rounded-xl overflow-hidden border border-rose-300/60 aspect-video max-h-52 bg-slate-100">
+                                <iframe
+                                  title="Xem trước bản đồ Chặng 2"
+                                  src={eventConfigForm.venue2MapEmbedUrl}
+                                  className="w-full h-full border-0"
+                                  loading="lazy"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ======================================================== */}
+                    {/* SUB-PANEL 3: LỘ TRÌNH DI CHUYỂN GIỮA 2 ĐIỂM */}
+                    {/* ======================================================== */}
+                    {eventConfigForm.enableTwoVenues !== false && venueSettingsTab === 'route' && (
+                      <div className="space-y-4 pt-1">
+                        <div className="p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-800 flex items-center justify-between">
+                          <span className="font-semibold">🚗 Hướng dẫn di chuyển từ Trường THPT Thái Nguyên sang Nhà Hàng Prime</span>
+                          <span className="font-mono text-[11px] text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                            {eventConfigForm.routeDistanceText || '~1.5km (5 - 10 phút)'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700">
+                              Mô Tả Khoảng Cách & Thời Gian:
+                            </label>
+                            <input
+                              type="text"
+                              value={eventConfigForm.routeDistanceText || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, routeDistanceText: e.target.value })}
+                              placeholder="VD: ~1.5km (Di chuyển 5 - 10 phút)"
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg focus:outline-none focus:border-slate-500"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>Link Google Maps Lộ Trình (Dir):</span>
+                              {eventConfigForm.routeDirectUrl && (
+                                <a
+                                  href={eventConfigForm.routeDirectUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] text-amber-700 hover:text-amber-900 inline-flex items-center gap-1 font-bold"
+                                >
+                                  <span>Mở Thử</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </label>
+                            <input
+                              type="url"
+                              value={eventConfigForm.routeDirectUrl || ''}
+                              onChange={(e) => setEventConfigForm({ ...eventConfigForm, routeDirectUrl: e.target.value })}
+                              placeholder="https://www.google.com/maps/dir/?api=1&origin=...&destination=..."
+                              className="w-full px-3 py-2 bg-[#FAF9F6] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-slate-500"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2 p-3 bg-amber-50/50 rounded-xl border border-amber-200 text-slate-600 text-xs leading-relaxed space-y-1">
+                            <p className="font-bold text-amber-900">💡 Mẹo tạo đường link lộ trình tự động trên Google Maps:</p>
+                            <p>
+                              Link lộ trình có cấu trúc chuẩn dạng:
+                              <br />
+                              <code className="text-[11px] text-amber-800 bg-white px-1.5 py-0.5 rounded border border-amber-200 break-all">
+                                https://www.google.com/maps/dir/?api=1&origin=Trường+THPT+Thái+Nguyên&destination=Tháp+đôi+Prime+Thái+Nguyên
+                              </code>
+                            </p>
+                            <p>Khi thành viên bấm vào nút trên WebApp, Google Maps trên điện thoại sẽ tự động mở ứng dụng và dẫn đường lái xe từ trường sang nhà hàng một cách mượt mà.</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                   </div>
                 )}
 

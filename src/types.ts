@@ -185,12 +185,30 @@ export interface EventConfig {
   eventDateText: string;
   eventTimeText: string;
   countdownTarget: string;
+
+  // Chặng 1: Địa điểm đón tiếp & tập trung (Mặc định: Trường THPT Thái Nguyên)
   venueName: string;
   venueSubtitle?: string;
   venueAddress: string;
   shortAddress: string;
+  venueTime?: string;
+  venueActivity?: string;
   mapEmbedUrl: string;
   mapDirectUrl: string;
+
+  // Chặng 2 & Lộ trình di chuyển (Mặc định: Trung Tâm Sự Kiện & Nhà Hàng Prime)
+  enableTwoVenues?: boolean;
+  venue2Name?: string;
+  venue2Subtitle?: string;
+  venue2Address?: string;
+  venue2ShortAddress?: string;
+  venue2Time?: string;
+  venue2Activity?: string;
+  venue2MapEmbedUrl?: string;
+  venue2MapDirectUrl?: string;
+  routeDistanceText?: string;
+  routeDirectUrl?: string;
+
   letterTitle: string;
   letterSubtitle: string;
   letterParagraph1: string;

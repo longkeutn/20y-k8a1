@@ -77,8 +77,24 @@ export default function App() {
     bankHolder: String(cfg?.bankHolder || DEFAULT_EVENT_CONFIG.bankHolder),
     transferSyntax: String(cfg?.transferSyntax || DEFAULT_EVENT_CONFIG.transferSyntax),
     venueName: String(cfg?.venueName || DEFAULT_EVENT_CONFIG.venueName),
+    venueSubtitle: cfg?.venueSubtitle !== undefined ? String(cfg.venueSubtitle) : DEFAULT_EVENT_CONFIG.venueSubtitle,
     venueAddress: String(cfg?.venueAddress || DEFAULT_EVENT_CONFIG.venueAddress),
     shortAddress: String(cfg?.shortAddress || DEFAULT_EVENT_CONFIG.shortAddress),
+    venueTime: cfg?.venueTime !== undefined ? String(cfg.venueTime) : DEFAULT_EVENT_CONFIG.venueTime,
+    venueActivity: cfg?.venueActivity !== undefined ? String(cfg.venueActivity) : DEFAULT_EVENT_CONFIG.venueActivity,
+    mapEmbedUrl: String(cfg?.mapEmbedUrl || DEFAULT_EVENT_CONFIG.mapEmbedUrl),
+    mapDirectUrl: String(cfg?.mapDirectUrl || DEFAULT_EVENT_CONFIG.mapDirectUrl),
+    enableTwoVenues: cfg?.enableTwoVenues !== undefined ? Boolean(cfg.enableTwoVenues) : DEFAULT_EVENT_CONFIG.enableTwoVenues,
+    venue2Name: cfg?.venue2Name !== undefined ? String(cfg.venue2Name) : DEFAULT_EVENT_CONFIG.venue2Name,
+    venue2Subtitle: cfg?.venue2Subtitle !== undefined ? String(cfg.venue2Subtitle) : DEFAULT_EVENT_CONFIG.venue2Subtitle,
+    venue2Address: cfg?.venue2Address !== undefined ? String(cfg.venue2Address) : DEFAULT_EVENT_CONFIG.venue2Address,
+    venue2ShortAddress: cfg?.venue2ShortAddress !== undefined ? String(cfg.venue2ShortAddress) : DEFAULT_EVENT_CONFIG.venue2ShortAddress,
+    venue2Time: cfg?.venue2Time !== undefined ? String(cfg.venue2Time) : DEFAULT_EVENT_CONFIG.venue2Time,
+    venue2Activity: cfg?.venue2Activity !== undefined ? String(cfg.venue2Activity) : DEFAULT_EVENT_CONFIG.venue2Activity,
+    venue2MapEmbedUrl: cfg?.venue2MapEmbedUrl !== undefined ? String(cfg.venue2MapEmbedUrl) : DEFAULT_EVENT_CONFIG.venue2MapEmbedUrl,
+    venue2MapDirectUrl: cfg?.venue2MapDirectUrl !== undefined ? String(cfg.venue2MapDirectUrl) : DEFAULT_EVENT_CONFIG.venue2MapDirectUrl,
+    routeDistanceText: cfg?.routeDistanceText !== undefined ? String(cfg.routeDistanceText) : DEFAULT_EVENT_CONFIG.routeDistanceText,
+    routeDirectUrl: cfg?.routeDirectUrl !== undefined ? String(cfg.routeDirectUrl) : DEFAULT_EVENT_CONFIG.routeDirectUrl,
     eventDateText: String(cfg?.eventDateText || DEFAULT_EVENT_CONFIG.eventDateText),
     eventTimeText: String(cfg?.eventTimeText || DEFAULT_EVENT_CONFIG.eventTimeText),
     letterTitle: String(cfg?.letterTitle || DEFAULT_EVENT_CONFIG.letterTitle),
@@ -102,6 +118,11 @@ export default function App() {
         const parsed = JSON.parse(saved);
         // Tự động làm mới nếu thiết bị còn lưu địa điểm cũ (Crown Palace)
         if (parsed.venueName && parsed.venueName.includes('Crown Palace')) {
+          localStorage.removeItem('k8a1_event_config');
+          return DEFAULT_EVENT_CONFIG;
+        }
+        // Tự động làm mới nếu thiết bị trước đó lưu Prime đơn lẻ ở venueName mà chưa có 2 chặng
+        if (parsed.venueName && parsed.venueName.includes('Prime') && !parsed.venue2Name) {
           localStorage.removeItem('k8a1_event_config');
           return DEFAULT_EVENT_CONFIG;
         }
@@ -1431,7 +1452,13 @@ export default function App() {
               <div>
                 <p className="text-[10px] uppercase font-sans tracking-wider text-amber-200/90 font-bold">Địa điểm gặp mặt</p>
                 <p className="font-serif font-bold text-white text-xs sm:text-sm">
-                  {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
+                  {eventConfig.enableTwoVenues ? (
+                    <span>
+                      Chặng 1: {eventConfig.shortAddress || eventConfig.venueName} <span className="text-amber-300 mx-1">➔</span> Chặng 2: {eventConfig.venue2ShortAddress || eventConfig.venue2Name || 'Prime'}
+                    </span>
+                  ) : (
+                    <span>{eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -1663,11 +1690,24 @@ export default function App() {
                     </div>
                     <div className="flex items-start gap-2">
                       <MapPin className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-bold text-slate-900">Địa điểm họp mặt:</p>
-                        <p className="text-slate-600">
-                          {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
-                        </p>
+                        {eventConfig.enableTwoVenues ? (
+                          <div className="text-slate-600 text-xs space-y-1 mt-0.5">
+                            <div>
+                              <span className="font-semibold text-amber-900 bg-amber-100/80 px-1.5 py-0.5 rounded text-[11px] mr-1">Chặng 1 ({eventConfig.venueTime || '08:30 — 11:00'})</span>
+                              <span>{eventConfig.venueName} — {eventConfig.shortAddress || eventConfig.venueAddress}</span>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-rose-900 bg-rose-100/80 px-1.5 py-0.5 rounded text-[11px] mr-1">Chặng 2 ({eventConfig.venue2Time || '11:30 — 15:30'})</span>
+                              <span>{eventConfig.venue2Name} — {eventConfig.venue2ShortAddress || eventConfig.venue2Address}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-slate-600">
+                            {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
