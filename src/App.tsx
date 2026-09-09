@@ -1232,6 +1232,18 @@ export default function App() {
             {/* Background Audio Player (YouTube Audio-Only) */}
             <AudioPlayer variant="navbar" customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" />
 
+            {/* Nhận Diện Bạn Học K8A1 (Ưu Tiên 2 - Sticky Navbar Cố Định Đỉnh Trang) */}
+            <NavbarIdentityBadge
+              currentVisitor={activeMember}
+              onSelectVisitor={handleSelectActiveMember}
+              classRoster={classRoster}
+              rsvpList={rsvpList}
+              onOpenPassModal={(attendee) => {
+                setSelectedPassAttendee(attendee);
+                setIsPassModalOpen(true);
+              }}
+            />
+
             {/* Primary Action Button Duy Nhất: Điểm Danh */}
             <a 
               href="#diem-danh" 
@@ -1414,6 +1426,20 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          {/* Khối Nhận Diện Bạn Học K8A1 (Ưu Tiên 1 - Hero Banner Đầu Trang) */}
+          <HeroIdentityWidget
+            currentVisitor={activeMember}
+            onSelectVisitor={handleSelectActiveMember}
+            classRoster={classRoster}
+            rsvpList={rsvpList}
+            onOpenPassModal={(attendee) => {
+              setSelectedPassAttendee(attendee);
+              setIsPassModalOpen(true);
+            }}
+            onOpenReceiptModal={handleOpenReceiptModal}
+            standardFundAmount={eventConfig.fundAmountPerPerson}
+          />
 
           {/* Primary Action Buttons & Quick Jump Pills in Hero */}
           <div className="pt-1 space-y-3">
