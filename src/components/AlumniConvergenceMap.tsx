@@ -14,6 +14,44 @@ import confetti from 'canvas-confetti';
 import { UserRole, VenueMediaItem, EventConfig } from '../types';
 
 // ============================================================================
+// HELPER: SANITIZE & NORMALIZE VIETNAMESE ACCENTS & REMOVE STRAY GLYPHS
+// ============================================================================
+export function cleanVietnameseText(text?: string): string {
+  if (!text || typeof text !== 'string') return '';
+  return text
+    // Sửa lỗi phím Telex/VNI bị tách dấu huyền (`):
+    .replace(/â`/g, 'ầ').replace(/Â`/g, 'Ầ')
+    .replace(/ê`/g, 'ề').replace(/Ê`/g, 'Ề')
+    .replace(/ơ`/g, 'ờ').replace(/Ơ`/g, 'Ờ')
+    .replace(/ư`/g, 'ừ').replace(/Ư`/g, 'Ừ')
+    .replace(/a`/g, 'à').replace(/A`/g, 'À')
+    .replace(/e`/g, 'è').replace(/E`/g, 'È')
+    .replace(/o`/g, 'ò').replace(/O`/g, 'Ò')
+    .replace(/u`/g, 'ù').replace(/U`/g, 'Ù')
+    .replace(/i`/g, 'ì').replace(/I`/g, 'Ì')
+    .replace(/y`/g, 'ỳ').replace(/Y`/g, 'Ỳ')
+    // Sửa lỗi tách dấu sắc ('):
+    .replace(/â'/g, 'ấ').replace(/Â'/g, 'Ấ')
+    .replace(/ê'/g, 'ế').replace(/Ê'/g, 'Ế')
+    .replace(/ơ'/g, 'ớ').replace(/Ơ'/g, 'Ớ')
+    .replace(/ư'/g, 'ứ').replace(/Ư'/g, 'Ứ')
+    .replace(/a'/g, 'á').replace(/A'/g, 'Á')
+    .replace(/e'/g, 'é').replace(/E'/g, 'É')
+    .replace(/o'/g, 'ó').replace(/O'/g, 'Ó')
+    .replace(/u'/g, 'ú').replace(/U'/g, 'Ú')
+    .replace(/i'/g, 'í').replace(/I'/g, 'Í')
+    .replace(/y'/g, 'ý').replace(/Y'/g, 'Ý')
+    // Sửa lỗi tách dấu hỏi/ngã/nặng:
+    .replace(/â\?/g, 'ẩ').replace(/ê\?/g, 'ể')
+    .replace(/â~/g, 'ẫ').replace(/ê~/g, 'ễ')
+    .replace(/â\./g, 'ậ').replace(/ê\./g, 'ệ')
+    // Xóa dấu backtick đơn lẻ do gõ nhầm:
+    .replace(/`/g, '')
+    .normalize('NFC')
+    .trim();
+}
+
+// ============================================================================
 // CONSTANTS & FALLBACKS FOR 2-STAGE VENUES
 // ============================================================================
 export const VENUE_1_FALLBACK = {
@@ -22,7 +60,7 @@ export const VENUE_1_FALLBACK = {
   address: 'Số 127 đường Lương Thế Vinh, P. Quang Trung, TP. Thái Nguyên, Tỉnh Thái Nguyên',
   shortAddress: '127 Lương Thế Vinh, TP. Thái Nguyên',
   time: '08:30 — 11:00 (Sáng)',
-  activity: 'Đón tiếp & nhận áo đồng phục polo K8A1 • Thăm lớp học xưa & chụp ảnh kỷ niệm sân trường • Gặp gỡ & tri ân các Thầy Cô giáo',
+  activity: 'Đón tiếp & nhận áo đồng phục polo K8A1 • Thẻ học sinh tri kỷ • Thăm lớp học xưa & chụp ảnh kỷ niệm sân trường • Tri ân Thầy Cô giáo cũ',
   directionsUrl: 'https://www.google.com/maps/search/?api=1&query=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn',
   embedMapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.2798642279267!2d105.8285514!3d21.5740443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135272a24921915%3A0xe543df5e9e03fa54!2zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbg!5e0!3m2!1svi!2svn!4v1710000000000!5m2!1svi!2svn'
 };
@@ -33,7 +71,7 @@ export const VENUE_2_FALLBACK = {
   address: 'Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên',
   shortAddress: 'Số 1 Hoàng Văn Thụ, TP. Thái Nguyên',
   time: '11:30 — 15:30 (Trưa & Chiều)',
-  activity: 'Cả lớp di chuyển từ trường sang nhà hàng (~1.5km) • Khai tiệc liên hoan, nâng ly mừng 20 năm hội ngộ • Giao lưu âm nhạc, tâm tình & trao quà kỷ vật',
+  activity: 'Cả lớp di chuyển từ trường sang nhà hàng (~1.5km) • Khai tiệc liên hoan, nâng ly mừng 20 năm hội ngộ • Giao lưu âm nhạc, chuyện đời & trao quà kỷ vật',
   directionsUrl: 'https://maps.app.goo.gl/a3utiYosZqGHKDjYA',
   embedMapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d600!2d105.8386089!3d21.5949009!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e1!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn'
 };
@@ -95,7 +133,7 @@ export function parseVenueMedia(url: string): {
 }
 
 // ============================================================================
-// COMPONENT: ALUMNI CONVERGENCE MAP (TINH TẾ, SANG TRỌNG, KHÔNG RƯỜM RÀ)
+// COMPONENT: ALUMNI CONVERGENCE MAP (TINH TẾ, SANG TRỌNG, KHÔNG LỖI LAYOUT)
 // ============================================================================
 interface Props {
   className?: string;
@@ -110,7 +148,7 @@ export default function AlumniConvergenceMap({
   className = '',
   eventConfig
 }: Props) {
-  // Chế độ 2 chặng: mặc định bật (true nếu không cấu hình rõ false)
+  // Chế độ 2 chặng: mặc định bật
   const isTwoVenues = eventConfig?.enableTwoVenues !== false;
 
   // Chặng đang được chọn hiển thị trên bản đồ (1: Trường cũ, 2: Nhà hàng)
@@ -125,29 +163,29 @@ export default function AlumniConvergenceMap({
   const [mapZoomLevel, setMapZoomLevel] = useState<'close' | 'wide'>('close');
 
   // Dynamic values cho Chặng 1 (Trường THPT Thái Nguyên)
-  const stage1Name = eventConfig?.venueName || VENUE_1_FALLBACK.name;
-  const stage1Subtitle = eventConfig?.venueSubtitle || VENUE_1_FALLBACK.subtitle;
-  const stage1Address = eventConfig?.venueAddress || VENUE_1_FALLBACK.address;
-  const stage1ShortAddress = eventConfig?.shortAddress || VENUE_1_FALLBACK.shortAddress;
-  const stage1Time = eventConfig?.venueTime || VENUE_1_FALLBACK.time;
-  const stage1Activity = eventConfig?.venueActivity || VENUE_1_FALLBACK.activity;
+  const stage1Name = cleanVietnameseText(eventConfig?.venueName) || VENUE_1_FALLBACK.name;
+  const stage1Subtitle = cleanVietnameseText(eventConfig?.venueSubtitle) || VENUE_1_FALLBACK.subtitle;
+  const stage1Address = cleanVietnameseText(eventConfig?.venueAddress) || VENUE_1_FALLBACK.address;
+  const stage1ShortAddress = cleanVietnameseText(eventConfig?.shortAddress) || VENUE_1_FALLBACK.shortAddress;
+  const stage1Time = cleanVietnameseText(eventConfig?.venueTime) || VENUE_1_FALLBACK.time;
+  const stage1Activity = cleanVietnameseText(eventConfig?.venueActivity) || VENUE_1_FALLBACK.activity;
   const stage1DirectionsUrl = eventConfig?.mapDirectUrl || VENUE_1_FALLBACK.directionsUrl;
   const stage1RawEmbedUrl = eventConfig?.mapEmbedUrl || VENUE_1_FALLBACK.embedMapUrl;
 
   // Dynamic values cho Chặng 2 (Nhà Hàng Prime Thái Nguyên)
-  const stage2Name = eventConfig?.venue2Name || VENUE_2_FALLBACK.name;
-  const stage2Subtitle = eventConfig?.venue2Subtitle || VENUE_2_FALLBACK.subtitle;
-  const stage2Address = eventConfig?.venue2Address || VENUE_2_FALLBACK.address;
-  const stage2ShortAddress = eventConfig?.venue2ShortAddress || VENUE_2_FALLBACK.shortAddress;
-  const stage2Time = eventConfig?.venue2Time || VENUE_2_FALLBACK.time;
-  const stage2Activity = eventConfig?.venue2Activity || VENUE_2_FALLBACK.activity;
+  const stage2Name = cleanVietnameseText(eventConfig?.venue2Name) || VENUE_2_FALLBACK.name;
+  const stage2Subtitle = cleanVietnameseText(eventConfig?.venue2Subtitle) || VENUE_2_FALLBACK.subtitle;
+  const stage2Address = cleanVietnameseText(eventConfig?.venue2Address) || VENUE_2_FALLBACK.address;
+  const stage2ShortAddress = cleanVietnameseText(eventConfig?.venue2ShortAddress) || VENUE_2_FALLBACK.shortAddress;
+  const stage2Time = cleanVietnameseText(eventConfig?.venue2Time) || VENUE_2_FALLBACK.time;
+  const stage2Activity = cleanVietnameseText(eventConfig?.venue2Activity) || VENUE_2_FALLBACK.activity;
   const stage2DirectionsUrl = eventConfig?.venue2MapDirectUrl || VENUE_2_FALLBACK.directionsUrl;
   const stage2RawEmbedUrl = eventConfig?.venue2MapEmbedUrl || VENUE_2_FALLBACK.embedMapUrl;
 
   // Dynamic values lộ trình di chuyển
-  const routeDistanceText = eventConfig?.routeDistanceText || ROUTE_FALLBACK.distanceText;
+  const routeDistanceText = cleanVietnameseText(eventConfig?.routeDistanceText) || ROUTE_FALLBACK.distanceText;
   const routeDirectUrl = eventConfig?.routeDirectUrl || ROUTE_FALLBACK.routeDirectUrl;
-  const eventDateText = eventConfig?.eventDateText || "Chủ Nhật, 27/09/2026";
+  const eventDateText = cleanVietnameseText(eventConfig?.eventDateText) || "Chủ Nhật, 27/09/2026 (08:30 — 15:30)";
 
   // Thông tin chặng đang chọn hiển thị trên bản đồ
   const currentStageName = activeStage === 1 ? stage1Name : stage2Name;
@@ -208,11 +246,11 @@ export default function AlumniConvergenceMap({
 
   // Chuyển chuỗi hoạt động thành mảng các gạch đầu dòng ngắn gọn
   const stage1Activities = useMemo(() => {
-    return stage1Activity.split(/[•|\n]/).map(s => s.trim()).filter(Boolean);
+    return stage1Activity.split(/[•|\n]/).map(s => cleanVietnameseText(s)).filter(Boolean);
   }, [stage1Activity]);
 
   const stage2Activities = useMemo(() => {
-    return stage2Activity.split(/[•|\n]/).map(s => s.trim()).filter(Boolean);
+    return stage2Activity.split(/[•|\n]/).map(s => cleanVietnameseText(s)).filter(Boolean);
   }, [stage2Activity]);
 
   return (
@@ -227,38 +265,31 @@ export default function AlumniConvergenceMap({
         <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-100/30 via-orange-50/20 to-transparent rounded-full blur-3xl pointer-events-none" />
 
         {/* ======================================================== */}
-        {/* 1. HEADER KHỐI: TINH TẾ, TRANG NHÃ */}
+        {/* 1. HEADER KHỐI: RỘNG RÃI, KHÔNG BỊ BÓ HẸP BỞI HUY HIỆU */}
         {/* ======================================================== */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/70 pb-3 gap-2 relative z-10 text-left">
-          <div className="space-y-1 min-w-0">
-            <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
+        <div className="border-b border-amber-200/70 pb-3 space-y-1 relative z-10 text-left">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 bg-amber-100/70 px-2.5 py-0.5 rounded-full border border-amber-200/80 inline-block">
               📍 Địa Điểm & Lịch Trình Hội Ngộ
             </span>
-
-            <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
-              {eventDateText}
-            </h3>
-
-            <p className="text-xs text-slate-600 font-serif leading-relaxed">
-              {isTwoVenues
-                ? 'Chương trình diễn ra liên hoàn: Sáng hội ngộ tại trường THPT Thái Nguyên, trưa di chuyển sang nhà hàng Prime khai tiệc.'
-                : stage1Subtitle || stage1Address}
-            </p>
+            <span className="text-xs font-sans text-slate-500 font-medium">
+              Chủ Nhật, ngày 27/09/2026 • 2 Chặng Gặp Mặt
+            </span>
           </div>
 
-          {/* Huy hiệu tóm tắt chặng */}
-          {isTwoVenues && (
-            <div className="flex items-center gap-1.5 text-xs text-amber-900 bg-amber-50/80 px-3 py-1.5 rounded-xl border border-amber-200/80 shrink-0 font-medium">
-              <span>{stage1ShortAddress}</span>
-              <span className="text-amber-500 font-bold">➔</span>
-              <span>{stage2ShortAddress}</span>
-              <span className="text-slate-400 font-normal">({routeDistanceText})</span>
-            </div>
-          )}
+          <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight pt-0.5">
+            {eventDateText}
+          </h3>
+
+          <p className="text-xs text-slate-600 font-sans leading-relaxed">
+            {isTwoVenues
+              ? 'Chương trình diễn ra liên hoàn: Sáng đón tiếp & thăm trường xưa (THPT Thái Nguyên), trưa di chuyển sang nhà hàng (Prime) khai tiệc liên hoan.'
+              : stage1Subtitle || stage1Address}
+          </p>
         </div>
 
         {/* ======================================================== */}
-        {/* 2. HAI THẺ CHẶNG CÂN ĐỐI (KHÔNG LẶP LẠI STEPPER RƯỜM RÀ) */}
+        {/* 2. HAI THẺ CHẶNG CÂN ĐỐI (FONT SẮC NÉT, KHÔNG LỖI DẤU) */}
         {/* ======================================================== */}
         <div className={`grid grid-cols-1 ${isTwoVenues ? 'md:grid-cols-2' : ''} gap-3.5 relative z-10`}>
           
@@ -267,29 +298,27 @@ export default function AlumniConvergenceMap({
             onClick={() => setActiveStage(1)}
             className={`bg-white rounded-2xl border p-4 sm:p-5 shadow-2xs flex flex-col justify-between space-y-3.5 transition-all cursor-pointer ${
               activeStage === 1
-                ? 'border-amber-400 ring-2 ring-amber-300/50 bg-gradient-to-b from-amber-50/30 to-white'
+                ? 'border-amber-400 ring-2 ring-amber-300/50 bg-gradient-to-b from-amber-50/20 to-white'
                 : 'border-slate-200 hover:border-amber-300/80 hover:bg-stone-50/30'
             }`}
           >
             <div className="space-y-2.5">
               {/* Top Row: Stage pill & Time */}
               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
-                    🏫 Chặng 1 • Buổi Sáng
-                  </span>
-                  <span className="text-xs font-mono font-semibold text-slate-500">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider bg-amber-100/90 text-amber-900 border border-amber-200/90">
+                  🏫 Chặng 1 • Buổi Sáng
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
                     {stage1Time}
                   </span>
+                  {activeStage === 1 && (
+                    <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded">
+                      ● Đang xem
+                    </span>
+                  )}
                 </div>
-
-                <span className={`text-[11px] font-sans font-bold transition-all px-2 py-0.5 rounded-md ${
-                  activeStage === 1
-                    ? 'text-amber-800 bg-amber-100/80'
-                    : 'text-slate-400 hover:text-slate-700'
-                }`}>
-                  {activeStage === 1 ? '✓ Đang xem map' : 'Xem trên map'}
-                </span>
               </div>
 
               {/* Venue Name & Subtitle */}
@@ -297,7 +326,7 @@ export default function AlumniConvergenceMap({
                 <h4 className="font-serif font-bold text-slate-900 text-base sm:text-lg leading-tight">
                   {stage1Name}
                 </h4>
-                <p className="text-xs text-slate-500 font-serif line-clamp-1 mt-0.5">
+                <p className="text-xs text-slate-500 font-sans leading-relaxed mt-1">
                   {stage1Subtitle}
                 </p>
               </div>
@@ -305,12 +334,12 @@ export default function AlumniConvergenceMap({
               {/* Address Box */}
               <div className="flex items-start gap-2 text-xs text-slate-700 bg-[#FAF9F6] p-2.5 rounded-xl border border-slate-200/80">
                 <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                <span className="leading-snug">{stage1Address}</span>
+                <span className="leading-snug font-sans">{stage1Address}</span>
               </div>
 
-              {/* Activities list (gọn gàng, thanh lịch) */}
+              {/* Activities list */}
               <div className="space-y-1 pt-0.5">
-                <ul className="space-y-1 text-xs text-slate-600">
+                <ul className="space-y-1.5 text-xs text-slate-600 font-sans">
                   {stage1Activities.map((act, idx) => (
                     <li key={idx} className="flex items-start gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0 mt-1.5" />
@@ -322,12 +351,12 @@ export default function AlumniConvergenceMap({
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+            <div className="pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
               <a
                 href={stage1DirectionsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#8D5B28] hover:bg-[#784A1E] text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#8D5B28] hover:bg-[#784A1E] text-white rounded-xl text-xs font-sans font-semibold shadow-2xs transition-all cursor-pointer"
               >
                 <Navigation className="w-3.5 h-3.5" />
                 <span>Chỉ Đường</span>
@@ -350,29 +379,27 @@ export default function AlumniConvergenceMap({
               onClick={() => setActiveStage(2)}
               className={`bg-white rounded-2xl border p-4 sm:p-5 shadow-2xs flex flex-col justify-between space-y-3.5 transition-all cursor-pointer ${
                 activeStage === 2
-                  ? 'border-amber-400 ring-2 ring-amber-300/50 bg-gradient-to-b from-amber-50/30 to-white'
+                  ? 'border-amber-400 ring-2 ring-amber-300/50 bg-gradient-to-b from-amber-50/20 to-white'
                   : 'border-slate-200 hover:border-amber-300/80 hover:bg-stone-50/30'
               }`}
             >
               <div className="space-y-2.5">
                 {/* Top Row: Stage pill & Time */}
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
-                      🥂 Chặng 2 • Trưa & Chiều
-                    </span>
-                    <span className="text-xs font-mono font-semibold text-slate-500">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider bg-amber-100/90 text-amber-900 border border-amber-200/90">
+                    🥂 Chặng 2 • Trưa & Chiều
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
                       {stage2Time}
                     </span>
+                    {activeStage === 2 && (
+                      <span className="text-[10px] font-sans font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded">
+                        ● Đang xem
+                      </span>
+                    )}
                   </div>
-
-                  <span className={`text-[11px] font-sans font-bold transition-all px-2 py-0.5 rounded-md ${
-                    activeStage === 2
-                      ? 'text-amber-800 bg-amber-100/80'
-                      : 'text-slate-400 hover:text-slate-700'
-                  }`}>
-                    {activeStage === 2 ? '✓ Đang xem map' : 'Xem trên map'}
-                  </span>
                 </div>
 
                 {/* Venue Name & Subtitle */}
@@ -380,7 +407,7 @@ export default function AlumniConvergenceMap({
                   <h4 className="font-serif font-bold text-slate-900 text-base sm:text-lg leading-tight">
                     {stage2Name}
                   </h4>
-                  <p className="text-xs text-slate-500 font-serif line-clamp-1 mt-0.5">
+                  <p className="text-xs text-slate-500 font-sans leading-relaxed mt-1">
                     {stage2Subtitle}
                   </p>
                 </div>
@@ -388,12 +415,12 @@ export default function AlumniConvergenceMap({
                 {/* Address Box */}
                 <div className="flex items-start gap-2 text-xs text-slate-700 bg-[#FAF9F6] p-2.5 rounded-xl border border-slate-200/80">
                   <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                  <span className="leading-snug">{stage2Address}</span>
+                  <span className="leading-snug font-sans">{stage2Address}</span>
                 </div>
 
                 {/* Activities list */}
                 <div className="space-y-1 pt-0.5">
-                  <ul className="space-y-1 text-xs text-slate-600">
+                  <ul className="space-y-1.5 text-xs text-slate-600 font-sans">
                     {stage2Activities.map((act, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0 mt-1.5" />
@@ -405,12 +432,12 @@ export default function AlumniConvergenceMap({
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+              <div className="pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                 <a
                   href={stage2DirectionsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#8D5B28] hover:bg-[#784A1E] text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-[#8D5B28] hover:bg-[#784A1E] text-white rounded-xl text-xs font-sans font-semibold shadow-2xs transition-all cursor-pointer"
                 >
                   <Navigation className="w-3.5 h-3.5" />
                   <span>Chỉ Đường</span>
@@ -447,7 +474,7 @@ export default function AlumniConvergenceMap({
               href={routeDirectUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-amber-800 hover:text-amber-950 font-bold hover:underline shrink-0 cursor-pointer text-xs"
+              className="inline-flex items-center gap-1 text-amber-800 hover:text-amber-950 font-semibold hover:underline shrink-0 cursor-pointer text-xs"
               title="Mở lộ trình dẫn đường lái xe trên Google Maps"
             >
               <span>Xem chỉ đường tuyến đường</span>
@@ -585,7 +612,7 @@ export default function AlumniConvergenceMap({
                 href={currentStageDirectionsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 py-2 px-3.5 bg-[#8D5B28] hover:bg-[#784A1E] text-white rounded-xl font-sans font-bold uppercase tracking-wider shadow-2xs transition-all cursor-pointer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 py-2 px-3.5 bg-[#8D5B28] hover:bg-[#784A1E] text-white rounded-xl font-sans font-semibold shadow-2xs transition-all cursor-pointer"
               >
                 <Navigation className="w-3.5 h-3.5" />
                 <span>Chỉ Đường ({activeStage === 1 ? 'Trường Cũ' : 'Nhà Hàng'})</span>
