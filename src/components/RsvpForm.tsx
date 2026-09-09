@@ -402,8 +402,12 @@ export default function RsvpForm({
     return (rsvpList || []).find((item) => {
       if (!item) return false;
 
-      // 1. Ưu tiên khớp theo memberId nếu có (từ Danh Bạ Lớp)
-      if (activeMember?.id && item.memberId) {
+      // 1. Ưu tiên khớp theo memberId nếu activeMember thực sự khớp với họ tên người đang nhập
+      const activeMemberMatchesInput = activeMember && fullName.trim()
+        ? (normalizeName(activeMember.fullName) === n || isVietnameseNameMatch(activeMember, fullName.trim(), nickname))
+        : (!fullName.trim());
+
+      if (activeMemberMatchesInput && activeMember?.id && item.memberId) {
         if (item.memberId === activeMember.id) return true;
         return false; // Khác memberId => chắc chắn không phải bạn này, dù trùng họ tên!
       }
@@ -768,12 +772,20 @@ export default function RsvpForm({
         return activeMember.id;
       }
     }
-    // 2. Nếu đã có dữ liệu RSVP đã xác nhận trước đó mang memberId
-    if (lastSubmittedAttendee?.memberId) return lastSubmittedAttendee.memberId;
-    if (matchedExistingAttendee?.memberId) return matchedExistingAttendee.memberId;
+    // 2. Nếu đã có dữ liệu RSVP đã xác nhận trước đó mang memberId (chỉ nhận nếu khớp với họ tên người đang nhập)
+    if (lastSubmittedAttendee?.memberId && isVietnameseNameMatch({ fullName: lastSubmittedAttendee.fullName, nickname: lastSubmittedAttendee.nickname }, fullName.trim(), nickname)) {
+      return lastSubmittedAttendee.memberId;
+    }
+    if (matchedExistingAttendee?.memberId && isVietnameseNameMatch({ fullName: matchedExistingAttendee.fullName, nickname: matchedExistingAttendee.nickname }, fullName.trim(), nickname)) {
+      return matchedExistingAttendee.memberId;
+    }
 
     // 3. Khớp từ danh bạ lớp rosterList theo họ tên & biệt danh
     if (fullName.trim() && rosterList && rosterList.length > 0) {
+      if (nickname && nickname.trim()) {
+        const nickMatch = rosterList.find((m) => m.nickname && normalizeName(m.nickname) === normalizeName(nickname));
+        if (nickMatch) return nickMatch.id;
+      }
       const n = normalizeName(fullName);
       const exactMatch = rosterList.find((m) => normalizeName(m.fullName) === n);
       if (exactMatch) return exactMatch.id;

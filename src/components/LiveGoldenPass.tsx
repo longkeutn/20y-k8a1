@@ -1,5 +1,6 @@
 import React from 'react';
 import { Award, QrCode, Sparkles, Check, CheckCircle2, Heart, Star, Calendar, MapPin, Shirt, Eye } from 'lucide-react';
+import { normalizeShirtSize } from '../data';
 
 interface LiveGoldenPassProps {
   fullName?: string;
@@ -34,7 +35,7 @@ export default function LiveGoldenPass({
     : `#K8A1-${Math.abs(displayName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 900 + 100)}`;
 
   const isAttending = status === 'yes';
-  const normalizedSize = (shirtSize || 'L').toUpperCase().replace('SIZE ', '').trim();
+  const normalizedSize = normalizeShirtSize(shirtSize);
 
   return (
     <div className="relative group w-full">
