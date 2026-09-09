@@ -190,9 +190,27 @@ export default function ZaloShareInfographicsModal({
 
       setIsGenerating(true);
 
-      // Kích thước chuẩn 1080 x 1350 (4:5 vertical) siêu nét cho Zalo feed & chat
+      // Kích thước chuẩn 1080 x 1350 (4:5 vertical). Tự động mở rộng chiều cao khi danh sách điểm danh dài để hiển thị ĐẦY ĐỦ 100%
       const width = 1080;
-      const height = 1350;
+      let height = 1350;
+
+      if (selectedTemplate === 'attendees') {
+        const totalItems = confirmedAttendees.length;
+        const rows = Math.max(1, Math.ceil(totalItems / 3));
+        const gridH = rows * 46 + 28;
+        // bodyY (295) + 55 + 38 + gridH + 20 (alert) + 76 (alert box) + 24 (gap) + 165 (footer) + 30 (padding)
+        const neededH = 388 + gridH + 20 + 76 + 24 + 165 + 30;
+        height = Math.max(1350, Math.round(neededH));
+      } else if (selectedTemplate === 'shirts') {
+        const pendingCount = confirmedPendingShirt.length;
+        if (pendingCount > 15) {
+          const pRows = Math.ceil(pendingCount / 3);
+          const pBoxH = 65 + pRows * 42 + 20;
+          const neededH = 295 + 60 + 240 + 20 + pBoxH + 25 + 40 + 165 + 30;
+          height = Math.max(1350, Math.round(neededH));
+        }
+      }
+
       canvas.width = width;
       canvas.height = height;
 
@@ -448,7 +466,7 @@ export default function ZaloShareInfographicsModal({
       } else if (selectedTemplate === 'attendees') {
         // --- TEMPLATE 2: BẢNG VÀNG ĐIỂM DANH ---
         ctx.fillStyle = '#8D5B28';
-        drawRoundRect(ctx, width / 2 - 210, bodyY, 420, 42, 21);
+        drawRoundRect(ctx, width / 2 - 220, bodyY, 440, 42, 21);
         ctx.fill();
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -461,84 +479,101 @@ export default function ZaloShareInfographicsModal({
         ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.fillText(`ĐÃ CÓ MẶT: ${confirmedCount} BẠN  •  BÁO VẮNG: ${absentCount} BẠN  •  CHƯA ĐIỂM DANH: ${pendingMembers.length} BẠN`, width / 2, sumY + 18);
 
-        // Khung danh sách các bạn đã báo danh (dạng thẻ tên kèm biệt danh)
+        // Khung danh sách FULL các bạn đã báo danh (thẻ 2 dòng siêu nét, không bao giờ chồng chéo)
         const gridY = sumY + 38;
-        const gridH = 500;
+        const gridMarginX = 65;
+        const gridW = width - gridMarginX * 2; // 950px
+        const cols = 3;
+        const rows = Math.max(1, Math.ceil(confirmedAttendees.length / cols));
+        const rowH = 46;
+        const gridH = rows * rowH + 26;
+
         ctx.fillStyle = '#FFFFFF';
-        drawRoundRect(ctx, 80, gridY, width - 160, gridH, 20);
+        drawRoundRect(ctx, gridMarginX, gridY, gridW, gridH, 20);
         ctx.fill();
         ctx.strokeStyle = '#E2D3BE';
         ctx.lineWidth = 2;
-        drawRoundRect(ctx, 80, gridY, width - 160, gridH, 20);
+        drawRoundRect(ctx, gridMarginX, gridY, gridW, gridH, 20);
         ctx.stroke();
 
-        // Vẽ lưới tên 3 cột
-        const cols = 3;
-        const colWidth = (width - 200) / cols;
-        const maxItems = 30;
-        const displayList = confirmedAttendees.slice(0, maxItems);
+        // Vẽ lưới tên 3 cột - HIỂN THỊ TRỌN VẸN 100% DANH SÁCH BẠN HỌC
+        const colWidth = (gridW - 24) / cols;
+        const cardW = colWidth - 8;
+        const cardH = 39;
 
-        displayList.forEach((att, idx) => {
+        confirmedAttendees.forEach((att, idx) => {
           const col = idx % cols;
           const row = Math.floor(idx / cols);
-          const cellX = 100 + col * colWidth;
-          const cellY = gridY + 30 + row * 45;
+          const cellX = gridMarginX + 12 + col * colWidth;
+          const cellY = gridY + 15 + row * rowH;
 
           // Hộp con cho từng bạn
           ctx.fillStyle = '#FAF7F2';
-          drawRoundRect(ctx, cellX, cellY - 18, colWidth - 14, 38, 8);
+          drawRoundRect(ctx, cellX, cellY, cardW, cardH, 8);
           ctx.fill();
           ctx.strokeStyle = '#E5D5BC';
           ctx.lineWidth = 1;
-          drawRoundRect(ctx, cellX, cellY - 18, colWidth - 14, 38, 8);
+          drawRoundRect(ctx, cellX, cellY, cardW, cardH, 8);
           ctx.stroke();
 
-          // Dấu tick xanh
-          ctx.fillStyle = '#16A34A';
-          ctx.font = 'bold 14px sans-serif';
-          ctx.textAlign = 'left';
-          ctx.fillText('✓', cellX + 8, cellY + 6);
+          // Dấu tick xanh lá tròn xinh
+          ctx.fillStyle = '#DCFCE7';
+          ctx.beginPath();
+          ctx.arc(cellX + 16, cellY + 20, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#15803D';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('✓', cellX + 16, cellY + 24);
 
-          // Tên bạn
+          // Xử lý tên và biệt danh (THIẾT KẾ 2 DÒNG ĐỘC LẬP — KHÔNG BAO GIỜ CHỒNG CHÉO)
+          const cleanName = att.fullName.trim();
+          const cleanNick = (att.nickname || '').trim().replace(/^["'(]+|[)"']+$/g, '').trim();
+          const isDistinctNick = cleanNick && cleanNick.toLowerCase() !== cleanName.toLowerCase();
+
+          const shirt = normalizeShirtSize(att.shirtSize);
+          const shirtLabel = shirt ? `Size ${shirt}` : 'Chưa chọn size';
+
+          // DÒNG 1: Họ và tên (In đậm, màu navy sẫm, độ rộng thoải mái)
           ctx.fillStyle = '#0F172A';
-          ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          const nameStr = att.fullName.length > 14 ? att.fullName.substring(0, 13) + '..' : att.fullName;
-          ctx.fillText(nameStr, cellX + 24, cellY + 5);
+          ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.textAlign = 'left';
+          const nameDisplay = cleanName.length > 25 ? cleanName.substring(0, 24) + '..' : cleanName;
+          ctx.fillText(nameDisplay, cellX + 30, cellY + 16);
 
-          // Biệt danh nếu có
-          if (att.nickname) {
-            ctx.fillStyle = '#8D5B28';
-            ctx.font = 'italic 11px Georgia, serif';
-            const nickStr = `(${att.nickname.length > 10 ? att.nickname.substring(0, 9) + '..' : att.nickname})`;
-            ctx.fillText(nickStr, cellX + 24 + ctx.measureText(nameStr).width + 6, cellY + 5);
+          // DÒNG 2: Biệt danh thân thương & Cỡ áo polo (Tách biệt hoàn toàn ở dòng dưới)
+          ctx.fillStyle = isDistinctNick ? '#8D5B28' : '#64748B';
+          ctx.font = isDistinctNick ? 'italic 11px Georgia, serif' : '500 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          
+          let line2 = isDistinctNick ? `“${cleanNick}”` : 'Thành viên K8A1';
+          if (shirt) {
+            line2 += ` • ${shirtLabel}`;
+          } else {
+            line2 += ` • ⚠️ ${shirtLabel}`;
           }
+          if (line2.length > 28) {
+            line2 = line2.substring(0, 27) + '..';
+          }
+          ctx.fillText(line2, cellX + 30, cellY + 31);
         });
 
-        // Nếu còn nhiều hơn 30 bạn
-        if (confirmedAttendees.length > maxItems) {
-          ctx.fillStyle = '#8D5B28';
-          ctx.font = 'bold italic 15px Georgia, serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(`... cùng ${confirmedAttendees.length - maxItems} bạn khác đã báo danh!`, width / 2, gridY + gridH - 18);
-        }
-
-        // Khối nhắc nhở tag tên
+        // Khối nhắc nhở tag tên (Vị trí bám sát sau lưới danh sách full)
         const alertY = gridY + gridH + 20;
         ctx.fillStyle = '#FEF2F2';
-        drawRoundRect(ctx, 80, alertY, width - 160, 80, 16);
+        drawRoundRect(ctx, gridMarginX, alertY, gridW, 76, 16);
         ctx.fill();
         ctx.strokeStyle = '#FECACA';
         ctx.lineWidth = 1.5;
-        drawRoundRect(ctx, 80, alertY, width - 160, 80, 16);
+        drawRoundRect(ctx, gridMarginX, alertY, gridW, 76, 16);
         ctx.stroke();
 
         ctx.fillStyle = '#991B1B';
         ctx.font = 'bold 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🔍 VẪN CÒN THIẾU TÊN BẠN CÙNG BÀN CỦA BẠN?', width / 2, alertY + 32);
+        ctx.fillText('🔍 VẪN CÒN THIẾU TÊN BẠN CÙNG BÀN CỦA BẠN?', width / 2, alertY + 30);
         ctx.fillStyle = '#475569';
         ctx.font = '15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillText('Hãy tag tên bạn bè vào nhóm Zalo để rủ nhau điểm danh ngay hôm nay!', width / 2, alertY + 60);
+        ctx.fillText('Hãy tag tên bạn bè vào nhóm Zalo để rủ nhau điểm danh ngay hôm nay!', width / 2, alertY + 56);
 
       } else if (selectedTemplate === 'shirts') {
         // --- TEMPLATE 3: CHỐT SIZE ÁO MAY ĐO ---
@@ -597,14 +632,18 @@ export default function ZaloShareInfographicsModal({
           ctx.fillText('áo', szX + (sizeW - 12) / 2, szY + 112);
         });
 
-        // MỤC ĐẶC BIỆT: CẢNH BÁO CÁC BẠN CHƯA CHỌN SIZE ÁO
+        // MỤC ĐẶC BIỆT: CẢNH BÁO CÁC BẠN CHƯA CHỌN SIZE ÁO (HIỂN THỊ FULL DANH SÁCH)
         const warnY = boxY + 260;
+        const pCols = 3;
+        const pRows = Math.max(1, Math.ceil(confirmedPendingShirt.length / pCols));
+        const warnH = confirmedPendingShirt.length > 0 ? (65 + pRows * 42 + 20) : 220;
+
         ctx.fillStyle = '#FFFBEB';
-        drawRoundRect(ctx, 80, warnY, width - 160, 310, 20);
+        drawRoundRect(ctx, 80, warnY, width - 160, warnH, 20);
         ctx.fill();
         ctx.strokeStyle = '#F59E0B';
         ctx.lineWidth = 2;
-        drawRoundRect(ctx, 80, warnY, width - 160, 310, 20);
+        drawRoundRect(ctx, 80, warnY, width - 160, warnH, 20);
         ctx.stroke();
 
         ctx.fillStyle = '#B45309';
@@ -612,45 +651,39 @@ export default function ZaloShareInfographicsModal({
         ctx.textAlign = 'center';
         ctx.fillText(`⚠️ CÒN ${confirmedPendingShirt.length} BẠN ĐÃ ĐIỂM DANH NHƯNG CHƯA CHỌN SIZE ÁO:`, width / 2, warnY + 42);
 
-        // Liệt kê danh sách các bạn chưa chọn size áo
+        // Liệt kê FULL danh sách các bạn chưa chọn size áo
         if (confirmedPendingShirt.length > 0) {
-          const pCols = 3;
           const pColW = (width - 220) / pCols;
-          const pList = confirmedPendingShirt.slice(0, 15);
 
-          pList.forEach((att, idx) => {
+          confirmedPendingShirt.forEach((att, idx) => {
             const c = idx % pCols;
             const r = Math.floor(idx / pCols);
             const pX = 110 + c * pColW;
-            const pY = warnY + 80 + r * 42;
+            const pY = warnY + 76 + r * 42;
 
             ctx.fillStyle = '#FEF3C7';
             drawRoundRect(ctx, pX, pY - 16, pColW - 14, 34, 8);
             ctx.fill();
 
             ctx.fillStyle = '#92400E';
-            ctx.font = 'bold 13.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             ctx.textAlign = 'left';
-            const displayName = att.nickname ? `${att.fullName} (${att.nickname})` : att.fullName;
-            const shortName = displayName.length > 17 ? displayName.substring(0, 16) + '..' : displayName;
+            const cleanName = att.fullName.trim();
+            const cleanNick = (att.nickname || '').trim().replace(/^["'(]+|[)"']+$/g, '').trim();
+            const isDistinct = cleanNick && cleanNick.toLowerCase() !== cleanName.toLowerCase();
+            const displayName = isDistinct ? `${cleanName} (${cleanNick})` : cleanName;
+            const shortName = displayName.length > 19 ? displayName.substring(0, 18) + '..' : displayName;
             ctx.fillText(`• ${shortName}`, pX + 8, pY + 6);
           });
-
-          if (confirmedPendingShirt.length > 15) {
-            ctx.fillStyle = '#B45309';
-            ctx.font = 'bold italic 14px Georgia, serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`... và còn ${confirmedPendingShirt.length - 15} bạn nữa!`, width / 2, warnY + 285);
-          }
         } else {
           ctx.fillStyle = '#15803D';
           ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('🎉 Tuyệt vời! 100% các bạn đã điểm danh đều đã chọn xong size áo!', width / 2, warnY + 160);
+          ctx.fillText('🎉 Tuyệt vời! 100% các bạn đã điểm danh đều đã chọn xong size áo!', width / 2, warnY + 130);
         }
 
         // Lời nhắn nhắc gấp
-        const noteY = warnY + 335;
+        const noteY = warnY + warnH + 25;
         ctx.fillStyle = '#991B1B';
         ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.textAlign = 'center';
