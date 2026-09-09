@@ -27,7 +27,8 @@ export default function ClassGatheringCounter({
   rsvpList,
   classRoster,
   activeMember,
-  isSyncing = false
+  isSyncing = false,
+  onOpenZaloShareModal
 }: ClassGatheringCounterProps) {
   // Lọc danh sách các bạn đã xác nhận tham gia ('yes')
   const confirmedAttendees = useMemo(() => {
