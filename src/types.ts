@@ -141,6 +141,8 @@ export interface MemoryImage {
   caption: string;
   date?: string;
   isUserUploaded?: boolean;
+  thumbnail?: string;
+  driveUrl?: string;
 }
 
 export interface MemoryVideo {

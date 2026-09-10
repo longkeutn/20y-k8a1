@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
-import { DEFAULT_VIDEOS } from '../data';
+import { DEFAULT_VIDEOS, DEFAULT_MEMORIES } from '../data';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
@@ -76,6 +76,14 @@ const INITIAL_VIDEOS: MemoryVideo[] = DEFAULT_VIDEOS;
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
 export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, onAddImage }: MemoryCornerProps) {
+  // Đảm bảo luôn có ít nhất 87 ảnh từ DEFAULT_MEMORIES nếu prop images rỗng hoặc chưa nạp xong
+  const displayImages = useMemo(() => {
+    if (Array.isArray(images) && images.length > 0) {
+      return images;
+    }
+    return DEFAULT_MEMORIES;
+  }, [images]);
+
   // Video State (Khởi tạo với 9 video chuẩn từ DEFAULT_VIDEOS)
   const [videoList, setVideoList] = useState<MemoryVideo[]>(() => {
     try {
@@ -106,9 +114,13 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
     const fetchJsonSafe = async (url: string) => {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
         const res = await fetch(url, {
-          cache: 'no-store'
+          cache: 'no-store',
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
         const text = await res.text();
         const trimmed = text.trim();
         if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
@@ -153,17 +165,17 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
   }, [appsScriptUrl, onAddImage, isDirectFetching]);
 
-  // Tự phục hồi: nếu sau 4.0s mà images.length vẫn là 0 và chưa từng fetch trực tiếp
+  // Tự phục hồi: chỉ thử fetch lại nếu displayImages rỗng (gần như không bao giờ vì đã có 87 ảnh DEFAULT_MEMORIES)
   useEffect(() => {
-    if (images.length === 0 && appsScriptUrl && !hasAttemptedDirectFetch && !isDirectFetching) {
+    if (displayImages.length === 0 && appsScriptUrl && !hasAttemptedDirectFetch && !isDirectFetching) {
       const timer = setTimeout(() => {
-        if (images.length === 0) {
+        if (displayImages.length === 0) {
           handleDirectFetchPhotos();
         }
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [images.length, appsScriptUrl, hasAttemptedDirectFetch, isDirectFetching, handleDirectFetchPhotos]);
+  }, [displayImages.length, appsScriptUrl, hasAttemptedDirectFetch, isDirectFetching, handleDirectFetchPhotos]);
 
   const [activeVideoIndex, setActiveVideoIndex] = useState<number>(0);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -336,14 +348,14 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
   // Danh sách ảnh đã xáo trộn ngẫu nhiên (Fisher-Yates Shuffle) hoặc sắp xếp
   const shuffledImages = useMemo(() => {
-    if (!images || images.length === 0) return [];
+    if (!displayImages || displayImages.length === 0) return [];
 
     if (sortOrder === 'newest') {
-      return [...images]; // Thứ tự mới nhất gốc từ Drive
+      return [...displayImages]; // Thứ tự mới nhất gốc từ Drive
     }
 
     if (sortOrder === 'likes') {
-      return [...images].sort((a, b) => {
+      return [...displayImages].sort((a, b) => {
         const likesA = getPhotoLikes(a.id, 0);
         const likesB = getPhotoLikes(b.id, 0);
         return likesB - likesA;
@@ -351,7 +363,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
 
     // Mặc định: Ngẫu nhiên (Fisher-Yates Shuffle với pseudo-random generator từ shuffleSeed)
-    const list = [...images];
+    const list = [...displayImages];
     let seed = Math.abs(shuffleSeed) || 12345;
     const rnd = () => {
       seed = (seed * 9301 + 49297) % 233280;
@@ -362,7 +374,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       [list[i], list[j]] = [list[j], list[i]];
     }
     return list;
-  }, [images, sortOrder, shuffleSeed]);
+  }, [displayImages, sortOrder, shuffleSeed]);
 
   // Lọc danh sách ảnh trên nguồn ảnh đã xáo trộn
   const filteredImages = useMemo(() => {
@@ -395,13 +407,13 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   // Đếm số lượng theo từng danh mục
   const countsByCategory = useMemo(() => {
     return {
-      all: images.length,
-      class: images.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(lớp|học|thầy|cô|bàn|trường|kem)/)).length,
-      activity: images.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(trại|lửa|bóng|hồ|ngoại khóa|hát|đá)/)).length,
-      graduation: images.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(bế giảng|áo trắng|lưu bút|kỷ yếu|tốt nghiệp|chia tay)/)).length,
-      uploads: images.filter(i => !!i.isUserUploaded).length,
+      all: displayImages.length,
+      class: displayImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(lớp|học|thầy|cô|bàn|trường|kem)/)).length,
+      activity: displayImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(trại|lửa|bóng|hồ|ngoại khóa|hát|đá)/)).length,
+      graduation: displayImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(bế giảng|áo trắng|lưu bút|kỷ yếu|tốt nghiệp|chia tay)/)).length,
+      uploads: displayImages.filter(i => !!i.isUserUploaded).length,
     };
-  }, [images]);
+  }, [displayImages]);
 
   // Danh sách hiển thị sau khi giới hạn số lượng (Tối ưu performance)
   const displayedImages = useMemo(() => {
@@ -916,7 +928,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </h3>
             
             <p className="text-xs text-slate-600 font-serif italic">
-              Những nụ cười áo trắng và ngọn lửa trại thanh xuân 20 năm trước • {images.length} bức ảnh
+              Những nụ cười áo trắng và ngọn lửa trại thanh xuân 20 năm trước • {displayImages.length} bức ảnh
             </p>
           </div>
 
@@ -1043,7 +1055,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         </div>
 
         {/* Loading / Skeleton State khi đang nạp ảnh từ Drive */}
-        {images.length === 0 ? (
+        {displayImages.length === 0 ? (
           <div className="space-y-4 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-sans text-amber-800 font-bold">

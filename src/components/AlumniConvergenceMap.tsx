@@ -148,8 +148,8 @@ export default function AlumniConvergenceMap({
   className = '',
   eventConfig
 }: Props) {
-  // Chế độ 2 chặng: mặc định bật
-  const isTwoVenues = eventConfig?.enableTwoVenues !== false;
+  // Chế độ 2 chặng: tuân thủ chính xác cấu hình từ Google Sheet (mặc định tắt nếu không bật)
+  const isTwoVenues = Boolean(eventConfig?.enableTwoVenues);
 
   // Chặng đang được chọn hiển thị trên bản đồ (1: Trường cũ, 2: Nhà hàng)
   const [activeStage, setActiveStage] = useState<1 | 2>(1);

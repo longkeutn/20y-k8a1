@@ -109,6 +109,19 @@ export default function App() {
   // URL kết nối thực tế: ưu tiên cấu hình máy này, nếu trống thì dùng URL mặc định của hệ thống
   const activeAppsScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL || '';
 
+  // Helper chuyển đổi an toàn các định dạng boolean ("TRUE", "FALSE", 1, 0, boolean) từ Google Sheets
+  const parseBooleanSafe = (val: any, defaultVal: boolean = false): boolean => {
+    if (val === undefined || val === null) return defaultVal;
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'number') return val === 1;
+    if (typeof val === 'string') {
+      const s = val.trim().toLowerCase();
+      if (s === 'true' || s === '1' || s === 'yes' || s === 'bật' || s === 'có') return true;
+      if (s === 'false' || s === '0' || s === 'no' || s === 'tắt' || s === 'không' || s === '') return false;
+    }
+    return Boolean(val);
+  };
+
   // Helper chuẩn hóa cấu hình sự kiện, chống crash do dữ liệu số từ Google Sheets hoặc localStorage
   const sanitizeEventConfig = (cfg: any): EventConfig => ({
     ...DEFAULT_EVENT_CONFIG,
@@ -125,7 +138,7 @@ export default function App() {
     venueActivity: cfg?.venueActivity !== undefined ? String(cfg.venueActivity) : DEFAULT_EVENT_CONFIG.venueActivity,
     mapEmbedUrl: String(cfg?.mapEmbedUrl || DEFAULT_EVENT_CONFIG.mapEmbedUrl),
     mapDirectUrl: String(cfg?.mapDirectUrl || DEFAULT_EVENT_CONFIG.mapDirectUrl),
-    enableTwoVenues: cfg?.enableTwoVenues !== undefined ? Boolean(cfg.enableTwoVenues) : DEFAULT_EVENT_CONFIG.enableTwoVenues,
+    enableTwoVenues: parseBooleanSafe(cfg?.enableTwoVenues, DEFAULT_EVENT_CONFIG.enableTwoVenues),
     venue2Name: cfg?.venue2Name !== undefined ? String(cfg.venue2Name) : DEFAULT_EVENT_CONFIG.venue2Name,
     venue2Subtitle: cfg?.venue2Subtitle !== undefined ? String(cfg.venue2Subtitle) : DEFAULT_EVENT_CONFIG.venue2Subtitle,
     venue2Address: cfg?.venue2Address !== undefined ? String(cfg.venue2Address) : DEFAULT_EVENT_CONFIG.venue2Address,
@@ -505,18 +518,27 @@ export default function App() {
     }
   });
 
-  // Images list state (kỷ niệm xưa & ảnh bạn bè đóng góp từ Google Drive / Sheet)
+  // Images list state (Khởi tạo sẵn 87 ảnh kỷ niệm Google Drive từ DEFAULT_MEMORIES)
   const [images, setImages] = useState<MemoryImage[]>(() => {
     try {
       const local = localStorage.getItem('uploaded_images');
       if (local) {
         const uploaded = JSON.parse(local);
-        if (Array.isArray(uploaded) && uploaded.length > 0) return uploaded;
+        if (Array.isArray(uploaded) && uploaded.length > 0) {
+          const defaultIds = new Set(DEFAULT_MEMORIES.map(i => i.id));
+          const userOnly = uploaded.filter((i: any) => i && i.id && !defaultIds.has(i.id));
+          if (userOnly.length > 0) {
+            return [...userOnly, ...DEFAULT_MEMORIES];
+          }
+          if (uploaded.length >= DEFAULT_MEMORIES.length) {
+            return uploaded;
+          }
+        }
       }
-      return [];
+      return DEFAULT_MEMORIES;
     } catch (e) {
       console.warn('Lỗi đọc uploaded_images từ localStorage:', e);
-      return [];
+      return DEFAULT_MEMORIES;
     }
   });
 
@@ -1203,15 +1225,25 @@ export default function App() {
 
   // Nạp toàn bộ dữ liệu từ Google Sheet & Google Drive (Single Source of Truth)
   // Helper tải an toàn từng endpoint từ Google Apps Script
-  // Chống lỗi khi server Google trả về HTML (Redirect/Quota) và tự động retry nếu cần
-  const fetchSafeAppsScript = async (targetUrl: string, action: string, extraParams: string = '', retries: number = 1): Promise<any> => {
+  // Chống lỗi khi server Google trả về HTML (Redirect/Quota), tự động timeout và retry nếu cần
+  const fetchSafeAppsScript = async (
+    targetUrl: string, 
+    action: string, 
+    extraParams: string = '', 
+    retries: number = 1,
+    timeoutMs: number = 12000
+  ): Promise<any> => {
     const antiCache = `&_t=${Date.now()}&_rnd=${Math.random().toString(36).substring(7)}`;
     const url = `${targetUrl}?action=${action}${extraParams}${antiCache}`;
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
+        const controller = new AbortController();
+        const timerId = setTimeout(() => controller.abort(), timeoutMs);
         const res = await fetch(url, {
-          cache: 'no-store'
+          cache: 'no-store',
+          signal: controller.signal
         });
+        clearTimeout(timerId);
         const text = await res.text();
         const trimmed = text.trim();
         if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
@@ -1294,40 +1326,17 @@ export default function App() {
       }
 
       // ============================================================================
-      // GIAI ĐOẠN 2: KHO ẢNH DRIVE, ĐIỂM DANH RSVP & DANH BẠ 65 BẠN HỌC (3 REQUESTS)
+      // GIAI ĐOẠN 2: ĐIỂM DANH RSVP & DANH BẠ 65 BẠN HỌC (2 REQUESTS SIÊU NHANH ~1s)
       // ============================================================================
-      // Tải song song ổn định 100%, có cơ chế tự retry 2 lần cho kho ảnh Google Drive
-      const [photoRes, rsvpRes, rosterRes] = await Promise.allSettled([
-        fetchSafeAppsScript(targetUrl, 'get_photos', '', 2),
+      // Tải song song điểm danh RSVP và danh bạ học sinh 65 thành viên
+      const [rsvpRes, rosterRes] = await Promise.allSettled([
         fetchSafeAppsScript(targetUrl, 'get_rsvp', pinQuery),
         fetchSafeAppsScript(targetUrl, 'get_roster', pinQuery)
       ]);
 
       let gotStage2Data = false;
 
-      // 1. Kho ảnh kỷ niệm từ Google Drive
-      if (photoRes.status === 'fulfilled' && photoRes.value?.status === 'success' && Array.isArray(photoRes.value.data) && photoRes.value.data.length > 0) {
-        const driveImgs: MemoryImage[] = photoRes.value.data.map((p: any) => ({
-          id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-          url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
-          thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
-          caption: p.caption || 'Kỷ niệm Lớp K8A1',
-          date: p.date || '2006',
-          isUserUploaded: true,
-          driveUrl: p.driveUrl
-        }));
-
-        setImages((prev) => {
-          const driveIds = new Set(driveImgs.map(i => i.id));
-          const localOnly = prev.filter(i => !driveIds.has(i.id));
-          const merged = [...driveImgs, ...localOnly];
-          try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
-          return merged;
-        });
-        gotStage2Data = true;
-      }
-
-      // 2. Điểm danh RSVP
+      // 1. Điểm danh RSVP
       let currentRsvpForRoster: RsvpData[] = [];
       if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data) && rsvpRes.value.data.length > 0) {
         setRsvpList((prev) => {
@@ -1339,7 +1348,7 @@ export default function App() {
         gotStage2Data = true;
       }
 
-      // 3. Danh bạ Sĩ số Lớp 65 thành viên
+      // 2. Danh bạ Sĩ số Lớp 65 thành viên
       if (rosterRes.status === 'fulfilled' && rosterRes.value?.status === 'success' && Array.isArray(rosterRes.value.data) && rosterRes.value.data.length > 0) {
         const rsvpArr = currentRsvpForRoster.length > 0 ? currentRsvpForRoster : rsvpList;
         const cleanRoster = rosterRes.value.data
@@ -1387,10 +1396,10 @@ export default function App() {
       }
 
       // ============================================================================
-      // GIAI ĐOẠN 3: TẢI NỀN LƯU BÚT, SỔ THU CHI & QUÝ THẦY CÔ (4 REQUESTS)
+      // GIAI ĐOẠN 3: TẢI NỀN LƯU BÚT, SỔ THU CHI & QUÝ THẦY CÔ (4 REQUESTS ~1s)
       // ============================================================================
-      // Giãn cách 300ms để nhường đường truyền và CPU
-      await new Promise(r => setTimeout(r, 300));
+      // Giãn cách 200ms để nhường đường truyền và CPU
+      await new Promise(r => setTimeout(r, 200));
 
       const [wishesRes, incRes, expRes, teachRes] = await Promise.allSettled([
         fetchSafeAppsScript(targetUrl, 'get_wishes'),
@@ -1424,6 +1433,38 @@ export default function App() {
 
       setSyncStatus('live');
       setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+
+      // ============================================================================
+      // GIAI ĐOẠN 4: ĐỒNG BỘ ẢNH GOOGLE DRIVE MỚI (CHẠY NGẦM HOÀN TOÀN ĐỘC LẬP)
+      // ============================================================================
+      // Thư viện ảnh đã hiển thị tức thì với 87 ảnh từ DEFAULT_MEMORIES (0ms).
+      // Luồng này chạy ngầm độc lập để kiểm tra nếu có ảnh mới được nạp thêm vào Google Drive.
+      (async () => {
+        try {
+          const photoRes = await fetchSafeAppsScript(targetUrl, 'get_photos', '', 0, 18000);
+          if (photoRes?.status === 'success' && Array.isArray(photoRes.data) && photoRes.data.length > 0) {
+            const driveImgs: MemoryImage[] = photoRes.data.map((p: any) => ({
+              id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+              url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+              thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+              caption: p.caption || 'Kỷ niệm Lớp K8A1',
+              date: p.date || '2006',
+              isUserUploaded: true,
+              driveUrl: p.driveUrl
+            }));
+
+            setImages((prev) => {
+              const driveIds = new Set(driveImgs.map(i => i.id));
+              const localOnly = prev.filter(i => !driveIds.has(i.id));
+              const merged = [...driveImgs, ...localOnly];
+              try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
+              return merged;
+            });
+          }
+        } catch (e) {
+          console.warn('Background sync photos warning:', e);
+        }
+      })();
     } catch (err) {
       console.warn('Lỗi đồng bộ từ Google Sheet & Drive:', err);
       setSyncStatus(prev => prev === 'live' ? 'live' : 'error');

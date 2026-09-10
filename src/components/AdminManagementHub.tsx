@@ -6267,7 +6267,7 @@ export default function AdminManagementHub({
                         <div>
                           <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
                             <span>1. Địa Điểm Tổ Chức & Hành Trình Hội Ngộ</span>
-                            {eventConfigForm.enableTwoVenues !== false && (
+                            {Boolean(eventConfigForm.enableTwoVenues) && (
                               <span className="text-[10px] font-sans font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
                                 2 Chặng Liên Hoàn
                               </span>
@@ -6342,7 +6342,7 @@ export default function AdminManagementHub({
                         <label className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={eventConfigForm.enableTwoVenues !== false}
+                            checked={Boolean(eventConfigForm.enableTwoVenues)}
                             onChange={(e) => setEventConfigForm({ ...eventConfigForm, enableTwoVenues: e.target.checked })}
                             className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
                           />
@@ -6354,16 +6354,16 @@ export default function AdminManagementHub({
                       </div>
 
                       <span className={`self-start sm:self-center px-2.5 py-1 rounded-full text-[11px] font-sans font-bold uppercase tracking-wider shrink-0 ${
-                        eventConfigForm.enableTwoVenues !== false
+                        Boolean(eventConfigForm.enableTwoVenues)
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                           : 'bg-slate-100 text-slate-600 border border-slate-300'
                       }`}>
-                        {eventConfigForm.enableTwoVenues !== false ? '✓ Đang Bật 2 Chặng' : '1 Địa Điểm Đơn Lẻ'}
+                        {Boolean(eventConfigForm.enableTwoVenues) ? '✓ Đang Bật 2 Chặng' : '1 Địa Điểm Đơn Lẻ'}
                       </span>
                     </div>
 
                     {/* Sub-Tab Navigation (nếu bật 2 chặng) */}
-                    {eventConfigForm.enableTwoVenues !== false && (
+                    {Boolean(eventConfigForm.enableTwoVenues) && (
                       <div className="flex border-b border-amber-200 gap-2 overflow-x-auto">
                         <button
                           type="button"
@@ -6409,9 +6409,9 @@ export default function AdminManagementHub({
                     {/* ======================================================== */}
                     {/* SUB-PANEL 1: CHẶNG 1 (TRƯỜNG CŨ HOẶC ĐỊA ĐIỂM DUY NHẤT) */}
                     {/* ======================================================== */}
-                    {(eventConfigForm.enableTwoVenues === false || venueSettingsTab === 'stage1') && (
+                    {(!eventConfigForm.enableTwoVenues || venueSettingsTab === 'stage1') && (
                       <div className="space-y-4 pt-1">
-                        {eventConfigForm.enableTwoVenues !== false && (
+                        {Boolean(eventConfigForm.enableTwoVenues) && (
                           <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between">
                             <span className="font-semibold">🏫 Cấu hình Chặng 1: Tập trung đón tiếp, điểm danh nhận áo, chụp ảnh kỷ niệm & tri ân Thầy Cô</span>
                             <span className="font-mono text-[11px] text-amber-700 bg-white px-2 py-0.5 rounded border border-amber-200">08:30 — 11:00</span>
@@ -6421,7 +6421,7 @@ export default function AdminManagementHub({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                           <div className="space-y-1.5">
                             <label className="font-bold text-slate-700 flex items-center justify-between">
-                              <span>{eventConfigForm.enableTwoVenues !== false ? 'Tên Điểm Chặng 1 (*):' : 'Tên Địa Điểm (*):'}</span>
+                              <span>{Boolean(eventConfigForm.enableTwoVenues) ? 'Tên Điểm Chặng 1 (*):' : 'Tên Địa Điểm (*):'}</span>
                               <span className="text-[11px] font-normal text-slate-400">VD: Trường THPT Thái Nguyên</span>
                             </label>
                             <input
@@ -6565,7 +6565,7 @@ export default function AdminManagementHub({
                     {/* ======================================================== */}
                     {/* SUB-PANEL 2: CHẶNG 2 (NHÀ HÀNG / TRUNG TÂM SỰ KIỆN) */}
                     {/* ======================================================== */}
-                    {eventConfigForm.enableTwoVenues !== false && venueSettingsTab === 'stage2' && (
+                    {Boolean(eventConfigForm.enableTwoVenues) && venueSettingsTab === 'stage2' && (
                       <div className="space-y-4 pt-1">
                         <div className="p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-center justify-between">
                           <span className="font-semibold">🥂 Cấu hình Chặng 2: Khai tiệc liên hoan, nâng ly chúc mừng 20 năm, giao lưu văn nghệ & trao kỷ vật</span>
@@ -6719,7 +6719,7 @@ export default function AdminManagementHub({
                     {/* ======================================================== */}
                     {/* SUB-PANEL 3: LỘ TRÌNH DI CHUYỂN GIỮA 2 ĐIỂM */}
                     {/* ======================================================== */}
-                    {eventConfigForm.enableTwoVenues !== false && venueSettingsTab === 'route' && (
+                    {Boolean(eventConfigForm.enableTwoVenues) && venueSettingsTab === 'route' && (
                       <div className="space-y-4 pt-1">
                         <div className="p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-800 flex items-center justify-between">
                           <span className="font-semibold">🚗 Hướng dẫn di chuyển từ Trường THPT Thái Nguyên sang Nhà Hàng Prime</span>
