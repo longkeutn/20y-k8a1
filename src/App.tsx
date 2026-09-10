@@ -473,6 +473,12 @@ export default function App() {
     const handleOpenZaloShare = () => setIsZaloShareModalOpen(true);
     window.addEventListener('open-identity-modal', handleOpenIdentity);
     window.addEventListener('open-zalo-share-modal', handleOpenZaloShare);
+
+    // Mặc định khi mới vào web (không bấm link nhảy hash), luôn hiển thị từ đầu trang (Hero Banner)
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    }
+
     return () => {
       window.removeEventListener('open-identity-modal', handleOpenIdentity);
       window.removeEventListener('open-zalo-share-modal', handleOpenZaloShare);

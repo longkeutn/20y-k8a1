@@ -1706,7 +1706,6 @@ export default function RsvpForm({
                     <input
                       type="tel"
                       id="rsvp-phone"
-                      autoFocus
                       placeholder={savedExistingPhone ? "Nhập số điện thoại mới (VD: 0912 345 678)" : "Nhập số điện thoại liên hệ (VD: 0912 345 678)"}
                       required={!savedExistingPhone}
                       value={phone}
