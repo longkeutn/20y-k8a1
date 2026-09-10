@@ -226,7 +226,6 @@ export interface EventConfig {
   heroBannerUrl?: string;
   heroBannerPosition?: number;
   schoolLogoUrl?: string;
-  memberAccessKey?: string; // Mật khẩu ngầm nhóm Zalo lớp K8A1 (Tự động mở quyền điểm danh, lưu ở tab Cau_Hinh)
 }
 
 export type ExpenseCategory = 

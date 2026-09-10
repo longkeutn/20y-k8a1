@@ -23,8 +23,6 @@ interface WishesGuestbookProps {
   classRoster?: ClassMember[];
   activeMember?: ClassMember | null;
   onSelectActiveMember?: (member: ClassMember | null) => void;
-  isMemberVerified?: boolean;
-  onRequireMemberAccess?: () => void;
 }
 
 const EMOTION_TAGS = [
@@ -42,9 +40,7 @@ export default function WishesGuestbook({
   onAddWish,
   classRoster,
   activeMember,
-  onSelectActiveMember,
-  isMemberVerified = true,
-  onRequireMemberAccess
+  onSelectActiveMember
 }: WishesGuestbookProps) {
   const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
 
@@ -123,12 +119,6 @@ export default function WishesGuestbook({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isMemberVerified) {
-      if (onRequireMemberAccess) {
-        onRequireMemberAccess();
-      }
-      return;
-    }
     if (!fullName.trim() || !message.trim()) {
       setSubmitStatus('error');
       setStatusMessage('Vui lòng nhập đầy đủ họ tên và lời chúc của bạn nhé!');
@@ -169,7 +159,6 @@ export default function WishesGuestbook({
           },
           body: JSON.stringify({
             action: 'add_wish',
-            memberKey: 'k8a1',
             ...newWish
           })
         });

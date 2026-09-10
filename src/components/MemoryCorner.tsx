@@ -41,8 +41,6 @@ interface MemoryCornerProps {
   images: MemoryImage[];
   videos?: MemoryVideo[];
   onAddImage?: (newImage: MemoryImage | MemoryImage[]) => void;
-  isMemberVerified?: boolean;
-  onRequireMemberAccess?: () => void;
 }
 
 // Chuẩn hóa link video YouTube hoặc Google Drive sang Embed URL
@@ -75,14 +73,7 @@ const INITIAL_VIDEOS: MemoryVideo[] = [];
 
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
-export default function MemoryCorner({ 
-  appsScriptUrl, 
-  images, 
-  videos = INITIAL_VIDEOS, 
-  onAddImage,
-  isMemberVerified = true,
-  onRequireMemberAccess
-}: MemoryCornerProps) {
+export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, onAddImage }: MemoryCornerProps) {
   // Video State
   const [videoList, setVideoList] = useState<MemoryVideo[]>(() => {
     try {
@@ -478,7 +469,6 @@ export default function MemoryCorner({
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
               action: 'upload_photo',
-              memberKey: 'k8a1',
               fileData: item.preview,
               caption: finalCaption
             })
@@ -738,13 +728,7 @@ export default function MemoryCorner({
 
           <button
             type="button"
-            onClick={() => {
-              if (!isMemberVerified) {
-                if (onRequireMemberAccess) onRequireMemberAccess();
-                return;
-              }
-              setIsVideoModalOpen(true);
-            }}
+            onClick={() => setIsVideoModalOpen(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer self-start sm:self-auto"
           >
             <span>+ Thêm Video</span>
@@ -878,13 +862,7 @@ export default function MemoryCorner({
 
             <button
               type="button"
-              onClick={() => {
-                if (!isMemberVerified) {
-                  if (onRequireMemberAccess) onRequireMemberAccess();
-                  return;
-                }
-                setIsPhotoUploadModalOpen(true);
-              }}
+              onClick={() => setIsPhotoUploadModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -1134,13 +1112,7 @@ export default function MemoryCorner({
 
               {/* Ô Thẻ Góp Thêm Ảnh Kỷ Niệm Ở Cuối Grid */}
               <div 
-                onClick={() => {
-                  if (!isMemberVerified) {
-                    if (onRequireMemberAccess) onRequireMemberAccess();
-                    return;
-                  }
-                  setIsPhotoUploadModalOpen(true);
-                }}
+                onClick={() => setIsPhotoUploadModalOpen(true)}
                 className="col-span-2 sm:col-span-1 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/60 p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 border-dashed border-amber-400/80 hover:border-amber-600 flex flex-col items-center justify-center text-center space-y-2 sm:space-y-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer group min-h-[140px] sm:min-h-[260px]"
               >
                 <div className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
