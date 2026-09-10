@@ -2154,6 +2154,7 @@ export default function App() {
                 eventConfig={eventConfig}
                 classRoster={classRoster}
                 activeMember={activeMember}
+                currentUserRole={currentUserRole}
                 onSelectActiveMember={handleSelectActiveMember}
                 onAddRsvp={handleAddRsvp} 
                 onOpenPassModal={handleOpenPass}

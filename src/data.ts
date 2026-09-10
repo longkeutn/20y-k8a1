@@ -4014,6 +4014,19 @@ function saveRSVP(data) {
       }
     }
 
+    var existingStatus = (existingRow[3] === 'Có tham gia' || existingRow[3] === 'yes') ? 'yes' : 'no';
+    var targetStatus = data.status === 'yes' ? 'yes' : 'no';
+    if (existingStatus === 'yes' && targetStatus === 'no' && !isAdminRequest) {
+      var existingNormPhone = normalizePhone(existingRow[2]);
+      if (existingNormPhone && (!normNewPhone || !existingNormPhone.endsWith(normNewPhone.slice(-4)))) {
+        return {
+          status: 'error',
+          code: 'PERMISSION_DENIED',
+          message: 'Hồ sơ đã xác nhận tham dự. Để chuyển sang vắng mặt, vui lòng liên hệ Ban Liên Lạc hoặc dùng đúng số điện thoại chính chủ!'
+        };
+      }
+    }
+
     var isAlreadyCheckedIn = existingRow[7] === 'ĐÃ ĐẾN';
     var isAlreadyPaid = existingRow[9] === 'ĐÃ ĐÓNG';
 

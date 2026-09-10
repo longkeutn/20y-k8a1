@@ -24,9 +24,13 @@ import {
   ShieldCheck,
   Search,
   Eye,
-  EyeOff
+  EyeOff,
+  Crown,
+  Lock,
+  Unlock,
+  KeyRound
 } from 'lucide-react';
-import { RsvpData, ClassMember, EventConfig } from '../types';
+import { RsvpData, ClassMember, EventConfig, UserRole } from '../types';
 import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize, maskPhone, isPhoneMatch, isVietnameseNameMatch } from '../data';
 import LiveGoldenPass from './LiveGoldenPass';
 
@@ -36,6 +40,7 @@ interface RsvpFormProps {
   eventConfig?: EventConfig;
   classRoster?: ClassMember[];
   activeMember?: ClassMember | null;
+  currentUserRole?: UserRole;
   onSelectActiveMember?: (member: ClassMember | null) => void;
   onAddRsvp: (newRsvp: RsvpData) => void;
   onOpenPassModal?: (attendee: RsvpData) => void;
@@ -66,6 +71,7 @@ export default function RsvpForm({
   eventConfig,
   classRoster,
   activeMember,
+  currentUserRole,
   onSelectActiveMember,
   onAddRsvp,
   onOpenPassModal,
@@ -89,6 +95,24 @@ export default function RsvpForm({
   const [searchQuery, setSearchQuery] = useState('');
   const [isHighlighted, setIsHighlighted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Quyền Ban Liên Lạc / Quản trị viên
+  const isBLL = currentUserRole === 'admin' || currentUserRole === 'bll' || currentUserRole === 'treasurer';
+
+  // Danh sách ID thành viên đã được mở khóa trên thiết bị này (lưu trong localStorage)
+  const [unlockedMemberIds, setUnlockedMemberIds] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('k8a1_unlocked_members');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Modal mở khóa bằng 4 số cuối SĐT
+  const [showPhoneUnlockModal, setShowPhoneUnlockModal] = useState(false);
+  const [unlockPhoneDigits, setUnlockPhoneDigits] = useState('');
+  const [unlockError, setUnlockError] = useState<string | null>(null);
 
   // Lắng nghe sự kiện điều hướng nhanh để tự động mở ô chọn tên và focus
   useEffect(() => {
@@ -154,7 +178,7 @@ export default function RsvpForm({
   useEffect(() => {
     try {
       const savedVisitorId = localStorage.getItem('k8a1_visitor_id');
-      if (savedVisitorId && !selectedMemberId && rosterList.length > 0) {
+      if (savedVisitorId && !activeMember && rosterList.length > 0) {
         const member = rosterList.find(m => m.id === savedVisitorId);
         if (member) {
           handleSelectMember(member.id);
@@ -433,6 +457,77 @@ export default function RsvpForm({
     });
   }, [phone, savedExistingPhone, useSavedPhone, fullName, rsvpList, activeMember, nameCounts]);
 
+  // Xác định mã thành viên đang được tương tác
+  const currentTargetMemberId = activeMember?.id || matchedExistingAttendee?.memberId;
+
+  // Thành viên có phải chính chủ trên thiết bị này (hoặc là BLL) không?
+  const isOwner = useMemo(() => {
+    if (isBLL) return true;
+    if (!matchedExistingAttendee) return true; // Chưa ai đăng ký trước đó thì ai nộp mới cũng là chính chủ
+    if (!currentTargetMemberId) return false;
+
+    // Đã được mở khóa trên thiết bị này
+    if (unlockedMemberIds.includes(currentTargetMemberId)) return true;
+
+    // Thiết bị này từng lưu visitor ID trùng với bạn này
+    try {
+      const savedVisitorId = localStorage.getItem('k8a1_visitor_id');
+      if (savedVisitorId && savedVisitorId === currentTargetMemberId) return true;
+    } catch {}
+
+    return false;
+  }, [isBLL, matchedExistingAttendee, currentTargetMemberId, unlockedMemberIds]);
+
+  // Hồ sơ đã đăng ký trước đó và đang bị khóa đối với người lạ / thiết bị lạ
+  const isLocked = useMemo(() => {
+    if (isBLL) return false;
+    if (!matchedExistingAttendee) return false;
+    return !isOwner;
+  }, [isBLL, matchedExistingAttendee, isOwner]);
+
+  // Xác thực 4 số cuối SĐT để mở khóa hồ sơ
+  const handleVerifyPhoneUnlock = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setUnlockError(null);
+    const inputDigits = unlockPhoneDigits.replace(/[^0-9]/g, '').trim();
+    if (inputDigits.length !== 4) {
+      setUnlockError('Vui lòng nhập đúng 4 chữ số cuối số điện thoại.');
+      return;
+    }
+
+    const candidatePhone = savedExistingPhone || matchedExistingAttendee?.phone || activeMember?.phone || '';
+    const cleanCandidate = String(candidatePhone).replace(/[^0-9]/g, '');
+
+    let isMatched = false;
+    if (cleanCandidate.endsWith(inputDigits)) {
+      isMatched = true;
+    } else {
+      const phoneChunks = cleanCandidate.match(/\d{9,11}/g) || [];
+      if (phoneChunks.some(chunk => chunk.endsWith(inputDigits))) {
+        isMatched = true;
+      }
+    }
+
+    if (isMatched) {
+      const targetId = currentTargetMemberId;
+      if (targetId) {
+        const nextUnlocked = Array.from(new Set([...unlockedMemberIds, targetId]));
+        setUnlockedMemberIds(nextUnlocked);
+        try {
+          localStorage.setItem('k8a1_unlocked_members', JSON.stringify(nextUnlocked));
+          localStorage.setItem('k8a1_visitor_id', targetId);
+        } catch {}
+      }
+      setShowPhoneUnlockModal(false);
+      setUnlockPhoneDigits('');
+      setUnlockError(null);
+      setSubmitSuccess('Đã mở khóa hồ sơ thành công! Bạn có thể thoải mái cập nhật size áo và lời chúc.');
+      setTimeout(() => setSubmitSuccess(null), 5000);
+    } else {
+      setUnlockError('4 số cuối số điện thoại chưa khớp với thông tin đã lưu. Vui lòng kiểm tra lại hoặc liên hệ Ban Liên Lạc.');
+    }
+  };
+
   // Đồng bộ thông tin khi activeMember thay đổi từ bất kỳ đâu (nhận diện chuẩn xác từng người, không đè người trùng tên)
   useEffect(() => {
     if (activeMember) {
@@ -605,6 +700,14 @@ export default function RsvpForm({
   };
 
   const executeSubmitRsvp = async (targetStatus: 'yes' | 'no') => {
+    if (isLocked) {
+      setUnlockError(null);
+      setUnlockPhoneDigits('');
+      setShowPhoneUnlockModal(true);
+      setSubmitError('Hồ sơ này đã được đăng ký và bảo vệ. Vui lòng mở khóa bằng 4 số cuối SĐT trước khi cập nhật.');
+      return;
+    }
+
     const finalPhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
     if (!fullName.trim() || !finalPhone) {
       setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
@@ -736,6 +839,14 @@ export default function RsvpForm({
               : 'Đã lưu phản hồi. Dù không thể đến trực tiếp, tập thể K8A1 vẫn luôn lưu giữ kỷ niệm về bạn.');
         
         setSubmitSuccess(successMsg);
+        if (effectiveMemberId) {
+          const nextUnlocked = Array.from(new Set([...unlockedMemberIds, effectiveMemberId]));
+          setUnlockedMemberIds(nextUnlocked);
+          try {
+            localStorage.setItem('k8a1_unlocked_members', JSON.stringify(nextUnlocked));
+            localStorage.setItem('k8a1_visitor_id', effectiveMemberId);
+          } catch {}
+        }
         onAddRsvp(rsvpPayload);
 
         if (targetStatus === 'yes') {
@@ -744,6 +855,14 @@ export default function RsvpForm({
       } catch (error) {
         console.error('Lỗi khi gửi lên Apps Script:', error);
         setSubmitError('Đã lưu đăng ký cục bộ. Vui lòng kiểm tra lại kết nối mạng.');
+        if (effectiveMemberId) {
+          const nextUnlocked = Array.from(new Set([...unlockedMemberIds, effectiveMemberId]));
+          setUnlockedMemberIds(nextUnlocked);
+          try {
+            localStorage.setItem('k8a1_unlocked_members', JSON.stringify(nextUnlocked));
+            localStorage.setItem('k8a1_visitor_id', effectiveMemberId);
+          } catch {}
+        }
         onAddRsvp(rsvpPayload);
         if (targetStatus === 'yes') {
           triggerCelebration();
@@ -753,6 +872,14 @@ export default function RsvpForm({
       }
     } else {
       setTimeout(() => {
+        if (effectiveMemberId) {
+          const nextUnlocked = Array.from(new Set([...unlockedMemberIds, effectiveMemberId]));
+          setUnlockedMemberIds(nextUnlocked);
+          try {
+            localStorage.setItem('k8a1_unlocked_members', JSON.stringify(nextUnlocked));
+            localStorage.setItem('k8a1_visitor_id', effectiveMemberId);
+          } catch {}
+        }
         onAddRsvp(rsvpPayload);
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
@@ -775,6 +902,12 @@ export default function RsvpForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) {
+      setUnlockError(null);
+      setUnlockPhoneDigits('');
+      setShowPhoneUnlockModal(true);
+      return;
+    }
     const finalPhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
     if (!fullName.trim() || !finalPhone) {
       setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
@@ -966,14 +1099,48 @@ export default function RsvpForm({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleResetMember}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] text-amber-800 hover:text-amber-950 bg-white hover:bg-amber-100/60 border border-amber-300 rounded-lg font-bold transition-colors cursor-pointer shrink-0 shadow-2xs"
-            >
-              <X className="w-3 h-3" />
-              <span>Đổi bạn khác</span>
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Nút biểu tượng trạng thái chế độ (Icon only - siêu gọn gàng) */}
+              {isBLL ? (
+                <div 
+                  className="w-7 h-7 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shadow-2xs cursor-default"
+                  title="Chế độ Ban Liên Lạc (Toàn quyền quản lý & cập nhật hồ sơ)"
+                >
+                  <Crown className="w-4 h-4 text-amber-700" />
+                </div>
+              ) : matchedExistingAttendee ? (
+                isOwner ? (
+                  <div 
+                    className="w-7 h-7 rounded-lg bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shadow-2xs cursor-default"
+                    title="Chính chủ hồ sơ (Tự do đổi size áo, số điện thoại & lời chúc)"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockError(null);
+                      setUnlockPhoneDigits('');
+                      setShowPhoneUnlockModal(true);
+                    }}
+                    className="w-7 h-7 rounded-lg bg-amber-100 hover:bg-amber-200 border border-amber-400 flex items-center justify-center text-amber-900 shadow-2xs cursor-pointer transition-colors"
+                    title="Hồ sơ đã bảo vệ. Bấm vào đây để mở khóa bằng 4 số cuối SĐT"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-800" />
+                  </button>
+                )
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleResetMember}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] text-amber-800 hover:text-amber-950 bg-white hover:bg-amber-100/60 border border-amber-300 rounded-lg font-bold transition-colors cursor-pointer shrink-0 shadow-2xs"
+              >
+                <X className="w-3 h-3" />
+                <span>Đổi bạn khác</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div id="rsvp-member-selector" className="space-y-2.5 w-full scroll-mt-28" ref={dropdownRef}>
@@ -1818,35 +1985,50 @@ export default function RsvpForm({
               </div>
             )}
 
-            {/* NÚT GỬI ĐIỂM DANH HOẶC BÁO VẮNG */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`w-full text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-md active:scale-[0.99] ${
-                status === 'yes'
-                  ? 'bg-[#8D5B28] hover:bg-[#784A1E]'
-                  : 'bg-slate-800 hover:bg-slate-900'
-              }`}
-            >
-              {isSubmitting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{status === 'yes' ? 'Đang ghi nhận điểm danh...' : 'Đang lưu phản hồi báo vắng...'}</span>
-                </>
-              ) : status === 'yes' ? (
-                <>
-                  <Sparkles className="w-4 h-4 text-amber-200" />
-                  <span>{matchedExistingAttendee ? 'Cập Nhật Điểm Danh' : 'Xác Nhận Tham Dự Ngay'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              ) : (
-                <>
-                  <HeartHandshake className="w-4 h-4 text-amber-300" />
-                  <span>{matchedExistingAttendee ? 'Cập Nhật: Báo Bận Vắng Mặt' : 'Gửi Lời Nhắn & Báo Vắng Mặt'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+            {/* NÚT GỬI ĐIỂM DANH HOẶC MỞ KHÓA NẾU BỊ KHÓA */}
+            {isLocked ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setUnlockError(null);
+                  setUnlockPhoneDigits('');
+                  setShowPhoneUnlockModal(true);
+                }}
+                className="w-full text-amber-950 bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 hover:from-amber-200 hover:to-amber-300 border-2 border-amber-400 font-sans font-bold text-xs sm:text-sm py-3 px-4 rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+              >
+                <Lock className="w-4 h-4 text-amber-800" />
+                <span>Mở Khóa Bằng 4 Số Cuối SĐT Để Cập Nhật</span>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider py-3 px-4 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-md active:scale-[0.99] ${
+                  status === 'yes'
+                    ? 'bg-[#8D5B28] hover:bg-[#784A1E]'
+                    : 'bg-slate-800 hover:bg-slate-900'
+                }`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>{status === 'yes' ? 'Đang ghi nhận điểm danh...' : 'Đang lưu phản hồi báo vắng...'}</span>
+                  </>
+                ) : status === 'yes' ? (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-200" />
+                    <span>{matchedExistingAttendee ? 'Cập Nhật Điểm Danh' : 'Xác Nhận Tham Dự Ngay'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                ) : (
+                  <>
+                    <HeartHandshake className="w-4 h-4 text-amber-300" />
+                    <span>{matchedExistingAttendee ? 'Cập Nhật: Báo Bận Vắng Mặt' : 'Gửi Lời Nhắn & Báo Vắng Mặt'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
           </form>
         </div>
       </div>
@@ -1930,6 +2112,92 @@ export default function RsvpForm({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MỞ KHÓA HỒ SƠ BẰNG 4 SỐ CUỐI SĐT */}
+      {showPhoneUnlockModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#FFFDF9] border border-amber-300/80 rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden animate-scaleUp relative">
+            <div className="bg-gradient-to-r from-[#8D5B28] via-[#A8723C] to-[#784A1E] p-4 text-white text-center relative">
+              <button
+                type="button"
+                onClick={() => setShowPhoneUnlockModal(false)}
+                className="absolute top-3 right-3 text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                title="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-white/20 border border-white/30 flex items-center justify-center shadow-inner">
+                <KeyRound className="w-5 h-5 text-amber-200" />
+              </div>
+
+              <h3 className="font-serif font-bold text-sm sm:text-base text-amber-100">
+                Xác Thực Chính Chủ
+              </h3>
+              <p className="text-[11px] font-sans text-amber-200/90 mt-0.5">
+                {activeMember?.fullName || matchedExistingAttendee?.fullName || 'Thành viên K8A1'}
+              </p>
+            </div>
+
+            <form onSubmit={handleVerifyPhoneUnlock} className="p-4 space-y-3.5 text-left font-sans">
+              <div className="space-y-1">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Để bảo vệ hồ sơ tránh bị người khác vô tình đổi size áo hoặc sửa thông tin, vui lòng nhập <strong>4 số cuối</strong> của số điện thoại đã lưu:
+                </p>
+                {savedExistingPhone && (
+                  <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2 font-mono text-center">
+                    Gợi ý: {maskPhone(savedExistingPhone)}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 block">
+                  Nhập 4 số cuối số điện thoại:
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  autoFocus
+                  placeholder="••••"
+                  value={unlockPhoneDigits}
+                  onChange={(e) => setUnlockPhoneDigits(e.target.value.replace(/[^0-9]/g, ''))}
+                  className="w-full text-center tracking-[0.5em] font-mono font-bold text-xl py-2.5 bg-slate-50 border-2 border-amber-300 focus:border-amber-600 rounded-xl outline-none focus:ring-2 focus:ring-amber-400/40 transition"
+                />
+              </div>
+
+              {unlockError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 text-[11px] text-rose-700 rounded-lg">
+                  {unlockError}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowPhoneUnlockModal(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer transition-colors text-center"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={unlockPhoneDigits.length !== 4}
+                  className="flex-1 py-2 text-xs font-bold text-white bg-[#8D5B28] hover:bg-[#784A1E] disabled:opacity-50 rounded-xl cursor-pointer transition-colors text-center shadow-xs"
+                >
+                  Mở khóa
+                </button>
+              </div>
+
+              <p className="text-[10px] text-slate-400 text-center italic">
+                Nếu bạn đổi số hoặc quên số, vui lòng liên hệ Ban Liên Lạc để được hỗ trợ mở khóa nhanh.
+              </p>
+            </form>
           </div>
         </div>
       )}
