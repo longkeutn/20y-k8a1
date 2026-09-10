@@ -2811,16 +2811,16 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   letterParagraph2: "Hãy tạm gác lại những bộn bề âu lo, cùng trở về mái trường xưa và nâng ly hội ngộ để gặp lại những gương mặt thanh xuân năm nào, cùng viết tiếp câu chuyện tình bạn đẹp đẽ của Lớp K8A1 chúng mình!",
   letterSignatureTitle: "Ban Liên Lạc Lớp K8A1 (Khóa 8)",
   letterSignatureSubtitle: "Trường THPT Thái Nguyên (2003 — 2006)",
-  bankName: "Vietcombank (VCB)",
-  bankAccount: "10123456789",
-  bankHolder: "NGUYEN VAN BAN TO CHUC",
-  transferSyntax: "KY NIEM 20 NAM K8A1",
+  bankName: "VietinBank (CTG)",
+  bankAccount: "103004505646",
+  bankHolder: "DAO THI HONG NHUNG",
+  transferSyntax: "KY NIEM 20 NAM [HO TEN] [SDT]",
   fundAmountPerPerson: 700000,
   customQrUrl: "",
-  bankCode: "vietcombank",
+  bankCode: "vietinbank",
   qrTemplate: "compact",
-  heroBannerUrl: "",
-  heroBannerPosition: 50,
+  heroBannerUrl: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
+  heroBannerPosition: 82,
   schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
 };
 

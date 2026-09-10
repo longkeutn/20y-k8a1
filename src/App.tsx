@@ -270,9 +270,16 @@ export default function App() {
   // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
   const [heroBannerUrl, setHeroBannerUrl] = useState<string>(() => {
     try {
-      return localStorage.getItem('k8a1_hero_banner_url') || '';
+      const saved = localStorage.getItem('k8a1_hero_banner_url');
+      if (saved) return saved;
+      const cfg = localStorage.getItem('k8a1_event_config');
+      if (cfg) {
+        const parsed = JSON.parse(cfg);
+        if (parsed.heroBannerUrl) return parsed.heroBannerUrl;
+      }
+      return DEFAULT_EVENT_CONFIG.heroBannerUrl || "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600";
     } catch {
-      return '';
+      return DEFAULT_EVENT_CONFIG.heroBannerUrl || "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600";
     }
   });
 
@@ -283,11 +290,31 @@ export default function App() {
         const num = parseFloat(saved);
         if (!isNaN(num) && num >= 0 && num <= 100) return num;
       }
-      return 50;
+      const cfg = localStorage.getItem('k8a1_event_config');
+      if (cfg) {
+        const parsed = JSON.parse(cfg);
+        if (parsed.heroBannerPosition !== undefined) {
+          const num = parseFloat(parsed.heroBannerPosition);
+          if (!isNaN(num) && num >= 0 && num <= 100) return num;
+        }
+      }
+      return DEFAULT_EVENT_CONFIG.heroBannerPosition ?? 82;
     } catch {
-      return 50;
+      return DEFAULT_EVENT_CONFIG.heroBannerPosition ?? 82;
     }
   });
+
+  // Tự động đồng bộ Hero Banner khi eventConfig thay đổi từ server
+  useEffect(() => {
+    if (eventConfig.heroBannerUrl && eventConfig.heroBannerUrl !== heroBannerUrl) {
+      setHeroBannerUrl(eventConfig.heroBannerUrl);
+      try { localStorage.setItem('k8a1_hero_banner_url', eventConfig.heroBannerUrl); } catch (e) {}
+    }
+    if (eventConfig.heroBannerPosition !== undefined && eventConfig.heroBannerPosition !== heroBannerPosition) {
+      setHeroBannerPosition(eventConfig.heroBannerPosition);
+      try { localStorage.setItem('k8a1_hero_banner_position', eventConfig.heroBannerPosition.toString()); } catch (e) {}
+    }
+  }, [eventConfig.heroBannerUrl, eventConfig.heroBannerPosition]);
 
   // Helper chuẩn hóa dữ liệu RSVP chống crash do sai lệch kiểu dữ liệu
   const sanitizeRsvp = (item: any): RsvpData => ({
@@ -1184,11 +1211,11 @@ export default function App() {
       const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
       const antiCache = `&_t=${Date.now()}&_rnd=${Math.random().toString(36).substring(7)}`;
 
-      // ⚡ FAST-TRACK CORE DATA: Tải song song siêu tốc cả Điểm danh (Trang_tinh_1) và Danh bạ 65 bạn (Danh_Sach_Lop)
-      // Chỉ ~1-1.5 giây để số người tham gia và thông tin thành viên cập nhật ngay tức thì, không bị trễ
+      // ⚡ FAST-TRACK CORE DATA: Tải song song siêu tốc Cấu hình (Banner, Địa điểm, Quỹ), Điểm danh và Danh bạ
+      // Chỉ ~1-1.5 giây để Banner, số người tham gia và danh bạ hiển thị ngay tức thì, không bị trễ
       const fetchCoreFastPromise = (async () => {
         try {
-          const [rsvpRes, rosterRes] = await Promise.allSettled([
+          const [rsvpRes, rosterRes, cfgRes] = await Promise.allSettled([
             fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, {
               cache: 'no-store',
               headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
@@ -1196,10 +1223,34 @@ export default function App() {
             fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, {
               cache: 'no-store',
               headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
+            }).then(r => r.json()),
+            fetch(`${targetUrl}?action=get_config${antiCache}`, {
+              cache: 'no-store',
+              headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
             }).then(r => r.json())
           ]);
 
           let gotFastData = false;
+
+          if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
+            const cfg = cfgRes.value.data;
+            setEventConfig((prev) => {
+              const updated = sanitizeEventConfig({ ...prev, ...cfg });
+              try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
+              return updated;
+            });
+            if (cfg.heroBannerUrl) {
+              const cleanBanner = normalizeImageUrl(cfg.heroBannerUrl);
+              setHeroBannerUrl(cleanBanner);
+              try { localStorage.setItem('k8a1_hero_banner_url', cleanBanner); } catch (e) {}
+            }
+            if (cfg.heroBannerPosition !== undefined) {
+              const pos = Number(cfg.heroBannerPosition) || 50;
+              setHeroBannerPosition(pos);
+              try { localStorage.setItem('k8a1_hero_banner_position', pos.toString()); } catch (e) {}
+            }
+            gotFastData = true;
+          }
 
           if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data) && rsvpRes.value.data.length > 0) {
             setRsvpList((prev) => {
@@ -1226,7 +1277,7 @@ export default function App() {
             setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           }
         } catch (fastErr) {
-          console.warn('Lỗi Fast-Track get_rsvp & get_roster:', fastErr);
+          console.warn('Lỗi Fast-Track get_rsvp, get_roster & get_config:', fastErr);
         }
       })();
 
@@ -1420,7 +1471,22 @@ export default function App() {
                 fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json())
               ]);
               if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
-                setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
+                const cfg = cfgRes.value.data;
+                setEventConfig((prev) => {
+                  const updated = sanitizeEventConfig({ ...prev, ...cfg });
+                  try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
+                  return updated;
+                });
+                if (cfg.heroBannerUrl) {
+                  const cleanBanner = normalizeImageUrl(cfg.heroBannerUrl);
+                  setHeroBannerUrl(cleanBanner);
+                  try { localStorage.setItem('k8a1_hero_banner_url', cleanBanner); } catch (e) {}
+                }
+                if (cfg.heroBannerPosition !== undefined) {
+                  const pos = Number(cfg.heroBannerPosition) || 50;
+                  setHeroBannerPosition(pos);
+                  try { localStorage.setItem('k8a1_hero_banner_position', pos.toString()); } catch (e) {}
+                }
               }
               if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data)) {
                 setRsvpList((prev) => {
@@ -1472,7 +1538,22 @@ export default function App() {
               fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json())
             ]);
             if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
-              setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
+              const cfg = cfgRes.value.data;
+              setEventConfig((prev) => {
+                const updated = sanitizeEventConfig({ ...prev, ...cfg });
+                try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
+                return updated;
+              });
+              if (cfg.heroBannerUrl) {
+                const cleanBanner = normalizeImageUrl(cfg.heroBannerUrl);
+                setHeroBannerUrl(cleanBanner);
+                try { localStorage.setItem('k8a1_hero_banner_url', cleanBanner); } catch (e) {}
+              }
+              if (cfg.heroBannerPosition !== undefined) {
+                const pos = Number(cfg.heroBannerPosition) || 50;
+                setHeroBannerPosition(pos);
+                try { localStorage.setItem('k8a1_hero_banner_position', pos.toString()); } catch (e) {}
+              }
             }
             if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data)) {
               setRsvpList((prev) => {
@@ -1800,25 +1881,36 @@ export default function App() {
         
         {/* 1. Full-Width Background Panoramic Photo or Branded Dynamic Theme */}
         <div className="absolute inset-0 z-0 overflow-hidden bg-[#161B26]">
-          {heroBannerUrl ? (
-            <img
-              src={heroBannerUrl}
-              alt="Kỷ Niệm Thanh Xuân K8A1 THPT Thái Nguyên"
-              style={{ objectPosition: `center ${heroBannerPosition}%` }}
-              onError={(e) => {
-                // Khi ảnh lỗi hoặc link hỏng, ẩn thẻ img để hiển thị nền gradient sang trọng, không dùng link unsplash rác
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-              className="w-full h-full object-cover filter brightness-65 contrast-105 saturate-90 scale-102 transition-[object-position] duration-500"
-            />
-          ) : (
-            /* Nền K8A1 Gradient & Glassmorphism sang trọng khi chưa có ảnh hoặc đang tải */
-            <div className="w-full h-full bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0A0E17] relative">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(245,158,11,0.16),transparent_50%)]" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,_rgba(180,83,9,0.12),transparent_50%)]" />
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
-            </div>
-          )}
+          {(() => {
+            const activeBanner = heroBannerUrl || eventConfig.heroBannerUrl || DEFAULT_EVENT_CONFIG.heroBannerUrl || "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600";
+            const activePos = heroBannerPosition ?? eventConfig.heroBannerPosition ?? 82;
+            return activeBanner ? (
+              <img
+                src={activeBanner}
+                alt="Kỷ Niệm Thanh Xuân K8A1 THPT Thái Nguyên"
+                style={{ objectPosition: `center ${activePos}%` }}
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  if (img.src.includes('lh3.googleusercontent.com/d/')) {
+                    const match = img.src.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) {
+                      img.src = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1600`;
+                      return;
+                    }
+                  }
+                  img.style.display = 'none';
+                }}
+                className="w-full h-full object-cover filter brightness-65 contrast-105 saturate-90 scale-102 transition-[object-position] duration-500"
+              />
+            ) : (
+              /* Nền K8A1 Gradient & Glassmorphism sang trọng khi chưa có ảnh hoặc đang tải */
+              <div className="w-full h-full bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0A0E17] relative">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(245,158,11,0.16),transparent_50%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,_rgba(180,83,9,0.12),transparent_50%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
+              </div>
+            );
+          })()}
           {/* Top Darkening Tint for Navbar Contrast */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent pointer-events-none" />
           
@@ -2489,8 +2581,8 @@ export default function App() {
           onUpdateVideos={handleUpdateVideos}
           venueMediaList={venueMediaList}
           onUpdateVenueMediaList={handleUpdateVenueMedia}
-          heroBannerUrl={heroBannerUrl}
-          heroBannerPosition={heroBannerPosition}
+          heroBannerUrl={heroBannerUrl || eventConfig.heroBannerUrl || DEFAULT_EVENT_CONFIG.heroBannerUrl}
+          heroBannerPosition={heroBannerPosition ?? eventConfig.heroBannerPosition ?? 82}
           onUpdateHeroBannerUrl={handleUpdateHeroBanner}
           eventConfig={eventConfig}
           onUpdateEventConfig={handleUpdateEventConfig}
