@@ -335,6 +335,7 @@ export default function AdminManagementHub({
   const [isUpdatingPins, setIsUpdatingPins] = useState(false);
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
   const [copiedScriptCode, setCopiedScriptCode] = useState(false);
+  const [copiedZaloShareLink, setCopiedZaloShareLink] = useState(false);
   const [showScriptCodeModal, setShowScriptCodeModal] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isCheckingSecuritySheet, setIsCheckingSecuritySheet] = useState(false);
@@ -7485,6 +7486,98 @@ export default function AdminManagementHub({
                                 </>
                               )}
                             </button>
+                          </div>
+                        {/* 🔑 CHÌA KHÓA NGẦM ZALO & LINK CHIA SẺ NHÓM LỚP K8A1 */}
+                        <div className="p-4 bg-gradient-to-br from-blue-500/10 via-indigo-50/50 to-amber-50/60 rounded-xl border-2 border-blue-300 space-y-3.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-200 pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1.5 bg-blue-600 text-white rounded-lg shadow-xs">
+                                <KeyRound className="w-4 h-4" />
+                              </span>
+                              <div>
+                                <h4 className="font-bold text-slate-900 text-sm">
+                                  Chìa Khóa Ngầm Zalo & Link Chia Sẻ Lớp K8A1
+                                </h4>
+                                <p className="text-[11px] text-slate-500">
+                                  Lưu tại tab <code className="font-bold text-blue-800 bg-blue-100/70 px-1 py-0.5 rounded">Cau_Hinh</code> trên Google Sheets. Bạn có thể sửa trực tiếp trên Sheet hoặc tại đây.
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-mono font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded border border-blue-200">
+                              Tab: Cau_Hinh (memberAccessKey)
+                            </span>
+                          </div>
+
+                          <div className="space-y-3 text-xs">
+                            <div className="space-y-1.5">
+                              <label className="font-bold text-slate-700 flex items-center justify-between">
+                                <span>Từ khóa ngầm trên link Zalo (Mặc định: k8a1):</span>
+                                <span className="font-mono text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-bold text-[10px]">
+                                  ?k={eventConfigForm.memberAccessKey || 'k8a1'}
+                                </span>
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={eventConfigForm.memberAccessKey || ''}
+                                  onChange={(e) => setEventConfigForm({ ...eventConfigForm, memberAccessKey: e.target.value.trim().toLowerCase() })}
+                                  placeholder="k8a1"
+                                  className="w-48 px-3 py-2 bg-white border border-blue-300 rounded-lg font-mono text-xs text-blue-900 font-bold focus:outline-none focus:border-blue-500"
+                                />
+                                <span className="text-[11px] text-slate-500 italic">
+                                  (Ví dụ: k8a1, 20nam, k8a1vip...)
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Link tạo sẵn để chia sẻ */}
+                            <div className="p-3 bg-white border border-blue-200 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-slate-800 text-[11px] flex items-center gap-1.5">
+                                  <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                                  Link chính thức ghim nhóm Zalo Lớp K8A1:
+                                </span>
+                                <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">
+                                  ✓ Tự kích hoạt quyền
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 bg-[#FAF9F6] border border-slate-300 p-1.5 rounded-lg">
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={`${typeof window !== 'undefined' ? window.location.href.split('#')[0].split('?')[0] : ''}?k=${encodeURIComponent((eventConfigForm.memberAccessKey || 'k8a1').trim().toLowerCase())}`}
+                                  className="flex-1 text-xs text-blue-900 font-mono bg-transparent outline-none px-1 select-all"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const fullUrl = `${window.location.href.split('#')[0].split('?')[0]}?k=${encodeURIComponent((eventConfigForm.memberAccessKey || 'k8a1').trim().toLowerCase())}`;
+                                    navigator.clipboard.writeText(fullUrl);
+                                    setCopiedZaloShareLink(true);
+                                    setTimeout(() => setCopiedZaloShareLink(false), 2500);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer shadow-xs"
+                                >
+                                  {copiedZaloShareLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                                  <span>{copiedZaloShareLink ? 'Đã sao chép!' : 'Sao chép link Zalo'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const fullUrl = `${window.location.href.split('#')[0].split('?')[0]}?k=${encodeURIComponent((eventConfigForm.memberAccessKey || 'k8a1').trim().toLowerCase())}`;
+                                    window.open(`https://zalo.me/share?url=${encodeURIComponent(fullUrl)}`, '_blank', 'noopener,noreferrer');
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-bold rounded-md transition-colors cursor-pointer"
+                                  title="Gửi trực tiếp lên Zalo"
+                                >
+                                  <span>Zalo</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                                💡 <strong>Hướng dẫn:</strong> Bấm nút <strong>"Sao chép link Zalo"</strong> rồi dán vào tin nhắn ghim của nhóm Zalo Lớp K8A1. Bất kỳ bạn học nào bấm vào sẽ vào thẳng, tự động mở quyền điểm danh & lưu bút mãi mãi, không bị hỏi mã PIN.
+                              </p>
+                            </div>
                           </div>
                         </div>
 

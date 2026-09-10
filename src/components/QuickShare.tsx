@@ -35,19 +35,31 @@ export default function QuickShare({
   eventConfig
 }: QuickShareProps) {
   const [showModal, setShowModal] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedZaloLink, setCopiedZaloLink] = useState(false);
+  const [copiedPublicLink, setCopiedPublicLink] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
-  const getShareUrl = (bustCache: boolean = false) => {
+  const memberKey = (eventConfig?.memberAccessKey || 'k8a1').trim().toLowerCase();
+
+  const getBaseUrl = () => {
     if (typeof window !== 'undefined') {
-      const baseUrl = window.location.href.split('#')[0].split('?')[0];
-      if (bustCache) {
-        return `${baseUrl}?v=${Date.now().toString().slice(-6)}`;
-      }
-      return baseUrl;
+      return window.location.href.split('#')[0].split('?')[0];
     }
     return 'https://ais-dev-psz3qzk7y7qxcp67ilerhc-625228135894.asia-southeast1.run.app';
+  };
+
+  const getZaloShareUrl = () => {
+    const base = getBaseUrl();
+    return `${base}?k=${encodeURIComponent(memberKey)}`;
+  };
+
+  const getPublicShareUrl = () => {
+    return getBaseUrl();
+  };
+
+  const getShareUrl = (includeMemberKey: boolean = true) => {
+    return includeMemberKey ? getZaloShareUrl() : getPublicShareUrl();
   };
 
   // Thông tin chia sẻ động từ eventConfig (hoặc fallback chuẩn không kèm địa điểm cố định)
@@ -70,7 +82,7 @@ export default function QuickShare({
   const dynamicMessage = `🌸 THƯ MỜI HỘI NGỘ 20 NĂM LỚP K8A1 (2006 - 2026) 🌸\n\nThân mời tất cả các bạn cựu học sinh Lớp K8A1 (Khóa 8) Trường THPT Thái Nguyên về tham dự Ngày Hội Ngộ 20 Năm Thanh Xuân!\n⏰ Thời gian: ${dynamicTime}\n📍 Địa điểm: ${dynamicVenue}\n\n👉 Hãy bấm vào liên kết bên dưới để xác nhận tham dự và cùng ôn lại kỷ niệm nhé:`;
 
   const handleNativeShare = async () => {
-    const url = getShareUrl(true);
+    const url = getZaloShareUrl();
     const shareData = {
       title: dynamicTitle,
       text: `${dynamicDesc}\n\n`,
@@ -87,33 +99,41 @@ export default function QuickShare({
         await navigator.share(shareData);
         return;
       } catch (err: any) {
-        // If aborted by user (cancel), do nothing
         if (err?.name === 'AbortError') return;
-        // Otherwise fallback to custom modal
         setShowModal(true);
         return;
       }
     }
 
-    // Fallback: Open custom share modal
     setShowModal(true);
   };
 
-  const handleCopyLink = async () => {
-    const url = getShareUrl(true);
+  const handleCopyZaloLink = async () => {
+    const url = getZaloShareUrl();
     try {
       await navigator.clipboard.writeText(url);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
+      setCopiedZaloLink(true);
+      setTimeout(() => setCopiedZaloLink(false), 2500);
     } catch {
-      // Fallback
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
+      setCopiedZaloLink(true);
+      setTimeout(() => setCopiedZaloLink(false), 2500);
+    }
+  };
+
+  const handleCopyPublicLink = async () => {
+    const url = getPublicShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedPublicLink(true);
+      setTimeout(() => setCopiedPublicLink(false), 2500);
+    } catch {
+      setCopiedPublicLink(true);
+      setTimeout(() => setCopiedPublicLink(false), 2500);
     }
   };
 
   const handleCopyFullInvitation = async () => {
-    const url = getShareUrl(true);
+    const url = getZaloShareUrl();
     const fullText = `${dynamicMessage}\n${url}`;
     try {
       await navigator.clipboard.writeText(fullText);
@@ -126,14 +146,13 @@ export default function QuickShare({
   };
 
   const handleShareZalo = () => {
-    const url = getShareUrl(true);
-    // Zalo web share dialog
+    const url = getZaloShareUrl();
     const zaloUrl = `https://zalo.me/share?url=${encodeURIComponent(url)}`;
     window.open(zaloUrl, '_blank', 'noopener,noreferrer,width=600,height=600');
   };
 
   const handleShareFacebook = () => {
-    const url = getShareUrl(false);
+    const url = getPublicShareUrl();
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=600,height=500');
   };
@@ -295,25 +314,57 @@ export default function QuickShare({
                 </button>
               </div>
 
-              {/* Quick Link Copy Box */}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text">
-                  Đường dẫn liên kết ứng dụng:
-                </label>
-                <div className="flex items-center gap-1.5 bg-white border border-brand-border p-1.5 rounded-xs">
+              {/* 🔵 Link Chia Sẻ Vào Nhóm Zalo Lớp K8A1 */}
+              <div className="p-3 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-amber-50/60 border border-blue-200/80 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-blue-950 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                    Link Nhóm Zalo Lớp K8A1 (Tự mở quyền điểm danh):
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-100/80 px-1.5 py-0.5 rounded">
+                    Khóa: ?k={memberKey}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white border border-blue-300 p-1.5 rounded-lg shadow-2xs">
                   <input
                     type="text"
                     readOnly
-                    value={getShareUrl()}
-                    className="flex-1 text-xs text-brand-text font-mono bg-transparent outline-none px-1"
+                    value={getZaloShareUrl()}
+                    className="flex-1 text-xs text-blue-900 font-mono bg-transparent outline-none px-1 select-all"
                   />
                   <button
                     type="button"
-                    onClick={handleCopyLink}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-text hover:bg-brand-gold text-white text-[10px] font-sans font-bold uppercase tracking-wider rounded-xs transition-colors cursor-pointer"
+                    onClick={handleCopyZaloLink}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-sans font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer shadow-xs"
                   >
-                    {copiedLink ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedLink ? 'Đã sao chép' : 'Sao chép'}</span>
+                    {copiedZaloLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedZaloLink ? 'Đã sao chép!' : 'Sao chép link Zalo'}</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 italic">
+                  💡 Bạn học bấm link này sẽ được tự động mở quyền điểm danh & lưu bút mãi mãi.
+                </p>
+              </div>
+
+              {/* 🌐 Link Công Khai (Chế độ xem) */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-sans font-bold uppercase tracking-wider text-slate-600">
+                  Hoặc link công khai (Chế độ chỉ xem cho người ngoài):
+                </label>
+                <div className="flex items-center gap-1.5 bg-white border border-slate-300 p-1.5 rounded-lg">
+                  <input
+                    type="text"
+                    readOnly
+                    value={getPublicShareUrl()}
+                    className="flex-1 text-xs text-slate-700 font-mono bg-transparent outline-none px-1 select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyPublicLink}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-sans font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer"
+                  >
+                    {copiedPublicLink ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedPublicLink ? 'Đã chép' : 'Sao chép'}</span>
                   </button>
                 </div>
               </div>

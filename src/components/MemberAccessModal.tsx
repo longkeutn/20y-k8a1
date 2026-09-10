@@ -7,11 +7,12 @@ interface MemberAccessModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  customKey?: string;
 }
 
 const VALID_MEMBER_KEYS = ['k8a1', '20nam', 'k8a1tn', 'thanhxuan20nam'];
 
-export default function MemberAccessModal({ isOpen, onClose, onSuccess }: MemberAccessModalProps) {
+export default function MemberAccessModal({ isOpen, onClose, onSuccess, customKey }: MemberAccessModalProps) {
   const [accessCode, setAccessCode] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -21,8 +22,13 @@ export default function MemberAccessModal({ isOpen, onClose, onSuccess }: Member
   const handleVerifyCode = (e: React.FormEvent) => {
     e.preventDefault();
     const clean = accessCode.trim().toLowerCase();
+    const allowedKeys = [...VALID_MEMBER_KEYS];
+    if (customKey && customKey.trim()) {
+      const cleanCustom = customKey.trim().toLowerCase();
+      if (!allowedKeys.includes(cleanCustom)) allowedKeys.push(cleanCustom);
+    }
     
-    if (VALID_MEMBER_KEYS.includes(clean)) {
+    if (allowedKeys.includes(clean)) {
       setErrorMsg('');
       setIsSuccess(true);
       try {

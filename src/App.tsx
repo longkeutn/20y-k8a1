@@ -181,7 +181,8 @@ export default function App() {
     qrTemplate: cfg?.qrTemplate || DEFAULT_EVENT_CONFIG.qrTemplate,
     heroBannerUrl: cfg?.heroBannerUrl ? normalizeImageUrl(String(cfg.heroBannerUrl)) : DEFAULT_EVENT_CONFIG.heroBannerUrl,
     heroBannerPosition: cfg?.heroBannerPosition !== undefined ? (Number(cfg.heroBannerPosition) || 50) : 50,
-    schoolLogoUrl: cfg?.schoolLogoUrl ? String(cfg.schoolLogoUrl) : DEFAULT_EVENT_CONFIG.schoolLogoUrl
+    schoolLogoUrl: cfg?.schoolLogoUrl ? String(cfg.schoolLogoUrl) : DEFAULT_EVENT_CONFIG.schoolLogoUrl,
+    memberAccessKey: String(cfg?.memberAccessKey || DEFAULT_EVENT_CONFIG.memberAccessKey || 'k8a1').trim().toLowerCase()
   });
 
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
@@ -206,12 +207,35 @@ export default function App() {
     return DEFAULT_EVENT_CONFIG;
   });
 
+  // Tự động kiểm tra chìa khóa ngầm trên URL mỗi khi cấu hình sự kiện (memberAccessKey từ Sheet) được đồng bộ
+  useEffect(() => {
+    if (typeof window !== 'undefined' && eventConfig.memberAccessKey) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const rawKey = (params.get('k') || params.get('key') || '').trim().toLowerCase();
+        const customKey = eventConfig.memberAccessKey.trim().toLowerCase();
+        const validKeys = ['k8a1', '20nam', 'k8a1tn', 'thanhxuan20nam'];
+        if (customKey && !validKeys.includes(customKey)) validKeys.push(customKey);
+
+        if (rawKey && validKeys.includes(rawKey)) {
+          localStorage.setItem('k8a1_member_verified', 'true');
+          setIsMemberVerified(true);
+          params.delete('k');
+          params.delete('key');
+          const cleanSearch = params.toString();
+          const cleanUrl = window.location.pathname + (cleanSearch ? `?${cleanSearch}` : '') + window.location.hash;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      } catch (e) {}
+    }
+  }, [eventConfig.memberAccessKey]);
+
   // Hàm đồng bộ dữ liệu trực tiếp lên Google Sheet Backend
   const syncToBackend = async (action: string, payload: any) => {
     if (!activeAppsScriptUrl || !activeAppsScriptUrl.startsWith('http')) return;
     try {
       const pin = sessionStorage.getItem('admin_pin_token') || undefined;
-      const memberKey = isMemberVerified ? 'k8a1' : undefined;
+      const memberKey = isMemberVerified ? (eventConfig.memberAccessKey || 'k8a1') : undefined;
       await fetch(activeAppsScriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -2577,6 +2601,7 @@ export default function App() {
       <MemberAccessModal
         isOpen={isMemberAccessModalOpen}
         onClose={() => setIsMemberAccessModalOpen(false)}
+        customKey={eventConfig.memberAccessKey}
         onSuccess={() => {
           setIsMemberVerified(true);
           setIsMemberAccessModalOpen(false);

@@ -2822,7 +2822,8 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   qrTemplate: "compact",
   heroBannerUrl: "",
   heroBannerPosition: 50,
-  schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
+  schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
+  memberAccessKey: "k8a1"
 };
 
 // Logo chính thức Trường THPT Thái Nguyên (thuộc ĐH Sư Phạm - ĐH Thái Nguyên)
@@ -3568,7 +3569,28 @@ function doPost(e) {
     const pin = postData.pin || postData.adminPin || postData.authPin || '';
     const isAdmin = checkAdminAuthPin(pin);
     const memberKey = String(postData.memberKey || postData.k || postData.key || '').trim().toLowerCase();
-    const isMemberAuthorized = isAdmin || ['k8a1', '20nam', 'k8a1tn', 'thanhxuan20nam'].indexOf(memberKey) !== -1;
+
+    // 🔑 Đọc chìa khóa ngầm tùy biến từ tab Cau_Hinh (người dùng tự sửa trực tiếp trên Google Sheets)
+    var customMemberKey = '';
+    try {
+      var ssConf = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.CONFIG_SHEET_NAME);
+      if (ssConf) {
+        var cRows = ssConf.getDataRange().getValues();
+        for (var ci = 1; ci < cRows.length; ci++) {
+          var ck = String(cRows[ci][0] || '').trim();
+          if (ck === 'memberAccessKey' || ck === 'accessKey' || ck === 'khoaThanhVien') {
+            customMemberKey = String(cRows[ci][1] || '').trim().toLowerCase();
+            break;
+          }
+        }
+      }
+    } catch (eConfKey) {}
+
+    var validKeys = ['k8a1', '20nam', 'k8a1tn', 'thanhxuan20nam'];
+    if (customMemberKey && validKeys.indexOf(customMemberKey) === -1) {
+      validKeys.push(customMemberKey);
+    }
+    const isMemberAuthorized = isAdmin || validKeys.indexOf(memberKey) !== -1;
 
     // Khởi tạo / kiểm tra sheet bảo mật
     if (action === 'init_security' || action === 'init_pins') {
@@ -4780,11 +4802,13 @@ function saveEventConfig(postData) {
         valToSave = valToSave.substring(0, 45000);
       }
 
+      var keyDesc = (key === 'memberAccessKey') ? 'Mật khẩu ngầm nhóm Zalo lớp K8A1 (Tự động mở quyền điểm danh)' : '';
       if (rowIndex) {
         sheet.getRange(rowIndex, 2).setValue(valToSave);
         sheet.getRange(rowIndex, 4).setValue(nowStr);
+        if (keyDesc) sheet.getRange(rowIndex, 3).setValue(keyDesc);
       } else {
-        sheet.appendRow([key, valToSave, '', nowStr]);
+        sheet.appendRow([key, valToSave, keyDesc, nowStr]);
         keyToRowIndex[key] = sheet.getLastRow();
       }
     }
