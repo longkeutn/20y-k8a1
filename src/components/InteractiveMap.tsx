@@ -370,7 +370,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
             type="button"
             onClick={() => setIsEditMediaModalOpen(true)}
             className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-100/80 hover:bg-amber-200/90 text-amber-900 rounded-lg text-xs font-sans font-semibold border border-amber-300/80 transition cursor-pointer"
-            title="Dán link Facebook, YouTube, Drive hoặc ảnh minh họa nhà hàng"
+            title="Dán link Facebook, YouTube hoặc ảnh minh họa nhà hàng"
           >
             <Edit3 className="w-3.5 h-3.5 text-amber-700" />
             <span>Đổi Video / Ảnh Nhà Hàng</span>
@@ -725,7 +725,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                 Tùy Chỉnh Video & Ảnh Nhà Hàng
               </h3>
               <p className="text-xs text-slate-500 font-serif italic">
-                Hỗ trợ dán link video từ <strong>Facebook, YouTube, Google Drive, Direct MP4</strong> hoặc link ảnh không gian Crown Palace.
+                Hỗ trợ dán link video từ <strong>Facebook, YouTube, MP4</strong> hoặc link ảnh không gian Crown Palace.
               </p>
             </div>
 
@@ -739,7 +739,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
             <form onSubmit={handleAddMediaSubmit} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Đường dẫn Link (Facebook / YouTube / Google Drive / Ảnh): <span className="text-rose-500">*</span>
+                  Đường dẫn Link (Facebook / YouTube / Video MP4 / Ảnh): <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"

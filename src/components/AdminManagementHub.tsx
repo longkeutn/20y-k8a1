@@ -819,7 +819,7 @@ export default function AdminManagementHub({
         if (onSaveAllTeachers) {
           onSaveAllTeachers(json.data);
         }
-        alert(`Đã tải về danh sách ${json.data.length} Thầy Cô từ Google Sheet!`);
+        alert(`Đã tải về danh sách ${json.data.length} Thầy Cô thành công!`);
       } else {
         alert(json.message || 'Không thể đồng bộ danh sách Thầy Cô lúc này.');
       }
@@ -1833,7 +1833,7 @@ export default function AdminManagementHub({
       if (onRefreshData) {
         onRefreshData();
       }
-      setRosterFeedbackMsg(`✓ Đã gửi lệnh đồng bộ toàn bộ danh bạ lớp lên Google Sheet!`);
+      setRosterFeedbackMsg(`✓ Đã lưu và đồng bộ toàn bộ danh bạ lớp lên hệ thống!`);
       setTimeout(() => setRosterFeedbackMsg(''), 4000);
     } catch (e) {
       alert('Lỗi đồng bộ: ' + e);
@@ -2051,7 +2051,7 @@ export default function AdminManagementHub({
           const json = await res.json();
           if (json.status === 'success' && json.url) {
             setFundAdjustReceiptUrl(json.url);
-            setReceiptUploadSuccessMsg('Đã lưu ảnh chứng từ vào Google Drive an toàn!');
+            setReceiptUploadSuccessMsg('Đã lưu ảnh chứng từ an toàn lên hệ thống!');
             setIsUploadingReceipt(false);
             return;
           }
@@ -2412,7 +2412,7 @@ export default function AdminManagementHub({
               console.warn('Lỗi ghi save_config từ handleBannerFileUpload:', errSheet);
             }
 
-            setSettingsSuccessMsg('Đã tải ảnh lên Google Drive và cập nhật link vào Google Sheet thành công!');
+            setSettingsSuccessMsg('Đã tải ảnh lên hệ thống và lưu cấu hình thành công!');
             setTimeout(() => setSettingsSuccessMsg(''), 5000);
             return;
           } else {
@@ -2545,7 +2545,7 @@ export default function AdminManagementHub({
       }
     }
 
-    setSettingsSuccessMsg('Đã lưu ảnh bìa và cập nhật vào Google Sheet thành công!');
+    setSettingsSuccessMsg('Đã lưu ảnh bìa và cập nhật thành công!');
     setTimeout(() => setSettingsSuccessMsg(''), 4000);
   };
 
@@ -2902,7 +2902,7 @@ export default function AdminManagementHub({
       const res = await initSecuritySheetViaBackend(appsScriptUrl);
       if (res.success) {
         try { confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } }); } catch (e) {}
-        alert('✅ ' + res.message + '\n\n💡 Mẹo: Trên trang Google Sheet của lớp, bạn hãy nhìn thanh danh sách sheet ở mép dưới cùng màn hình (nằm ở góc cuối cùng bên phải) để thấy sheet "Bao_Mat_PIN".');
+        alert('✅ ' + res.message);
       } else {
         alert('Không thể khởi tạo: ' + res.message);
       }
@@ -2945,7 +2945,7 @@ export default function AdminManagementHub({
         localStorage.removeItem('k8a1_admin_pin');
         localStorage.removeItem('k8a1_treasurer_pin');
         localStorage.removeItem('k8a1_bll_pin');
-        alert('Đã khôi phục cài đặt mã PIN về mặc định thành công trên Google Sheets!');
+        alert('Đã khôi phục cài đặt mã PIN về mặc định thành công!');
       } else {
         alert('Khôi phục thất bại: ' + res.message);
       }
@@ -2982,7 +2982,7 @@ export default function AdminManagementHub({
         const hasMedia = !!json.data?.media;
         setConnectionTestResult({
           success: true,
-          message: `Kết nối thành công! Đã đồng bộ từ Google Sheet (${rsvpCount} điểm danh, ${wishesCount} lời chúc${hasConfig ? ', Cấu hình Sheet: OK' : ''}${hasMedia ? ', Media Sheet: OK' : ''}).`
+          message: `Kết nối thành công! Đã đồng bộ dữ liệu (${rsvpCount} điểm danh, ${wishesCount} lời chúc${hasConfig ? ', Cấu hình: OK' : ''}${hasMedia ? ', Media: OK' : ''}).`
         });
         onSaveAppsScriptUrl(target);
         if (onRefreshData) onRefreshData();
@@ -3008,7 +3008,7 @@ export default function AdminManagementHub({
       alert('Vui lòng nhập URL Google Apps Script Web App trong tab Cấu Hình trước!');
       return;
     }
-    if (!confirm('Hệ thống sẽ quét Google Sheet, tự động gộp các bản ghi cùng SĐT / Họ Tên thành 1 bản ghi chính xác nhất và xóa các dòng thừa. Bạn có muốn tiếp tục?')) {
+    if (!confirm('Hệ thống sẽ quét và tự động gộp các bản ghi cùng SĐT / Họ Tên thành 1 bản ghi chính xác nhất và xóa các dòng thừa. Bạn có muốn tiếp tục?')) {
       return;
     }
 
@@ -3244,10 +3244,10 @@ export default function AdminManagementHub({
               <button
                 onClick={onRefreshData}
                 className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-amber-200 text-xs font-sans font-bold rounded-lg border border-amber-400/30 transition cursor-pointer"
-                title="Đồng bộ dữ liệu mới nhất từ Google Sheet"
+                title="Làm mới dữ liệu mới nhất"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Đồng Bộ Sheet</span>
+                <span>Làm Mới</span>
               </button>
             )}
 
@@ -3464,7 +3464,7 @@ export default function AdminManagementHub({
                             type="button"
                             onClick={onRefreshData}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-lg font-bold text-xs transition shadow-2xs cursor-pointer"
-                            title="Tải lại dữ liệu mới nhất từ Google Sheet"
+                            title="Tải lại dữ liệu mới nhất"
                           >
                             <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
                             <span className="hidden sm:inline">Tải lại</span>
@@ -3476,10 +3476,10 @@ export default function AdminManagementHub({
                           onClick={handleForceSyncRoster}
                           disabled={isRosterSyncing}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
-                          title="Đẩy toàn bộ danh bạ hiện tại lưu vào Google Sheet"
+                          title="Lưu toàn bộ danh bạ hiện tại lên hệ thống"
                         >
                           <Save className={`w-3.5 h-3.5 ${isRosterSyncing ? 'animate-spin' : ''}`} />
-                          <span>{isRosterSyncing ? 'Đang lưu...' : 'Lưu Sheet'}</span>
+                          <span>{isRosterSyncing ? 'Đang lưu...' : 'Lưu Danh Bạ'}</span>
                         </button>
                       </div>
                     </div>
@@ -3794,7 +3794,7 @@ export default function AdminManagementHub({
                           onClick={handleCleanDuplicates}
                           disabled={isCleaningDuplicates}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
-                          title="Quét và xóa tự động các dòng trùng lặp trong Google Sheet"
+                          title="Quét và lọc tự động các bản ghi trùng lặp"
                         >
                           <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isCleaningDuplicates ? 'animate-spin' : ''}`} />
                           <span className="hidden sm:inline">{isCleaningDuplicates ? 'Đang lọc...' : 'Dọn Trùng'}</span>
@@ -5386,10 +5386,10 @@ export default function AdminManagementHub({
                       onClick={handleSyncTeachersFromSheet}
                       disabled={isSyncingTeachers}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-2xs"
-                      title="Tải lại danh sách Thầy Cô từ Google Sheet (Thay_Co_K8A1)"
+                      title="Tải lại danh sách Thầy Cô mới nhất"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 text-amber-700 ${isSyncingTeachers ? 'animate-spin' : ''}`} />
-                      <span>{isSyncingTeachers ? 'Đang tải...' : 'Đồng Bộ Sheet'}</span>
+                      <span>{isSyncingTeachers ? 'Đang tải...' : 'Làm Mới'}</span>
                     </button>
 
                     <button
@@ -5843,10 +5843,10 @@ export default function AdminManagementHub({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-sans font-semibold transition cursor-pointer"
-                      title="Mở thư mục Google Drive ảnh lớp K8A1"
+                      title="Mở kho ảnh kỷ niệm trực tuyến của lớp K8A1"
                     >
                       <Folder className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Folder Drive Lớp</span>
+                      <span>Kho Ảnh Kỷ Niệm</span>
                       <ExternalLink className="w-3 h-3 text-slate-400" />
                     </a>
                     <button
@@ -6011,7 +6011,7 @@ export default function AdminManagementHub({
                           type="text"
                           value={bannerInput}
                           onChange={(e) => setBannerInput(e.target.value)}
-                          placeholder="https://... dán link ảnh JPG/PNG/Unsplash/Google Drive"
+                          placeholder="https://... dán link ảnh JPG/PNG/Web"
                           className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:border-amber-500"
                         />
                         
@@ -6037,7 +6037,7 @@ export default function AdminManagementHub({
                         </label>
                       </div>
                       <p className="text-[11px] text-slate-500 italic">
-                        💡 Hỗ trợ: Link ảnh trực tiếp JPG/PNG, link chia sẻ Google Drive (tự động chuyển thành CDN trực tiếp), hoặc chọn file từ máy (tự động nén &amp; lưu trữ Drive).
+                        💡 Hỗ trợ: Link ảnh trực tiếp JPG/PNG, link ảnh trực tuyến (tự động chuyển thành CDN hiển thị trực tiếp), hoặc chọn file từ máy (tự động nén &amp; lưu trữ an toàn).
                       </p>
                     </div>
 
@@ -7376,10 +7376,10 @@ export default function AdminManagementHub({
                         </span>
                         <div>
                           <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base">
-                            5. Cấu Hình Mã PIN & Backend Google Apps Script
+                            5. Cấu Hình Mã PIN & Máy Chủ Dữ Liệu
                           </h4>
                           <p className="text-[11px] text-slate-500 font-sans">
-                            Quản lý quyền đăng nhập Admin/BLL và liên kết cơ sở dữ liệu Google Sheet
+                            Quản lý quyền đăng nhập Admin/BLL và liên kết hệ thống dữ liệu
                           </p>
                         </div>
                       </div>
@@ -7465,7 +7465,7 @@ export default function AdminManagementHub({
                           <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-amber-200/80">
                             <p className="text-[11px] text-amber-900/80 flex items-center gap-1">
                               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Mã PIN được băm mật mã và đồng bộ bảo mật trực tiếp lên Google Sheets</span>
+                              <span>Mã PIN được băm mật mã SHA-256 và đồng bộ bảo mật trực tiếp</span>
                             </p>
                             <button
                               type="button"
@@ -7476,12 +7476,12 @@ export default function AdminManagementHub({
                               {isUpdatingPins ? (
                                 <>
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  <span>Đang Đồng Bộ Lên Google Sheets...</span>
+                                  <span>Đang Đồng Bộ Mã PIN...</span>
                                 </>
                               ) : (
                                 <>
                                   <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-                                  <span>Lưu & Đồng Bộ Mã PIN Lên Google Sheets</span>
+                                  <span>Lưu & Đồng Bộ Mã PIN</span>
                                 </>
                               )}
                             </button>
@@ -7497,7 +7497,7 @@ export default function AdminManagementHub({
                               </span>
                               <div>
                                 <h4 className="font-bold text-slate-900 text-sm">
-                                  Máy Chủ Backend Google Sheets & Drive (Code.gs)
+                                  Máy Chủ Dữ Liệu & Backend (Code.gs)
                                 </h4>
                                 <p className="text-[11px] text-slate-500">
                                   Lưu trữ tập trung mọi dữ liệu: Điểm danh, Lời chúc, Cấu hình sự kiện & Thư viện Media.
@@ -7520,7 +7520,7 @@ export default function AdminManagementHub({
                                 ) : (
                                   <>
                                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                                    <span>Tạo / Mở Sheet PIN</span>
+                                    <span>Khởi Tạo Sheet PIN</span>
                                   </>
                                 )}
                               </button>
@@ -7548,7 +7548,7 @@ export default function AdminManagementHub({
                             </div>
                             <ol className="list-decimal list-inside space-y-1 text-slate-600 pl-1 leading-relaxed">
                               <li>
-                                Mở Google Sheet lớp K8A1 &gt; Nhấn menu <strong>Tiện ích mở rộng</strong> &gt; <strong>Apps Script</strong>.
+                                Mở bảng dữ liệu quản trị lớp &gt; Nhấn menu <strong>Tiện ích mở rộng</strong> &gt; <strong>Apps Script</strong>.
                               </li>
                               <li>
                                 Xóa sạch mã cũ trong file <code>Code.gs</code>, dán toàn bộ mã vừa sao chép ở trên &gt; Nhấn <strong>Lưu (Ctrl+S)</strong>.
@@ -7606,7 +7606,7 @@ export default function AdminManagementHub({
                             )}
 
                             <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                              <span>💡 Dữ liệu Điểm danh, Lời chúc, Ảnh biên lai và Cấu hình sự kiện được lưu trữ bảo mật trên Google Sheet & Drive.</span>
+                              <span>💡 Dữ liệu Điểm danh, Lời chúc, Ảnh biên lai và Cấu hình sự kiện được lưu trữ bảo mật trên hệ thống.</span>
                               <button
                                 type="button"
                                 onClick={() => setShowScriptCodeModal(!showScriptCodeModal)}
@@ -7709,7 +7709,7 @@ export default function AdminManagementHub({
                       {editingRosterMember ? 'Chỉnh Sửa Bạn Học Trong Danh Bạ Lớp' : 'Thêm Bạn Học Vào Danh Bạ Lớp'}
                     </h3>
                     <p className="text-[11px] text-emerald-700 font-sans">
-                      Lưu và đồng bộ trực tiếp lên hệ thống Google Sheets
+                      Lưu và đồng bộ trực tiếp lên hệ thống
                     </p>
                   </div>
                 </div>
@@ -8325,7 +8325,7 @@ export default function AdminManagementHub({
                       <Receipt className="w-4 h-4 text-blue-600" />
                       <span>Ảnh Chứng Từ / Bill / UNC Giao Dịch:</span>
                     </label>
-                    <span className="text-[10px] text-slate-400">Tự động lưu trữ an toàn trên Google Drive</span>
+                    <span className="text-[10px] text-slate-400">Tự động lưu trữ an toàn trên hệ thống</span>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -8334,7 +8334,7 @@ export default function AdminManagementHub({
                       disabled={!canAuditAndSpend}
                       value={fundAdjustReceiptUrl}
                       onChange={(e) => setFundAdjustReceiptUrl(e.target.value)}
-                      placeholder="Dán link ảnh Google Drive hoặc URL chứng từ..."
+                      placeholder="Dán link ảnh hoặc URL chứng từ..."
                       className={`flex-1 px-3 py-2 border rounded-lg font-mono text-xs ${
                         canAuditAndSpend ? 'bg-[#FAF8F5] border-slate-300 focus:outline-none focus:border-amber-500' : 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed'
                       }`}
@@ -8735,7 +8735,7 @@ export default function AdminManagementHub({
             >
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <h3 className="text-base font-bold font-serif text-slate-900">
-                  🎬 Chèn Link Video YouTube / Google Drive
+                  🎬 Chèn Link Video Kỷ Niệm
                 </h3>
                 <button
                   onClick={() => setIsAddVideoModalOpen(false)}
@@ -8765,11 +8765,11 @@ export default function AdminManagementHub({
                     required
                     value={videoFormData.url}
                     onChange={(e) => setVideoFormData({ ...videoFormData, url: e.target.value })}
-                    placeholder="https://youtu.be/... hoặc Google Drive preview link"
+                    placeholder="https://youtu.be/... hoặc link video preview"
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500"
                   />
                   <p className="text-[11px] text-slate-400">
-                    Tự động hỗ trợ link YouTube, YouTube Shorts hoặc file MP4 trên Google Drive.
+                    Tự động hỗ trợ link YouTube, YouTube Shorts hoặc file MP4 trực tuyến.
                   </p>
                 </div>
 
@@ -8853,7 +8853,7 @@ export default function AdminManagementHub({
                     required
                     value={photoFormData.url}
                     onChange={(e) => setPhotoFormData({ ...photoFormData, url: e.target.value })}
-                    placeholder="https://... ảnh Unsplash hoặc Google Drive direct link"
+                    placeholder="https://... dán link ảnh kỷ niệm"
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500 mt-1"
                   />
                 </div>
@@ -9122,7 +9122,7 @@ export default function AdminManagementHub({
                     {isUploadingExpenseReceipt ? (
                       <span className="px-3 py-2 bg-amber-50 text-amber-800 border border-amber-300 rounded-xl flex items-center gap-1.5 font-semibold text-xs animate-pulse">
                         <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                        <span>Đang tải hóa đơn chứng từ lên Google Drive...</span>
+                        <span>Đang tải hóa đơn chứng từ lên hệ thống...</span>
                       </span>
                     ) : (
                       <label className="px-3 py-2 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-xl cursor-pointer flex items-center gap-1.5 font-semibold text-xs transition shadow-2xs">
@@ -9159,7 +9159,7 @@ export default function AdminManagementHub({
                         {expenseFormData.receiptUrl.startsWith('http') ? (
                           <span className="text-emerald-700 flex items-center gap-1 font-sans font-semibold">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />
-                            Đã lưu trữ chứng từ an toàn trên Google Drive
+                            Đã lưu trữ chứng từ an toàn trên hệ thống
                           </span>
                         ) : 'Ảnh đính kèm cục bộ (Base64)'}
                       </p>
@@ -10033,7 +10033,7 @@ export default function AdminManagementHub({
                     {isUploadingIncomeReceipt ? (
                       <span className="px-3 py-2 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl flex items-center gap-1.5 font-semibold text-xs animate-pulse">
                         <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                        <span>Đang tải chứng từ lên Google Drive...</span>
+                        <span>Đang tải chứng từ lên hệ thống...</span>
                       </span>
                     ) : (
                       <label className="px-3 py-2 bg-white hover:bg-emerald-50 text-slate-700 border border-slate-300 rounded-xl cursor-pointer flex items-center gap-1.5 font-semibold text-xs transition shadow-2xs">
@@ -10070,7 +10070,7 @@ export default function AdminManagementHub({
                         {incomeFormData.receiptUrl.startsWith('http') ? (
                           <span className="text-emerald-700 flex items-center gap-1 font-sans font-semibold">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />
-                            Đã lưu trữ chứng từ an toàn trên Google Drive
+                            Đã lưu trữ chứng từ an toàn trên hệ thống
                           </span>
                         ) : 'Ảnh đính kèm cục bộ (Base64)'}
                       </p>

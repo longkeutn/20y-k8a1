@@ -170,7 +170,7 @@ export default function WishesGuestbook({
           setStatusMessage('Lời chúc đã được lưu thành công! 🎉');
           setMessage('');
         } else {
-          throw new Error(result.message || 'Lỗi lưu vào Google Sheet');
+          throw new Error(result.message || 'Lỗi lưu trữ dữ liệu');
         }
       } catch {
         // Fallback lưu cục bộ
@@ -334,7 +334,7 @@ export default function WishesGuestbook({
 
         <div className="flex items-center justify-between pt-0.5">
           <span className="text-[10px] text-slate-400 font-serif italic hidden sm:inline">
-            Tự động đồng bộ vào Google Sheets tab "Loi_Chuc"
+            Lưu bút trực tuyến K8A1 • Cập nhật tự động
           </span>
 
           <button

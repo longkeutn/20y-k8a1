@@ -773,7 +773,7 @@ export default function BankTransfer({
                     type="button"
                     onClick={() => onRefreshData()}
                     className="p-1.5 text-slate-500 hover:text-amber-800 hover:bg-slate-100 rounded-lg transition cursor-pointer border border-slate-200"
-                    title="Đồng bộ / Làm mới dữ liệu từ Google Sheet"
+                    title="Làm mới dữ liệu sổ quỹ"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
@@ -944,7 +944,7 @@ export default function BankTransfer({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        if (window.confirm(`Bạn có chắc chắn muốn xóa khoản thu "${item.title}" (${Number(item.amount || 0).toLocaleString('vi-VN')} đ) của "${item.payerName}" khỏi sổ thu và đồng bộ lên Google Sheet?`)) {
+                                        if (window.confirm(`Bạn có chắc chắn muốn xóa khoản thu "${item.title}" (${Number(item.amount || 0).toLocaleString('vi-VN')} đ) của "${item.payerName}" khỏi sổ thu?`)) {
                                           onDeleteIncome(item.id);
                                         }
                                       }}

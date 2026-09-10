@@ -90,7 +90,7 @@ export default function ZaloShareInfographicsModal({
     }
 
     setIsRefreshing(true);
-    setFeedbackMsg('⏳ Đang tự động nạp dữ liệu gốc mới nhất từ Google Sheet...');
+    setFeedbackMsg('⏳ Đang đồng bộ số liệu mới nhất...');
 
     try {
       const adminPinToken = sessionStorage.getItem('admin_pin_token') || '';
@@ -121,9 +121,9 @@ export default function ZaloShareInfographicsModal({
       const syncTimeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       if (updatedRsvp || updatedRoster) {
-        setFeedbackMsg(`✓ Đã nạp dữ liệu gốc từ Google Sheet thành công (${syncTimeStr})!`);
+        setFeedbackMsg(`✓ Đã cập nhật số liệu mới nhất (${syncTimeStr})!`);
       } else {
-        setFeedbackMsg(`✓ Dữ liệu hiện tại đã khớp 100% với Google Sheet (${syncTimeStr})`);
+        setFeedbackMsg(`✓ Dữ liệu hiện tại đã là mới nhất (${syncTimeStr})`);
       }
 
       // Kích hoạt ngầm toàn bộ app
@@ -132,7 +132,7 @@ export default function ZaloShareInfographicsModal({
       }
     } catch (err) {
       console.warn('Lỗi tải dữ liệu gốc từ Google Sheet:', err);
-      setFeedbackMsg('⚠️ Lỗi kết nối Google Sheet. Đang dùng dữ liệu sẵn có.');
+      setFeedbackMsg('⚠️ Đang hiển thị dữ liệu lưu sẵn trên máy.');
       if (onRefreshData) onRefreshData();
     } finally {
       setIsRefreshing(false);
@@ -883,7 +883,7 @@ export default function ZaloShareInfographicsModal({
         ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         wrapAndCenterText(
           ctx,
-          'Mọi khoản đóng góp đều được Thủ Quỹ và Ban Liên Lạc đối soát tự động, công khai minh bạch 100% trên WebApp và cập nhật liên tục vào Google Sheet.',
+          'Mọi khoản đóng góp đều được Thủ Quỹ và Ban Liên Lạc đối soát tự động, công khai minh bạch 100% trên WebApp và cập nhật liên tục.',
           width / 2,
           tCardY + 85,
           width - 260,
@@ -1051,7 +1051,7 @@ export default function ZaloShareInfographicsModal({
               onClick={fetchFreshDataFromSheet}
               disabled={isRefreshing}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 text-amber-100 hover:text-white text-xs font-sans font-medium transition cursor-pointer border border-white/20 disabled:opacity-60"
-              title="Tải lại số liệu gốc mới nhất trực tiếp từ Google Sheets"
+              title="Làm mới số liệu mới nhất"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-300' : ''}`} />
               <span className="hidden sm:inline">

@@ -706,7 +706,7 @@ export default function RsvpForm({
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
           ? (targetStatus === 'yes'
-              ? `Đã cập nhật size áo thành Size ${shirtSize} thành công vào Google Sheet! Tấm vé kỷ niệm của bạn đã được làm mới.`
+              ? `Đã cập nhật size áo thành Size ${shirtSize} thành công! Tấm vé kỷ niệm của bạn đã được làm mới.`
               : 'Đã cập nhật: Báo bận vắng mặt. Cả lớp K8A1 vẫn luôn nhớ về bạn!')
           : (targetStatus === 'yes'
               ? 'Xác nhận tham dự thành công! Tấm vé kỷ niệm 20 năm của bạn đã được đóng dấu chính thức.'

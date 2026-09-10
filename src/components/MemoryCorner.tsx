@@ -525,7 +525,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         handleClosePhotoModal();
       }, 2000);
     } else {
-      setUploadError('Không thể tải ảnh lên Google Drive. Vui lòng kiểm tra lại kết nối mạng và thử lại.');
+      setUploadError('Không thể tải ảnh lên hệ thống. Vui lòng kiểm tra lại kết nối mạng và thử lại.');
     }
   };
 
@@ -756,7 +756,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-amber-200">Đang đồng bộ thước phim thanh xuân K8A1...</p>
-                  <p className="text-xs text-slate-500">Dữ liệu video đang được nạp tự động từ Google Sheet</p>
+                  <p className="text-xs text-slate-500">Dữ liệu video kỷ niệm đang được nạp tự động</p>
                 </div>
               </div>
             )}
@@ -975,7 +975,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           <div className="space-y-4 relative z-10">
             <div className="flex items-center gap-2 text-xs font-sans text-amber-700 font-bold">
               <Camera className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-              <span>Đang kết nối thư viện ảnh Google Drive của lớp K8A1...</span>
+              <span>Đang nạp thư viện ảnh kỷ niệm K8A1...</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5 lg:gap-6 animate-pulse">
               {[1, 2, 3, 4, 5, 6].map((sk) => (
@@ -1195,7 +1195,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 Góp Thêm Ảnh Vào Kho Kỷ Yếu Lớp
               </h3>
               <p className="text-xs text-slate-500 font-serif italic">
-                Hỗ trợ chọn và tải lên nhiều ảnh cùng lúc. Ảnh sẽ tự động đồng bộ trực tiếp vào Google Drive & kỷ yếu chung của lớp.
+                Hỗ trợ chọn và tải lên nhiều ảnh cùng lúc. Ảnh sẽ tự động lưu trữ trực tiếp vào kho kỷ yếu chung của lớp.
               </p>
             </div>
 
@@ -1390,7 +1390,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     />
                   </div>
                   <p className="text-[11px] text-amber-700 font-serif italic text-center">
-                    Ảnh đang được đồng bộ lên Google Drive, vui lòng giữ cửa sổ này mở...
+                    Ảnh đang được tải lên hệ thống, vui lòng giữ cửa sổ này mở...
                   </p>
                 </div>
               )}

@@ -154,7 +154,7 @@ export default function ConfirmedAttendees({
             Danh Sách Điểm Danh Lớp K8A1
           </h2>
           <p className="text-xs text-slate-500 font-serif italic">
-            Tự động đồng bộ từ Google Sheets • Hội ngộ 20 Năm Lớp K8A1
+            Hội ngộ 20 Năm Lớp K8A1 • Cập nhật tự động
           </p>
         </div>
 
@@ -165,7 +165,7 @@ export default function ConfirmedAttendees({
               onClick={onRefresh}
               disabled={isRefreshing}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300/90 bg-white text-xs font-sans font-bold uppercase tracking-wider text-slate-700 hover:bg-amber-50 transition cursor-pointer disabled:opacity-50 shadow-2xs"
-              title="Làm mới từ Google Sheets"
+              title="Làm mới danh sách"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? 'Đang tải...' : 'Làm mới'}</span>

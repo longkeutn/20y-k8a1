@@ -24,6 +24,7 @@ import {
   BookOpen,
   GraduationCap,
   RefreshCw,
+  AlertCircle,
   X
 } from 'lucide-react';
 
@@ -1576,7 +1577,7 @@ export default function App() {
             {/* Background Audio Player (YouTube Audio-Only) */}
             <AudioPlayer variant="navbar" customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" />
 
-            {/* Live Google Sheet Realtime Sync Badge */}
+            {/* Live Realtime Sync Status Badge */}
             <button
               type="button"
               onClick={handleRefreshData}
@@ -1588,14 +1589,18 @@ export default function App() {
                   ? 'bg-amber-950/70 text-amber-300 border-amber-500/40 animate-pulse'
                   : 'bg-rose-950/70 text-rose-300 border-rose-500/40 hover:bg-rose-900/80'
               }`}
-              title={`Dữ liệu đồng bộ trực tiếp từ Google Sheet. Bấm để làm mới tức thì! ${lastSyncedTime ? `(Cập nhật lúc: ${lastSyncedTime})` : ''}`}
+              title={`Dữ liệu mới nhất từ hệ thống. Bấm để làm mới! ${lastSyncedTime ? `(Lúc ${lastSyncedTime})` : ''}`}
             >
-              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-amber-400' : syncStatus === 'live' ? 'text-emerald-400' : 'text-rose-400'}`} />
+              {syncStatus === 'error' ? (
+                <AlertCircle className="w-3 h-3 text-rose-400" />
+              ) : (
+                <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-amber-400' : 'text-emerald-400'}`} />
+              )}
               <span className="hidden xl:inline">
-                {syncStatus === 'live' ? `Google Sheet (${lastSyncedTime || 'Trực tiếp'})` : syncStatus === 'syncing' ? 'Đang nạp...' : 'Dữ liệu tạm'}
+                {syncStatus === 'live' ? (lastSyncedTime ? `Cập nhật ${lastSyncedTime}` : 'Mới nhất') : syncStatus === 'syncing' ? 'Đang cập nhật...' : 'Dữ liệu lưu tạm'}
               </span>
               <span className="xl:hidden">
-                {syncStatus === 'live' ? (lastSyncedTime ? lastSyncedTime.slice(0, 5) : 'Sheet') : 'Nạp'}
+                {syncStatus === 'live' ? (lastSyncedTime ? lastSyncedTime.slice(0, 5) : 'Mới nhất') : syncStatus === 'syncing' ? '...' : '!'}
               </span>
             </button>
 
@@ -1754,7 +1759,7 @@ export default function App() {
                 <button
                   onClick={handleRefreshData}
                   className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-xs transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
-                  title="Làm mới dữ liệu từ Google Sheet"
+                  title="Làm mới dữ liệu"
                 >
                   <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
                   <span className="hidden xs:inline">Làm mới</span>
@@ -1965,8 +1970,8 @@ export default function App() {
             className="space-y-5"
           >
             <div className="bg-white p-4 rounded-xl border border-amber-200 text-center space-y-1 shadow-sm">
-              <h2 className="text-lg font-bold text-[#1E293B]">⚙️ Cấu Hình Kết Nối Google Apps Script</h2>
-              <p className="text-xs text-slate-500">Dành cho Ban Tổ Chức đồng bộ danh sách điểm danh và lưu bút về Google Sheet</p>
+              <h2 className="text-lg font-bold text-[#1E293B]">⚙️ Cấu Hình Máy Chủ Kết Nối Dữ Liệu</h2>
+              <p className="text-xs text-slate-500">Dành cho Ban Tổ Chức đồng bộ dữ liệu và quản trị hệ thống</p>
             </div>
             <DeveloperGuide 
               currentUrl={activeAppsScriptUrl}

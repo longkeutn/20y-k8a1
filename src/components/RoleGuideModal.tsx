@@ -155,19 +155,19 @@ export default function RoleGuideModal({
       badgeColor: 'bg-emerald-100 text-emerald-800',
       icon: Coins,
       iconColor: 'text-emerald-600',
-      title: '3. Đóng Quỹ VietQR & Tải Biên Lai Lên Drive',
+      title: '3. Đóng Quỹ VietQR & Tải Biên Lai Xác Nhận',
       description:
-        'Mở bất kỳ ứng dụng ngân hàng nào quét mã VietQR động: hệ thống tự động điền chính xác số tài khoản lớp, số tiền quy định và cú pháp chuyển tiền chuẩn. Chuyển khoản xong, bấm "Tải Lên Biên Lai" chụp ảnh màn hình giao dịch gửi thẳng vào Google Drive quỹ lớp để Thủ Quỹ đối soát.',
+        'Mở bất kỳ ứng dụng ngân hàng nào quét mã VietQR động: hệ thống tự động điền chính xác số tài khoản lớp, số tiền quy định và cú pháp chuyển tiền chuẩn. Chuyển khoản xong, bấm "Tải Lên Biên Lai" chụp ảnh màn hình giao dịch gửi thẳng vào hệ thống quỹ lớp để Thủ Quỹ đối soát.',
       details: [
         'VietQR động điền sẵn STK, số tiền và nội dung chuẩn',
-        'Nút "Tải Lên Biên Lai" gửi ảnh trực tiếp lên Google Drive lớp',
+        'Nút "Tải Lên Biên Lai" gửi ảnh trực tiếp lên hệ thống quỹ lớp',
         'Tự động đánh dấu trạng thái "Chờ thủ quỹ duyệt"',
         'Thủ quỹ xác nhận là trạng thái chuyển thành "Đã đóng quỹ"'
       ],
       actionLabel: 'Đến Cổng Quỹ Lớp',
       actionIcon: ArrowRight,
       actionFn: () => handleJump('bank-transfer-card'),
-      keywords: ['đóng quỹ', 'vietqr', 'ngân hàng', 'chuyển khoản', 'biên lai', 'bill', 'drive', 'quỹ lớp']
+      keywords: ['đóng quỹ', 'vietqr', 'ngân hàng', 'chuyển khoản', 'biên lai', 'bill', 'xác nhận', 'quỹ lớp']
     },
     {
       id: 'm-transparency',
@@ -180,7 +180,7 @@ export default function RoleGuideModal({
         'Mọi thành viên trong lớp đều có thể tra cứu toàn bộ dòng tiền quỹ lớp theo thời gian thực: danh sách ai đã đóng, ai chờ duyệt, và toàn bộ các khoản chi tiêu thực tế (tiệc tùng, may đồng phục, tri ân thầy cô, hiếu hỷ Điều 3...) kèm ảnh chụp hóa đơn chứng từ thực tế.',
       details: [
         'Xem công khai Sổ Thu và Sổ Chi của quỹ lớp',
-        'Bấm vào từng khoản chi để mở xem ảnh hóa đơn chứng từ trên Drive',
+        'Bấm vào từng khoản chi để mở xem ảnh hóa đơn chứng từ',
         'Thống kê tồn quỹ, tổng thu và tổng chi rõ ràng từng mốc thời gian',
         'Chuẩn hóa theo Điều 3 & 4 Quy Chế Lớp K8A1'
       ],
@@ -299,10 +299,10 @@ export default function RoleGuideModal({
       iconColor: 'text-indigo-600',
       title: '4. Giám Sát Đối Soát Chéo Quỹ Lớp',
       description:
-        'Ban Liên Lạc có quyền xem toàn bộ sổ thu chi và hình ảnh hóa đơn chứng từ trên Google Drive ở chế độ an toàn (Read-Only) để giám sát đối soát chéo, bảo đảm tính minh bạch, khách quan và bảo vệ uy tín cho Thủ Quỹ.',
+        'Ban Liên Lạc có quyền xem toàn bộ sổ thu chi và hình ảnh hóa đơn chứng từ trên hệ thống ở chế độ an toàn (Read-Only) để giám sát đối soát chéo, bảo đảm tính minh bạch, khách quan và bảo vệ uy tín cho Thủ Quỹ.',
       details: [
         'Xem chi tiết từng khoản thu và khoản chi của Thủ Quỹ',
-        'Mở xem hóa đơn đỏ, biên nhận lưu trữ trên Google Drive',
+        'Mở xem hóa đơn đỏ, biên nhận lưu trữ an toàn',
         'Đóng vai trò nhân chứng đối soát độc lập trong các kỳ báo cáo tài chính'
       ],
       actionLabel: 'Giám Sát Sổ Quỹ Lớp',
@@ -322,12 +322,12 @@ export default function RoleGuideModal({
       iconColor: 'text-emerald-600',
       title: '1. Quy Trình Đối Soát & Soi Biên Lai Đóng Quỹ',
       description:
-        'Tại Tab Quỹ Lớp trong Hub Quản Trị, những bạn học đã tải biên lai chuyển khoản sẽ có icon kẹp ghim 📎. Thủ Quỹ bấm vào để mở Lightbox zoom soi chi tiết ảnh chụp màn hình chuyển khoản trên Google Drive. Sau khi đối chiếu số dư tài khoản ngân hàng, bấm "Xác Nhận Đã Đóng". Hệ thống tự động ghi nhận tên người duyệt để lưu vết trách nhiệm.',
+        'Tại Tab Quỹ Lớp trong Hub Quản Trị, những bạn học đã tải biên lai chuyển khoản sẽ có icon kẹp ghim 📎. Thủ Quỹ bấm vào để mở Lightbox zoom soi chi tiết ảnh chụp màn hình chuyển khoản. Sau khi đối chiếu số dư tài khoản ngân hàng, bấm "Xác Nhận Đã Đóng". Hệ thống tự động ghi nhận tên người duyệt để lưu vết trách nhiệm.',
       details: [
         'Icon kẹp ghim 📎 đánh dấu thành viên đã nộp ảnh biên lai',
         'Lightbox phóng to/thu nhỏ ảnh biên lai trực tiếp trên màn hình',
         'Nút "Xác Nhận Đã Đóng" 1 chạm, tự động lưu tên người duyệt',
-        'Tự động đồng bộ trạng thái thanh toán lên Google Sheet'
+        'Tự động cập nhật trạng thái thanh toán'
       ],
       actionLabel: 'Mở Cổng Duyệt Thu Quỹ',
       actionIcon: Coins,
@@ -340,9 +340,9 @@ export default function RoleGuideModal({
       badgeColor: 'bg-emerald-100 text-emerald-800',
       icon: Coins,
       iconColor: 'text-emerald-600',
-      title: '2. Quản Lý Sổ Thu Đa Danh Mục (Sheet Khoan_Thu)',
+      title: '2. Quản Lý Sổ Thu Đa Danh Mục',
       description:
-        'Ghi nhận các nguồn thu linh hoạt ngoài đóng góp sự kiện: Quỹ thường niên duy trì hàng năm, đóng góp tự nguyện của mạnh thường quân, tiền tài trợ hoặc bán đồ lưu niệm... Tất cả được phân loại chuẩn và lưu trực tiếp vào Google Sheet tab Khoan_Thu.',
+        'Ghi nhận các nguồn thu linh hoạt ngoài đóng góp sự kiện: Quỹ thường niên duy trì hàng năm, đóng góp tự nguyện của mạnh thường quân, tiền tài trợ hoặc bán đồ lưu niệm... Tất cả được phân loại chuẩn và lưu trực tiếp vào sổ thu quỹ.',
       details: [
         'Phân loại nguồn thu: Quỹ thường niên, Đóng góp sự kiện, Tài trợ, Khác',
         'Ghi rõ họ tên người nộp, số tiền, ngày thu, hình thức chuyển khoản/tiền mặt',
@@ -359,19 +359,19 @@ export default function RoleGuideModal({
       badgeColor: 'bg-emerald-100 text-emerald-800',
       icon: Upload,
       iconColor: 'text-emerald-600',
-      title: '3. Quản Lý Sổ Chi & Tải Hóa Đơn Lên Drive',
+      title: '3. Quản Lý Sổ Chi & Tải Hóa Đơn Chứng Từ',
       description:
-        'Mọi khoản chi tiêu (tiệc, cọc địa điểm, in ấn áo đồng phục, quà kỷ niệm, hiếu hỷ Điều 3, tri ân thầy cô Điều 4...) đều được phân loại danh mục và bắt buộc đính kèm ảnh chụp hóa đơn chứng từ. Ảnh được tự động tải lên thư mục Google Drive ChungTu_QuyLop_K8A1 và tạo link công khai cho cả lớp xem.',
+        'Mọi khoản chi tiêu (tiệc, cọc địa điểm, in ấn áo đồng phục, quà kỷ niệm, hiếu hỷ Điều 3, tri ấn thầy cô Điều 4...) đều được phân loại danh mục và bắt buộc đính kèm ảnh chụp hóa đơn chứng từ. Ảnh chứng từ được lưu trữ an toàn và tạo liên kết công khai cho cả lớp xem.',
       details: [
         'Phân loại chi: Tiệc & Gặp mặt, Áo & Đồng phục, Quà tặng, Hiếu hỷ Điều 3, Tri ân thầy cô Điều 4, Khác',
         'Tải ảnh hóa đơn đỏ, biên nhận hoặc ảnh chuyển khoản thanh toán',
-        'File tự động lưu vào Google Drive folder ChungTu_QuyLop_K8A1 với tên chuẩn',
+        'File chứng từ được lưu trữ an toàn với tên chuẩn hóa',
         'Quyền chỉnh sửa, cập nhật thông tin chứng từ khi cần thiết'
       ],
       actionLabel: 'Mở Sổ Chi Tiêu Quỹ',
       actionIcon: ChevronRight,
       actionFn: () => handleOpenHubTab('fund'),
-      keywords: ['sổ chi', 'khoan_chi', 'chi tiêu', 'hóa đơn', 'chứng từ', 'google drive', 'ChungTu_QuyLop_K8A1', 'upload']
+      keywords: ['sổ chi', 'khoan_chi', 'chi tiêu', 'hóa đơn', 'chứng từ', 'chứng từ quỹ', 'upload']
     },
     {
       id: 't-export',
@@ -384,7 +384,7 @@ export default function RoleGuideModal({
         'Bấm nút "Xuất Báo Cáo (CSV)" tại Hub Quản Trị để tải toàn bộ bảng sao kê thu - chi chi tiết, sẵn sàng gửi vào nhóm Zalo lớp sau mỗi sự kiện hoặc định kỳ cuối năm.',
       details: [
         'Xuất file CSV chuẩn UTF-8 tương thích 100% với Microsoft Excel',
-        'Bao gồm đầy đủ cột: Ngày, Người nộp/chi, Nội dung, Số tiền, Người duyệt, Link chứng từ Drive',
+        'Bao gồm đầy đủ cột: Ngày, Người nộp/chi, Nội dung, Số tiền, Người duyệt, Link chứng từ',
         'Tiện lợi gửi file vào nhóm Zalo lớp để báo cáo định kỳ'
       ],
       actionLabel: 'Đến Mục Xuất Sao Kê',
@@ -402,19 +402,19 @@ export default function RoleGuideModal({
       badgeColor: 'bg-rose-100 text-rose-800',
       icon: Users,
       iconColor: 'text-rose-600',
-      title: '1. Quản Trị Danh Bạ 65 Bạn Học (Sheet Danh_Sach_Lop)',
+      title: '1. Quản Trị Danh Bạ 65 Bạn Học',
       description:
-        'Thêm mới, sửa thông tin bạn học, cập nhật số điện thoại, nơi ở hiện tại, chức vụ ban cán sự. Toàn bộ thay đổi đồng bộ 2 chiều tức thì với Google Sheet tab Danh_Sach_Lop.',
+        'Thêm mới, sửa thông tin bạn học, cập nhật số điện thoại, nơi ở hiện tại, chức vụ ban cán sự. Toàn bộ thay đổi cập nhật 2 chiều tức thì với hệ thống danh bạ lớp.',
       details: [
         'Quản trị sĩ số lớp (chuẩn hóa 65 bạn học)',
         'Cập nhật số điện thoại, nơi sinh sống (Thái Nguyên, Hà Nội, TP.HCM, nước ngoài...)',
         'Phân quyền chức vụ ban cán sự (Lớp trưởng, Bí thư, Thủ quỹ, Thành viên)',
-        'Đồng bộ 2 chiều tức thì với Google Sheets'
+        'Cập nhật 2 chiều tức thì với hệ thống'
       ],
       actionLabel: 'Quản Trị Danh Bạ 65 Bạn',
       actionIcon: Users,
       actionFn: () => handleOpenHubTab('members'),
-      keywords: ['danh bạ', '65 bạn', 'thêm bạn', 'sửa thông tin', 'ban cán sự', 'Danh_Sach_Lop', 'sĩ số']
+      keywords: ['danh bạ', '65 bạn', 'thêm bạn', 'sửa thông tin', 'ban cán sự', 'sĩ số lớp']
     },
     {
       id: 'a-config',
@@ -422,7 +422,7 @@ export default function RoleGuideModal({
       badgeColor: 'bg-rose-100 text-rose-800',
       icon: Calendar,
       iconColor: 'text-rose-600',
-      title: '2. Cấu Hình Sự Kiện Linh Hoạt Cho Tương Lai (Sheet Cau_Hinh)',
+      title: '2. Cấu Hình Sự Kiện Linh Hoạt Cho Tương Lai',
       description:
         'Khi lớp tổ chức các sự kiện tiếp theo (Gặp mặt 2027, Họp lớp 25 năm, dã ngoại hè...), Admin chỉ cần vào Tab Cài Đặt để đổi tên sự kiện, thời gian, địa điểm, link Google Maps, kinh phí dự kiến và tài khoản ngân hàng nhận tiền. Giao diện WebApp sẽ tự động cập nhật toàn bộ theo sự kiện mới mà không cần lập trình lại code!',
       details: [
@@ -430,12 +430,12 @@ export default function RoleGuideModal({
         'Cập nhật ngày giờ, tên địa điểm tổ chức mới và link Google Maps',
         'Thiết lập mức kinh phí dự kiến thu mỗi người',
         'Thay đổi số tài khoản ngân hàng và cú pháp chuyển tiền VietQR',
-        'Không cần viết lại code, dữ liệu lưu vĩnh viễn trên Google Sheet Cau_Hinh'
+        'Không cần viết lại code, dữ liệu lưu vĩnh viễn trên hệ thống'
       ],
       actionLabel: 'Mở Cài Đặt Sự Kiện',
       actionIcon: Crown,
       actionFn: () => handleOpenHubTab('settings'),
-      keywords: ['cấu hình', 'sự kiện mới', 'tương lai', 'địa điểm', 'thời gian', 'kinh phí', 'google maps', 'Cau_Hinh', 'họp lớp']
+      keywords: ['cấu hình', 'sự kiện mới', 'tương lai', 'địa điểm', 'thời gian', 'kinh phí', 'google maps', 'họp lớp']
     },
     {
       id: 'a-media',
@@ -445,17 +445,17 @@ export default function RoleGuideModal({
       iconColor: 'text-rose-600',
       title: '3. Quản Trị Hero Banner & Kho Video Phóng Sự',
       description:
-        'Tải ảnh bìa mới lên Google Drive, dán link vào hệ thống và kéo thanh trượt định vị khung hình (trục Y từ 0% đến 100%) để ảnh luôn hiển thị đẹp nhất trên cả điện thoại và máy tính. Quản lý danh sách video YouTube kỷ niệm.',
+        'Tải ảnh bìa mới lên, dán link vào hệ thống và kéo thanh trượt định vị khung hình (trục Y từ 0% đến 100%) để ảnh luôn hiển thị đẹp nhất trên cả điện thoại và máy tính. Quản lý danh sách video YouTube kỷ niệm.',
       details: [
         'Thay đổi ảnh bìa sự kiện mới trực tiếp trên giao diện',
         'Thanh trượt định vị hiển thị trục Y (0 - 100%) tránh bị cắt mặt',
         'Thêm / sửa danh sách video YouTube phóng sự kỷ niệm',
-        'Tự động lưu vào Google Sheet và bộ nhớ thiết bị'
+        'Tự động lưu vào hệ thống và bộ nhớ thiết bị'
       ],
       actionLabel: 'Quản Trị Banner & Video',
       actionIcon: ChevronRight,
       actionFn: () => handleOpenHubTab('media'),
-      keywords: ['hero banner', 'ảnh bìa', 'video', 'trục y', 'slider', 'media', 'drive', 'youtube']
+      keywords: ['hero banner', 'ảnh bìa', 'video', 'trục y', 'slider', 'media', 'youtube']
     },
     {
       id: 'a-security',
@@ -465,12 +465,12 @@ export default function RoleGuideModal({
       iconColor: 'text-rose-600',
       title: '4. Đổi Mã PIN Bảo Mật & Dọn Dẹp Dữ Liệu',
       description:
-        'Đổi mã PIN định kỳ cho cả 3 vai trò (BLL, Thủ Quỹ, Admin) trực tiếp trên Web. Mã PIN được mã hóa SHA-256 an toàn lưu trên Google Sheet tab Bao_Mat_PIN. Sử dụng công cụ Deduplicate để dọn sạch các bản ghi gửi trùng lặp nếu có.',
+        'Đổi mã PIN định kỳ cho cả 3 vai trò (BLL, Thủ Quỹ, Admin) trực tiếp trên Web. Mã PIN được mã hóa SHA-256 an toàn lưu bảo mật trên hệ thống. Sử dụng công cụ Deduplicate để dọn sạch các bản ghi gửi trùng lặp nếu có.',
       details: [
         'Đổi mã PIN cho từng vai trò ngay tại Tab Cài Đặt',
-        'Mã hóa bảo mật SHA-256 một chiều trên Google Sheet tab Bao_Mat_PIN',
+        'Mã hóa bảo mật SHA-256 một chiều trên hệ thống',
         'Công cụ Deduplicate loại bỏ các bản ghi gửi trùng',
-        'Kiểm tra kết nối và tính sẵn sàng của Google Apps Script WebApp'
+        'Kiểm tra kết nối và tính sẵn sàng của máy chủ'
       ],
       actionLabel: 'Mở Cài Đặt Bảo Mật',
       actionIcon: ChevronRight,
@@ -561,7 +561,7 @@ export default function RoleGuideModal({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm nhanh: đóng quỹ, hiếu hỷ, hóa đơn, check-in, danh bạ, drive..."
+                placeholder="Tìm kiếm nhanh: đóng quỹ, hiếu hỷ, hóa đơn, check-in, danh bạ..."
                 className="w-full pl-9 pr-8 py-1.5 text-xs sm:text-sm bg-white border border-slate-300/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition placeholder:text-slate-400"
               />
               {searchQuery && (
@@ -872,7 +872,7 @@ export default function RoleGuideModal({
                         Quy Trình Nghiệp Vụ Thủ Quỹ & Quản Trị Sổ Quỹ K8A1
                       </h3>
                       <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                        Thủ Quỹ chịu trách nhiệm toàn diện về dòng tiền tập thể: duyệt đóng quỹ, soi biên lai chứng từ trên Google Drive, ghi nhận Sổ Thu / Sổ Chi và xuất báo cáo sao kê định kỳ.
+                        Thủ Quỹ chịu trách nhiệm toàn diện về dòng tiền tập thể: duyệt đóng quỹ, soi biên lai chứng từ, ghi nhận Sổ Thu / Sổ Chi và xuất báo cáo sao kê định kỳ.
                       </p>
                     </div>
                   </div>
@@ -1154,7 +1154,7 @@ export default function RoleGuideModal({
                         <td className="p-3 text-center text-rose-600 font-bold">✓</td>
                       </tr>
                       <tr className="hover:bg-amber-50/40">
-                        <td className="p-3 font-medium">Nhập khoản chi tiêu & Tải chứng từ lên Drive</td>
+                        <td className="p-3 font-medium">Nhập khoản chi tiêu & Tải chứng từ</td>
                         <td className="p-3 text-center text-slate-300">—</td>
                         <td className="p-3 text-center text-slate-300">—</td>
                         <td className="p-3 text-center text-emerald-600 font-bold">✓</td>
