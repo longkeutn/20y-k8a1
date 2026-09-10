@@ -2909,6 +2909,38 @@ export default function AdminManagementHub({
   // ---------------------------------------------------------------------------
   // STAGE PRESENTATION & MUSIC PLAYLIST SAVE (BLL & ADMIN)
   // ---------------------------------------------------------------------------
+  // Tự động đồng bộ danh sách Backdrop vào EventConfig và Google Sheets
+  const persistPresentationBackdrops = (newBackdrops: BackdropItem[]) => {
+    setStageBackdrops(newBackdrops);
+    const updatedConfig: EventConfig = {
+      ...(eventConfig || DEFAULT_EVENT_CONFIG),
+      ...eventConfigForm,
+      backdrops: newBackdrops,
+      musicPlaylist: stagePlaylist,
+      stageSettings: stageSettingsState
+    };
+    if (onUpdateEventConfig) {
+      onUpdateEventConfig(updatedConfig);
+    }
+    try {
+      localStorage.setItem('k8a1_event_config', JSON.stringify(updatedConfig));
+    } catch (e) {}
+
+    const targetScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || localStorage.getItem('apps_script_url') || DEFAULT_APPS_SCRIPT_URL;
+    if (targetScriptUrl && !targetScriptUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+      const pin = getAdminPinToken();
+      fetch(targetScriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'save_config',
+          pin: pin,
+          config: updatedConfig
+        })
+      }).catch((e) => console.warn('Lỗi auto save backdrops:', e));
+    }
+  };
+
   const handleSavePresentationConfig = async () => {
     setIsSavingPresentation(true);
     setPresentationSuccessMsg('');
@@ -2930,7 +2962,7 @@ export default function AdminManagementHub({
       } catch (e) {}
 
       // Đồng bộ trực tiếp lên Google Apps Script / Google Sheets
-      const targetScriptUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      const targetScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || localStorage.getItem('apps_script_url') || DEFAULT_APPS_SCRIPT_URL;
       if (targetScriptUrl && !targetScriptUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
         const pin = getAdminPinToken();
         const res = await fetch(targetScriptUrl, {
@@ -7976,25 +8008,19 @@ export default function AdminManagementHub({
                                 const pin = getAdminPinToken();
                                 const res = await uploadBackdropViaBackend({ fileData: base64, title, pin }, appsScriptUrl);
                                 if (res.success && res.data) {
-                                  setStageBackdrops((prev) => [...prev, res.data!]);
+                                  const updated = [...stageBackdrops, res.data];
+                                  persistPresentationBackdrops(updated);
                                   setNewBackdropTitle('');
                                   setNewBackdropUrl('');
-                                  setPresentationSuccessMsg('Đã tải backdrop lên Drive và thêm vào danh sách thành công!');
+                                  setPresentationSuccessMsg('Đã tải backdrop lên Google Drive và tự động lưu cấu hình thành công!');
                                 } else {
-                                  // Fallback thêm local bằng data URL
-                                  const localItem: BackdropItem = {
-                                    id: 'bd_' + Date.now(),
-                                    title: title,
-                                    url: base64,
-                                    isDefault: false
-                                  };
-                                  setStageBackdrops((prev) => [...prev, localItem]);
-                                  setPresentationSuccessMsg('Đã thêm backdrop vào danh sách trình chiếu cục bộ!');
+                                  alert('Không thể tải backdrop lên Google Drive: ' + (res.message || 'Lỗi không xác định'));
                                 }
                               } catch (err: any) {
                                 alert('Lỗi xử lý file ảnh: ' + (err?.message || err));
                               } finally {
                                 setIsUploadingBackdrop(false);
+                                e.target.value = '';
                               }
                             }}
                             className="hidden"
@@ -8030,10 +8056,11 @@ export default function AdminManagementHub({
                               thumbnail: normalizeImageUrl(newBackdropUrl.trim()),
                               isDefault: stageBackdrops.length === 0
                             };
-                            setStageBackdrops((prev) => [...prev, newBd]);
+                            const updated = [...stageBackdrops, newBd];
+                            persistPresentationBackdrops(updated);
                             setNewBackdropTitle('');
                             setNewBackdropUrl('');
-                            setPresentationSuccessMsg('Đã thêm backdrop mới vào danh sách!');
+                            setPresentationSuccessMsg('Đã thêm backdrop mới và tự động lưu cấu hình thành công!');
                           }}
                           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                         >
@@ -8095,12 +8122,11 @@ export default function AdminManagementHub({
                             <button
                               type="button"
                               onClick={() => {
-                                setStageBackdrops((prev) =>
-                                  prev.map((item, i) => ({
-                                    ...item,
-                                    isDefault: i === idx
-                                  }))
-                                );
+                                const updated = stageBackdrops.map((item, i) => ({
+                                  ...item,
+                                  isDefault: i === idx
+                                }));
+                                persistPresentationBackdrops(updated);
                               }}
                               className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer text-[11px] ${
                                 bd.isDefault
@@ -8116,7 +8142,8 @@ export default function AdminManagementHub({
                                 type="button"
                                 onClick={() => {
                                   if (confirm(`Bạn có chắc muốn xóa backdrop "${bd.title}"?`)) {
-                                    setStageBackdrops((prev) => prev.filter((_, i) => i !== idx));
+                                    const updated = stageBackdrops.filter((_, i) => i !== idx);
+                                    persistPresentationBackdrops(updated);
                                   }
                                 }}
                                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"

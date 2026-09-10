@@ -7121,7 +7121,8 @@ export async function uploadBackdropViaBackend(
   }
 
   try {
-    const res = await fetch(targetUrl, {
+    // 1. Thử gửi action 'upload_backdrop' (Chuyên dụng cho thư mục Backdrops_SanKhau)
+    let res = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
@@ -7131,11 +7132,37 @@ export async function uploadBackdropViaBackend(
         pin: payload.pin || ''
       })
     });
-    const json = await res.json();
+    let json = await res.json();
     if (json && json.status === 'success' && json.data) {
-      return { success: true, data: json.data, message: json.message || 'Tải backdrop thành công!' };
+      return { success: true, data: json.data, message: json.message || 'Tải backdrop lên Google Drive thành công!' };
     }
-    return { success: false, message: json?.message || 'Không thể tải backdrop lên Drive!' };
+
+    // 2. Dự phòng (Fallback): Nếu Apps Script trên Google chưa deploy bản mới, dùng action 'upload_photo' đã hoạt động ổn định trên live Drive
+    console.warn('Endpoint chưa cập nhật upload_backdrop, tự động chuyển sang upload_photo trên Drive:', json?.message);
+    res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'upload_photo',
+        fileData: payload.fileData,
+        caption: '[Backdrop] ' + (payload.title || 'Backdrop Sân Khấu')
+      })
+    });
+    json = await res.json();
+    if (json && json.status === 'success' && json.data) {
+      const backdropItem: BackdropItem = {
+        id: json.data.id || ('bd_' + Date.now()),
+        title: payload.title || 'Backdrop Sân Khấu',
+        url: json.data.url,
+        thumbnail: json.data.thumbnail,
+        driveUrl: json.data.driveUrl,
+        dateCreated: json.data.date,
+        isDefault: false
+      };
+      return { success: true, data: backdropItem, message: 'Đã tải backdrop lên Google Drive thành công!' };
+    }
+
+    return { success: false, message: json?.message || 'Không thể tải backdrop lên Google Drive!' };
   } catch (err: any) {
     return { success: false, message: 'Lỗi kết nối máy chủ Drive: ' + (err?.message || err) };
   }
