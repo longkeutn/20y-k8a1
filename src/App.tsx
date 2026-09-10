@@ -25,11 +25,12 @@ import {
   GraduationCap,
   RefreshCw,
   AlertCircle,
-  X
+  X,
+  Tv
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -46,6 +47,7 @@ import QuickShare from './components/QuickShare';
 import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
 import AdminManagementHub from './components/AdminManagementHub';
+import StagePresentationHub from './components/StagePresentationHub';
 import PinAuthModal from './components/PinAuthModal';
 import ReceiptUploadModal from './components/ReceiptUploadModal';
 import ClassCharterModal from './components/ClassCharterModal';
@@ -162,7 +164,10 @@ export default function App() {
     qrTemplate: cfg?.qrTemplate || DEFAULT_EVENT_CONFIG.qrTemplate,
     heroBannerUrl: cfg?.heroBannerUrl ? normalizeImageUrl(String(cfg.heroBannerUrl)) : DEFAULT_EVENT_CONFIG.heroBannerUrl,
     heroBannerPosition: cfg?.heroBannerPosition !== undefined ? (Number(cfg.heroBannerPosition) || 50) : 50,
-    schoolLogoUrl: cfg?.schoolLogoUrl ? String(cfg.schoolLogoUrl) : DEFAULT_EVENT_CONFIG.schoolLogoUrl
+    schoolLogoUrl: cfg?.schoolLogoUrl ? String(cfg.schoolLogoUrl) : DEFAULT_EVENT_CONFIG.schoolLogoUrl,
+    backdrops: Array.isArray(cfg?.backdrops) && cfg.backdrops.length > 0 ? cfg.backdrops : (DEFAULT_EVENT_CONFIG.backdrops || DEFAULT_BACKDROPS),
+    musicPlaylist: Array.isArray(cfg?.musicPlaylist) && cfg.musicPlaylist.length > 0 ? cfg.musicPlaylist : (DEFAULT_EVENT_CONFIG.musicPlaylist || DEFAULT_PLAYLIST),
+    stageSettings: cfg?.stageSettings ? cfg.stageSettings : (DEFAULT_EVENT_CONFIG.stageSettings || DEFAULT_STAGE_SETTINGS)
   });
 
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
@@ -270,6 +275,9 @@ export default function App() {
 
   // Class Charter / Quy Chế Modal state
   const [isCharterModalOpen, setIsCharterModalOpen] = useState(false);
+
+  // Stage Presentation / Trình Chiếu Màn LED Modal state
+  const [isStagePresentationOpen, setIsStagePresentationOpen] = useState(false);
 
   // Role Guide / Cẩm Nang Vận Hành K8A1 Modal state
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
@@ -1622,8 +1630,24 @@ export default function App() {
               <span className="hidden sm:inline">Cẩm Nang</span>
             </button>
 
-            {/* Background Audio Player (YouTube Audio-Only) */}
-            <AudioPlayer variant="navbar" customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" />
+            {/* Trình Chiếu Sân Khấu / Màn LED */}
+            <button
+              type="button"
+              onClick={() => setIsStagePresentationOpen(true)}
+              className="flex items-center space-x-1 text-slate-300 hover:text-cyan-300 transition px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
+              title="Chế độ Trình Chiếu Backdrop & Thư Viện Kỷ Niệm lên Màn LED Sân Khấu (16:9)"
+            >
+              <Tv className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden md:inline text-cyan-200 font-medium">Màn LED</span>
+            </button>
+
+            {/* Background Audio Player & Trình Phát Playlist */}
+            <AudioPlayer 
+              variant="navbar" 
+              customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" 
+              playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
+              isAdmin={currentUserRole === 'admin'}
+            />
 
             {/* Live Realtime Sync Status Badge */}
             <button
@@ -2276,7 +2300,8 @@ export default function App() {
                 appsScriptUrl={activeAppsScriptUrl} 
                 images={images} 
                 videos={videos} 
-                onAddImage={handleAddImage} 
+                onAddImage={handleAddImage}
+                onOpenStagePresentation={() => setIsStagePresentationOpen(true)}
               />
             </section>
 
@@ -2498,6 +2523,7 @@ export default function App() {
               ? 'bll' 
               : 'member'
           )}
+          onOpenStagePresentation={() => setIsStagePresentationOpen(true)}
         />
       )}
 
@@ -2552,6 +2578,28 @@ export default function App() {
           handleOpenAdminHub(tab || 'members');
         }}
       />
+
+      {/* 🎬 MÀN HÌNH TRÌNH CHIẾU SÂN KHẤU & LED 16:9 (STAGE PRESENTATION HUB) */}
+      {isStagePresentationOpen && (
+        <StagePresentationHub
+          isOpen={isStagePresentationOpen}
+          onClose={() => setIsStagePresentationOpen(false)}
+          backdrops={eventConfig.backdrops || DEFAULT_BACKDROPS}
+          memories={images}
+          playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
+          stageSettings={eventConfig.stageSettings || DEFAULT_STAGE_SETTINGS}
+          eventTitle={eventConfig.eventTitle || "KỶ NIỆM 20 NĂM NGÀY TRỞ VỀ — K8A1"}
+          eventSubtitle={eventConfig.eventSubtitle || "Trường THPT Thái Nguyên (2003 — 2006)"}
+          isAdmin={currentUserRole === 'admin'}
+          onUpdateSettings={(newSettings) => {
+            const updatedConfig: EventConfig = {
+              ...eventConfig,
+              stageSettings: newSettings
+            };
+            handleUpdateEventConfig(updatedConfig);
+          }}
+        />
+      )}
 
       {/* 🚀 THANH ĐIỀU HƯỚNG NỔI THÔNG MINH & BACK TO TOP */}
       <QuickNavigation 

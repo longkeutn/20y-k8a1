@@ -77,13 +77,28 @@ import {
   GraduationCap,
   Car,
   HeartHandshake,
-  PhoneCall
+  PhoneCall,
+  Tv,
+  Music,
+  Disc,
+  Volume2,
+  VolumeX,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Layers,
+  PlaySquare
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene } from '../types';
 import { 
   K8A1_DRIVE_FOLDER_ID, 
   K8A1_DRIVE_FOLDER_URL, 
   DEFAULT_EVENT_CONFIG, 
+  DEFAULT_BACKDROPS,
+  DEFAULT_PLAYLIST,
+  DEFAULT_STAGE_SETTINGS,
+  uploadBackdropViaBackend,
+  fetchDriveBackdrops,
   VIETNAM_BANKS, 
   resolveBankCode, 
   generateVietQrUrl, 
@@ -173,8 +188,9 @@ interface AdminManagementHubProps {
   currentUserRole: UserRole;
   onLoginSuccess: (role: UserRole) => void;
   onLogout: () => void;
-  initialTab?: 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings';
+  initialTab?: 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings' | 'presentation';
   initialMediaSubTab?: 'venue' | 'banner' | 'videos' | 'photos';
+  onOpenStagePresentation?: () => void;
   
   // Data props
   rsvpList: RsvpData[];
@@ -278,7 +294,8 @@ export default function AdminManagementHub({
   onUpdateTeacher,
   onDeleteTeacher,
   onSaveAllTeachers,
-  onOpenGuideModal
+  onOpenGuideModal,
+  onOpenStagePresentation
 }: AdminManagementHubProps) {
   // User Role Helpers (RBAC)
   const isAdmin = currentUserRole === 'admin';
@@ -313,11 +330,38 @@ export default function AdminManagementHub({
   }, [isTreasurer, isAdmin, activeMember]);
 
   // Navigation tabs
-  type ActiveTab = 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings';
+  type ActiveTab = 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings' | 'presentation';
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
 
   // Media Tab subtab state
   const [mediaSubTab, setMediaSubTab] = useState<'banner' | 'videos' | 'photos'>((initialMediaSubTab === 'venue' || !initialMediaSubTab ? 'banner' : initialMediaSubTab) as any);
+
+  // Stage Presentation & LED Backdrop States
+  const [presentationSubTab, setPresentationSubTab] = useState<'backdrop' | 'music' | 'settings'>('backdrop');
+  const [stageBackdrops, setStageBackdrops] = useState<BackdropItem[]>(() => {
+    return (eventConfig && eventConfig.backdrops && eventConfig.backdrops.length > 0)
+      ? eventConfig.backdrops
+      : DEFAULT_BACKDROPS;
+  });
+  const [stagePlaylist, setStagePlaylist] = useState<MusicTrack[]>(() => {
+    return (eventConfig && eventConfig.musicPlaylist && eventConfig.musicPlaylist.length > 0)
+      ? eventConfig.musicPlaylist
+      : DEFAULT_PLAYLIST;
+  });
+  const [stageSettingsState, setStageSettingsState] = useState<StageSettings>(() => {
+    return (eventConfig && eventConfig.stageSettings)
+      ? eventConfig.stageSettings
+      : DEFAULT_STAGE_SETTINGS;
+  });
+  const [newBackdropTitle, setNewBackdropTitle] = useState('');
+  const [newBackdropUrl, setNewBackdropUrl] = useState('');
+  const [isUploadingBackdrop, setIsUploadingBackdrop] = useState(false);
+  const [newTrackTitle, setNewTrackTitle] = useState('');
+  const [newTrackArtist, setNewTrackArtist] = useState('');
+  const [newTrackUrl, setNewTrackUrl] = useState('');
+  const [isSavingPresentation, setIsSavingPresentation] = useState(false);
+  const [presentationSuccessMsg, setPresentationSuccessMsg] = useState('');
+  const [viewingBackdropPreview, setViewingBackdropPreview] = useState<string | null>(null);
 
   // Auto-switch to initialTab and initialMediaSubTab when hub is opened
   useEffect(() => {
@@ -326,6 +370,21 @@ export default function AdminManagementHub({
       if (initialMediaSubTab && (initialMediaSubTab as string) !== 'venue') setMediaSubTab(initialMediaSubTab as any);
     }
   }, [isOpen, initialTab, initialMediaSubTab]);
+
+  // Đồng bộ cấu hình trình chiếu khi eventConfig từ cha thay đổi
+  useEffect(() => {
+    if (eventConfig) {
+      if (eventConfig.backdrops && eventConfig.backdrops.length > 0) {
+        setStageBackdrops(eventConfig.backdrops);
+      }
+      if (eventConfig.musicPlaylist && eventConfig.musicPlaylist.length > 0) {
+        setStagePlaylist(eventConfig.musicPlaylist);
+      }
+      if (eventConfig.stageSettings) {
+        setStageSettingsState(eventConfig.stageSettings);
+      }
+    }
+  }, [eventConfig]);
 
   // Settings form states (Bảo mật qua Google Sheets & Google Apps Script Backend)
   const [currentAdminPinConfirm, setCurrentAdminPinConfirm] = useState('');
@@ -2847,6 +2906,61 @@ export default function AdminManagementHub({
     setTimeout(() => setSettingsSuccessMsg(''), 4000);
   };
 
+  // ---------------------------------------------------------------------------
+  // STAGE PRESENTATION & MUSIC PLAYLIST SAVE (BLL & ADMIN)
+  // ---------------------------------------------------------------------------
+  const handleSavePresentationConfig = async () => {
+    setIsSavingPresentation(true);
+    setPresentationSuccessMsg('');
+    try {
+      const updatedConfig: EventConfig = {
+        ...(eventConfig || DEFAULT_EVENT_CONFIG),
+        ...eventConfigForm,
+        backdrops: stageBackdrops,
+        musicPlaylist: stagePlaylist,
+        stageSettings: stageSettingsState
+      };
+
+      if (onUpdateEventConfig) {
+        onUpdateEventConfig(updatedConfig);
+      }
+
+      try {
+        localStorage.setItem('k8a1_event_config', JSON.stringify(updatedConfig));
+      } catch (e) {}
+
+      // Đồng bộ trực tiếp lên Google Apps Script / Google Sheets
+      const targetScriptUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+      if (targetScriptUrl && !targetScriptUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+        const pin = getAdminPinToken();
+        const res = await fetch(targetScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'save_config',
+            pin: pin,
+            config: updatedConfig
+          })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          setPresentationSuccessMsg('Đã đồng bộ thành công cấu hình Màn LED & Playlist lên Google Sheets!');
+        } else {
+          setPresentationSuccessMsg('Đã lưu cục bộ! Phản hồi máy chủ: ' + (json.message || 'Thành công'));
+        }
+      } else {
+        setPresentationSuccessMsg('Đã lưu cấu hình Màn LED & Playlist cục bộ thành công!');
+      }
+      confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+    } catch (err: any) {
+      console.warn('Lỗi lưu cấu hình màn LED:', err);
+      setPresentationSuccessMsg('Đã lưu cấu hình Màn LED & Playlist thành công!');
+    } finally {
+      setIsSavingPresentation(false);
+      setTimeout(() => setPresentationSuccessMsg(''), 5000);
+    }
+  };
+
   const handleUpdateSecurityPins = async () => {
     if (currentUserRole !== 'admin') return;
     if (!currentAdminPinConfirm) {
@@ -3367,6 +3481,20 @@ export default function AdminManagementHub({
             ) : (
               <span className="text-[9px] bg-indigo-700 text-indigo-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">BLL 🛡️</span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('presentation')}
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'presentation'
+                ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-sm'
+                : 'text-purple-900 hover:bg-purple-100/70 bg-purple-50/50 border border-purple-200/60'
+            }`}
+          >
+            <Tv className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+            <span className="sm:hidden">7. Màn LED</span>
+            <span className="hidden sm:inline">7. Màn LED & Nhạc Nền</span>
+            <span className="text-[9px] bg-purple-900/60 text-purple-200 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Sân Khấu 🎬</span>
           </button>
         </div>
 
@@ -7684,6 +7812,719 @@ export default function AdminManagementHub({
             </div>
           )}
 
+          {/* --------------------------------------------------------------- */}
+          {/* TAB 7: STAGE PRESENTATION & MUSIC PLAYLIST SETTINGS             */}
+          {/* --------------------------------------------------------------- */}
+          {activeTab === 'presentation' && (
+            <div className="space-y-6 max-w-4xl mx-auto pb-8 text-left">
+              {/* Header Info Banner */}
+              <div className="bg-gradient-to-r from-purple-900/20 via-indigo-900/10 to-slate-900/40 rounded-2xl p-5 border border-purple-400/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 bg-gradient-to-tr from-purple-600 to-indigo-600 text-white rounded-xl shadow-md">
+                      <Tv className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-serif font-bold text-slate-900">
+                        Cấu Hình Trình Chiếu Màn LED & Playlist Nhạc Nền
+                      </h3>
+                      <p className="text-xs text-slate-600 font-sans">
+                        Chuẩn bị sân khấu hội trường tiệc kỷ niệm: Chiếu backdrop 16:9 sắc nét, phát nhạc nền thanh xuân & lồng ghép thư viện ảnh kỷ niệm Ken Burns thay thế video tốn kém.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {onOpenStagePresentation && (
+                    <button
+                      type="button"
+                      onClick={onOpenStagePresentation}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-sans font-bold rounded-xl shadow-md transition cursor-pointer flex items-center gap-2"
+                      title="Mở toàn màn hình để chiếu thử lên màn LED"
+                    >
+                      <PlaySquare className="w-4 h-4" />
+                      <span>Chiếu Thử Màn LED</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSavePresentationConfig}
+                    disabled={isSavingPresentation}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold rounded-xl shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {isSavingPresentation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{isSavingPresentation ? 'Đang lưu...' : 'Lưu Lên Google Sheets'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {presentationSuccessMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-semibold text-emerald-800 flex items-center gap-2 animate-fadeIn">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{presentationSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Sub-navigation inside Presentation Tab */}
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setPresentationSubTab('backdrop')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                    presentationSubTab === 'backdrop'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 bg-white border border-slate-200'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>1. Backdrop Sân Khấu ({stageBackdrops.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPresentationSubTab('music')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                    presentationSubTab === 'music'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 bg-white border border-slate-200'
+                  }`}
+                >
+                  <Music className="w-4 h-4" />
+                  <span>2. Playlist Nhạc Nền ({stagePlaylist.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPresentationSubTab('settings')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                    presentationSubTab === 'settings'
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 bg-white border border-slate-200'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>3. Cài Đặt Hiệu Ứng Sân Khấu</span>
+                </button>
+              </div>
+
+              {/* ------------------------------------------------------------- */}
+              {/* SUB-PANEL 1: BACKDROPS                                        */}
+              {/* ------------------------------------------------------------- */}
+              {presentationSubTab === 'backdrop' && (
+                <div className="space-y-4">
+                  {/* Notice */}
+                  <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl text-xs text-sky-900 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold mb-1">Thư mục Google Drive lưu trữ Maket / Backdrop sân khấu:</p>
+                      <p className="text-slate-600 leading-relaxed">
+                        Các ảnh backdrop được lưu trữ tự động trong thư mục con <strong className="font-mono bg-sky-100 px-1 py-0.5 rounded text-sky-800">"Backdrops_SanKhau"</strong> trên Google Drive của lớp (ID: <code className="text-sky-800">{K8A1_DRIVE_FOLDER_ID}</code>). Tỷ lệ chuẩn cho màn LED hội trường là <strong>16:9</strong> (1920x1080 hoặc 3840x2160).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Add Backdrop Form */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-purple-600" />
+                      Thêm Maket / Backdrop Màn LED Mới
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">
+                          Tiêu đề / Tên mẫu Backdrop *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="VD: Backdrop Tiệc Trưa Nhà Hàng Prime"
+                          value={newBackdropTitle}
+                          onChange={(e) => setNewBackdropTitle(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">
+                          Tải ảnh từ máy (Tự động tải lên Google Drive)
+                        </label>
+                        <label className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-purple-300 hover:border-purple-500 bg-purple-50/50 hover:bg-purple-50 text-purple-700 rounded-xl text-xs font-bold cursor-pointer transition">
+                          {isUploadingBackdrop ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Đang tải lên Drive...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              <span>Chọn file ảnh Backdrop</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={isUploadingBackdrop}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setIsUploadingBackdrop(true);
+                              try {
+                                const base64 = await compressImage(file, 2560, 0.88);
+                                const title = newBackdropTitle.trim() || file.name.replace(/\.[^/.]+$/, '');
+                                const pin = getAdminPinToken();
+                                const res = await uploadBackdropViaBackend({ fileData: base64, title, pin }, appsScriptUrl);
+                                if (res.success && res.data) {
+                                  setStageBackdrops((prev) => [...prev, res.data!]);
+                                  setNewBackdropTitle('');
+                                  setNewBackdropUrl('');
+                                  setPresentationSuccessMsg('Đã tải backdrop lên Drive và thêm vào danh sách thành công!');
+                                } else {
+                                  // Fallback thêm local bằng data URL
+                                  const localItem: BackdropItem = {
+                                    id: 'bd_' + Date.now(),
+                                    title: title,
+                                    url: base64,
+                                    isDefault: false
+                                  };
+                                  setStageBackdrops((prev) => [...prev, localItem]);
+                                  setPresentationSuccessMsg('Đã thêm backdrop vào danh sách trình chiếu cục bộ!');
+                                }
+                              } catch (err: any) {
+                                alert('Lỗi xử lý file ảnh: ' + (err?.message || err));
+                              } finally {
+                                setIsUploadingBackdrop(false);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Hoặc Dán Đường Link URL Ảnh Backdrop Trực Tiếp:
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          placeholder="https://... (Link ảnh trực tiếp hoặc link xem trước Google Drive)"
+                          value={newBackdropUrl}
+                          onChange={(e) => setNewBackdropUrl(e.target.value)}
+                          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newBackdropUrl.trim()) {
+                              alert('Vui lòng nhập đường link ảnh backdrop!');
+                              return;
+                            }
+                            const title = newBackdropTitle.trim() || `Backdrop Sân Khấu #${stageBackdrops.length + 1}`;
+                            const newBd: BackdropItem = {
+                              id: 'bd_' + Date.now(),
+                              title,
+                              url: normalizeImageUrl(newBackdropUrl.trim()),
+                              thumbnail: normalizeImageUrl(newBackdropUrl.trim()),
+                              isDefault: stageBackdrops.length === 0
+                            };
+                            setStageBackdrops((prev) => [...prev, newBd]);
+                            setNewBackdropTitle('');
+                            setNewBackdropUrl('');
+                            setPresentationSuccessMsg('Đã thêm backdrop mới vào danh sách!');
+                          }}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Thêm URL</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Backdrops Cards List */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {stageBackdrops.map((bd, idx) => (
+                      <div
+                        key={bd.id || idx}
+                        className={`bg-white border rounded-2xl overflow-hidden shadow-xs transition hover:shadow-md flex flex-col ${
+                          bd.isDefault ? 'border-purple-400 ring-2 ring-purple-400/20' : 'border-slate-200'
+                        }`}
+                      >
+                        {/* Image Preview 16:9 */}
+                        <div className="relative aspect-video bg-slate-950 flex items-center justify-center overflow-hidden group">
+                          <img
+                            src={bd.url}
+                            alt={bd.title}
+                            className="w-full h-full object-contain group-hover:scale-105 transition duration-500"
+                          />
+                          {bd.isDefault && (
+                            <span className="absolute top-2 left-2 px-2.5 py-1 bg-purple-600 text-white rounded-full text-[10px] font-bold shadow-md flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              Mặc định
+                            </span>
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setViewingBackdropPreview(bd.url)}
+                              className="p-2 bg-white/90 hover:bg-white text-slate-900 rounded-full shadow cursor-pointer"
+                              title="Xem kích thước đầy đủ"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Card Content */}
+                        <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                          <div>
+                            <h5 className="text-xs font-bold text-slate-900 line-clamp-2">
+                              {bd.title}
+                            </h5>
+                            {bd.dateCreated && (
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                Tạo ngày: {bd.dateCreated}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStageBackdrops((prev) =>
+                                  prev.map((item, i) => ({
+                                    ...item,
+                                    isDefault: i === idx
+                                  }))
+                                );
+                              }}
+                              className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer text-[11px] ${
+                                bd.isDefault
+                                  ? 'text-purple-700 font-bold bg-purple-50'
+                                  : 'text-slate-600 hover:text-purple-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {bd.isDefault ? '✓ Đang làm mặc định' : 'Đặt làm mặc định'}
+                            </button>
+
+                            {stageBackdrops.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Bạn có chắc muốn xóa backdrop "${bd.title}"?`)) {
+                                    setStageBackdrops((prev) => prev.filter((_, i) => i !== idx));
+                                  }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                title="Xóa backdrop này"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ------------------------------------------------------------- */}
+              {/* SUB-PANEL 2: MUSIC PLAYLIST                                   */}
+              {/* ------------------------------------------------------------- */}
+              {presentationSubTab === 'music' && (
+                <div className="space-y-4">
+                  {/* Notice */}
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-start gap-3">
+                    <Music className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold mb-1">Playlist âm thanh thanh xuân phục vụ Trình Chiếu Màn LED & WebApp:</p>
+                      <p className="text-slate-600 leading-relaxed">
+                        Thay vì thuê dựng video kỷ niệm tốn kém hàng triệu đồng, hệ thống sẽ <strong>tự động đồng bộ các giai điệu này</strong> cùng hiệu ứng lướt ảnh Ken Burns trên màn hình LED lớn, giúp tiết kiệm tối đa kinh phí mà vẫn tạo cảm xúc hoài niệm sâu lắng.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Add Track Form */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-purple-600" />
+                      Thêm Bài Hát Mới Vào Playlist
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">
+                          Tên ca khúc *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="VD: Phượng Hồng"
+                          value={newTrackTitle}
+                          onChange={(e) => setNewTrackTitle(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-1">
+                          Ca sĩ / Người thể hiện
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="VD: Vũ Khanh / Nhóm Tam Ca"
+                          value={newTrackArtist}
+                          onChange={(e) => setNewTrackArtist(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Đường link YouTube hoặc Google Drive MP3 *
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          placeholder="https://youtu.be/... hoặc https://drive.google.com/file/d/.../view"
+                          value={newTrackUrl}
+                          onChange={(e) => setNewTrackUrl(e.target.value)}
+                          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-purple-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newTrackUrl.trim()) {
+                              alert('Vui lòng nhập đường link bài hát!');
+                              return;
+                            }
+                            if (!newTrackTitle.trim()) {
+                              alert('Vui lòng nhập tên bài hát!');
+                              return;
+                            }
+                            const isDrive = newTrackUrl.includes('drive.google.com');
+                            const newTrack: MusicTrack = {
+                              id: 'track_' + Date.now(),
+                              title: newTrackTitle.trim(),
+                              artist: newTrackArtist.trim() || 'K8A1 Tuyển Chọn',
+                              sourceType: isDrive ? 'drive' : 'youtube',
+                              url: newTrackUrl.trim(),
+                              duration: 'Tùy chỉnh',
+                              isCustom: true
+                            };
+                            setStagePlaylist((prev) => [...prev, newTrack]);
+                            setNewTrackTitle('');
+                            setNewTrackArtist('');
+                            setNewTrackUrl('');
+                            setPresentationSuccessMsg('Đã thêm bài hát mới vào Playlist!');
+                          }}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Thêm Bài</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Presets for Classic School Songs */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <p className="text-[11px] font-bold text-slate-500 mb-2">
+                        Gợi ý thêm nhanh các bài ca học trò kinh điển:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { title: "Mong Ước Kỷ Niệm Xưa", artist: "Tam Ca 3A", url: "https://youtu.be/ocvlV5LZ93Q" },
+                          { title: "Tạm Biệt", artist: "Quang Vinh", url: "https://youtu.be/h9Hk_P1Xv2Y" },
+                          { title: "Ngày Ấy Bạn Và Tôi", artist: "Lynk Lee", url: "https://youtu.be/Z0R73khjwfg" },
+                          { title: "Xe Đạp", artist: "Thùy Chi & M4U", url: "https://youtu.be/HyCIkhbalPk" },
+                          { title: "Giấc Mơ Thần Tiên", artist: "Miu Lê", url: "https://youtu.be/VHT6ouvKj_Q" },
+                          { title: "Nụ Cười 18 20", artist: "Doãn Hiếu", url: "https://youtu.be/qOwNuWY30iw" }
+                        ].map((preset, pIdx) => {
+                          const isAlreadyIn = stagePlaylist.some(t => t.title.toLowerCase() === preset.title.toLowerCase());
+                          return (
+                            <button
+                              key={pIdx}
+                              type="button"
+                              disabled={isAlreadyIn}
+                              onClick={() => {
+                                const newTrack: MusicTrack = {
+                                  id: 'track_preset_' + Date.now() + '_' + pIdx,
+                                  title: preset.title,
+                                  artist: preset.artist,
+                                  sourceType: 'youtube',
+                                  url: preset.url,
+                                  duration: '04:00'
+                                };
+                                setStagePlaylist((prev) => [...prev, newTrack]);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition cursor-pointer flex items-center gap-1 ${
+                                isAlreadyIn
+                                  ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                                  : 'bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-800'
+                              }`}
+                            >
+                              <span>+</span>
+                              <span>{preset.title}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Playlist Reorder Table */}
+                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                    <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Danh Sách Thứ Tự Phát ({stagePlaylist.length} bài)
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Có thể đổi thứ tự bằng nút mũi tên lên / xuống
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                      {stagePlaylist.map((track, idx) => (
+                        <div
+                          key={track.id || idx}
+                          className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="w-6 text-center text-xs font-mono font-bold text-slate-400">
+                              {(idx + 1).toString().padStart(2, '0')}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-bold text-slate-900 truncate">
+                                  {track.title}
+                                </p>
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono">
+                                  {track.sourceType === 'drive' ? 'Drive' : 'YouTube'}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 truncate">
+                                {track.artist || 'K8A1 Tuyển Chọn'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {/* Move Up */}
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => {
+                                if (idx === 0) return;
+                                const updated = [...stagePlaylist];
+                                const temp = updated[idx - 1];
+                                updated[idx - 1] = updated[idx];
+                                updated[idx] = temp;
+                                setStagePlaylist(updated);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                              title="Di chuyển lên trên"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Move Down */}
+                            <button
+                              type="button"
+                              disabled={idx === stagePlaylist.length - 1}
+                              onClick={() => {
+                                if (idx === stagePlaylist.length - 1) return;
+                                const updated = [...stagePlaylist];
+                                const temp = updated[idx + 1];
+                                updated[idx + 1] = updated[idx];
+                                updated[idx] = temp;
+                                setStagePlaylist(updated);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                              title="Di chuyển xuống dưới"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Delete */}
+                            {stagePlaylist.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Bạn có chắc muốn xóa ca khúc "${track.title}"?`)) {
+                                    setStagePlaylist((prev) => prev.filter((_, i) => i !== idx));
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition"
+                                title="Xóa bài hát"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ------------------------------------------------------------- */}
+              {/* SUB-PANEL 3: STAGE SETTINGS                                   */}
+              {/* ------------------------------------------------------------- */}
+              {presentationSubTab === 'settings' && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-5">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-purple-600" />
+                    Cài Đặt Chế Độ Trình Chiếu Sân Khấu & Hiệu Ứng
+                  </h4>
+
+                  {/* Default Scene */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      Chế độ hiển thị mặc định khi MC bấm mở Màn LED:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { id: 'backdrop' as StagePresentationScene, title: '1. Backdrop Màn LED', desc: 'Chỉ hiển thị ảnh phông nền sân khấu chính' },
+                        { id: 'slideshow' as StagePresentationScene, title: '2. Ảnh Kỷ Niệm Ken Burns', desc: 'Lướt toàn màn hình toàn bộ 87+ ảnh kỷ niệm' },
+                        { id: 'dual' as StagePresentationScene, title: '3. Kết Hợp Sân Khấu', desc: 'Backdrop làm khung viền, ảnh kỷ niệm ở giữa' }
+                      ].map((sc) => (
+                        <div
+                          key={sc.id}
+                          onClick={() => setStageSettingsState(prev => ({ ...prev, defaultScene: sc.id }))}
+                          className={`p-3.5 rounded-xl border cursor-pointer transition ${
+                            stageSettingsState.defaultScene === sc.id
+                              ? 'bg-purple-50/80 border-purple-500 ring-2 ring-purple-500/20'
+                              : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <p className="text-xs font-bold text-slate-900">{sc.title}</p>
+                          <p className="text-[11px] text-slate-500 mt-1">{sc.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Slideshow Speed */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      Thời gian chuyển ảnh kỷ niệm (Tốc độ Ken Burns):
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[4000, 6000, 8000, 10000].map((spd) => (
+                        <button
+                          key={spd}
+                          type="button"
+                          onClick={() => setStageSettingsState(prev => ({ ...prev, slideshowSpeed: spd }))}
+                          className={`py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                            stageSettingsState.slideshowSpeed === spd
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {spd / 1000} giây
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Toggles */}
+                  <div className="space-y-3 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">Tự động phát nhạc nền khi mở màn LED</p>
+                        <p className="text-[11px] text-slate-500">Giúp hội trường lập tức có không khí âm nhạc du dương</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={stageSettingsState.autoPlayMusic !== false}
+                        onChange={(e) => setStageSettingsState(prev => ({ ...prev, autoPlayMusic: e.target.checked }))}
+                        className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">Hiệu ứng bụi sao hoàng kim (Golden Sparkles)</p>
+                        <p className="text-[11px] text-slate-500">Tạo ánh sáng lấp lánh sang trọng trên màn hình LED lớn</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={stageSettingsState.enableSparkles !== false}
+                        onChange={(e) => setStageSettingsState(prev => ({ ...prev, enableSparkles: e.target.checked }))}
+                        className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">Hiển thị chú thích ảnh kỷ niệm</p>
+                        <p className="text-[11px] text-slate-500">Hiển thị tên khoảnh khắc và thời gian ở cuối màn hình</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={stageSettingsState.showCaption !== false}
+                        onChange={(e) => setStageSettingsState(prev => ({ ...prev, showCaption: e.target.checked }))}
+                        className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Volume Slider */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-800">Âm lượng khởi động mặc định:</span>
+                      <span className="text-xs font-mono font-bold text-purple-700">{stageSettingsState.volume || 80}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={stageSettingsState.volume || 80}
+                      onChange={(e) => setStageSettingsState(prev => ({ ...prev, volume: Number(e.target.value) }))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Save Button */}
+              <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-xs text-slate-500 italic">
+                  💡 Nhấn "Lưu Cấu Hình Màn LED" để đồng bộ lên Google Sheets và áp dụng ngay cho ngày hội ngộ.
+                </p>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {onOpenStagePresentation && (
+                    <button
+                      type="button"
+                      onClick={onOpenStagePresentation}
+                      className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-purple-800 rounded-xl text-xs font-sans font-bold transition cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <PlaySquare className="w-4 h-4 text-purple-600" />
+                      <span>Chiếu Thử Màn LED</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSavePresentationConfig}
+                    disabled={isSavingPresentation}
+                    className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-lg transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSavingPresentation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{isSavingPresentation ? 'Đang Lưu...' : 'Lưu Cấu Hình Màn LED'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </motion.div>
 
@@ -10175,6 +11016,35 @@ export default function AdminManagementHub({
                 >
                   Đóng
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {viewingBackdropPreview && (
+          <div 
+            className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
+            onClick={() => setViewingBackdropPreview(null)}
+          >
+            <div 
+              className="bg-slate-900 border border-purple-500/40 rounded-2xl p-4 max-w-4xl w-full flex flex-col gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between text-white">
+                <span className="text-xs font-bold text-purple-300">Xem Trước Maket Backdrop Sân Khấu (16:9)</span>
+                <button
+                  onClick={() => setViewingBackdropPreview(null)}
+                  className="p-1 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="aspect-video w-full bg-black rounded-xl overflow-hidden flex items-center justify-center">
+                <img
+                  src={viewingBackdropPreview}
+                  alt="Backdrop Preview"
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
           </div>

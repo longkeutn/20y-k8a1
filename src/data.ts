@@ -1,4 +1,4 @@
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute } from './types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings } from './types';
 
 // Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
 export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_photos_fix_v7';
@@ -3522,6 +3522,91 @@ export function isVietnameseNameMatch(
   return false;
 }
 
+// ============================================================================
+// 🎬 CẤU HÌNH TRÌNH CHIẾU SÂN KHẤU (MÀN LED) & PLAYLIST NHẠC NỀN K8A1
+// ============================================================================
+
+// Danh sách bài hát mặc định (Ca khúc thanh xuân tuổi học trò K8A1)
+export const DEFAULT_PLAYLIST: MusicTrack[] = [
+  {
+    id: "track-1",
+    title: "Mong Ước Kỷ Niệm Xưa",
+    artist: "Tam Ca 3A",
+    sourceType: "youtube",
+    url: "https://youtu.be/ocvlV5LZ93Q",
+    duration: "05:12"
+  },
+  {
+    id: "track-2",
+    title: "Tạm Biệt (Thời Áo Trắng)",
+    artist: "Quang Vinh",
+    sourceType: "youtube",
+    url: "https://youtu.be/h9Hk_P1Xv2Y",
+    duration: "04:30"
+  },
+  {
+    id: "track-3",
+    title: "Ngày Ấy Bạn Và Tôi",
+    artist: "Lynk Lee",
+    sourceType: "youtube",
+    url: "https://youtu.be/Z0R73khjwfg",
+    duration: "04:15"
+  },
+  {
+    id: "track-4",
+    title: "Xe Đạp",
+    artist: "Thùy Chi & M4U",
+    sourceType: "youtube",
+    url: "https://youtu.be/HyCIkhbalPk",
+    duration: "04:45"
+  },
+  {
+    id: "track-5",
+    title: "Giấc Mơ Thần Tiên",
+    artist: "Miu Lê",
+    sourceType: "youtube",
+    url: "https://youtu.be/VHT6ouvKj_Q",
+    duration: "03:55"
+  },
+  {
+    id: "track-6",
+    title: "Nụ Cười 18 20",
+    artist: "Doãn Hiếu",
+    sourceType: "youtube",
+    url: "https://youtu.be/qOwNuWY30iw",
+    duration: "03:40"
+  }
+];
+
+// Danh sách Maket / Backdrop sân khấu hội trường mặc định
+export const DEFAULT_BACKDROPS: BackdropItem[] = [
+  {
+    id: "bd-main",
+    title: "Backdrop Sân Khấu Chính • Kỷ Niệm 20 Năm Ngày Trở Về K8A1 (2003 - 2006)",
+    url: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
+    thumbnail: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w600",
+    isDefault: true
+  },
+  {
+    id: "bd-school",
+    title: "Maket Hội Ngộ Mái Trường THPT Thái Nguyên Xưa & Nay",
+    url: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
+    thumbnail: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
+    isDefault: false
+  }
+];
+
+// Cấu hình điều khiển trình chiếu sân khấu mặc định
+export const DEFAULT_STAGE_SETTINGS: StageSettings = {
+  slideshowSpeed: 6000,
+  defaultScene: 'backdrop',
+  autoPlayMusic: true,
+  enableSparkles: true,
+  volume: 80,
+  showCaption: true,
+  shufflePhotos: false
+};
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
@@ -3568,7 +3653,10 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   qrTemplate: "compact",
   heroBannerUrl: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
   heroBannerPosition: 82,
-  schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
+  schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
+  backdrops: DEFAULT_BACKDROPS,
+  musicPlaylist: DEFAULT_PLAYLIST,
+  stageSettings: DEFAULT_STAGE_SETTINGS
 };
 
 // Logo chính thức Trường THPT Thái Nguyên (thuộc ĐH Sư Phạm - ĐH Thái Nguyên)
@@ -4235,6 +4323,11 @@ function doGet(e) {
       return handleResponse(getDrivePhotos());
     }
 
+    // 4b. Lấy danh sách ảnh Backdrop sân khấu từ folder Drive
+    if (action === 'get_backdrops' || action === 'get_drive_backdrops') {
+      return handleResponse(getDriveBackdrops());
+    }
+
     // 5. Lấy danh sách lưu bút / lời chúc
     if (action === 'get_wishes') {
       return handleResponse(getWishesList());
@@ -4339,6 +4432,16 @@ function doPost(e) {
     if (action === 'save_media' || action === 'update_media') {
       if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu cài đặt media!' });
       return handleResponse(saveMediaSettings(postData));
+    }
+
+    // 2b. Tải Backdrop sân khấu lên Drive -> Yêu cầu Admin/BLL
+    if (action === 'upload_backdrop') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để tải backdrop lên Drive!' });
+      return handleResponse(uploadBackdropToDrive(postData));
+    }
+
+    if (action === 'get_backdrops' || action === 'get_drive_backdrops') {
+      return handleResponse(getDriveBackdrops());
     }
 
     // 3. Quản lý danh bạ lớp K8A1 (Sheet: "Danh_Sach_Lop") -> Yêu cầu Admin/BLL
@@ -5223,6 +5326,109 @@ function uploadPhotoToDrive(data) {
 }
 
 /**
+ * Lấy hoặc tự động tạo thư mục con "Backdrops_SanKhau" trong Google Drive
+ */
+function getBackdropFolder() {
+  const rootId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+  let rootFolder = null;
+  if (rootId) {
+    try { rootFolder = DriveApp.getFolderById(rootId); } catch (e) {}
+  }
+  if (!rootFolder) {
+    try {
+      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
+      if (folders.hasNext()) rootFolder = folders.next();
+      else rootFolder = DriveApp.getRootFolder();
+    } catch (e) {
+      rootFolder = DriveApp.getRootFolder();
+    }
+  }
+
+  const subFolderName = "Backdrops_SanKhau";
+  const subFolders = rootFolder.getFoldersByName(subFolderName);
+  if (subFolders.hasNext()) {
+    return subFolders.next();
+  }
+  const created = rootFolder.createFolder(subFolderName);
+  try {
+    created.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (e) {}
+  return created;
+}
+
+/**
+ * Lấy danh sách ảnh Backdrop sân khấu từ folder Drive "Backdrops_SanKhau"
+ */
+function getDriveBackdrops() {
+  try {
+    const folder = getBackdropFolder();
+    const files = folder.getFiles();
+    const backdrops = [];
+    while (files.hasNext()) {
+      const file = files.next();
+      const mimeType = file.getMimeType();
+      if (mimeType.indexOf('image/') === 0 || mimeType === 'application/octet-stream') {
+        const fileId = file.getId();
+        backdrops.push({
+          id: fileId,
+          title: file.getName().replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
+          url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
+          thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
+          driveUrl: file.getUrl(),
+          dateCreated: formatDate(file.getDateCreated()),
+          isDefault: false
+        });
+      }
+    }
+    return { status: 'success', data: backdrops };
+  } catch (err) {
+    return { status: 'error', message: err.toString(), data: [] };
+  }
+}
+
+/**
+ * Tải ảnh Backdrop sân khấu lên folder Drive "Backdrops_SanKhau"
+ */
+function uploadBackdropToDrive(data) {
+  try {
+    const folder = getBackdropFolder();
+    let rawBase64 = data.fileData || '';
+    if (rawBase64.indexOf(',') > -1) {
+      rawBase64 = rawBase64.split(',')[1];
+    }
+    const decoded = Utilities.base64Decode(rawBase64);
+    const cleanTitle = String(data.title || data.caption || 'Backdrop_K8A1').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_');
+    const fileName = cleanTitle + '_' + Date.now() + '.jpg';
+    const blob = Utilities.newBlob(decoded, 'image/jpeg', fileName);
+    const file = folder.createFile(blob);
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (eShare) {
+      console.warn("Lỗi setSharing backdrop: " + eShare.toString());
+    }
+
+    const fileId = file.getId();
+    const item = {
+      id: fileId,
+      title: cleanTitle.replace(/_/g, ' '),
+      url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
+      thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
+      driveUrl: file.getUrl(),
+      dateCreated: formatDate(new Date()),
+      isDefault: false
+    };
+
+    return {
+      status: 'success',
+      message: 'Tải backdrop lên Google Drive thành công!',
+      data: item
+    };
+  } catch (err) {
+    return { status: 'error', message: 'Lỗi upload Backdrop: ' + err.toString() };
+  }
+}
+
+/**
  * Tải ảnh chứng từ / bill nộp quỹ lên thư mục con "ChungTu_QuyLop_K8A1" trong Drive
  */
 function uploadFundReceiptToDrive(data) {
@@ -5457,6 +5663,10 @@ function getEventConfig() {
         let val = rows[i][1];
         if (key === 'fundAmountPerPerson' || key === 'heroBannerPosition') {
           val = Number(val) || 0;
+        } else if (typeof val === 'string' && (val.indexOf('{') === 0 || val.indexOf('[') === 0)) {
+          try {
+            val = JSON.parse(val);
+          } catch (eJson) {}
         }
         config[key] = val;
       }
@@ -6652,6 +6862,9 @@ function getAllData(isAdmin) {
     let teachers = [];
     try { teachers = (getTeachersList(isAdmin) || {}).data || []; } catch (e) {}
 
+    let backdrops = [];
+    try { backdrops = (getDriveBackdrops() || {}).data || []; } catch (e) {}
+
     return {
       status: 'success',
       data: {
@@ -6664,7 +6877,8 @@ function getAllData(isAdmin) {
         drivePhotos: drivePhotos,
         expenses: expenses,
         incomes: incomes,
-        teachers: teachers
+        teachers: teachers,
+        backdrops: backdrops
       }
     };
   } catch (err) {
@@ -6861,4 +7075,70 @@ export function getVietnameseGivenName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
   return parts[parts.length - 1] || fullName;
 }
+
+/**
+ * Lấy danh sách ảnh Backdrop màn LED từ thư mục "Backdrops_SanKhau" trên Google Drive
+ */
+export async function fetchDriveBackdrops(appsScriptUrl?: string): Promise<BackdropItem[]> {
+  const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
+    ? appsScriptUrl.trim()
+    : DEFAULT_APPS_SCRIPT_URL;
+
+  if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+    return DEFAULT_BACKDROPS;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(`${targetUrl}?action=get_backdrops&t=${Date.now()}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    const json = await res.json();
+    if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+      return json.data;
+    }
+  } catch (e) {
+    console.warn('Lỗi lấy backdrop từ Drive, sử dụng mặc định:', e);
+  }
+  return DEFAULT_BACKDROPS;
+}
+
+/**
+ * Tải ảnh backdrop mới lên thư mục Drive "Backdrops_SanKhau" qua Google Apps Script
+ */
+export async function uploadBackdropViaBackend(
+  payload: { fileData: string; title: string; pin?: string },
+  appsScriptUrl?: string
+): Promise<{ success: boolean; data?: BackdropItem; message?: string }> {
+  const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
+    ? appsScriptUrl.trim()
+    : DEFAULT_APPS_SCRIPT_URL;
+
+  if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
+  }
+
+  try {
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'upload_backdrop',
+        fileData: payload.fileData,
+        title: payload.title,
+        pin: payload.pin || ''
+      })
+    });
+    const json = await res.json();
+    if (json && json.status === 'success' && json.data) {
+      return { success: true, data: json.data, message: json.message || 'Tải backdrop thành công!' };
+    }
+    return { success: false, message: json?.message || 'Không thể tải backdrop lên Drive!' };
+  } catch (err: any) {
+    return { success: false, message: 'Lỗi kết nối máy chủ Drive: ' + (err?.message || err) };
+  }
+}
+
 

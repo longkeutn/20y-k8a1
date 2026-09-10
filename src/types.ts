@@ -162,6 +162,42 @@ export interface ReunionConfig {
   transferSyntax: string;
 }
 
+// Model bài hát trong Playlist nhạc nền sự kiện K8A1
+export interface MusicTrack {
+  id: string;
+  title: string;
+  artist?: string;
+  sourceType: 'youtube' | 'drive' | 'direct';
+  url: string;
+  thumbnail?: string;
+  duration?: string;
+  isCustom?: boolean;
+}
+
+// Model ảnh Backdrop sân khấu màn LED
+export interface BackdropItem {
+  id: string;
+  title: string;
+  url: string;
+  thumbnail?: string;
+  driveUrl?: string;
+  dateCreated?: string;
+  isDefault?: boolean;
+}
+
+export type StagePresentationScene = 'backdrop' | 'slideshow' | 'dual';
+
+// Cấu hình điều khiển màn LED sân khấu
+export interface StageSettings {
+  slideshowSpeed: number; // Thời gian mỗi ảnh (ms), ví dụ: 6000 (6s)
+  defaultScene: StagePresentationScene;
+  autoPlayMusic: boolean;
+  enableSparkles: boolean;
+  volume: number; // 0 - 100
+  showCaption: boolean;
+  shufflePhotos: boolean;
+}
+
 export interface ActivityToast {
   id: string;
   type: 'rsvp' | 'wish';
@@ -228,6 +264,9 @@ export interface EventConfig {
   heroBannerUrl?: string;
   heroBannerPosition?: number;
   schoolLogoUrl?: string;
+  backdrops?: BackdropItem[];
+  musicPlaylist?: MusicTrack[];
+  stageSettings?: StageSettings;
 }
 
 export type ExpenseCategory = 

@@ -32,7 +32,8 @@ import {
   ArrowUp,
   Trash2,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Tv
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
@@ -43,6 +44,7 @@ interface MemoryCornerProps {
   images: MemoryImage[];
   videos?: MemoryVideo[];
   onAddImage?: (newImage: MemoryImage | MemoryImage[]) => void;
+  onOpenStagePresentation?: () => void;
 }
 
 // Chuẩn hóa link video YouTube hoặc Google Drive sang Embed URL
@@ -75,7 +77,7 @@ const INITIAL_VIDEOS: MemoryVideo[] = DEFAULT_VIDEOS;
 
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
-export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, onAddImage }: MemoryCornerProps) {
+export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, onAddImage, onOpenStagePresentation }: MemoryCornerProps) {
   // Đảm bảo luôn có ít nhất 87 ảnh từ DEFAULT_MEMORIES nếu prop images rỗng hoặc chưa nạp xong
   const displayImages = useMemo(() => {
     if (Array.isArray(images) && images.length > 0) {
@@ -932,8 +934,20 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </p>
           </div>
 
-          {/* Action Buttons: Trình Chiếu Slide Show & Góp Thêm Ảnh */}
+          {/* Action Buttons: Trình Chiếu Màn LED, Slide Show & Góp Thêm Ảnh */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            {onOpenStagePresentation && (
+              <button
+                type="button"
+                onClick={onOpenStagePresentation}
+                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all cursor-pointer border border-purple-400/30"
+                title="Trình chiếu màn LED hội trường kết hợp Backdrop & Playlist nhạc"
+              >
+                <Tv className="w-3.5 h-3.5 text-amber-300" />
+                <span>Chiếu Màn LED 16:9</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => startSlideshow(0)}
