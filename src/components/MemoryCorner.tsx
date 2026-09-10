@@ -31,7 +31,8 @@ import {
   Coins,
   ArrowUp,
   Trash2,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
@@ -92,6 +93,52 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       setVideoList(videos);
     }
   }, [videos]);
+
+  // Tự động khôi phục & nạp trực tiếp ảnh từ Google Drive nếu App chưa nạp xong
+  const [isDirectFetching, setIsDirectFetching] = useState<boolean>(false);
+  const [hasAttemptedDirectFetch, setHasAttemptedDirectFetch] = useState<boolean>(false);
+
+  const handleDirectFetchPhotos = useCallback(async () => {
+    if (!appsScriptUrl || isDirectFetching) return;
+    setIsDirectFetching(true);
+    setHasAttemptedDirectFetch(true);
+    try {
+      const res = await fetch(`${appsScriptUrl}?action=get_photos&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      const json = await res.json();
+      if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+        const driveImgs: MemoryImage[] = json.data.map((p: any) => ({
+          id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+          thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+          caption: p.caption || 'Kỷ niệm Lớp K8A1',
+          date: p.date || '2006',
+          isUserUploaded: true,
+          driveUrl: p.driveUrl
+        }));
+        if (onAddImage) {
+          onAddImage(driveImgs);
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi direct fetch photos trong MemoryCorner:', err);
+    } finally {
+      setIsDirectFetching(false);
+    }
+  }, [appsScriptUrl, onAddImage, isDirectFetching]);
+
+  // Tự phục hồi: nếu sau 2.5s mà images.length vẫn là 0 và chưa từng fetch trực tiếp
+  useEffect(() => {
+    if (images.length === 0 && appsScriptUrl && !hasAttemptedDirectFetch && !isDirectFetching) {
+      const timer = setTimeout(() => {
+        if (images.length === 0) {
+          handleDirectFetchPhotos();
+        }
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [images.length, appsScriptUrl, hasAttemptedDirectFetch, isDirectFetching, handleDirectFetchPhotos]);
 
   const [activeVideoIndex, setActiveVideoIndex] = useState<number>(0);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -973,9 +1020,29 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
         {/* Loading / Skeleton State khi đang nạp ảnh từ Drive */}
         {images.length === 0 ? (
           <div className="space-y-4 relative z-10">
-            <div className="flex items-center gap-2 text-xs font-sans text-amber-700 font-bold">
-              <Camera className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-              <span>Đang nạp thư viện ảnh kỷ niệm K8A1...</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-sans text-amber-800 font-bold">
+                {isDirectFetching ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                    <span>Đang nạp ảnh trực tiếp từ Google Drive...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                    <span>Đang nạp thư viện ảnh kỷ niệm K8A1...</span>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={handleDirectFetchPhotos}
+                disabled={isDirectFetching}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+                title="Tải lại thư viện ảnh từ Google Drive"
+              >
+                <RefreshCw className={`w-3 h-3 ${isDirectFetching ? 'animate-spin text-amber-700' : ''}`} />
+                <span>Tải lại ảnh</span>
+              </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-5 lg:gap-6 animate-pulse">
               {[1, 2, 3, 4, 5, 6].map((sk) => (

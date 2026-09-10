@@ -864,18 +864,36 @@ export default function App() {
   const handleAddImage = (newImgOrImgs: MemoryImage | MemoryImage[]) => {
     const newItems = Array.isArray(newImgOrImgs) ? newImgOrImgs : [newImgOrImgs];
     if (newItems.length === 0) return;
-    const local = localStorage.getItem('uploaded_images');
-    const uploaded = local ? JSON.parse(local) : [];
-    const updatedUploaded = [...newItems, ...uploaded];
+    let uploaded: MemoryImage[] = [];
+    try {
+      const local = localStorage.getItem('uploaded_images');
+      if (local) uploaded = JSON.parse(local);
+    } catch (e) {}
+
+    // Lọc bỏ các ảnh đã tồn tại (dựa trên ID hoặc URL)
+    const existingIds = new Set(uploaded.map(i => i.id));
+    const toAdd = newItems.filter(i => !existingIds.has(i.id));
+    if (toAdd.length === 0) return;
+
+    const updatedUploaded = [...toAdd, ...uploaded];
     try {
       localStorage.setItem('uploaded_images', JSON.stringify(updatedUploaded));
     } catch (e) {}
-    setImages(prev => [...newItems, ...prev]);
-    syncToBackend('save_media', { 
-      photos: updatedUploaded, 
-      videos, 
-      venueMedia: venueMediaList 
+
+    setImages(prev => {
+      const prevIds = new Set(prev.map(i => i.id));
+      const newlyAdded = toAdd.filter(i => !prevIds.has(i.id));
+      return [...newlyAdded, ...prev];
     });
+
+    const userUploadedOnly = updatedUploaded.filter(i => i.isUserUploaded && !i.driveUrl);
+    if (userUploadedOnly.length > 0) {
+      syncToBackend('save_media', { 
+        photos: userUploadedOnly, 
+        videos, 
+        venueMedia: venueMediaList 
+      });
+    }
   };
 
   // Update venue media (Crown Palace photos/videos) with direct Google Sheet sync
@@ -1212,6 +1230,40 @@ export default function App() {
         }
       })();
 
+      // 📷 FAST-TRACK DRIVE PHOTOS: Tải độc lập siêu tốc kho ảnh kỷ niệm từ Google Drive
+      // Chỉ ~1.5 - 2 giây để nạp trọn vẹn toàn bộ ảnh (động 100%, tự động nhận mọi ảnh mới thành viên vừa upload)
+      const fetchPhotosFastPromise = (async () => {
+        try {
+          const res = await fetch(`${targetUrl}?action=get_photos${antiCache}`, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
+          });
+          const json = await res.json();
+          if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+            const driveImgs: MemoryImage[] = json.data.map((p: any) => ({
+              id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+              url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+              thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+              caption: p.caption || 'Kỷ niệm Lớp K8A1',
+              date: p.date || '2006',
+              isUserUploaded: true,
+              driveUrl: p.driveUrl
+            }));
+
+            setImages((prev) => {
+              // Hợp nhất ảnh mới từ Drive với ảnh cục bộ vừa upload trên máy
+              const driveIds = new Set(driveImgs.map(i => i.id));
+              const localOnly = prev.filter(i => !driveIds.has(i.id));
+              const merged = [...driveImgs, ...localOnly];
+              try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
+              return merged;
+            });
+          }
+        } catch (photoErr) {
+          console.warn('Lỗi Fast-Track get_photos từ Drive:', photoErr);
+        }
+      })();
+
       // 📦 MASTER DATA: Tải toàn bộ cấu hình, lưu bút, quỹ, videos, danh bạ
       const fetchMasterPromise = (async () => {
         try {
@@ -1326,8 +1378,13 @@ export default function App() {
                 isUserUploaded: true,
                 driveUrl: p.driveUrl
               }));
-              setImages(embPhotos);
-              try { localStorage.setItem('uploaded_images', JSON.stringify(embPhotos)); } catch (e) {}
+              setImages((prev) => {
+                const driveIds = new Set(embPhotos.map(i => i.id));
+                const localOnly = prev.filter(i => !driveIds.has(i.id));
+                const merged = [...embPhotos, ...localOnly];
+                try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
+                return merged;
+              });
             }
 
             // G. Đồng bộ Sổ Chi Tiêu Quỹ Lớp từ Google Sheet (tab "Khoan_Chi")
@@ -1354,12 +1411,13 @@ export default function App() {
             setSyncStatus('live');
             setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           } else {
-            // Dự phòng đa tầng: Nếu get_all_data trả về lỗi, nạp fallback song song config, rsvp và roster
+            // Dự phòng đa tầng: Nếu get_all_data trả về lỗi, nạp fallback song song config, rsvp, roster và photos
             try {
-              const [cfgRes, rsvpRes, rosterRes] = await Promise.allSettled([
+              const [cfgRes, rsvpRes, rosterRes, photoRes] = await Promise.allSettled([
                 fetch(`${targetUrl}?action=get_config${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
                 fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
-                fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json())
+                fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+                fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json())
               ]);
               if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
                 setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
@@ -1380,6 +1438,24 @@ export default function App() {
                   try { localStorage.setItem('k8a1_class_roster', JSON.stringify(cleanRoster)); } catch (e) {}
                 }
               }
+              if (photoRes.status === 'fulfilled' && photoRes.value?.status === 'success' && Array.isArray(photoRes.value.data) && photoRes.value.data.length > 0) {
+                const driveImgs: MemoryImage[] = photoRes.value.data.map((p: any) => ({
+                  id: p.id || `drive-${Date.now()}`,
+                  url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+                  thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+                  caption: p.caption || 'Kỷ niệm Lớp K8A1',
+                  date: p.date || '2006',
+                  isUserUploaded: true,
+                  driveUrl: p.driveUrl
+                }));
+                setImages((prev) => {
+                  const driveIds = new Set(driveImgs.map(i => i.id));
+                  const localOnly = prev.filter(i => !driveIds.has(i.id));
+                  const merged = [...driveImgs, ...localOnly];
+                  try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
+                  return merged;
+                });
+              }
               setSyncStatus('live');
               setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
             } catch (errFallback) {
@@ -1389,10 +1465,11 @@ export default function App() {
         } catch (err) {
           console.warn('Lỗi nạp Master Data từ Google Sheet:', err);
           try {
-            const [cfgRes, rsvpRes, rosterRes] = await Promise.allSettled([
+            const [cfgRes, rsvpRes, rosterRes, photoRes] = await Promise.allSettled([
               fetch(`${targetUrl}?action=get_config${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
               fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
-              fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json())
+              fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+              fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json())
             ]);
             if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
               setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
@@ -1413,6 +1490,24 @@ export default function App() {
                 try { localStorage.setItem('k8a1_class_roster', JSON.stringify(cleanRoster)); } catch (e) {}
               }
             }
+            if (photoRes.status === 'fulfilled' && photoRes.value?.status === 'success' && Array.isArray(photoRes.value.data) && photoRes.value.data.length > 0) {
+              const driveImgs: MemoryImage[] = photoRes.value.data.map((p: any) => ({
+                id: p.id || `drive-${Date.now()}`,
+                url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+                thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+                caption: p.caption || 'Kỷ niệm Lớp K8A1',
+                date: p.date || '2006',
+                isUserUploaded: true,
+                driveUrl: p.driveUrl
+              }));
+              setImages((prev) => {
+                const driveIds = new Set(driveImgs.map(i => i.id));
+                const localOnly = prev.filter(i => !driveIds.has(i.id));
+                const merged = [...driveImgs, ...localOnly];
+                try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
+                return merged;
+              });
+            }
             setSyncStatus('live');
             setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           } catch (e) {
@@ -1421,7 +1516,7 @@ export default function App() {
         }
       })();
 
-      await Promise.allSettled([fetchCoreFastPromise, fetchMasterPromise]);
+      await Promise.allSettled([fetchCoreFastPromise, fetchPhotosFastPromise, fetchMasterPromise]);
     } catch (err) {
       console.warn('Lỗi đồng bộ từ Google Sheet & Drive:', err);
       setSyncStatus(prev => prev === 'live' ? 'live' : 'error');

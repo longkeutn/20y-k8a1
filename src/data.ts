@@ -19,7 +19,6 @@ export function purgeOldCacheIfOutdated(): boolean {
         'k8a1_expenses_list',
         'k8a1_incomes_list',
         'k8a1_teachers_list',
-        'uploaded_images',
         'custom_videos',
         'k8a1_venue_media_list'
       ];
