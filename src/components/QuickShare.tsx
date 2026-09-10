@@ -39,9 +39,13 @@ export default function QuickShare({
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
-  const getShareUrl = () => {
+  const getShareUrl = (bustCache: boolean = false) => {
     if (typeof window !== 'undefined') {
-      return window.location.href.split('#')[0];
+      const baseUrl = window.location.href.split('#')[0].split('?')[0];
+      if (bustCache) {
+        return `${baseUrl}?v=${Date.now().toString().slice(-6)}`;
+      }
+      return baseUrl;
     }
     return 'https://ais-dev-psz3qzk7y7qxcp67ilerhc-625228135894.asia-southeast1.run.app';
   };
@@ -66,7 +70,7 @@ export default function QuickShare({
   const dynamicMessage = `🌸 THƯ MỜI HỘI NGỘ 20 NĂM LỚP K8A1 (2006 - 2026) 🌸\n\nThân mời tất cả các bạn cựu học sinh Lớp K8A1 (Khóa 8) Trường THPT Thái Nguyên về tham dự Ngày Hội Ngộ 20 Năm Thanh Xuân!\n⏰ Thời gian: ${dynamicTime}\n📍 Địa điểm: ${dynamicVenue}\n\n👉 Hãy bấm vào liên kết bên dưới để xác nhận tham dự và cùng ôn lại kỷ niệm nhé:`;
 
   const handleNativeShare = async () => {
-    const url = getShareUrl();
+    const url = getShareUrl(true);
     const shareData = {
       title: dynamicTitle,
       text: `${dynamicDesc}\n\n`,
@@ -96,7 +100,7 @@ export default function QuickShare({
   };
 
   const handleCopyLink = async () => {
-    const url = getShareUrl();
+    const url = getShareUrl(true);
     try {
       await navigator.clipboard.writeText(url);
       setCopiedLink(true);
@@ -109,7 +113,7 @@ export default function QuickShare({
   };
 
   const handleCopyFullInvitation = async () => {
-    const url = getShareUrl();
+    const url = getShareUrl(true);
     const fullText = `${dynamicMessage}\n${url}`;
     try {
       await navigator.clipboard.writeText(fullText);
@@ -122,14 +126,14 @@ export default function QuickShare({
   };
 
   const handleShareZalo = () => {
-    const url = getShareUrl();
+    const url = getShareUrl(true);
     // Zalo web share dialog
     const zaloUrl = `https://zalo.me/share?url=${encodeURIComponent(url)}`;
     window.open(zaloUrl, '_blank', 'noopener,noreferrer,width=600,height=600');
   };
 
   const handleShareFacebook = () => {
-    const url = getShareUrl();
+    const url = getShareUrl(false);
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
     window.open(fbUrl, '_blank', 'noopener,noreferrer,width=600,height=500');
   };

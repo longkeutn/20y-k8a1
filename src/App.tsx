@@ -22,7 +22,9 @@ import {
   Edit3,
   ScrollText,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  RefreshCw,
+  X
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
@@ -52,7 +54,38 @@ import TeachersHonorRoll from './components/TeachersHonorRoll';
 import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
 
+// ⚡ PHIÊN BẢN CODE WEBAPP - Thay đổi giá trị này khi deploy để tự động dọn sạch cache rác trên Zalo Webview của người dùng
+export const APP_BUILD_VERSION = '2026.09.10.v1';
+const isZaloBrowser = typeof navigator !== 'undefined' && /zalo/i.test(navigator.userAgent);
+
 export default function App() {
+  const [isZaloTipDismissed, setIsZaloTipDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('k8a1_zalo_tip_dismissed') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  // Tự động phát hiện phiên bản code mới và dọn dẹp cache rác trên Zalo WebView / thiết bị cũ
+  useEffect(() => {
+    try {
+      const storedVersion = localStorage.getItem('k8a1_app_build_version');
+      if (storedVersion !== APP_BUILD_VERSION) {
+        console.info(`[K8A1 Cache] Nâng cấp phiên bản code (${APP_BUILD_VERSION}) so với bản cũ (${storedVersion || 'chưa lưu'}), dọn sạch cache...`);
+        localStorage.removeItem('rsvp_list');
+        localStorage.removeItem('k8a1_class_roster');
+        localStorage.removeItem('k8a1_event_config');
+        localStorage.removeItem('k8a1_expenses_list');
+        localStorage.removeItem('k8a1_incomes_list');
+        localStorage.removeItem('k8a1_teachers_list');
+        localStorage.setItem('k8a1_app_build_version', APP_BUILD_VERSION);
+      }
+    } catch (e) {
+      console.warn('Lỗi kiểm tra phiên bản:', e);
+    }
+  }, []);
+
   // Config state (Google Apps Script WebApp URL)
   const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => {
     try {
@@ -1129,10 +1162,13 @@ export default function App() {
       const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
 
       // ⚡ FAST-TRACK RSVP: Tải siêu tốc danh sách điểm danh trước tiên (chỉ ~1-2 giây)
-      // Giúp số người tham gia (34 bạn) cập nhật ngay lập tức khi mở web, không để người dùng chờ 10-15s
+      // Giúp số người tham gia cập nhật ngay lập tức khi mở web, không để người dùng chờ 10-15s
       const fetchRsvpFastPromise = (async () => {
         try {
-          const res = await fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`);
+          const res = await fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+          });
           const result = await res.json();
           if (result && result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
             setRsvpList((prev) => {
@@ -1149,7 +1185,10 @@ export default function App() {
       // 📦 MASTER DATA: Tải toàn bộ cấu hình, lưu bút, quỹ, videos, danh bạ
       const fetchMasterPromise = (async () => {
         try {
-          const res = await fetch(`${targetUrl}?action=get_all_data${pinQuery}&t=${Date.now()}`);
+          const res = await fetch(`${targetUrl}?action=get_all_data${pinQuery}&t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+          });
           const result = await res.json();
           if (result && result.status === 'success' && result.data) {
             const { rsvp, wishes, config, media, roster, drivePhotos: embeddedDrivePhotos } = result.data;
@@ -1285,8 +1324,8 @@ export default function App() {
             // Dự phòng hai lớp: Nếu get_all_data trả về lỗi, nạp fallback cả config và rsvp
             try {
               const [cfgRes, rsvpRes] = await Promise.allSettled([
-                fetch(`${targetUrl}?action=get_config&t=${Date.now()}`).then(r => r.json()),
-                fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`).then(r => r.json())
+                fetch(`${targetUrl}?action=get_config&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
+                fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
               ]);
               if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
                 setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
@@ -1304,8 +1343,8 @@ export default function App() {
           console.warn('Lỗi nạp Master Data từ Google Sheet:', err);
           try {
             const [cfgRes, rsvpRes] = await Promise.allSettled([
-              fetch(`${targetUrl}?action=get_config&t=${Date.now()}`).then(r => r.json()),
-              fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`).then(r => r.json())
+              fetch(`${targetUrl}?action=get_config&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
+              fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
             ]);
             if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
               setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
@@ -1329,14 +1368,34 @@ export default function App() {
     }
   };
 
-  // Live Refresh data from Google Apps Script
+  // Live Refresh data from Google Apps Script (ép xóa cache trước khi fetch để dữ liệu tươi mới 100%)
   const handleRefreshData = () => {
+    try {
+      localStorage.removeItem('rsvp_list');
+      localStorage.removeItem('k8a1_class_roster');
+      localStorage.removeItem('k8a1_event_config');
+      localStorage.removeItem('wishes_list');
+      localStorage.removeItem('k8a1_expenses_list');
+      localStorage.removeItem('k8a1_incomes_list');
+      localStorage.removeItem('k8a1_teachers_list');
+    } catch (e) {}
     hydrateAllData(activeAppsScriptUrl);
   };
 
   // Tự động đồng bộ toàn bộ dữ liệu ngay khi tải trang và khi URL thay đổi
   useEffect(() => {
     hydrateAllData(activeAppsScriptUrl);
+  }, [activeAppsScriptUrl]);
+
+  // Tự động kiểm tra và đồng bộ lại dữ liệu khi người dùng chuyển từ Zalo chat quay lại tab WebApp
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        hydrateAllData(activeAppsScriptUrl);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [activeAppsScriptUrl]);
 
   // Đồng bộ động tiêu đề trang và thẻ meta mô tả khi chia sẻ link theo cấu hình sự kiện
@@ -1578,6 +1637,43 @@ export default function App() {
         {/* 2. Overlaid Hero Content (Đè nội dung lên ảnh, căn giữa trong max-w-4xl) */}
         <div className="max-w-4xl mx-auto px-4 pt-20 pb-16 sm:pt-24 sm:pb-24 md:pt-26 md:pb-28 relative z-10 space-y-6 text-left">
           
+          {/* Gợi ý thông minh khi truy cập bằng trình duyệt Zalo WebView */}
+          {isZaloBrowser && !isZaloTipDismissed && (
+            <div className="bg-gradient-to-r from-blue-900/90 via-indigo-900/90 to-blue-950/90 border border-blue-400/40 backdrop-blur-md rounded-2xl p-3 sm:p-3.5 text-white shadow-xl flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 text-xs sm:text-sm">
+                <span className="text-base sm:text-lg shrink-0">💡</span>
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-blue-200">
+                    Bạn đang mở web trực tiếp trong Zalo
+                  </p>
+                  <p className="text-slate-200 text-xs leading-relaxed">
+                    Nếu tải ảnh/vé chậm hoặc muốn lưu về máy mượt mà nhất, hãy bấm <strong className="text-amber-300 font-bold underline decoration-amber-300/60">[⋮]</strong> (hoặc ⋯) ở góc trên bên phải màn hình rồi chọn <strong className="text-amber-300 font-bold underline decoration-amber-300/60">"Mở bằng trình duyệt"</strong> (Safari / Chrome) nhé!
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={handleRefreshData}
+                  className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-xs transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                  title="Làm mới dữ liệu từ Google Sheet"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span className="hidden xs:inline">Làm mới</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsZaloTipDismissed(true);
+                    try { sessionStorage.setItem('k8a1_zalo_tip_dismissed', '1'); } catch (e) {}
+                  }}
+                  className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Đóng thông báo"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Top Badge Strip */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-400/50 text-amber-200 text-[10px] sm:text-[11px] font-sans font-bold uppercase tracking-[0.15em] shadow-md">
