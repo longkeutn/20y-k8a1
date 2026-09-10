@@ -655,6 +655,19 @@ export default function RsvpForm({
       }
     }
 
+    // 🛡️ PHƯƠNG ÁN 1: Bắt buộc họ tên người điểm danh phải thuộc danh bạ 65 thành viên K8A1
+    if (!effectiveMemberId) {
+      setSubmitError(
+        `Họ tên "${fullName.trim()}" không nằm trong danh bạ 65 bạn học K8A1. Vui lòng bấm vào ô "Danh Bạ 65 Bạn" ở trên để chọn đúng tên của bạn!`
+      );
+      const dropdownTrigger = document.getElementById('roster-dropdown-trigger');
+      if (dropdownTrigger) {
+        dropdownTrigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setIsDropdownOpen(true);
+      }
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(null);
@@ -696,7 +709,7 @@ export default function RsvpForm({
     // Gửi trực tiếp lên Google Apps Script
     if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
       try {
-        await fetch(appsScriptUrl, {
+        const res = await fetch(appsScriptUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain;charset=utf-8',
@@ -706,6 +719,12 @@ export default function RsvpForm({
             ...rsvpPayload
           })
         });
+
+        const resJson = await res.json().catch(() => null);
+        if (resJson && resJson.status === 'error') {
+          setSubmitError(resJson.message || 'Không thể lưu phản hồi điểm danh!');
+          return;
+        }
 
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
@@ -1001,20 +1020,34 @@ export default function RsvpForm({
                 }`}
               >
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
-                    <Search className={`w-5 h-5 ${isHighlighted ? 'animate-bounce' : ''}`} />
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-sm shrink-0 ${
+                    activeMember 
+                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white' 
+                      : 'bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white'
+                  }`}>
+                    {activeMember ? (
+                      <UserCheck className="w-5 h-5 text-white" />
+                    ) : (
+                      <Search className={`w-5 h-5 ${isHighlighted ? 'animate-bounce' : ''}`} />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    {isCustomMode ? (
+                    {activeMember ? (
                       <div className="space-y-0.5">
-                        <div className="text-xs sm:text-[13px] font-bold text-amber-900 flex items-center gap-1.5 flex-wrap">
-                          <span>✏️ Đang ở chế độ: Tự nhập họ tên</span>
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-200/80 text-amber-950 font-bold border border-amber-300">
-                            Bấm để chọn lại trong danh bạ ▾
+                        <div className="text-xs sm:text-[13.5px] font-extrabold text-emerald-900 flex items-center gap-1.5 flex-wrap">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{activeMember.fullName}</span>
+                          {activeMember.nickname && (
+                            <span className="text-[11px] font-semibold text-amber-800">
+                              “{activeMember.nickname}”
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
+                            Thành viên K8A1 #{activeMember.id}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 truncate font-sans">
-                          Khuyến nghị nên chọn tên trong danh bạ để được cấp thẻ kỷ niệm chính thức
+                        <p className="text-[11px] text-slate-500 font-sans truncate">
+                          Đã chọn đúng hồ sơ bạn học. Bấm vào đây nếu muốn đổi bạn khác ▾
                         </p>
                       </div>
                     ) : (
@@ -1033,8 +1066,12 @@ export default function RsvpForm({
                   </div>
                 </div>
 
-                <div className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 ml-2 shadow-xs">
-                  <span className="hidden sm:inline">Mở danh bạ</span>
+                <div className={`px-2.5 sm:px-3 py-1.5 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 ml-2 shadow-xs transition-colors ${
+                  activeMember
+                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800'
+                    : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800'
+                }`}>
+                  <span className="hidden sm:inline">{activeMember ? 'Đổi bạn khác' : 'Mở danh bạ'}</span>
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
               </button>
@@ -1145,36 +1182,19 @@ export default function RsvpForm({
                           );
                         })
                       ) : (
-                        <div className="p-4 text-center text-xs text-slate-500 font-sans space-y-2">
-                          <p>Không tìm thấy bạn nào khớp với từ khóa "{searchQuery}"</p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleSelectMember('custom');
-                              setIsDropdownOpen(false);
-                              setSearchQuery('');
-                            }}
-                            className="inline-flex items-center gap-1 text-amber-800 font-bold hover:underline cursor-pointer"
-                          >
-                            <span>✏️ Bấm vào đây để tự gõ thông tin của bạn</span>
-                          </button>
+                        <div className="p-4 text-center text-xs text-slate-500 font-sans space-y-1.5">
+                          <p className="font-semibold text-slate-700">Không tìm thấy bạn nào khớp với từ khóa "{searchQuery}"</p>
+                          <p className="text-[11px] text-slate-500">
+                            Gợi ý: Thử gõ tên gọi cuối cùng (ví dụ: Long, Tuấn, Hương, Linh...) hoặc biệt danh cấp 3.
+                          </p>
                         </div>
                       )}
                     </div>
 
-                    {/* TÙY CHỌN TỰ GÕ Ở ĐÁY DROPDOWN */}
-                    <div className="p-2 border-t border-slate-100 bg-slate-50 text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleSelectMember('custom');
-                          setIsDropdownOpen(false);
-                          setSearchQuery('');
-                        }}
-                        className="text-[11px] font-bold text-amber-900 hover:text-amber-950 hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
-                      >
-                        <span>✏️ Tự nhập họ tên khác (Nếu không có tên trong danh bạ)</span>
-                      </button>
+                    {/* LƯU Ý BẢO VỆ DANH BẠ Ở ĐÁY DROPDOWN */}
+                    <div className="p-2.5 border-t border-amber-200/80 bg-amber-50/70 text-center text-[11px] text-amber-900 font-medium flex items-center justify-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <span>Khu vực điểm danh chính thức dành riêng cho 65 thành viên Lớp K8A1</span>
                     </div>
                   </div>
                 )}
@@ -1332,29 +1352,73 @@ export default function RsvpForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               {/* Họ và tên */}
               <div className="space-y-1">
-                <label htmlFor="rsvp-fullName" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-                  <User className="w-3 h-3 text-amber-700" />
-                  <span>Họ và tên</span>
-                  <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="rsvp-fullName"
-                  placeholder="Nguyễn Tuấn Anh"
-                  required
-                  value={fullName}
-                  onChange={(e) => {
-                    const newName = e.target.value;
-                    setFullName(newName);
-                    if (activeMember && normalizeName(activeMember.fullName) !== normalizeName(newName)) {
-                      if (onSelectActiveMember) onSelectActiveMember(null);
-                      setIsCustomMode(true);
-                      setSavedExistingPhone('');
-                      setUseSavedPhone(false);
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
-                />
+                <div className="flex items-center justify-between">
+                  <label htmlFor="rsvp-fullName" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
+                    <User className="w-3 h-3 text-amber-700" />
+                    <span>Họ và tên</span>
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  {activeMember && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDropdownOpen(true);
+                        const el = document.getElementById('roster-dropdown-trigger');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="text-[10.5px] text-amber-800 hover:text-amber-950 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                    >
+                      <span>(Đổi bạn khác ▾)</span>
+                    </button>
+                  )}
+                </div>
+
+                {activeMember ? (
+                  <div 
+                    onClick={() => {
+                      setIsDropdownOpen(true);
+                      const el = document.getElementById('roster-dropdown-trigger');
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }}
+                    className="w-full px-3 py-2 bg-emerald-50/80 border border-emerald-300 hover:border-emerald-400 rounded-lg text-xs sm:text-[13px] text-emerald-950 font-sans font-bold flex items-center justify-between cursor-pointer group shadow-2xs transition-all"
+                    title="Bấm để đổi bạn khác nếu nhầm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate">{fullName}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200/70 text-emerald-900 font-normal">
+                        K8A1 #{activeMember.id}
+                      </span>
+                    </div>
+                    <span className="text-[10.5px] text-emerald-700 font-medium group-hover:underline shrink-0">
+                      Đổi bạn ▾
+                    </span>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    id="rsvp-fullName"
+                    placeholder="Bấm vào danh bạ ở trên hoặc gõ tìm tên bạn..."
+                    required
+                    value={fullName}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      setFullName(newName);
+                      if (activeMember && normalizeName(activeMember.fullName) !== normalizeName(newName)) {
+                        if (onSelectActiveMember) onSelectActiveMember(null);
+                        setIsCustomMode(true);
+                        setSavedExistingPhone('');
+                        setUseSavedPhone(false);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (!isDropdownOpen && !fullName) {
+                        setIsDropdownOpen(true);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
+                  />
+                )}
               </div>
 
               {/* Biệt danh */}
@@ -1764,9 +1828,27 @@ export default function RsvpForm({
 
             {/* THÔNG BÁO LỖI */}
             {submitError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-xs text-rose-800 rounded-xl flex items-center gap-2">
-                <span className="text-rose-600 font-bold">⚠️</span>
-                <span>{submitError}</span>
+              <div className="p-3 bg-rose-50 border border-rose-200 text-xs text-rose-800 rounded-xl space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-rose-600 font-bold shrink-0 mt-0.5">⚠️</span>
+                  <span className="font-medium leading-relaxed">{submitError}</span>
+                </div>
+                {submitError.includes('danh bạ') && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDropdownOpen(true);
+                        const el = document.getElementById('roster-dropdown-trigger');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs cursor-pointer shadow-xs transition-colors"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      <span>Bấm vào đây để chọn đúng tên trong Danh Bạ 65 Bạn</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

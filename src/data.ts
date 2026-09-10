@@ -3909,6 +3909,37 @@ function saveRSVP(data) {
   var normNewName = normalizeName(data.fullName);
   var targetMemberId = String(data.memberId || '').trim();
 
+  // 🛡️ PHƯƠNG ÁN 1: Bắt buộc họ tên người điểm danh phải thuộc danh bạ lớp K8A1
+  var rosterMap = getRosterLookupMap();
+  var rosterMembersCount = Object.keys(rosterMap.byId).length;
+  var isAdminRequest = checkAdminAuthPin(data.pin || data.adminPin || '');
+
+  if (rosterMembersCount > 0 && !isAdminRequest) {
+    var isMemberWhitelisted = false;
+    if (targetMemberId && rosterMap.byId[targetMemberId]) {
+      isMemberWhitelisted = true;
+    } else if (normNewName && rosterMap.byName[normNewName] && rosterMap.byName[normNewName].length > 0) {
+      isMemberWhitelisted = true;
+    } else if (normNewPhone && rosterMap.byPhone[normNewPhone]) {
+      isMemberWhitelisted = true;
+    } else if (rosterMap.allMembers) {
+      for (var mi = 0; mi < rosterMap.allMembers.length; mi++) {
+        if (isVietnameseNameMatchScript(rosterMap.allMembers[mi], data.fullName || '')) {
+          isMemberWhitelisted = true;
+          break;
+        }
+      }
+    }
+
+    if (!isMemberWhitelisted) {
+      return {
+        status: 'error',
+        code: 'NOT_A_CLASS_MEMBER',
+        message: 'Họ tên "' + (data.fullName || '') + '" không có trong danh bạ 65 thành viên K8A1. Vui lòng chọn đúng họ tên bạn học trong danh sách lớp!'
+      };
+    }
+  }
+
   // Đọc các dòng hiện tại để tìm kiếm bản ghi trùng lặp
   var rows = sheet.getDataRange().getValues();
   var matchedRowIndex = -1;
