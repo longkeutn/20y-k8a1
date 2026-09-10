@@ -2430,8 +2430,6 @@ export default function App() {
         eventConfig={eventConfig}
         activeMember={activeMember}
         appsScriptUrl={activeAppsScriptUrl}
-        onUpdateRsvpList={handleUpdateRsvpList}
-        onUpdateClassRoster={handleUpdateClassRoster}
         onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
       />
 

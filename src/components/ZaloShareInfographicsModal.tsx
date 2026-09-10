@@ -108,14 +108,12 @@ export default function ZaloShareInfographicsModal({
 
       if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data) && rsvpRes.value.data.length > 0) {
         setLiveRsvpList(rsvpRes.value.data);
-        if (onUpdateRsvpList) onUpdateRsvpList(rsvpRes.value.data);
         try { localStorage.setItem('rsvp_list', JSON.stringify(rsvpRes.value.data)); } catch (e) {}
         updatedRsvp = true;
       }
 
       if (rosterRes.status === 'fulfilled' && rosterRes.value?.status === 'success' && Array.isArray(rosterRes.value.data) && rosterRes.value.data.length > 0) {
         setLiveClassRoster(rosterRes.value.data);
-        if (onUpdateClassRoster) onUpdateClassRoster(rosterRes.value.data);
         try { localStorage.setItem('k8a1_class_roster', JSON.stringify(rosterRes.value.data)); } catch (e) {}
         updatedRoster = true;
       }
