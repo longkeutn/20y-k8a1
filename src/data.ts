@@ -1746,7 +1746,29 @@ export const INITIAL_WISHES_LIST: WishData[] = [];
 
 export const DEFAULT_MEMORIES: MemoryImage[] = [];
 
-export const DEFAULT_VIDEOS: MemoryVideo[] = [];
+// Danh sách video kỷ niệm chính thức lớp K8A1 (đồng bộ 2 chiều với Google Sheet)
+export const DEFAULT_VIDEOS: MemoryVideo[] = [
+  {
+    id: "vid-1788596102148",
+    title: "Kỷ niệm thời cấp 3 - K8A1(4)",
+    embedUrl: "https://www.youtube.com/embed/VHT6ouvKj_Q"
+  },
+  {
+    id: "vid-1788596080960",
+    title: "Kỷ niệm thời cấp 3 - K8A1(3)",
+    embedUrl: "https://www.youtube.com/embed/Reuz6pHIgGM"
+  },
+  {
+    id: "vid-1788596059982",
+    title: "Kỷ niệm thời cấp 3 - K8A1(2)",
+    embedUrl: "https://www.youtube.com/embed/Z0R73khjwfg"
+  },
+  {
+    id: "vid-1788595395834",
+    title: "Kỷ niệm thời cấp 3 - K8A1(1)",
+    embedUrl: "https://www.youtube.com/embed/HyCIkhbalPk"
+  }
+];
 
 // ============================================================================
 // DANH MỤC & DỮ LIỆU SỔ QUỸ THU - CHI LỚP K8A1 (CHUẨN THEO QUY CHẾ ĐIỀU 3 & 4)

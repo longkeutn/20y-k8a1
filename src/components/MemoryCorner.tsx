@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
+import { DEFAULT_VIDEOS } from '../data';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
@@ -70,7 +71,7 @@ export function parseVideoEmbedUrl(url: string): { embedUrl: string; type: 'yout
   };
 }
 
-const INITIAL_VIDEOS: MemoryVideo[] = [];
+const INITIAL_VIDEOS: MemoryVideo[] = DEFAULT_VIDEOS;
 
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
@@ -78,13 +79,13 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   // Video State
   const [videoList, setVideoList] = useState<MemoryVideo[]>(() => {
     try {
-      const local = localStorage.getItem('k8a1_video_list');
+      const local = localStorage.getItem('k8a1_video_list') || localStorage.getItem('custom_videos');
       if (local) {
         const parsed = JSON.parse(local);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return videos.length > 0 ? videos : INITIAL_VIDEOS;
+    return (videos && videos.length > 0) ? videos : DEFAULT_VIDEOS;
   });
 
   // Tự động đồng bộ ngay khi Google Sheet trả về danh sách video mà không cần tải lại trang
@@ -94,7 +95,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
   }, [videos]);
 
-  // Tự động khôi phục & nạp trực tiếp ảnh từ Google Drive nếu App chưa nạp xong
+  // Tự động khôi phục & nạp trực tiếp ảnh và video từ Google Drive / Sheet nếu App chưa nạp xong
   const [isDirectFetching, setIsDirectFetching] = useState<boolean>(false);
   const [hasAttemptedDirectFetch, setHasAttemptedDirectFetch] = useState<boolean>(false);
 
@@ -103,12 +104,13 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     setIsDirectFetching(true);
     setHasAttemptedDirectFetch(true);
     try {
-      const res = await fetch(`${appsScriptUrl}?action=get_photos&_t=${Date.now()}`, {
-        cache: 'no-store'
-      });
-      const json = await res.json();
-      if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
-        const driveImgs: MemoryImage[] = json.data.map((p: any) => ({
+      const [pRes, mRes] = await Promise.allSettled([
+        fetch(`${appsScriptUrl}?action=get_photos&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
+        fetch(`${appsScriptUrl}?action=get_media&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
+      ]);
+
+      if (pRes.status === 'fulfilled' && pRes.value?.status === 'success' && Array.isArray(pRes.value.data) && pRes.value.data.length > 0) {
+        const driveImgs: MemoryImage[] = pRes.value.data.map((p: any) => ({
           id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
           thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
@@ -121,8 +123,16 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           onAddImage(driveImgs);
         }
       }
+
+      if (mRes.status === 'fulfilled' && mRes.value?.status === 'success' && Array.isArray(mRes.value.data?.videos) && mRes.value.data.videos.length > 0) {
+        setVideoList(mRes.value.data.videos);
+        try {
+          localStorage.setItem('k8a1_video_list', JSON.stringify(mRes.value.data.videos));
+          localStorage.setItem('custom_videos', JSON.stringify(mRes.value.data.videos));
+        } catch (e) {}
+      }
     } catch (err) {
-      console.warn('Lỗi direct fetch photos trong MemoryCorner:', err);
+      console.warn('Lỗi direct fetch photos & media trong MemoryCorner:', err);
     } finally {
       setIsDirectFetching(false);
     }

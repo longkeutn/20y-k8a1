@@ -528,9 +528,9 @@ export default function App() {
         const parsed = JSON.parse(local);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      return [];
+      return DEFAULT_VIDEOS;
     } catch {
-      return [];
+      return DEFAULT_VIDEOS;
     }
   });
 
@@ -1211,11 +1211,11 @@ export default function App() {
       const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
       const antiCache = `&_t=${Date.now()}&_rnd=${Math.random().toString(36).substring(7)}`;
 
-      // ⚡ FAST-TRACK CORE DATA: Tải song song siêu tốc Cấu hình (Banner, Địa điểm, Quỹ), Điểm danh và Danh bạ
-      // Chỉ ~1-1.5 giây để Banner, số người tham gia và danh bạ hiển thị ngay tức thì, không bị trễ
+      // ⚡ FAST-TRACK CORE DATA: Tải song song siêu tốc Cấu hình (Banner, Địa điểm, Quỹ), Điểm danh, Danh bạ và Video kỷ niệm
+      // Chỉ ~1-1.5 giây để Banner, số người tham gia, danh bạ và video hiển thị ngay tức thì, không bị trễ
       const fetchCoreFastPromise = (async () => {
         try {
-          const [rsvpRes, rosterRes, cfgRes] = await Promise.allSettled([
+          const [rsvpRes, rosterRes, cfgRes, mediaRes] = await Promise.allSettled([
             fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, {
               cache: 'no-store',
               headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
@@ -1225,6 +1225,10 @@ export default function App() {
               headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
             }).then(r => r.json()),
             fetch(`${targetUrl}?action=get_config${antiCache}`, {
+              cache: 'no-store',
+              headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
+            }).then(r => r.json()),
+            fetch(`${targetUrl}?action=get_media${antiCache}`, {
               cache: 'no-store',
               headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
             }).then(r => r.json())
@@ -1248,6 +1252,22 @@ export default function App() {
               const pos = Number(cfg.heroBannerPosition) || 50;
               setHeroBannerPosition(pos);
               try { localStorage.setItem('k8a1_hero_banner_position', pos.toString()); } catch (e) {}
+            }
+            gotFastData = true;
+          }
+
+          if (mediaRes.status === 'fulfilled' && mediaRes.value?.status === 'success' && mediaRes.value.data) {
+            const mediaData = mediaRes.value.data;
+            if (Array.isArray(mediaData.videos) && mediaData.videos.length > 0) {
+              setVideos(mediaData.videos);
+              try {
+                localStorage.setItem('k8a1_video_list', JSON.stringify(mediaData.videos));
+                localStorage.setItem('custom_videos', JSON.stringify(mediaData.videos));
+              } catch (e) {}
+            }
+            if (Array.isArray(mediaData.venueMedia) && mediaData.venueMedia.length > 0) {
+              setVenueMediaList(mediaData.venueMedia);
+              try { localStorage.setItem('k8a1_venue_media_list', JSON.stringify(mediaData.venueMedia)); } catch (e) {}
             }
             gotFastData = true;
           }
@@ -1464,11 +1484,12 @@ export default function App() {
           } else {
             // Dự phòng đa tầng: Nếu get_all_data trả về lỗi, nạp fallback song song config, rsvp, roster và photos
             try {
-              const [cfgRes, rsvpRes, rosterRes, photoRes] = await Promise.allSettled([
+              const [cfgRes, rsvpRes, rosterRes, photoRes, mediaRes] = await Promise.allSettled([
                 fetch(`${targetUrl}?action=get_config${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
                 fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
                 fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
-                fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json())
+                fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+                fetch(`${targetUrl}?action=get_media${antiCache}`, { cache: 'no-store' }).then(r => r.json())
               ]);
               if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
                 const cfg = cfgRes.value.data;
@@ -1522,6 +1543,20 @@ export default function App() {
                   return merged;
                 });
               }
+              if (mediaRes.status === 'fulfilled' && mediaRes.value?.status === 'success' && mediaRes.value.data) {
+                const mediaData = mediaRes.value.data;
+                if (Array.isArray(mediaData.videos) && mediaData.videos.length > 0) {
+                  setVideos(mediaData.videos);
+                  try {
+                    localStorage.setItem('k8a1_video_list', JSON.stringify(mediaData.videos));
+                    localStorage.setItem('custom_videos', JSON.stringify(mediaData.videos));
+                  } catch (e) {}
+                }
+                if (Array.isArray(mediaData.venueMedia) && mediaData.venueMedia.length > 0) {
+                  setVenueMediaList(mediaData.venueMedia);
+                  try { localStorage.setItem('k8a1_venue_media_list', JSON.stringify(mediaData.venueMedia)); } catch (e) {}
+                }
+              }
               setSyncStatus('live');
               setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
             } catch (errFallback) {
@@ -1531,11 +1566,12 @@ export default function App() {
         } catch (err) {
           console.warn('Lỗi nạp Master Data từ Google Sheet:', err);
           try {
-            const [cfgRes, rsvpRes, rosterRes, photoRes] = await Promise.allSettled([
+            const [cfgRes, rsvpRes, rosterRes, photoRes, mediaRes] = await Promise.allSettled([
               fetch(`${targetUrl}?action=get_config${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
               fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
               fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
-              fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json())
+              fetch(`${targetUrl}?action=get_photos${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+              fetch(`${targetUrl}?action=get_media${antiCache}`, { cache: 'no-store' }).then(r => r.json())
             ]);
             if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
               const cfg = cfgRes.value.data;
@@ -1588,6 +1624,20 @@ export default function App() {
                 try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
                 return merged;
               });
+            }
+            if (mediaRes.status === 'fulfilled' && mediaRes.value?.status === 'success' && mediaRes.value.data) {
+              const mediaData = mediaRes.value.data;
+              if (Array.isArray(mediaData.videos) && mediaData.videos.length > 0) {
+                setVideos(mediaData.videos);
+                try {
+                  localStorage.setItem('k8a1_video_list', JSON.stringify(mediaData.videos));
+                  localStorage.setItem('custom_videos', JSON.stringify(mediaData.videos));
+                } catch (e) {}
+              }
+              if (Array.isArray(mediaData.venueMedia) && mediaData.venueMedia.length > 0) {
+                setVenueMediaList(mediaData.venueMedia);
+                try { localStorage.setItem('k8a1_venue_media_list', JSON.stringify(mediaData.venueMedia)); } catch (e) {}
+              }
             }
             setSyncStatus('live');
             setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
