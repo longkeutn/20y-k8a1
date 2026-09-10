@@ -7971,7 +7971,7 @@ export default function AdminManagementHub({
                               if (!file) return;
                               setIsUploadingBackdrop(true);
                               try {
-                                const base64 = await compressImage(file, 2560, 0.88);
+                                const base64 = await compressImageToJpeg(file, 2560, 0.88);
                                 const title = newBackdropTitle.trim() || file.name.replace(/\.[^/.]+$/, '');
                                 const pin = getAdminPinToken();
                                 const res = await uploadBackdropViaBackend({ fileData: base64, title, pin }, appsScriptUrl);
