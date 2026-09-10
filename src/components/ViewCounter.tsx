@@ -39,20 +39,23 @@ export default function ViewCounter({ appsScriptUrl }: ViewCounterProps) {
         try {
           const action = hasViewedThisSession ? 'get_view_count' : 'record_view';
           const res = await fetch(`${appsScriptUrl}?action=${action}`);
-          const json = await res.json();
-
-          if (json && json.status === 'success' && typeof json.count === 'number') {
-            if (isMounted) {
-              setViewCount(json.count);
-              try {
-                localStorage.setItem('alumni_view_count', json.count.toString());
-                sessionStorage.setItem('alumni_has_visited_session', 'true');
-              } catch {
-                // ignore
+          const text = await res.text();
+          const trimmed = text.trim();
+          if (trimmed.startsWith('{')) {
+            const json = JSON.parse(trimmed);
+            if (json && json.status === 'success' && typeof json.count === 'number') {
+              if (isMounted) {
+                setViewCount(json.count);
+                try {
+                  localStorage.setItem('alumni_view_count', json.count.toString());
+                  sessionStorage.setItem('alumni_has_visited_session', 'true');
+                } catch {
+                  // ignore
+                }
+                setIsLiveConnected(true);
               }
-              setIsLiveConnected(true);
+              return;
             }
-            return;
           }
         } catch {
           console.log('Chưa kết nối được Google Apps Script cho View Counter, sử dụng bộ đếm lưu cục bộ');
@@ -79,10 +82,14 @@ export default function ViewCounter({ appsScriptUrl }: ViewCounterProps) {
       setIsLoading(false);
     };
 
-    recordAndFetchViews();
+    // Trì hoãn 2.5 giây để nhường toàn bộ kết nối ban đầu cho Banner, 9 Video, và Kho ảnh
+    const timer = setTimeout(() => {
+      recordAndFetchViews();
+    }, 2500);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, [appsScriptUrl]);
 

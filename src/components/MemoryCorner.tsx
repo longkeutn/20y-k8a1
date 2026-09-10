@@ -76,13 +76,13 @@ const INITIAL_VIDEOS: MemoryVideo[] = DEFAULT_VIDEOS;
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
 export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, onAddImage }: MemoryCornerProps) {
-  // Video State
+  // Video State (Khởi tạo với 9 video chuẩn từ DEFAULT_VIDEOS)
   const [videoList, setVideoList] = useState<MemoryVideo[]>(() => {
     try {
       const local = localStorage.getItem('k8a1_video_list') || localStorage.getItem('custom_videos');
       if (local) {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length >= DEFAULT_VIDEOS.length) return parsed;
       }
     } catch {}
     return (videos && videos.length > 0) ? videos : DEFAULT_VIDEOS;
@@ -103,10 +103,26 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     if (!appsScriptUrl || isDirectFetching) return;
     setIsDirectFetching(true);
     setHasAttemptedDirectFetch(true);
+
+    const fetchJsonSafe = async (url: string) => {
+      try {
+        const res = await fetch(url, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
+        });
+        const text = await res.text();
+        const trimmed = text.trim();
+        if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
+        return JSON.parse(trimmed);
+      } catch {
+        return null;
+      }
+    };
+
     try {
       const [pRes, mRes] = await Promise.allSettled([
-        fetch(`${appsScriptUrl}?action=get_photos&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
-        fetch(`${appsScriptUrl}?action=get_media&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
+        fetchJsonSafe(`${appsScriptUrl}?action=get_photos&_t=${Date.now()}`),
+        fetchJsonSafe(`${appsScriptUrl}?action=get_media&_t=${Date.now()}`)
       ]);
 
       if (pRes.status === 'fulfilled' && pRes.value?.status === 'success' && Array.isArray(pRes.value.data) && pRes.value.data.length > 0) {
@@ -138,14 +154,14 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
   }, [appsScriptUrl, onAddImage, isDirectFetching]);
 
-  // Tự phục hồi: nếu sau 2.5s mà images.length vẫn là 0 và chưa từng fetch trực tiếp
+  // Tự phục hồi: nếu sau 4.0s mà images.length vẫn là 0 và chưa từng fetch trực tiếp
   useEffect(() => {
     if (images.length === 0 && appsScriptUrl && !hasAttemptedDirectFetch && !isDirectFetching) {
       const timer = setTimeout(() => {
         if (images.length === 0) {
           handleDirectFetchPhotos();
         }
-      }, 2500);
+      }, 4000);
       return () => clearTimeout(timer);
     }
   }, [images.length, appsScriptUrl, hasAttemptedDirectFetch, isDirectFetching, handleDirectFetchPhotos]);

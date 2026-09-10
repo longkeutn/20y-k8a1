@@ -1,7 +1,7 @@
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute } from './types';
 
 // Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
-export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_clean_roster_v3';
+export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_videos9_staged_v5';
 
 /**
  * Tự động kiểm tra và dọn dẹp sạch toàn bộ cache cũ tàn dư trên điện thoại thành viên
@@ -19,8 +19,10 @@ export function purgeOldCacheIfOutdated(): boolean {
         'k8a1_expenses_list',
         'k8a1_incomes_list',
         'k8a1_teachers_list',
+        'k8a1_video_list',
         'custom_videos',
-        'k8a1_venue_media_list'
+        'k8a1_venue_media_list',
+        'uploaded_images'
       ];
       keysToPurge.forEach(k => {
         try { localStorage.removeItem(k); } catch (e) {}
@@ -1746,10 +1748,35 @@ export const INITIAL_WISHES_LIST: WishData[] = [];
 
 export const DEFAULT_MEMORIES: MemoryImage[] = [];
 
-// Danh sách video kỷ niệm chính thức lớp K8A1 (đồng bộ 2 chiều với Google Sheet)
+// Danh sách video kỷ niệm chính thức lớp K8A1 (đồng bộ 2 chiều với Google Sheet tab Media_Cai_Dat)
 export const DEFAULT_VIDEOS: MemoryVideo[] = [
   {
-    id: "vid-1788596102148",
+    id: "vid-1788596300181",
+    title: "Kỷ niệm thời cấp 3 - K8A1(9)",
+    embedUrl: "https://www.youtube.com/embed/qOwNuWY30iw"
+  },
+  {
+    id: "vid-1788596273398",
+    title: "Kỷ niệm thời cấp 3 - K8A1(8)",
+    embedUrl: "https://www.youtube.com/embed/KNLrdmy_Hvk"
+  },
+  {
+    id: "vid-1788596247429",
+    title: "Kỷ niệm thời cấp 3 - K8A1(7)",
+    embedUrl: "https://www.youtube.com/embed/ga68cDkrSDo"
+  },
+  {
+    id: "vid-1788596221141",
+    title: "Kỷ niệm thời cấp 3 - K8A1(6)",
+    embedUrl: "https://www.youtube.com/embed/UX9N3P3yks4"
+  },
+  {
+    id: "vid-1788596163830",
+    title: "Kỷ niệm thời cấp 3 - K8A1(5)",
+    embedUrl: "https://www.youtube.com/embed/Q0dmNCGbaXs"
+  },
+  {
+    id: "vid-1788596109463",
     title: "Kỷ niệm thời cấp 3 - K8A1(4)",
     embedUrl: "https://www.youtube.com/embed/VHT6ouvKj_Q"
   },
