@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 
 import AudioPlayer from './components/AudioPlayer';
@@ -54,9 +54,30 @@ import TeachersHonorRoll from './components/TeachersHonorRoll';
 import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
 
-// ⚡ PHIÊN BẢN CODE WEBAPP - Thay đổi giá trị này khi deploy để tự động dọn sạch cache rác trên Zalo Webview của người dùng
-export const APP_BUILD_VERSION = '2026.09.10.v1';
+// ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
+export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
 const isZaloBrowser = typeof navigator !== 'undefined' && /zalo/i.test(navigator.userAgent);
+
+// THỰC THI ĐỒNG BỘ TRƯỚC KHI REACT STATE KHỞI TẠO:
+// Đảm bảo toàn bộ cache cũ/rác từ các bản trước bị xóa sạch ngay lập tức
+purgeOldCacheIfOutdated();
+try {
+  const storedBuildVer = localStorage.getItem('k8a1_app_build_version');
+  if (storedBuildVer !== APP_BUILD_VERSION) {
+    [
+      'rsvp_list',
+      'k8a1_class_roster',
+      'wishes_list',
+      'k8a1_event_config',
+      'k8a1_expenses_list',
+      'k8a1_incomes_list',
+      'k8a1_teachers_list'
+    ].forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+    localStorage.setItem('k8a1_app_build_version', APP_BUILD_VERSION);
+  }
+} catch (e) {}
 
 export default function App() {
   const [isZaloTipDismissed, setIsZaloTipDismissed] = useState<boolean>(() => {
@@ -67,24 +88,9 @@ export default function App() {
     }
   });
 
-  // Tự động phát hiện phiên bản code mới và dọn dẹp cache rác trên Zalo WebView / thiết bị cũ
-  useEffect(() => {
-    try {
-      const storedVersion = localStorage.getItem('k8a1_app_build_version');
-      if (storedVersion !== APP_BUILD_VERSION) {
-        console.info(`[K8A1 Cache] Nâng cấp phiên bản code (${APP_BUILD_VERSION}) so với bản cũ (${storedVersion || 'chưa lưu'}), dọn sạch cache...`);
-        localStorage.removeItem('rsvp_list');
-        localStorage.removeItem('k8a1_class_roster');
-        localStorage.removeItem('k8a1_event_config');
-        localStorage.removeItem('k8a1_expenses_list');
-        localStorage.removeItem('k8a1_incomes_list');
-        localStorage.removeItem('k8a1_teachers_list');
-        localStorage.setItem('k8a1_app_build_version', APP_BUILD_VERSION);
-      }
-    } catch (e) {
-      console.warn('Lỗi kiểm tra phiên bản:', e);
-    }
-  }, []);
+  // Trạng thái đồng bộ thời gian thực từ Google Sheet
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'live' | 'error'>('syncing');
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
 
   // Config state (Google Apps Script WebApp URL)
   const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => {
@@ -1157,37 +1163,64 @@ export default function App() {
   const hydrateAllData = async (targetUrl: string = activeAppsScriptUrl) => {
     if (!targetUrl || !targetUrl.startsWith('http')) return;
     setIsRefreshing(true);
+    setSyncStatus(prev => prev === 'live' ? 'live' : 'syncing');
     try {
       const adminPinToken = sessionStorage.getItem('admin_pin_token') || '';
       const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
+      const antiCache = `&_t=${Date.now()}&_rnd=${Math.random().toString(36).substring(7)}`;
 
-      // ⚡ FAST-TRACK RSVP: Tải siêu tốc danh sách điểm danh trước tiên (chỉ ~1-2 giây)
-      // Giúp số người tham gia cập nhật ngay lập tức khi mở web, không để người dùng chờ 10-15s
-      const fetchRsvpFastPromise = (async () => {
+      // ⚡ FAST-TRACK CORE DATA: Tải song song siêu tốc cả Điểm danh (Trang_tinh_1) và Danh bạ 65 bạn (Danh_Sach_Lop)
+      // Chỉ ~1-1.5 giây để số người tham gia và thông tin thành viên cập nhật ngay tức thì, không bị trễ
+      const fetchCoreFastPromise = (async () => {
         try {
-          const res = await fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`, {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-          });
-          const result = await res.json();
-          if (result && result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
+          const [rsvpRes, rosterRes] = await Promise.allSettled([
+            fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, {
+              cache: 'no-store',
+              headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
+            }).then(r => r.json()),
+            fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, {
+              cache: 'no-store',
+              headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
+            }).then(r => r.json())
+          ]);
+
+          let gotFastData = false;
+
+          if (rsvpRes.status === 'fulfilled' && rsvpRes.value?.status === 'success' && Array.isArray(rsvpRes.value.data) && rsvpRes.value.data.length > 0) {
             setRsvpList((prev) => {
-              const sanitized = processRsvpList(result.data, prev);
+              const sanitized = processRsvpList(rsvpRes.value.data, prev);
               try { localStorage.setItem('rsvp_list', JSON.stringify(sanitized)); } catch (e) {}
               return sanitized;
             });
+            gotFastData = true;
           }
-        } catch (fastRsvpErr) {
-          console.warn('Lỗi tải nhanh get_rsvp:', fastRsvpErr);
+
+          if (rosterRes.status === 'fulfilled' && rosterRes.value?.status === 'success' && Array.isArray(rosterRes.value.data) && rosterRes.value.data.length > 0) {
+            const cleanRoster = rosterRes.value.data
+              .filter((r: any) => r && (r.fullName || r.id))
+              .map((r: any, idx: number) => sanitizeClassMember(r, idx));
+            if (cleanRoster.length > 0) {
+              setClassRoster(cleanRoster);
+              try { localStorage.setItem('k8a1_class_roster', JSON.stringify(cleanRoster)); } catch (e) {}
+            }
+            gotFastData = true;
+          }
+
+          if (gotFastData) {
+            setSyncStatus('live');
+            setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+          }
+        } catch (fastErr) {
+          console.warn('Lỗi Fast-Track get_rsvp & get_roster:', fastErr);
         }
       })();
 
       // 📦 MASTER DATA: Tải toàn bộ cấu hình, lưu bút, quỹ, videos, danh bạ
       const fetchMasterPromise = (async () => {
         try {
-          const res = await fetch(`${targetUrl}?action=get_all_data${pinQuery}&t=${Date.now()}`, {
+          const res = await fetch(`${targetUrl}?action=get_all_data${pinQuery}${antiCache}`, {
             cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+            headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
           });
           const result = await res.json();
           if (result && result.status === 'success' && result.data) {
@@ -1238,7 +1271,7 @@ export default function App() {
             }
 
             // D. Đồng bộ Lời chúc từ Google Sheet
-            if (Array.isArray(wishes) && wishes.length > 0) {
+            if (Array.isArray(wishes)) {
               setWishesList(wishes);
               try { localStorage.setItem('wishes_list', JSON.stringify(wishes)); } catch (e) {}
             }
@@ -1320,12 +1353,16 @@ export default function App() {
               setTeachersList(cleanTeachers);
               try { localStorage.setItem('k8a1_teachers_list', JSON.stringify(cleanTeachers)); } catch (e) {}
             }
+
+            setSyncStatus('live');
+            setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           } else {
-            // Dự phòng hai lớp: Nếu get_all_data trả về lỗi, nạp fallback cả config và rsvp
+            // Dự phòng đa tầng: Nếu get_all_data trả về lỗi, nạp fallback song song config, rsvp và roster
             try {
-              const [cfgRes, rsvpRes] = await Promise.allSettled([
-                fetch(`${targetUrl}?action=get_config&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
-                fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
+              const [cfgRes, rsvpRes, rosterRes] = await Promise.allSettled([
+                fetch(`${targetUrl}?action=get_config${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+                fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+                fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json())
               ]);
               if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
                 setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
@@ -1337,14 +1374,28 @@ export default function App() {
                   return sanitized;
                 });
               }
-            } catch (errFallback) {}
+              if (rosterRes.status === 'fulfilled' && rosterRes.value?.status === 'success' && Array.isArray(rosterRes.value.data)) {
+                const cleanRoster = rosterRes.value.data
+                  .filter((r: any) => r && (r.fullName || r.id))
+                  .map((r: any, idx: number) => sanitizeClassMember(r, idx));
+                if (cleanRoster.length > 0) {
+                  setClassRoster(cleanRoster);
+                  try { localStorage.setItem('k8a1_class_roster', JSON.stringify(cleanRoster)); } catch (e) {}
+                }
+              }
+              setSyncStatus('live');
+              setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            } catch (errFallback) {
+              console.warn('Lỗi fallback nạp Google Sheet:', errFallback);
+            }
           }
         } catch (err) {
           console.warn('Lỗi nạp Master Data từ Google Sheet:', err);
           try {
-            const [cfgRes, rsvpRes] = await Promise.allSettled([
-              fetch(`${targetUrl}?action=get_config&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
-              fetch(`${targetUrl}?action=get_rsvp${pinQuery}&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
+            const [cfgRes, rsvpRes, rosterRes] = await Promise.allSettled([
+              fetch(`${targetUrl}?action=get_config${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+              fetch(`${targetUrl}?action=get_rsvp${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json()),
+              fetch(`${targetUrl}?action=get_roster${pinQuery}${antiCache}`, { cache: 'no-store' }).then(r => r.json())
             ]);
             if (cfgRes.status === 'fulfilled' && cfgRes.value?.status === 'success' && cfgRes.value.data) {
               setEventConfig((prev) => sanitizeEventConfig({ ...prev, ...cfgRes.value.data }));
@@ -1356,13 +1407,27 @@ export default function App() {
                 return sanitized;
               });
             }
-          } catch (e) {}
+            if (rosterRes.status === 'fulfilled' && rosterRes.value?.status === 'success' && Array.isArray(rosterRes.value.data)) {
+              const cleanRoster = rosterRes.value.data
+                .filter((r: any) => r && (r.fullName || r.id))
+                .map((r: any, idx: number) => sanitizeClassMember(r, idx));
+              if (cleanRoster.length > 0) {
+                setClassRoster(cleanRoster);
+                try { localStorage.setItem('k8a1_class_roster', JSON.stringify(cleanRoster)); } catch (e) {}
+              }
+            }
+            setSyncStatus('live');
+            setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+          } catch (e) {
+            setSyncStatus(prev => prev === 'live' ? 'live' : 'error');
+          }
         }
       })();
 
-      await Promise.allSettled([fetchRsvpFastPromise, fetchMasterPromise]);
+      await Promise.allSettled([fetchCoreFastPromise, fetchMasterPromise]);
     } catch (err) {
       console.warn('Lỗi đồng bộ từ Google Sheet & Drive:', err);
+      setSyncStatus(prev => prev === 'live' ? 'live' : 'error');
     } finally {
       setIsRefreshing(false);
     }
@@ -1370,6 +1435,7 @@ export default function App() {
 
   // Live Refresh data from Google Apps Script (ép xóa cache trước khi fetch để dữ liệu tươi mới 100%)
   const handleRefreshData = () => {
+    setSyncStatus('syncing');
     try {
       localStorage.removeItem('rsvp_list');
       localStorage.removeItem('k8a1_class_roster');
@@ -1509,6 +1575,29 @@ export default function App() {
 
             {/* Background Audio Player (YouTube Audio-Only) */}
             <AudioPlayer variant="navbar" customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" />
+
+            {/* Live Google Sheet Realtime Sync Badge */}
+            <button
+              type="button"
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              className={`flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer shadow-xs ${
+                syncStatus === 'live'
+                  ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/80 hover:border-emerald-400'
+                  : syncStatus === 'syncing'
+                  ? 'bg-amber-950/70 text-amber-300 border-amber-500/40 animate-pulse'
+                  : 'bg-rose-950/70 text-rose-300 border-rose-500/40 hover:bg-rose-900/80'
+              }`}
+              title={`Dữ liệu đồng bộ trực tiếp từ Google Sheet. Bấm để làm mới tức thì! ${lastSyncedTime ? `(Cập nhật lúc: ${lastSyncedTime})` : ''}`}
+            >
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-amber-400' : syncStatus === 'live' ? 'text-emerald-400' : 'text-rose-400'}`} />
+              <span className="hidden xl:inline">
+                {syncStatus === 'live' ? `Google Sheet (${lastSyncedTime || 'Trực tiếp'})` : syncStatus === 'syncing' ? 'Đang nạp...' : 'Dữ liệu tạm'}
+              </span>
+              <span className="xl:hidden">
+                {syncStatus === 'live' ? (lastSyncedTime ? lastSyncedTime.slice(0, 5) : 'Sheet') : 'Nạp'}
+              </span>
+            </button>
 
             {/* Nhận Diện Bạn Học K8A1 (Ưu Tiên 2 - Sticky Navbar Cố Định Đỉnh Trang) */}
             <NavbarIdentityBadge

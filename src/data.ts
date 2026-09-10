@@ -1,5 +1,40 @@
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute } from './types';
 
+// Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
+export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_clean_roster_v3';
+
+/**
+ * Tự động kiểm tra và dọn dẹp sạch toàn bộ cache cũ tàn dư trên điện thoại thành viên
+ * Đảm bảo 100% người dùng truy cập từ Zalo hôm nay sẽ luôn thấy dữ liệu thật mới nhất
+ */
+export function purgeOldCacheIfOutdated(): boolean {
+  try {
+    const storedVersion = localStorage.getItem('app_cache_version');
+    if (storedVersion !== CURRENT_CACHE_VERSION) {
+      const keysToPurge = [
+        'rsvp_list',
+        'k8a1_class_roster',
+        'wishes_list',
+        'k8a1_event_config',
+        'k8a1_expenses_list',
+        'k8a1_incomes_list',
+        'k8a1_teachers_list',
+        'uploaded_images',
+        'custom_videos',
+        'k8a1_venue_media_list'
+      ];
+      keysToPurge.forEach(k => {
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
+      localStorage.setItem('app_cache_version', CURRENT_CACHE_VERSION);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Lỗi kiểm tra phiên bản cache:', err);
+  }
+  return false;
+}
+
 export const INITIAL_RSVP_LIST: RsvpData[] = [
   {
     "id": "1",
