@@ -715,9 +715,7 @@ export default function App() {
             updated = true;
             return {
               ...m,
-              shirtSize: chosenSize,
-              phone: m.phone || (normPhone ? normPhone : (newRsvp.phone || '')),
-              nickname: m.nickname || (newRsvp.nickname ? newRsvp.nickname.trim() : '')
+              shirtSize: chosenSize
             };
           }
           return m;
@@ -742,9 +740,7 @@ export default function App() {
         if (isMatch) {
           const updatedActive = {
             ...prevActive,
-            shirtSize: chosenSize,
-            phone: prevActive.phone || newRsvp.phone || '',
-            nickname: prevActive.nickname || newRsvp.nickname || ''
+            shirtSize: chosenSize
           };
           try {
             localStorage.setItem('k8a1_active_member', JSON.stringify(updatedActive));

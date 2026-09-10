@@ -624,9 +624,13 @@ export default function RsvpForm({
     }
 
     // Tự động nhận diện và bảo vệ chống trùng lặp nếu người dùng tự gõ họ tên trùng khớp 1 bạn duy nhất trong danh bạ
-    let effectiveMemberId = activeMember?.id;
-    let effectiveRowId = matchedExistingAttendee?.rowId;
-    let effectiveId = matchedExistingAttendee?.id;
+    const isMemberNameMatched = activeMember && (
+      normalizeName(activeMember.fullName) === normalizeName(fullName) ||
+      isVietnameseNameMatch(activeMember, fullName.trim(), nickname)
+    );
+    let effectiveMemberId = isMemberNameMatched ? activeMember?.id : undefined;
+    let effectiveRowId = isMemberNameMatched ? matchedExistingAttendee?.rowId : undefined;
+    let effectiveId = isMemberNameMatched ? matchedExistingAttendee?.id : undefined;
 
     if (!effectiveMemberId) {
       const n = normalizeName(fullName);
@@ -1339,7 +1343,16 @@ export default function RsvpForm({
                   placeholder="Nguyễn Tuấn Anh"
                   required
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    setFullName(newName);
+                    if (activeMember && normalizeName(activeMember.fullName) !== normalizeName(newName)) {
+                      if (onSelectActiveMember) onSelectActiveMember(null);
+                      setIsCustomMode(true);
+                      setSavedExistingPhone('');
+                      setUseSavedPhone(false);
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
                 />
               </div>
