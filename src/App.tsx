@@ -54,6 +54,7 @@ import QuickNavigation from './components/QuickNavigation';
 import TeachersHonorRoll from './components/TeachersHonorRoll';
 import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
+import MemberAccessModal from './components/MemberAccessModal';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -108,6 +109,37 @@ export default function App() {
 
   // URL kết nối thực tế: ưu tiên cấu hình máy này, nếu trống thì dùng URL mặc định của hệ thống
   const activeAppsScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || DEFAULT_APPS_SCRIPT_URL || '';
+
+  // 🔐 CHÌA KHÓA NGẦM ZALO (?k=k8a1): Tự động mở quyền ghi cho bạn học K8A1 mà không cần gõ mã PIN
+  const [isMemberVerified, setIsMemberVerified] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        // 1. Kiểm tra nếu thiết bị đã được kích hoạt trước đó
+        if (localStorage.getItem('k8a1_member_verified') === 'true') {
+          return true;
+        }
+        // 2. Quét query param ?k= hoặc ?key= trên URL (truy cập từ link nhóm Zalo)
+        const params = new URLSearchParams(window.location.search);
+        const rawKey = (params.get('k') || params.get('key') || '').trim().toLowerCase();
+        const validKeys = ['k8a1', '20nam', 'k8a1tn', 'thanhxuan20nam'];
+        if (validKeys.includes(rawKey)) {
+          localStorage.setItem('k8a1_member_verified', 'true');
+          // Tự động làm sạch URL trên trình duyệt mà không reload trang (để khi share link không lộ key)
+          params.delete('k');
+          params.delete('key');
+          const cleanSearch = params.toString();
+          const cleanUrl = window.location.pathname + (cleanSearch ? `?${cleanSearch}` : '') + window.location.hash;
+          window.history.replaceState({}, document.title, cleanUrl);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Lỗi kiểm tra chìa khóa thành viên:', e);
+    }
+    return false;
+  });
+
+  const [isMemberAccessModalOpen, setIsMemberAccessModalOpen] = useState(false);
 
   // Helper chuẩn hóa cấu hình sự kiện, chống crash do dữ liệu số từ Google Sheets hoặc localStorage
   const sanitizeEventConfig = (cfg: any): EventConfig => ({
@@ -179,12 +211,14 @@ export default function App() {
     if (!activeAppsScriptUrl || !activeAppsScriptUrl.startsWith('http')) return;
     try {
       const pin = sessionStorage.getItem('admin_pin_token') || undefined;
+      const memberKey = isMemberVerified ? 'k8a1' : undefined;
       await fetch(activeAppsScriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action,
           pin,
+          memberKey,
           ...payload
         })
       });
@@ -2162,6 +2196,8 @@ export default function App() {
                 onAddRsvp={handleAddRsvp} 
                 onOpenPassModal={handleOpenPass}
                 onOpenReceiptModal={handleOpenReceiptModal}
+                isMemberVerified={isMemberVerified}
+                onRequireMemberAccess={() => setIsMemberAccessModalOpen(true)}
               />
 
               {/* Danh Sách Thành Viên Đã Xác Nhận */}
@@ -2217,6 +2253,8 @@ export default function App() {
                 images={images} 
                 videos={videos} 
                 onAddImage={handleAddImage} 
+                isMemberVerified={isMemberVerified}
+                onRequireMemberAccess={() => setIsMemberAccessModalOpen(true)}
               />
             </section>
 
@@ -2533,6 +2571,16 @@ export default function App() {
         wishesList={wishesList}
         latestAction={latestAction}
         onClearLatestAction={() => setLatestAction(null)}
+      />
+
+      {/* 🔐 MODAL XÁC THỰC THÀNH VIÊN K8A1 CHO KHÁCH TRUY CẬP TRỰC TIẾP */}
+      <MemberAccessModal
+        isOpen={isMemberAccessModalOpen}
+        onClose={() => setIsMemberAccessModalOpen(false)}
+        onSuccess={() => {
+          setIsMemberVerified(true);
+          setIsMemberAccessModalOpen(false);
+        }}
       />
     </div>
   );

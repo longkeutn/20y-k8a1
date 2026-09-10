@@ -3567,6 +3567,8 @@ function doPost(e) {
     const action = postData.action || 'rsvp';
     const pin = postData.pin || postData.adminPin || postData.authPin || '';
     const isAdmin = checkAdminAuthPin(pin);
+    const memberKey = String(postData.memberKey || postData.k || postData.key || '').trim().toLowerCase();
+    const isMemberAuthorized = isAdmin || ['k8a1', '20nam', 'k8a1tn', 'thanhxuan20nam'].indexOf(memberKey) !== -1;
 
     // Khởi tạo / kiểm tra sheet bảo mật
     if (action === 'init_security' || action === 'init_pins') {
@@ -3689,6 +3691,9 @@ function doPost(e) {
     }
 
     if (action === 'upload_photo' || action === 'upload_banner') {
+      if (!isMemberAuthorized) {
+        return handleResponse({ status: 'error', code: 'UNAUTHORIZED_MEMBER', message: 'Khu vực đóng góp ảnh dành riêng cho thành viên K8A1. Vui lòng truy cập qua link chính thức từ nhóm Zalo lớp!' });
+      }
       return handleResponse(uploadPhotoToDrive(postData));
     }
 
@@ -3701,10 +3706,16 @@ function doPost(e) {
     }
 
     if (action === 'add_wish') {
+      if (!isMemberAuthorized) {
+        return handleResponse({ status: 'error', code: 'UNAUTHORIZED_MEMBER', message: 'Khu vực gửi lưu bút dành riêng cho thành viên K8A1. Vui lòng truy cập qua link chính thức từ nhóm Zalo lớp!' });
+      }
       return handleResponse(saveWish(postData));
     }
 
     if (action === 'rsvp' || (postData.fullName && (postData.phone || postData.status))) {
+      if (!isMemberAuthorized) {
+        return handleResponse({ status: 'error', code: 'UNAUTHORIZED_MEMBER', message: 'Khu vực điểm danh dành riêng cho thành viên K8A1. Vui lòng truy cập qua link chính thức từ nhóm Zalo lớp!' });
+      }
       return handleResponse(saveRSVP(postData));
     }
 
@@ -3909,6 +3920,30 @@ function saveRSVP(data) {
   var normNewName = normalizeName(data.fullName);
   var targetMemberId = String(data.memberId || '').trim();
 
+  // 🛡️ RÀO CHẮN BẢO MẬT: Bắt buộc họ tên thành viên phải thuộc danh bạ tab "Danh_Sach_Lop"
+  var rosterMap = getRosterLookupMap();
+  var rosterMembersCount = Object.keys(rosterMap.byId).length;
+  var isAdminRequest = checkAdminAuthPin(data.pin || data.adminPin || '');
+
+  if (rosterMembersCount > 0 && !isAdminRequest) {
+    var isMemberWhitelisted = false;
+    if (targetMemberId && rosterMap.byId[targetMemberId]) {
+      isMemberWhitelisted = true;
+    } else if (normNewName && rosterMap.byName[normNewName] && rosterMap.byName[normNewName].length > 0) {
+      isMemberWhitelisted = true;
+    } else if (normNewPhone && rosterMap.byPhone[normNewPhone]) {
+      isMemberWhitelisted = true;
+    }
+
+    if (!isMemberWhitelisted) {
+      return {
+        status: 'error',
+        code: 'NOT_A_CLASS_MEMBER',
+        message: 'Họ tên "' + (data.fullName || '') + '" không có trong danh bạ thành viên K8A1. Vui lòng chọn đúng họ tên bạn học trong danh sách lớp!'
+      };
+    }
+  }
+
   // Đọc các dòng hiện tại để tìm kiếm bản ghi trùng lặp
   var rows = sheet.getDataRange().getValues();
   var matchedRowIndex = -1;
@@ -3986,9 +4021,12 @@ function saveRSVP(data) {
     var isAlreadyCheckedIn = existingRow[7] === 'ĐÃ ĐẾN';
     var isAlreadyPaid = existingRow[9] === 'ĐÃ ĐÓNG';
 
+    // 💰 BẢO VỆ DỮ LIỆU QUỸ: 
+    // - Nếu đã đóng tiền: Lệnh RSVP thường không được phép hạ trạng thái
+    // - Chỉ Admin/Thủ quỹ mới có quyền xác nhận 'ĐÃ ĐÓNG'
     var updatedFundStatus = isAlreadyPaid 
       ? 'ĐÃ ĐÓNG' 
-      : (data.fundStatus === 'paid' 
+      : ((isAdminRequest && data.fundStatus === 'paid')
           ? 'ĐÃ ĐÓNG' 
           : (data.fundReceiptUrl || data.fundStatus === 'pending' 
               ? 'CHỜ ĐỐI SOÁT' 
@@ -4039,6 +4077,13 @@ function saveRSVP(data) {
       }
     }
 
+    var newFundStatus = (isAdminRequest && data.fundStatus === 'paid') 
+      ? 'ĐÃ ĐÓNG' 
+      : (data.fundReceiptUrl || data.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : 'CHƯA ĐÓNG');
+    var newFundAmount = (isAdminRequest && data.fundStatus === 'paid') 
+      ? (data.fundAmount || 700000) 
+      : (data.fundReceiptUrl ? (data.fundAmount || 700000) : 0);
+
     var newRow = [
       data.fullName || '',
       data.nickname || '',
@@ -4049,8 +4094,8 @@ function saveRSVP(data) {
       new Date(),
       data.checkedIn ? 'ĐÃ ĐẾN' : 'CHƯA ĐẾN',
       data.checkedInAt || '',
-      data.fundStatus === 'paid' ? 'ĐÃ ĐÓNG' : (data.fundReceiptUrl || data.fundStatus === 'pending' ? 'CHỜ ĐỐI SOÁT' : 'CHƯA ĐÓNG'),
-      data.fundAmount || (data.fundStatus === 'paid' ? 700000 : 0),
+      newFundStatus,
+      newFundAmount,
       data.fundNote || '',
       data.fundReceiptUrl || '',
       data.fundPaidAt || '',
@@ -4266,6 +4311,18 @@ function getWishesList() {
  * Lưu lời chúc mới vào Sheet
  */
 function saveWish(data) {
+  var cleanName = String(data.fullName || '').replace(/<[^>]*>/g, '').trim();
+  var cleanMessage = String(data.message || '').replace(/<[^>]*>/g, '').trim();
+  
+  if (!cleanName || !cleanMessage) {
+    return { status: 'error', message: 'Vui lòng nhập đầy đủ họ tên và lời chúc!' };
+  }
+  
+  // Giới hạn 500 ký tự để chống spam làm phình ô Google Sheets
+  if (cleanMessage.length > 500) {
+    cleanMessage = cleanMessage.substring(0, 500);
+  }
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(CONFIG.WISHES_SHEET_NAME);
   if (!sheet) {
@@ -4275,11 +4332,11 @@ function saveWish(data) {
   }
 
   sheet.appendRow([
-    data.fullName || '',
-    data.className || 'K8A1',
-    data.message || '',
+    cleanName,
+    String(data.className || 'K8A1').replace(/<[^>]*>/g, '').trim(),
+    cleanMessage,
     new Date(),
-    data.tag || 'bg-amber-100/90 text-amber-900 border-amber-200'
+    String(data.tag || 'bg-amber-100/90 text-amber-900 border-amber-200').replace(/<[^>]*>/g, '').trim()
   ]);
 
   return { status: 'success', message: 'Dán lời chúc thành công!' };

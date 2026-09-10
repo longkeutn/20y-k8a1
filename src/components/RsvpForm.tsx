@@ -40,6 +40,8 @@ interface RsvpFormProps {
   onAddRsvp: (newRsvp: RsvpData) => void;
   onOpenPassModal?: (attendee: RsvpData) => void;
   onOpenReceiptModal?: (attendee?: RsvpData) => void;
+  isMemberVerified?: boolean;
+  onRequireMemberAccess?: () => void;
 }
 
 // Bộ lời nhắn cảm xúc nhanh 1-chạm tuổi học trò khi CÓ THAM GIA
@@ -69,7 +71,9 @@ export default function RsvpForm({
   onSelectActiveMember,
   onAddRsvp,
   onOpenPassModal,
-  onOpenReceiptModal
+  onOpenReceiptModal,
+  isMemberVerified = true,
+  onRequireMemberAccess
 }: RsvpFormProps) {
   const standardFundAmount = Number(eventConfig?.fundAmountPerPerson) || 700000;
   const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
@@ -692,16 +696,24 @@ export default function RsvpForm({
     // Gửi trực tiếp lên Google Apps Script
     if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
       try {
-        await fetch(appsScriptUrl, {
+        const response = await fetch(appsScriptUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain;charset=utf-8',
           },
           body: JSON.stringify({
             action: 'rsvp',
+            memberKey: 'k8a1',
             ...rsvpPayload
           })
         });
+
+        const resData = await response.json().catch(() => null);
+        if (resData && resData.status === 'error') {
+          setSubmitError(resData.message || 'Có lỗi xảy ra khi lưu thông tin.');
+          setIsSubmitting(false);
+          return;
+        }
 
         const isUpdate = !!matchedExistingAttendee;
         const successMsg = isUpdate
@@ -752,6 +764,12 @@ export default function RsvpForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isMemberVerified) {
+      if (onRequireMemberAccess) {
+        onRequireMemberAccess();
+      }
+      return;
+    }
     const finalPhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
     if (!fullName.trim() || !finalPhone) {
       setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
