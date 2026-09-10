@@ -1398,6 +1398,16 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [activeAppsScriptUrl]);
 
+  // Tự động làm mới ngầm mỗi 60 giây khi trang đang mở để số liệu điểm danh luôn tươi mới 100%
+  useEffect(() => {
+    const pollTimer = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isRefreshing) {
+        hydrateAllData(activeAppsScriptUrl);
+      }
+    }, 60000);
+    return () => clearInterval(pollTimer);
+  }, [activeAppsScriptUrl, isRefreshing]);
+
   // Đồng bộ động tiêu đề trang và thẻ meta mô tả khi chia sẻ link theo cấu hình sự kiện
   useEffect(() => {
     if (eventConfig) {
