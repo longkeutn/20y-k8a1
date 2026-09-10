@@ -1,7 +1,7 @@
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute } from './types';
 
 // Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
-export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_videos9_staged_v5';
+export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_photos_fix_v6';
 
 /**
  * Tự động kiểm tra và dọn dẹp sạch toàn bộ cache cũ tàn dư trên điện thoại thành viên
@@ -2841,8 +2841,8 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.2798642279267!2d105.8285514!3d21.5740443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135272a24921915%3A0xe543df5e9e03fa54!2zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbg!5e0!3m2!1svi!2svn!4v1710000000000!5m2!1svi!2svn",
   mapDirectUrl: "https://www.google.com/maps/search/?api=1&query=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn",
 
-  // Chặng 2: Nhà Hàng & Trung Tâm Sự Kiện Prime Thái Nguyên
-  enableTwoVenues: true,
+  // Chặng 2: Nhà Hàng & Trung Tâm Sự Kiện Prime Thái Nguyên (Mặc định tắt theo cấu hình Google Sheet)
+  enableTwoVenues: false,
   venue2Name: "Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên",
   venue2Subtitle: "Chặng 2: Khai tiệc liên hoan, giao lưu văn nghệ & trao kỷ vật hội ngộ",
   venue2Address: "Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên",

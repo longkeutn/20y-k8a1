@@ -1210,8 +1210,7 @@ export default function App() {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const res = await fetch(url, {
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache' }
+          cache: 'no-store'
         });
         const text = await res.text();
         const trimmed = text.trim();

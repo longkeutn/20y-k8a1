@@ -273,7 +273,7 @@ export default function AlumniConvergenceMap({
               📍 Địa Điểm & Lịch Trình Hội Ngộ
             </span>
             <span className="text-xs font-sans text-slate-500 font-medium">
-              Chủ Nhật, ngày 27/09/2026 • 2 Chặng Gặp Mặt
+              Chủ Nhật, ngày 27/09/2026 • {isTwoVenues ? '2 Chặng Gặp Mặt' : 'Địa Điểm Gặp Mặt'}
             </span>
           </div>
 
@@ -306,7 +306,7 @@ export default function AlumniConvergenceMap({
               {/* Top Row: Stage pill & Time */}
               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider bg-amber-100/90 text-amber-900 border border-amber-200/90">
-                  🏫 Chặng 1 • Buổi Sáng
+                  {isTwoVenues ? '🏫 Chặng 1 • Buổi Sáng' : '🏫 Địa Điểm Gặp Mặt'}
                 </span>
 
                 <div className="flex items-center gap-2">
