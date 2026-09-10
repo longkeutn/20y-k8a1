@@ -362,6 +362,10 @@ export default function AdminManagementHub({
   const [isSavingPresentation, setIsSavingPresentation] = useState(false);
   const [presentationSuccessMsg, setPresentationSuccessMsg] = useState('');
   const [viewingBackdropPreview, setViewingBackdropPreview] = useState<string | null>(null);
+  const [editingTrackIndex, setEditingTrackIndex] = useState<number | null>(null);
+  const [editTrackTitle, setEditTrackTitle] = useState('');
+  const [editTrackArtist, setEditTrackArtist] = useState('');
+  const [editTrackUrl, setEditTrackUrl] = useState('');
 
   // Auto-switch to initialTab and initialMediaSubTab when hub is opened
   useEffect(() => {
@@ -2939,6 +2943,77 @@ export default function AdminManagementHub({
         })
       }).catch((e) => console.warn('Lỗi auto save backdrops:', e));
     }
+  };
+
+  // Tự động đồng bộ danh sách Playlist Nhạc vào EventConfig và Google Sheets
+  const persistPresentationPlaylist = (newPlaylist: MusicTrack[]) => {
+    setStagePlaylist(newPlaylist);
+    const updatedConfig: EventConfig = {
+      ...(eventConfig || DEFAULT_EVENT_CONFIG),
+      ...eventConfigForm,
+      backdrops: stageBackdrops,
+      musicPlaylist: newPlaylist,
+      stageSettings: stageSettingsState
+    };
+    if (onUpdateEventConfig) {
+      onUpdateEventConfig(updatedConfig);
+    }
+    try {
+      localStorage.setItem('k8a1_event_config', JSON.stringify(updatedConfig));
+    } catch (e) {}
+
+    const targetScriptUrl = (appsScriptUrl && appsScriptUrl.trim()) || localStorage.getItem('apps_script_url') || DEFAULT_APPS_SCRIPT_URL;
+    if (targetScriptUrl && !targetScriptUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+      const pin = getAdminPinToken();
+      fetch(targetScriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'save_config',
+          pin: pin,
+          config: updatedConfig
+        })
+      }).catch((e) => console.warn('Lỗi auto save playlist:', e));
+    }
+  };
+
+  const handleStartEditTrack = (track: MusicTrack, idx: number) => {
+    setEditingTrackIndex(idx);
+    setEditTrackTitle(track.title);
+    setEditTrackArtist(track.artist || '');
+    setEditTrackUrl(track.url);
+  };
+
+  const handleSaveEditTrack = (idx: number) => {
+    if (!editTrackTitle.trim()) {
+      alert('Vui lòng nhập tên bài hát!');
+      return;
+    }
+    if (!editTrackUrl.trim()) {
+      alert('Vui lòng nhập đường link YouTube hoặc Google Drive MP3!');
+      return;
+    }
+    const isDrive = editTrackUrl.includes('drive.google.com');
+    const updated = stagePlaylist.map((t, i) => {
+      if (i === idx) {
+        return {
+          ...t,
+          title: editTrackTitle.trim(),
+          artist: editTrackArtist.trim() || 'K8A1 Tuyển Chọn',
+          sourceType: (isDrive ? 'drive' : 'youtube') as 'youtube' | 'drive',
+          url: editTrackUrl.trim(),
+          isCustom: true
+        };
+      }
+      return t;
+    });
+    persistPresentationPlaylist(updated);
+    setEditingTrackIndex(null);
+    setPresentationSuccessMsg('Đã cập nhật bài hát và lưu cấu hình thành công!');
+  };
+
+  const handleCancelEditTrack = () => {
+    setEditingTrackIndex(null);
   };
 
   const handleSavePresentationConfig = async () => {
@@ -8244,11 +8319,12 @@ export default function AdminManagementHub({
                               duration: 'Tùy chỉnh',
                               isCustom: true
                             };
-                            setStagePlaylist((prev) => [...prev, newTrack]);
+                            const updated = [...stagePlaylist, newTrack];
+                            persistPresentationPlaylist(updated);
                             setNewTrackTitle('');
                             setNewTrackArtist('');
                             setNewTrackUrl('');
-                            setPresentationSuccessMsg('Đã thêm bài hát mới vào Playlist!');
+                            setPresentationSuccessMsg('Đã thêm bài hát mới và tự động lưu cấu hình thành công!');
                           }}
                           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
                         >
@@ -8266,7 +8342,7 @@ export default function AdminManagementHub({
                       <div className="flex flex-wrap gap-1.5">
                         {[
                           { title: "Mong Ước Kỷ Niệm Xưa", artist: "Tam Ca 3A", url: "https://youtu.be/ocvlV5LZ93Q" },
-                          { title: "Tạm Biệt", artist: "Quang Vinh", url: "https://youtu.be/h9Hk_P1Xv2Y" },
+                          { title: "Tạm Biệt (Thời Áo Trắng)", artist: "Quang Vinh", url: "https://youtu.be/h9Hk_P1Xv2Y" },
                           { title: "Ngày Ấy Bạn Và Tôi", artist: "Lynk Lee", url: "https://youtu.be/Z0R73khjwfg" },
                           { title: "Xe Đạp", artist: "Thùy Chi & M4U", url: "https://youtu.be/HyCIkhbalPk" },
                           { title: "Giấc Mơ Thần Tiên", artist: "Miu Lê", url: "https://youtu.be/VHT6ouvKj_Q" },
@@ -8287,7 +8363,9 @@ export default function AdminManagementHub({
                                   url: preset.url,
                                   duration: '04:00'
                                 };
-                                setStagePlaylist((prev) => [...prev, newTrack]);
+                                const updated = [...stagePlaylist, newTrack];
+                                persistPresentationPlaylist(updated);
+                                setPresentationSuccessMsg(`Đã thêm bài hát "${preset.title}" và lưu cấu hình thành công!`);
                               }}
                               className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition cursor-pointer flex items-center gap-1 ${
                                 isAlreadyIn
@@ -8311,90 +8389,197 @@ export default function AdminManagementHub({
                         Danh Sách Thứ Tự Phát ({stagePlaylist.length} bài)
                       </span>
                       <span className="text-[11px] text-slate-500">
-                        Có thể đổi thứ tự bằng nút mũi tên lên / xuống
+                        Bấm biểu tượng bút để chỉnh sửa link hoặc đổi thứ tự bài
                       </span>
                     </div>
 
                     <div className="divide-y divide-slate-100">
-                      {stagePlaylist.map((track, idx) => (
-                        <div
-                          key={track.id || idx}
-                          className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition"
-                        >
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <span className="w-6 text-center text-xs font-mono font-bold text-slate-400">
-                              {(idx + 1).toString().padStart(2, '0')}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="text-xs font-bold text-slate-900 truncate">
-                                  {track.title}
-                                </p>
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono">
-                                  {track.sourceType === 'drive' ? 'Drive' : 'YouTube'}
+                      {stagePlaylist.map((track, idx) => {
+                        const isEditing = editingTrackIndex === idx;
+
+                        if (isEditing) {
+                          return (
+                            <div key={track.id || idx} className="p-4 bg-purple-50/80 border-l-4 border-purple-600 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+                                  <Edit3 className="w-3.5 h-3.5 text-purple-600" />
+                                  Chỉnh Sửa Ca Khúc #{idx + 1}: {track.title}
+                                </span>
+                                <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full font-semibold">
+                                  Đang chỉnh sửa link
                                 </span>
                               </div>
-                              <p className="text-[11px] text-slate-500 truncate">
-                                {track.artist || 'K8A1 Tuyển Chọn'}
-                              </p>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                                    Tên bài hát *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editTrackTitle}
+                                    onChange={(e) => setEditTrackTitle(e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-white border border-purple-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium"
+                                    placeholder="VD: Mong Ước Kỷ Niệm Xưa"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                                    Ca sĩ / Trình bày
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editTrackArtist}
+                                    onChange={(e) => setEditTrackArtist(e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-white border border-purple-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                    placeholder="VD: Tam Ca 3A"
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                                  Đường link YouTube hoặc Google Drive MP3 *
+                                </label>
+                                <input
+                                  type="url"
+                                  value={editTrackUrl}
+                                  onChange={(e) => setEditTrackUrl(e.target.value)}
+                                  className="w-full px-3 py-1.5 bg-white border border-purple-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400 font-mono"
+                                  placeholder="https://youtu.be/... hoặc https://drive.google.com/file/d/.../view"
+                                />
+                              </div>
+
+                              <div className="flex items-center justify-end gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEditTrack}
+                                  className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Hủy</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEditTrack(idx)}
+                                  className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Lưu Thay Đổi</span>
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          );
+                        }
 
-                          <div className="flex items-center gap-1">
-                            {/* Move Up */}
-                            <button
-                              type="button"
-                              disabled={idx === 0}
-                              onClick={() => {
-                                if (idx === 0) return;
-                                const updated = [...stagePlaylist];
-                                const temp = updated[idx - 1];
-                                updated[idx - 1] = updated[idx];
-                                updated[idx] = temp;
-                                setStagePlaylist(updated);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
-                              title="Di chuyển lên trên"
-                            >
-                              <ArrowUp className="w-3.5 h-3.5" />
-                            </button>
+                        return (
+                          <div
+                            key={track.id || idx}
+                            className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition group"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="w-6 text-center text-xs font-mono font-bold text-slate-400 shrink-0">
+                                {(idx + 1).toString().padStart(2, '0')}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-xs font-bold text-slate-900 truncate">
+                                    {track.title}
+                                  </p>
+                                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-semibold ${
+                                    track.sourceType === 'drive'
+                                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                      : 'bg-rose-100 text-rose-700 border border-rose-200'
+                                  }`}>
+                                    {track.sourceType === 'drive' ? 'Drive MP3' : 'YouTube'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5 flex-wrap">
+                                  <span>{track.artist || 'K8A1 Tuyển Chọn'}</span>
+                                  <span>•</span>
+                                  <a
+                                    href={track.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-purple-600 hover:text-purple-800 hover:underline inline-flex items-center gap-0.5 font-mono text-[10.5px] max-w-[200px] sm:max-w-xs md:max-w-md truncate"
+                                    title={`Bấm để mở thử link: ${track.url}`}
+                                  >
+                                    <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                    <span className="truncate">{track.url}</span>
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
 
-                            {/* Move Down */}
-                            <button
-                              type="button"
-                              disabled={idx === stagePlaylist.length - 1}
-                              onClick={() => {
-                                if (idx === stagePlaylist.length - 1) return;
-                                const updated = [...stagePlaylist];
-                                const temp = updated[idx + 1];
-                                updated[idx + 1] = updated[idx];
-                                updated[idx] = temp;
-                                setStagePlaylist(updated);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
-                              title="Di chuyển xuống dưới"
-                            >
-                              <ArrowDown className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Delete */}
-                            {stagePlaylist.length > 1 && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              {/* Sửa thông tin & link */}
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirm(`Bạn có chắc muốn xóa ca khúc "${track.title}"?`)) {
-                                    setStagePlaylist((prev) => prev.filter((_, i) => i !== idx));
-                                  }
-                                }}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition"
-                                title="Xóa bài hát"
+                                onClick={() => handleStartEditTrack(track, idx)}
+                                className="p-1.5 rounded-lg text-purple-600 hover:text-purple-800 hover:bg-purple-100 transition cursor-pointer"
+                                title="Chỉnh sửa tên, ca sĩ hoặc link bài hát này"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Edit3 className="w-3.5 h-3.5" />
                               </button>
-                            )}
+
+                              {/* Move Up */}
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => {
+                                  if (idx === 0) return;
+                                  const updated = [...stagePlaylist];
+                                  const temp = updated[idx - 1];
+                                  updated[idx - 1] = updated[idx];
+                                  updated[idx] = temp;
+                                  persistPresentationPlaylist(updated);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                                title="Di chuyển lên trên"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Move Down */}
+                              <button
+                                type="button"
+                                disabled={idx === stagePlaylist.length - 1}
+                                onClick={() => {
+                                  if (idx === stagePlaylist.length - 1) return;
+                                  const updated = [...stagePlaylist];
+                                  const temp = updated[idx + 1];
+                                  updated[idx + 1] = updated[idx];
+                                  updated[idx] = temp;
+                                  persistPresentationPlaylist(updated);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                                title="Di chuyển xuống dưới"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Delete */}
+                              {stagePlaylist.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Bạn có chắc muốn xóa ca khúc "${track.title}"?`)) {
+                                      const updated = stagePlaylist.filter((_, i) => i !== idx);
+                                      persistPresentationPlaylist(updated);
+                                      if (editingTrackIndex === idx) setEditingTrackIndex(null);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition"
+                                  title="Xóa bài hát"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

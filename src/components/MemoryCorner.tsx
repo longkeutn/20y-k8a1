@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo } from '../types';
-import { DEFAULT_VIDEOS, DEFAULT_MEMORIES } from '../data';
+import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, getNostalgicPhotoCaption } from '../data';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
@@ -1654,8 +1654,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 ẢNH {selectedImageIndex! + 1} / {filteredImages.length}
               </span>
               <span className="hidden sm:inline-block text-white/30 text-xs shrink-0">|</span>
-              <span className="hidden sm:inline-block text-xs font-serif text-white/80 truncate max-w-[280px] lg:max-w-[420px]">
-                {currentImage.caption}
+              <span className="hidden sm:inline-block text-xs font-serif text-amber-200/90 italic truncate max-w-[280px] lg:max-w-[420px]">
+                “{getNostalgicPhotoCaption(selectedImageIndex || 0, currentImage.caption)}”
               </span>
             </div>
 
@@ -1837,8 +1837,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
           }`}>
             <div className="space-y-0.5 text-left">
-              <p className="text-sm md:text-base font-serif italic text-white font-medium">
-                “{currentImage.caption}”
+              <p className="text-sm md:text-base font-serif italic text-amber-200 font-medium leading-relaxed">
+                “{getNostalgicPhotoCaption(selectedImageIndex || 0, currentImage.caption)}”
               </p>
               {currentImage.date && (
                 <p className="text-[11px] text-white/60 font-sans">

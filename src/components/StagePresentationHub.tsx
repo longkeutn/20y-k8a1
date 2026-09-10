@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff
 } from 'lucide-react';
 import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings } from '../types';
+import { getNostalgicPhotoCaption } from '../data';
 import MusicPlaylistModal from './MusicPlaylistModal';
 
 interface StagePresentationHubProps {
@@ -275,15 +276,15 @@ export default function StagePresentationHub({
                 className={`relative z-10 max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
               />
 
-              {/* Dải Caption chú thích ảnh */}
+              {/* Dải Caption chú thích ảnh hoài niệm */}
               {showCaption && (
                 <div className="absolute bottom-16 md:bottom-20 left-0 right-0 z-20 flex justify-center px-6 pointer-events-none">
-                  <div className="max-w-3xl bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-amber-500/30 text-center shadow-2xl">
-                    <p className="text-base md:text-xl font-bold text-amber-200 tracking-wide">
-                      {currentPhoto.caption || "Khoảnh Khắc Kỷ Niệm Lớp K8A1"}
+                  <div className="max-w-3xl bg-black/70 backdrop-blur-md px-6 py-3 rounded-2xl border border-amber-500/40 text-center shadow-2xl">
+                    <p className="text-base md:text-xl font-bold font-serif italic text-amber-200 tracking-wide leading-relaxed">
+                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
                     </p>
                     {currentPhoto.date && (
-                      <p className="text-xs text-slate-300 mt-1">
+                      <p className="text-xs text-slate-300 mt-1 font-sans">
                         {currentPhoto.date}
                       </p>
                     )}
@@ -327,9 +328,9 @@ export default function StagePresentationHub({
                 />
 
                 {showCaption && (
-                  <div className="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-md px-5 py-2.5 rounded-xl border border-amber-500/30 text-center">
-                    <p className="text-sm md:text-lg font-bold text-amber-200">
-                      {currentPhoto.caption || "Kỷ Niệm Thanh Xuân K8A1"}
+                  <div className="absolute bottom-4 left-4 right-4 bg-black/75 backdrop-blur-md px-5 py-2.5 rounded-xl border border-amber-500/30 text-center">
+                    <p className="text-sm md:text-lg font-bold font-serif italic text-amber-200">
+                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
                     </p>
                   </div>
                 )}

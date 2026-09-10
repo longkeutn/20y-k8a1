@@ -3607,6 +3607,37 @@ export const DEFAULT_STAGE_SETTINGS: StageSettings = {
   shufflePhotos: false
 };
 
+// Danh sách các câu trích dẫn thanh xuân, hoài niệm tuổi học trò K8A1
+export const NOSTALGIC_QUOTES: string[] = [
+  "Hai mươi năm ngày trở về — Ký ức năm tháng học trò K8A1 vẫn vẹn nguyên như ngày hôm qua.",
+  "Thanh xuân như một cơn mưa rào, dẫu có ướt lạnh vẫn muốn đắm mình lần nữa.",
+  "Những nụ cười ngây ngô thuở ấy, nay đã hóa thành ký ức vô giá của cuộc đời.",
+  "Nắng sân trường THPT Thái Nguyên năm ấy, lưu giữ trọn vẹn những ước mơ tuổi mười tám.",
+  "Thời gian có thể trôi mau, nhưng tình bạn tuổi học trò sẽ sống mãi trong tim chúng ta.",
+  "Gặp lại nhau sau 20 năm, để thấy tuổi trẻ của chúng ta chưa từng phai nhòa theo năm tháng.",
+  "Tháng năm rực rỡ dưới mái trường THPT Thái Nguyên — Nơi thanh xuân chúng ta bắt đầu.",
+  "Mỗi bức ảnh là một mảnh ghép hoài niệm, gửi gắm trọn vẹn tình bạn mang tên K8A1.",
+  "Áo trắng ngày xưa, tiếng cười ngày cũ — Kho báu vô giá sau hai mươi năm đường đời.",
+  "Cảm ơn vì chúng ta đã cùng nhau đi qua những năm tháng thanh xuân tươi đẹp nhất!"
+];
+
+/**
+ * Lấy câu chú thích hoài niệm thay thế cho tên file ảnh kỹ thuật số
+ */
+export function getNostalgicPhotoCaption(index: number, customCaption?: string): string {
+  if (customCaption) {
+    const trimmed = customCaption.trim();
+    // Loại bỏ các chuỗi tên file máy ảnh, timestamp, hash ngẫu nhiên
+    const isMachineName = /^(img|image|dsc|photo|pasted|screenshot|178\d+|[0-9a-f]{16,}|[\d\s_.-]{10,})/i.test(trimmed) 
+      || trimmed.includes('9527bee86c')
+      || /^\d{10,}/.test(trimmed);
+    if (!isMachineName && trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+  return NOSTALGIC_QUOTES[Math.abs(index) % NOSTALGIC_QUOTES.length];
+}
+
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
   eventTitle: "20 Năm Ngày Trở Về",
   eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
