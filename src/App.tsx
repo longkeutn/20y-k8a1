@@ -472,6 +472,9 @@ export default function App() {
     }
   }, [classRoster]);
 
+  // Xác thực quyền Ban Liên Lạc / Admin (BLL / Thủ quỹ / Admin hoặc Thành viên BLL chính thức)
+  const isBLLOrAdmin = currentUserRole === 'admin' || currentUserRole === 'bll' || currentUserRole === 'treasurer' || isOfficialBLLMember(activeMember);
+
   // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
   const [isZaloShareModalOpen, setIsZaloShareModalOpen] = useState(false);
@@ -1630,23 +1633,25 @@ export default function App() {
               <span className="hidden sm:inline">Cẩm Nang</span>
             </button>
 
-            {/* Trình Chiếu Sân Khấu / Màn LED */}
-            <button
-              type="button"
-              onClick={() => setIsStagePresentationOpen(true)}
-              className="flex items-center space-x-1 text-slate-300 hover:text-cyan-300 transition px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
-              title="Chế độ Trình Chiếu Backdrop & Thư Viện Kỷ Niệm lên Màn LED Sân Khấu (16:9)"
-            >
-              <Tv className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden md:inline text-cyan-200 font-medium">Màn LED</span>
-            </button>
+            {/* Trình Chiếu Sân Khấu / Màn LED — Chỉ hiển thị cho Ban Liên Lạc & Admin */}
+            {isBLLOrAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsStagePresentationOpen(true)}
+                className="flex items-center space-x-1 text-slate-300 hover:text-cyan-300 transition px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer animate-in fade-in duration-200"
+                title="Chế độ Trình Chiếu Backdrop & Thư Viện Kỷ Niệm lên Màn LED Sân Khấu (16:9) — Dành cho BLL & Admin"
+              >
+                <Tv className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden md:inline text-cyan-200 font-medium">Màn LED</span>
+              </button>
+            )}
 
             {/* Background Audio Player & Trình Phát Playlist */}
             <AudioPlayer 
               variant="navbar" 
               customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" 
               playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
-              isAdmin={currentUserRole === 'admin'}
+              isAdmin={isBLLOrAdmin}
             />
 
             {/* Live Realtime Sync Status Badge */}
@@ -1876,7 +1881,7 @@ export default function App() {
             </div>
 
             {/* Quick Button for Admin / BLL to change Hero Cover Banner */}
-            {(currentUserRole === 'admin' || currentUserRole === 'bll') && (
+            {isBLLOrAdmin && (
               <button
                 type="button"
                 onClick={() => handleOpenAdminHub('media', 'banner')}
@@ -2127,7 +2132,7 @@ export default function App() {
                     Thư Ngỏ Họp Lớp 20 Năm (2003 — 2006)
                   </span>
 
-                  {(currentUserRole === 'admin' || currentUserRole === 'bll') && (
+                  {isBLLOrAdmin && (
                     <button
                       type="button"
                       onClick={() => handleOpenAdminHub('settings')}
@@ -2301,7 +2306,7 @@ export default function App() {
                 images={images} 
                 videos={videos} 
                 onAddImage={handleAddImage}
-                onOpenStagePresentation={() => setIsStagePresentationOpen(true)}
+                onOpenStagePresentation={isBLLOrAdmin ? () => setIsStagePresentationOpen(true) : undefined}
               />
             </section>
 
@@ -2579,8 +2584,8 @@ export default function App() {
         }}
       />
 
-      {/* 🎬 MÀN HÌNH TRÌNH CHIẾU SÂN KHẤU & LED 16:9 (STAGE PRESENTATION HUB) */}
-      {isStagePresentationOpen && (
+      {/* 🎬 MÀN HÌNH TRÌNH CHIẾU SÂN KHẤU & LED 16:9 (STAGE PRESENTATION HUB) - CHỈ BLL / ADMIN */}
+      {isStagePresentationOpen && isBLLOrAdmin && (
         <StagePresentationHub
           isOpen={isStagePresentationOpen}
           onClose={() => setIsStagePresentationOpen(false)}
@@ -2590,7 +2595,7 @@ export default function App() {
           stageSettings={eventConfig.stageSettings || DEFAULT_STAGE_SETTINGS}
           eventTitle={eventConfig.eventTitle || "KỶ NIỆM 20 NĂM NGÀY TRỞ VỀ — K8A1"}
           eventSubtitle={eventConfig.eventSubtitle || "Trường THPT Thái Nguyên (2003 — 2006)"}
-          isAdmin={currentUserRole === 'admin'}
+          isAdmin={isBLLOrAdmin}
           onUpdateSettings={(newSettings) => {
             const updatedConfig: EventConfig = {
               ...eventConfig,
