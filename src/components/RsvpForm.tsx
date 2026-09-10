@@ -1352,73 +1352,29 @@ export default function RsvpForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               {/* Họ và tên */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="rsvp-fullName" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
-                    <User className="w-3 h-3 text-amber-700" />
-                    <span>Họ và tên</span>
-                    <span className="text-rose-500">*</span>
-                  </label>
-                  {activeMember && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsDropdownOpen(true);
-                        const el = document.getElementById('roster-dropdown-trigger');
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }}
-                      className="text-[10.5px] text-amber-800 hover:text-amber-950 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
-                    >
-                      <span>(Đổi bạn khác ▾)</span>
-                    </button>
-                  )}
-                </div>
-
-                {activeMember ? (
-                  <div 
-                    onClick={() => {
-                      setIsDropdownOpen(true);
-                      const el = document.getElementById('roster-dropdown-trigger');
-                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }}
-                    className="w-full px-3 py-2 bg-emerald-50/80 border border-emerald-300 hover:border-emerald-400 rounded-lg text-xs sm:text-[13px] text-emerald-950 font-sans font-bold flex items-center justify-between cursor-pointer group shadow-2xs transition-all"
-                    title="Bấm để đổi bạn khác nếu nhầm"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span className="truncate">{fullName}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200/70 text-emerald-900 font-normal">
-                        K8A1 #{activeMember.id}
-                      </span>
-                    </div>
-                    <span className="text-[10.5px] text-emerald-700 font-medium group-hover:underline shrink-0">
-                      Đổi bạn ▾
-                    </span>
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    id="rsvp-fullName"
-                    placeholder="Bấm vào danh bạ ở trên hoặc gõ tìm tên bạn..."
-                    required
-                    value={fullName}
-                    onChange={(e) => {
-                      const newName = e.target.value;
-                      setFullName(newName);
-                      if (activeMember && normalizeName(activeMember.fullName) !== normalizeName(newName)) {
-                        if (onSelectActiveMember) onSelectActiveMember(null);
-                        setIsCustomMode(true);
-                        setSavedExistingPhone('');
-                        setUseSavedPhone(false);
-                      }
-                    }}
-                    onFocus={() => {
-                      if (!isDropdownOpen && !fullName) {
-                        setIsDropdownOpen(true);
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
-                  />
-                )}
+                <label htmlFor="rsvp-fullName" className="text-[11px] font-bold text-slate-700 font-sans flex items-center gap-1">
+                  <User className="w-3 h-3 text-amber-700" />
+                  <span>Họ và tên</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="rsvp-fullName"
+                  placeholder="Nguyễn Tuấn Anh"
+                  required
+                  value={fullName}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    setFullName(newName);
+                    if (activeMember && normalizeName(activeMember.fullName) !== normalizeName(newName)) {
+                      if (onSelectActiveMember) onSelectActiveMember(null);
+                      setIsCustomMode(true);
+                      setSavedExistingPhone('');
+                      setUseSavedPhone(false);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50/80 focus:bg-white border border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400/40 rounded-lg text-xs sm:text-[13px] text-slate-800 font-sans outline-none transition"
+                />
               </div>
 
               {/* Biệt danh */}
