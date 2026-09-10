@@ -128,6 +128,7 @@ import {
 } from '../data';
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
+import { extractYouTubeVideoId } from './AudioPlayer';
 
 /**
  * Nén ảnh bằng Canvas HTML5 trước khi lưu trữ hoặc đẩy lên Google Drive / Sheet:
@@ -2985,23 +2986,33 @@ export default function AdminManagementHub({
   };
 
   const handleSaveEditTrack = (idx: number) => {
-    if (!editTrackTitle.trim()) {
+    const cleanTitle = editTrackTitle.trim();
+    const cleanUrl = editTrackUrl.trim();
+    if (!cleanTitle) {
       alert('Vui lòng nhập tên bài hát!');
       return;
     }
-    if (!editTrackUrl.trim()) {
+    if (!cleanUrl) {
       alert('Vui lòng nhập đường link YouTube hoặc Google Drive MP3!');
       return;
     }
-    const isDrive = editTrackUrl.includes('drive.google.com');
+    const isDrive = cleanUrl.includes('drive.google.com');
+    const isDirect = cleanUrl.endsWith('.mp3') || cleanUrl.endsWith('.m4a') || cleanUrl.endsWith('.wav');
+    if (!isDrive && !isDirect) {
+      const vid = extractYouTubeVideoId(cleanUrl);
+      if (!vid) {
+        alert('⚠️ Đường link YouTube chưa đúng định dạng!\nVui lòng dán link YouTube hợp lệ (hỗ trợ youtu.be, youtube.com/watch?v=, shorts, live...).');
+        return;
+      }
+    }
     const updated = stagePlaylist.map((t, i) => {
       if (i === idx) {
         return {
           ...t,
-          title: editTrackTitle.trim(),
+          title: cleanTitle,
           artist: editTrackArtist.trim() || 'K8A1 Tuyển Chọn',
-          sourceType: (isDrive ? 'drive' : 'youtube') as 'youtube' | 'drive',
-          url: editTrackUrl.trim(),
+          sourceType: (isDrive ? 'drive' : (isDirect ? 'direct' : 'youtube')) as 'youtube' | 'drive' | 'direct',
+          url: cleanUrl,
           isCustom: true
         };
       }
@@ -8301,21 +8312,31 @@ export default function AdminManagementHub({
                         <button
                           type="button"
                           onClick={() => {
-                            if (!newTrackUrl.trim()) {
+                            const cleanUrl = newTrackUrl.trim();
+                            const cleanTitle = newTrackTitle.trim();
+                            if (!cleanUrl) {
                               alert('Vui lòng nhập đường link bài hát!');
                               return;
                             }
-                            if (!newTrackTitle.trim()) {
+                            if (!cleanTitle) {
                               alert('Vui lòng nhập tên bài hát!');
                               return;
                             }
-                            const isDrive = newTrackUrl.includes('drive.google.com');
+                            const isDrive = cleanUrl.includes('drive.google.com');
+                            const isDirect = cleanUrl.endsWith('.mp3') || cleanUrl.endsWith('.m4a') || cleanUrl.endsWith('.wav');
+                            if (!isDrive && !isDirect) {
+                              const vid = extractYouTubeVideoId(cleanUrl);
+                              if (!vid) {
+                                alert('⚠️ Đường link YouTube chưa đúng định dạng!\nVui lòng kiểm tra lại link bài hát (hỗ trợ youtu.be, youtube.com/watch?v=, shorts, live...).');
+                                return;
+                              }
+                            }
                             const newTrack: MusicTrack = {
                               id: 'track_' + Date.now(),
-                              title: newTrackTitle.trim(),
+                              title: cleanTitle,
                               artist: newTrackArtist.trim() || 'K8A1 Tuyển Chọn',
-                              sourceType: isDrive ? 'drive' : 'youtube',
-                              url: newTrackUrl.trim(),
+                              sourceType: (isDrive ? 'drive' : (isDirect ? 'direct' : 'youtube')) as 'youtube' | 'drive' | 'direct',
+                              url: cleanUrl,
                               duration: 'Tùy chỉnh',
                               isCustom: true
                             };
@@ -8342,7 +8363,7 @@ export default function AdminManagementHub({
                       <div className="flex flex-wrap gap-1.5">
                         {[
                           { title: "Mong Ước Kỷ Niệm Xưa", artist: "Tam Ca 3A", url: "https://youtu.be/ocvlV5LZ93Q" },
-                          { title: "Tạm Biệt (Thời Áo Trắng)", artist: "Quang Vinh", url: "https://youtu.be/h9Hk_P1Xv2Y" },
+                          { title: "Tạm Biệt (Thời Áo Trắng)", artist: "Quang Vinh", url: "https://youtu.be/zXHEZ0SLj1A" },
                           { title: "Ngày Ấy Bạn Và Tôi", artist: "Lynk Lee", url: "https://youtu.be/Z0R73khjwfg" },
                           { title: "Xe Đạp", artist: "Thùy Chi & M4U", url: "https://youtu.be/HyCIkhbalPk" },
                           { title: "Giấc Mơ Thần Tiên", artist: "Miu Lê", url: "https://youtu.be/VHT6ouvKj_Q" },

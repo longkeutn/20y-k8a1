@@ -3541,7 +3541,7 @@ export const DEFAULT_PLAYLIST: MusicTrack[] = [
     title: "Tạm Biệt (Thời Áo Trắng)",
     artist: "Quang Vinh",
     sourceType: "youtube",
-    url: "https://youtu.be/h9Hk_P1Xv2Y",
+    url: "https://youtu.be/zXHEZ0SLj1A",
     duration: "04:30"
   },
   {

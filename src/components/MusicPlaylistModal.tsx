@@ -5,6 +5,7 @@ import {
   Search, Check
 } from 'lucide-react';
 import { MusicTrack } from '../types';
+import { extractYouTubeVideoId } from './AudioPlayer';
 
 interface MusicPlaylistModalProps {
   isOpen: boolean;
@@ -87,6 +88,12 @@ export default function MusicPlaylistModal({
       sourceType = 'drive';
     } else if (cleanUrl.endsWith('.mp3') || cleanUrl.endsWith('.m4a') || cleanUrl.endsWith('.wav')) {
       sourceType = 'direct';
+    } else {
+      const vid = extractYouTubeVideoId(cleanUrl);
+      if (!vid) {
+        setAddError('Link YouTube chưa đúng định dạng! Vui lòng kiểm tra lại link (hỗ trợ youtu.be, youtube.com/watch?v=, music.youtube, shorts, live...).');
+        return;
+      }
     }
 
     const newTrack: MusicTrack = {

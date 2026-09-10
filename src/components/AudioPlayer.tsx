@@ -20,11 +20,30 @@ declare global {
   }
 }
 
-// Trích xuất YouTube Video ID từ link thông dụng (gồm cả youtu.be, shorts, v=...)
+// Trích xuất YouTube Video ID từ link thông dụng (gồm cả youtu.be, shorts, live, embed, music.youtube, v=...)
 export function extractYouTubeVideoId(url: string): string {
-  if (!url) return 'ocvlV5LZ93Q';
-  const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ \s]{11})/i);
-  return match ? match[1] : 'ocvlV5LZ93Q';
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+
+  // 1. Nếu dán trực tiếp 11 ký tự Video ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // 2. Nhận diện các định dạng link YouTube thông dụng
+  const patterns = [
+    /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|shorts\/|live\/))([a-zA-Z0-9_-]{11})/i,
+    /[?&]v=([a-zA-Z0-9_-]{11})/i
+  ];
+
+  for (const regex of patterns) {
+    const match = trimmed.match(regex);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return '';
 }
 
 // Trích xuất file ID từ link Google Drive
@@ -57,6 +76,16 @@ function loadYouTubeIframeApi(): Promise<any> {
       const firstScript = document.getElementsByTagName('script')[0];
       firstScript?.parentNode?.insertBefore(tag, firstScript);
     }
+
+    const prevOnReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof prevOnReady === 'function') {
+        try { prevOnReady(); } catch (e) {}
+      }
+      if (window.YT && window.YT.Player) {
+        resolve(window.YT);
+      }
+    };
 
     let elapsed = 0;
     const interval = setInterval(() => {
@@ -113,20 +142,40 @@ export default function AudioPlayer({
     url: customAudioUrl || 'https://youtu.be/ocvlV5LZ93Q'
   };
 
-  const isYouTube = currentTrack.sourceType === 'youtube' || !currentTrack.sourceType || currentTrack.url.includes('youtu');
-  const videoId = extractYouTubeVideoId(currentTrack.url);
+  const isYouTube = currentTrack.sourceType === 'youtube' || (!currentTrack.sourceType && !currentTrack.url.includes('drive.google.com') && !currentTrack.url.endsWith('.mp3')) || currentTrack.url.includes('youtu');
+  const videoId = isYouTube ? extractYouTubeVideoId(currentTrack.url) : '';
 
   const playerRef = useRef<any>(null);
+  const isPlayerReadyRef = useRef<boolean>(false);
+  const lastLoadedVideoIdRef = useRef<string>('');
   const audioTagRef = useRef<HTMLAudioElement | null>(null);
   const pendingPlayRef = useRef<boolean>(false);
   const mountWrapperRef = useRef<HTMLDivElement | null>(null);
+  const consecutiveErrorsRef = useRef<number>(0);
+
+  const volumeRef = useRef<number>(volume);
+  const repeatModeRef = useRef<'all' | 'one' | 'off'>(repeatMode);
+  const isShuffledRef = useRef<boolean>(isShuffled);
+  const currentIndexRef = useRef<number>(currentIndex);
+  const internalPlaylistRef = useRef<MusicTrack[]>(internalPlaylist);
+  const isPlayingRef = useRef<boolean>(isPlaying);
+  const currentTrackRef = useRef<MusicTrack>(currentTrack);
+  const handleNextTrackRef = useRef<() => void>(() => {});
+
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
+  useEffect(() => { isShuffledRef.current = isShuffled; }, [isShuffled]);
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+  useEffect(() => { internalPlaylistRef.current = internalPlaylist; }, [internalPlaylist]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
 
   // Đồng bộ âm lượng
   useEffect(() => {
     if (audioTagRef.current) {
       audioTagRef.current.volume = volume / 100;
     }
-    if (playerRef.current && typeof playerRef.current.setVolume === 'function') {
+    if (playerRef.current && isPlayerReadyRef.current && typeof playerRef.current.setVolume === 'function') {
       try {
         playerRef.current.setVolume(volume);
       } catch (e) {}
@@ -135,72 +184,83 @@ export default function AudioPlayer({
 
   // Xử lý chuyển bài kế tiếp
   const handleNextTrack = useCallback(() => {
-    if (internalPlaylist.length <= 1) {
+    const list = internalPlaylistRef.current;
+    if (list.length <= 1) {
       // Chỉ có 1 bài, phát lại từ đầu
-      if (isYouTube && playerRef.current && typeof playerRef.current.seekTo === 'function') {
-        playerRef.current.seekTo(0);
-        playerRef.current.playVideo();
+      if (isYouTube && playerRef.current && isPlayerReadyRef.current && typeof playerRef.current.seekTo === 'function') {
+        try {
+          playerRef.current.seekTo(0);
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+        } catch (e) {}
       } else if (audioTagRef.current) {
         audioTagRef.current.currentTime = 0;
         audioTagRef.current.play().catch(() => {});
+        setIsPlaying(true);
       }
       return;
     }
 
-    let nextIdx = currentIndex + 1;
-    if (isShuffled) {
-      nextIdx = Math.floor(Math.random() * internalPlaylist.length);
-      if (nextIdx === currentIndex && internalPlaylist.length > 1) {
-        nextIdx = (currentIndex + 1) % internalPlaylist.length;
+    let nextIdx = currentIndexRef.current + 1;
+    if (isShuffledRef.current) {
+      nextIdx = Math.floor(Math.random() * list.length);
+      if (nextIdx === currentIndexRef.current && list.length > 1) {
+        nextIdx = (currentIndexRef.current + 1) % list.length;
       }
-    } else if (nextIdx >= internalPlaylist.length) {
-      nextIdx = repeatMode === 'off' ? 0 : 0;
-      if (repeatMode === 'off') {
+    } else if (nextIdx >= list.length) {
+      if (repeatModeRef.current === 'off') {
         setIsPlaying(false);
+        setIsBuffering(false);
         return;
       }
+      nextIdx = 0;
     }
 
     setCurrentIndex(nextIdx);
     if (onTrackChange) onTrackChange(nextIdx);
     pendingPlayRef.current = true;
-  }, [currentIndex, internalPlaylist.length, isShuffled, repeatMode, isYouTube, onTrackChange]);
+    setIsPlaying(true);
+    setIsBuffering(true);
+  }, [isYouTube, onTrackChange]);
+
+  useEffect(() => {
+    handleNextTrackRef.current = handleNextTrack;
+  }, [handleNextTrack]);
 
   // Xử lý chuyển bài trước đó
   const handlePrevTrack = useCallback(() => {
-    let prevIdx = currentIndex - 1;
+    const list = internalPlaylistRef.current;
+    let prevIdx = currentIndexRef.current - 1;
     if (prevIdx < 0) {
-      prevIdx = internalPlaylist.length - 1;
+      prevIdx = list.length - 1;
     }
     setCurrentIndex(prevIdx);
     if (onTrackChange) onTrackChange(prevIdx);
     pendingPlayRef.current = true;
-  }, [currentIndex, internalPlaylist.length, onTrackChange]);
+    setIsPlaying(true);
+    setIsBuffering(true);
+  }, [onTrackChange]);
 
   // Chọn trực tiếp 1 bài từ modal
   const handleSelectTrack = useCallback((index: number) => {
-    if (index >= 0 && index < internalPlaylist.length) {
+    const list = internalPlaylistRef.current;
+    if (index >= 0 && index < list.length) {
+      consecutiveErrorsRef.current = 0;
       setCurrentIndex(index);
       if (onTrackChange) onTrackChange(index);
       pendingPlayRef.current = true;
       setIsPlaying(true);
+      setIsBuffering(true);
     }
-  }, [internalPlaylist.length, onTrackChange]);
+  }, [onTrackChange]);
 
-  // Khởi tạo YouTube IFrame Player (Chỉ phát tiếng, ẩn 100% video)
+  // Khởi tạo YouTube IFrame Player (Chạy duy nhất 1 lần, tuyệt đối không destroy rồi tạo lại)
   useEffect(() => {
-    if (!isYouTube) {
-      // Dừng YouTube nếu chuyển sang file Audio trực tiếp
-      if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
-        try { playerRef.current.pauseVideo(); } catch (e) {}
-      }
-      return;
-    }
-
     let isCancelled = false;
 
     loadYouTubeIframeApi().then((YT) => {
       if (isCancelled || !YT || !YT.Player || !mountWrapperRef.current) return;
+      if (playerRef.current) return;
 
       try {
         let mountEl = mountWrapperRef.current.querySelector('#yt-audio-mount') as HTMLElement | null;
@@ -210,23 +270,19 @@ export default function AudioPlayer({
           mountWrapperRef.current.appendChild(mountEl);
         }
 
-        if (playerRef.current && typeof playerRef.current.destroy === 'function') {
-          try { playerRef.current.destroy(); } catch (e) {}
-          playerRef.current = null;
-        }
+        const initialVideoId = videoId || 'ocvlV5LZ93Q';
+        lastLoadedVideoIdRef.current = initialVideoId;
 
         playerRef.current = new YT.Player(mountEl, {
-          height: '1',
-          width: '1',
-          videoId: videoId,
+          height: '180',
+          width: '320',
+          videoId: initialVideoId,
           playerVars: {
-            autoplay: pendingPlayRef.current ? 1 : 0,
+            autoplay: 0,
             controls: 0,
             disablekb: 1,
             fs: 0,
             iv_load_policy: 3,
-            loop: repeatMode === 'one' ? 1 : 0,
-            playlist: repeatMode === 'one' ? videoId : undefined,
             playsinline: 1,
             rel: 0,
             modestbranding: 1
@@ -234,43 +290,63 @@ export default function AudioPlayer({
           events: {
             onReady: (event: any) => {
               if (isCancelled) return;
+              isPlayerReadyRef.current = true;
               setIsReady(true);
-              try { event.target.setVolume(volume); } catch (e) {}
+              try { event.target.setVolume(volumeRef.current); } catch (e) {}
 
-              if (pendingPlayRef.current || isPlaying) {
-                try { event.target.playVideo(); } catch (e) {}
+              if (pendingPlayRef.current || isPlayingRef.current) {
+                try {
+                  event.target.playVideo();
+                } catch (e) {}
                 pendingPlayRef.current = false;
               }
             },
             onStateChange: (event: any) => {
               if (isCancelled) return;
-              // 1: PLAYING, 2: PAUSED, 0: ENDED, 3: BUFFERING
+              // 1: PLAYING, 2: PAUSED, 0: ENDED, 3: BUFFERING, -1: UNSTARTED
               if (event.data === 1) {
                 setIsPlaying(true);
                 setIsBuffering(false);
+                consecutiveErrorsRef.current = 0; // Đã phát mượt mà -> reset bộ đếm lỗi
               } else if (event.data === 2) {
                 setIsPlaying(false);
                 setIsBuffering(false);
               } else if (event.data === 0) {
-                // Hết bài
-                if (repeatMode === 'one') {
+                setIsBuffering(false);
+                if (repeatModeRef.current === 'one') {
                   try {
                     event.target.seekTo(0);
                     event.target.playVideo();
                   } catch (e) {}
                 } else {
-                  handleNextTrack();
+                  if (handleNextTrackRef.current) {
+                    handleNextTrackRef.current();
+                  }
                 }
               } else if (event.data === 3) {
                 setIsBuffering(true);
               }
             },
             onError: (err: any) => {
-              console.warn('YouTube Audio Player error:', err);
-              if (!isCancelled) {
-                setIsBuffering(false);
-                // Thử chuyển bài tiếp theo nếu video lỗi
-                handleNextTrack();
+              console.warn('[YouTube Audio Player] Mã lỗi YouTube:', err?.data, 'videoId:', lastLoadedVideoIdRef.current);
+              if (isCancelled) return;
+              setIsBuffering(false);
+
+              consecutiveErrorsRef.current += 1;
+              const maxAllowed = Math.min(internalPlaylistRef.current.length, 3);
+
+              if (consecutiveErrorsRef.current < maxAllowed && internalPlaylistRef.current.length > 1) {
+                console.warn(`[YouTube Audio Player] Bài bị lỗi/hạn chế bản quyền phát nhúng. Tự động chuyển bài tiếp theo (${consecutiveErrorsRef.current}/${maxAllowed})...`);
+                setTimeout(() => {
+                  if (handleNextTrackRef.current) {
+                    handleNextTrackRef.current();
+                  }
+                }, 600);
+              } else {
+                console.warn('[YouTube Audio Player] Dừng phát do các bài hát liên tiếp bị hạn chế bản quyền YouTube.');
+                consecutiveErrorsRef.current = 0;
+                setIsPlaying(false);
+                pendingPlayRef.current = false;
               }
             }
           }
@@ -283,7 +359,49 @@ export default function AudioPlayer({
     return () => {
       isCancelled = true;
     };
-  }, [videoId, isYouTube, repeatMode, handleNextTrack, volume]);
+  }, []);
+
+  // Điều khiển nạp và phát bài hát khi videoId hoặc nguồn phát thay đổi
+  useEffect(() => {
+    if (!isYouTube) {
+      if (playerRef.current && isPlayerReadyRef.current && typeof playerRef.current.pauseVideo === 'function') {
+        try { playerRef.current.pauseVideo(); } catch (e) {}
+      }
+      return;
+    }
+
+    if (!videoId) {
+      console.warn('[AudioPlayer] Link YouTube không trích xuất được Video ID:', currentTrack.url);
+      setIsBuffering(false);
+      return;
+    }
+
+    if (playerRef.current && isPlayerReadyRef.current) {
+      if (lastLoadedVideoIdRef.current !== videoId) {
+        lastLoadedVideoIdRef.current = videoId;
+        try {
+          if (isPlaying || pendingPlayRef.current) {
+            setIsBuffering(true);
+            playerRef.current.loadVideoById(videoId);
+            pendingPlayRef.current = false;
+          } else {
+            playerRef.current.cueVideoById(videoId);
+          }
+        } catch (e) {
+          console.warn('[AudioPlayer] Lỗi khi nạp video YouTube:', e);
+        }
+      } else {
+        if (isPlaying || pendingPlayRef.current) {
+          try {
+            playerRef.current.playVideo();
+            pendingPlayRef.current = false;
+          } catch (e) {}
+        }
+      }
+    } else {
+      lastLoadedVideoIdRef.current = videoId;
+    }
+  }, [videoId, isYouTube, isPlaying, currentTrack.url]);
 
   // Quản lý thẻ <audio> cho Drive / Direct MP3
   useEffect(() => {
@@ -298,7 +416,10 @@ export default function AudioPlayer({
     if (!audio) return;
 
     const streamUrl = getDriveAudioStreamUrl(currentTrack.url);
-    audio.src = streamUrl;
+    if (audio.src !== streamUrl) {
+      audio.src = streamUrl;
+      audio.load();
+    }
     audio.volume = volume / 100;
     audio.loop = repeatMode === 'one';
 
@@ -308,12 +429,12 @@ export default function AudioPlayer({
       });
       pendingPlayRef.current = false;
     }
-  }, [currentTrack.url, isYouTube, repeatMode, volume]);
+  }, [currentTrack.url, isYouTube, repeatMode, volume, isPlaying]);
 
   // Lắng nghe Custom Events toàn hệ thống
   useEffect(() => {
     const handlePauseBgMusic = () => {
-      if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
+      if (playerRef.current && isPlayerReadyRef.current && typeof playerRef.current.pauseVideo === 'function') {
         try { playerRef.current.pauseVideo(); } catch (e) {}
       }
       if (audioTagRef.current) {
@@ -321,13 +442,14 @@ export default function AudioPlayer({
       }
       setIsPlaying(false);
       setIsBuffering(false);
+      pendingPlayRef.current = false;
     };
 
     const handlePlayMusic = (e: CustomEvent) => {
       if (e.detail && typeof e.detail.index === 'number') {
         handleSelectTrack(e.detail.index);
       } else {
-        if (isYouTube && playerRef.current && typeof playerRef.current.playVideo === 'function') {
+        if (isYouTube && playerRef.current && isPlayerReadyRef.current && typeof playerRef.current.playVideo === 'function') {
           playerRef.current.playVideo();
         } else if (audioTagRef.current) {
           audioTagRef.current.play().catch(() => {});
@@ -358,7 +480,7 @@ export default function AudioPlayer({
   // Xử lý nút bấm Bật / Tắt nhạc
   const togglePlay = useCallback(() => {
     if (isPlaying) {
-      if (isYouTube && playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
+      if (isYouTube && playerRef.current && isPlayerReadyRef.current && typeof playerRef.current.pauseVideo === 'function') {
         try { playerRef.current.pauseVideo(); } catch (e) {}
       } else if (audioTagRef.current) {
         audioTagRef.current.pause();
@@ -368,19 +490,25 @@ export default function AudioPlayer({
       pendingPlayRef.current = false;
     } else {
       if (isYouTube) {
-        if (isReady && playerRef.current && typeof playerRef.current.playVideo === 'function') {
-          try { playerRef.current.playVideo(); } catch (e) {}
-          setIsBuffering(true);
+        if (isPlayerReadyRef.current && playerRef.current && typeof playerRef.current.playVideo === 'function') {
+          try { 
+            playerRef.current.playVideo(); 
+            setIsBuffering(true);
+          } catch (e) {
+            console.warn('Lỗi khi gọi playVideo:', e);
+          }
         } else {
           pendingPlayRef.current = true;
           setIsBuffering(true);
         }
       } else if (audioTagRef.current) {
-        audioTagRef.current.play().catch(() => {});
+        audioTagRef.current.play().catch((e) => {
+          console.warn('Lỗi khi phát audio tag:', e);
+        });
         setIsPlaying(true);
       }
     }
-  }, [isPlaying, isReady, isYouTube]);
+  }, [isPlaying, isYouTube]);
 
   // Thêm bài hát vào playlist
   const handleAddTrack = (newTrack: MusicTrack) => {
@@ -410,19 +538,19 @@ export default function AudioPlayer({
   // Render player ẩn
   const renderHiddenEngines = () => (
     <>
-      {/* Vùng nhúng YouTube IFrame 1x1 ẩn */}
+      {/* Vùng nhúng YouTube IFrame off-screen chuẩn kích thước 320x180 để chống trình duyệt & YouTube bóp/tạm dừng luồng ngầm */}
       <div
         ref={mountWrapperRef}
         style={{
           position: 'fixed',
-          bottom: 0,
-          right: 0,
-          width: '1px',
-          height: '1px',
-          opacity: 0.001,
+          top: '-9999px',
+          left: '-9999px',
+          width: '320px',
+          height: '180px',
           pointerEvents: 'none',
           zIndex: -9999,
-          overflow: 'hidden'
+          visibility: 'visible',
+          opacity: 1
         }}
         aria-hidden="true"
       >
