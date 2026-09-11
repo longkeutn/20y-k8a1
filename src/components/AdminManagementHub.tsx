@@ -448,7 +448,7 @@ export default function AdminManagementHub({
   const [memberSearch, setMemberSearch] = useState('');
   const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'yes' | 'no' | 'checkedIn' | 'notCheckedIn'>('all');
   const [memberShirtFilter, setMemberShirtFilter] = useState<string>('all');
-  const [rosterStatusFilter, setRosterStatusFilter] = useState<'all' | 'confirmed' | 'declined' | 'pending'>('all');
+  const [rosterStatusFilter, setRosterStatusFilter] = useState<'all' | 'confirmed' | 'declined' | 'pending' | 'new_phone'>('all');
 
   // Helper chuẩn hóa so khớp danh bạ
   // Helper chuẩn hóa so khớp danh bạ
@@ -536,12 +536,20 @@ export default function AdminManagementHub({
           matchedRsvp.memberId = m.id;
         }
       }
+ 
+      const parsedNote = parseMemberNote(m.note);
+      const rsvpPhone = String(matchedRsvp?.phone || '').trim();
+      const hasValidRsvpPhone = rsvpPhone.replace(/[^0-9]/g, '').length >= 9;
+      const isPhoneDifferent = hasValidRsvpPhone && (!m.phone || !isPhoneMatch(m.phone, rsvpPhone));
+      const isAlreadySecondary = Boolean(parsedNote.meta.secondaryPhone && isPhoneMatch(parsedNote.meta.secondaryPhone, rsvpPhone));
+      const hasNewRsvpPhone = Boolean(matchedRsvp && isPhoneDifferent && !isAlreadySecondary);
 
       return {
         ...m,
         index: idx + 1,
         matchedRsvp,
-        rosterStatus
+        rosterStatus,
+        hasNewRsvpPhone
       };
     });
   }, [rosterList, rsvpList, rosterNameCounts]);
@@ -549,6 +557,7 @@ export default function AdminManagementHub({
   const rosterConfirmedCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'confirmed').length, [enrichedRoster]);
   const rosterDeclinedCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'declined').length, [enrichedRoster]);
   const rosterPendingCount = useMemo(() => enrichedRoster.filter(m => m.rosterStatus === 'pending').length, [enrichedRoster]);
+  const rosterNewPhoneCount = useMemo(() => enrichedRoster.filter(m => m.hasNewRsvpPhone).length, [enrichedRoster]);
 
   const filteredRoster = useMemo(() => {
     const q = (memberSearch || '').toLowerCase().trim();
@@ -570,7 +579,7 @@ export default function AdminManagementHub({
 
       const matchFilter =
         rosterStatusFilter === 'all' ||
-        m.rosterStatus === rosterStatusFilter;
+        (rosterStatusFilter === 'new_phone' ? m.hasNewRsvpPhone : m.rosterStatus === rosterStatusFilter);
 
       return matchQuery && matchFilter;
     });
@@ -2047,6 +2056,115 @@ export default function AdminManagementHub({
 
     setTimeout(() => setRosterFeedbackMsg(''), 4000);
     setIsRosterModalOpen(false);
+  };
+
+  // 1-Click Action: Lưu SĐT điểm danh làm SĐT chính (chuyển số cũ vào oldPhones)
+  const handleSyncRosterPhoneAsPrimary = (member: (typeof enrichedRoster)[0] | ClassMember, newPhone: string) => {
+    const cleanNew = String(newPhone || '').trim();
+    if (!cleanNew) return;
+
+    const parsed = parseMemberNote(member.note);
+    const prevPhone = String(member.phone || '').trim();
+    let oldList = [...(parsed.meta.oldPhones || [])];
+    if (prevPhone && prevPhone !== cleanNew && !oldList.includes(prevPhone)) {
+      oldList.push(prevPhone);
+      parsed.meta.oldPhones = oldList;
+    }
+    if (parsed.meta.secondaryPhone && isPhoneMatch(parsed.meta.secondaryPhone, cleanNew)) {
+      delete parsed.meta.secondaryPhone;
+    }
+
+    const updatedNote = serializeMemberNote(parsed.meta);
+    const updatedList = rosterList.map(item => {
+      if (item.id === member.id) {
+        return {
+          ...item,
+          phone: cleanNew,
+          note: updatedNote,
+          noteMeta: parsed.meta
+        };
+      }
+      return item;
+    });
+
+    if (onUpdateClassRoster) {
+      onUpdateClassRoster(updatedList);
+    }
+    setRosterFeedbackMsg(`✓ Đã cập nhật ${cleanNew} làm SĐT chính cho ${member.fullName}!`);
+    setTimeout(() => setRosterFeedbackMsg(''), 4000);
+  };
+
+  // 1-Click Action: Lưu SĐT điểm danh làm SĐT phụ / SIM 2
+  const handleSyncRosterPhoneAsSecondary = (member: (typeof enrichedRoster)[0] | ClassMember, newPhone: string) => {
+    const cleanNew = String(newPhone || '').trim();
+    if (!cleanNew) return;
+
+    const parsed = parseMemberNote(member.note);
+    parsed.meta.secondaryPhone = cleanNew;
+    const updatedNote = serializeMemberNote(parsed.meta);
+
+    const updatedList = rosterList.map(item => {
+      if (item.id === member.id) {
+        return {
+          ...item,
+          note: updatedNote,
+          noteMeta: parsed.meta
+        };
+      }
+      return item;
+    });
+
+    if (onUpdateClassRoster) {
+      onUpdateClassRoster(updatedList);
+    }
+    setRosterFeedbackMsg(`✓ Đã lưu ${cleanNew} làm SIM 2 cho ${member.fullName}!`);
+    setTimeout(() => setRosterFeedbackMsg(''), 4000);
+  };
+
+  // Batch Action: Đồng bộ toàn bộ SĐT mới từ điểm danh vào Danh Bạ Lớp
+  const handleBatchSyncAllNewPhones = () => {
+    const targets = enrichedRoster.filter(m => m.hasNewRsvpPhone && m.matchedRsvp?.phone);
+    if (targets.length === 0) {
+      alert('Hiện không có bạn học nào có SĐT điểm danh mới cần đồng bộ!');
+      return;
+    }
+
+    if (!window.confirm(`Bạn có chắc chắn muốn cập nhật SĐT điểm danh làm SĐT chính cho ${targets.length} bạn học này không?\n\n(Hệ thống sẽ tự động lưu số cũ vào lịch sử oldPhones để không bao giờ mất thông tin liên lạc)`)) {
+      return;
+    }
+
+    const targetMap = new Map<string, string>();
+    targets.forEach(m => targetMap.set(m.id, String(m.matchedRsvp!.phone).trim()));
+
+    const updatedList = rosterList.map(item => {
+      if (targetMap.has(item.id)) {
+        const cleanNew = targetMap.get(item.id)!;
+        const prevPhone = String(item.phone || '').trim();
+        const parsed = parseMemberNote(item.note);
+        let oldList = [...(parsed.meta.oldPhones || [])];
+        if (prevPhone && prevPhone !== cleanNew && !oldList.includes(prevPhone)) {
+          oldList.push(prevPhone);
+          parsed.meta.oldPhones = oldList;
+        }
+        if (parsed.meta.secondaryPhone && isPhoneMatch(parsed.meta.secondaryPhone, cleanNew)) {
+          delete parsed.meta.secondaryPhone;
+        }
+        const updatedNote = serializeMemberNote(parsed.meta);
+        return {
+          ...item,
+          phone: cleanNew,
+          note: updatedNote,
+          noteMeta: parsed.meta
+        };
+      }
+      return item;
+    });
+
+    if (onUpdateClassRoster) {
+      onUpdateClassRoster(updatedList);
+    }
+    setRosterFeedbackMsg(`✓ Đã đồng bộ thành công SĐT mới cho ${targets.length} bạn học vào danh bạ lớp!`);
+    setTimeout(() => setRosterFeedbackMsg(''), 5000);
   };
 
   const handleDeleteRosterMember = (member: ClassMember) => {
@@ -3960,13 +4078,44 @@ export default function AdminManagementHub({
                           <Clock className="w-3 h-3 text-amber-600" />
                           <span>Chưa phản hồi ({rosterPendingCount})</span>
                         </button>
+
+                        {/* Chip lọc: Có SĐT điểm danh mới */}
+                        {rosterNewPhoneCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setRosterStatusFilter('new_phone')}
+                            className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold transition cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                              rosterStatusFilter === 'new_phone'
+                                ? 'bg-amber-500 text-white shadow-xs ring-2 ring-amber-300'
+                                : 'bg-amber-100/90 hover:bg-amber-200 text-amber-900 border border-amber-300 animate-pulse'
+                            }`}
+                          >
+                            <Sparkles className="w-3 h-3 text-amber-700" />
+                            <span>⚡ Có SĐT mới ({rosterNewPhoneCount})</span>
+                          </button>
+                        )}
                       </div>
 
-                      {rosterFeedbackMsg && (
-                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded animate-pulse shrink-0">
-                          {rosterFeedbackMsg}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {/* Nút Đồng bộ hàng loạt toàn bộ SĐT mới */}
+                        {rosterNewPhoneCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleBatchSyncAllNewPhones}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-[11px] font-bold rounded-lg shadow-xs transition cursor-pointer shrink-0"
+                            title="Đồng bộ toàn bộ SĐT điểm danh mới vào Danh Bạ Lớp (Số cũ sẽ tự động lưu vào lịch sử oldPhones)"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Cập nhật tất cả ({rosterNewPhoneCount}) SĐT mới</span>
+                          </button>
+                        )}
+
+                        {rosterFeedbackMsg && (
+                          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded animate-pulse shrink-0">
+                            {rosterFeedbackMsg}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -4077,21 +4226,57 @@ export default function AdminManagementHub({
                                   })()}
                                 </td>
 
-                                <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 font-mono text-slate-600 text-[11px] sm:text-xs border-b border-slate-100">
-                                  <div>
-                                    {m.matchedRsvp?.phone || m.phone || <span className="text-slate-400 italic">Chưa có SĐT</span>}
+                                <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 font-mono text-slate-600 text-[11px] sm:text-xs border-b border-slate-100 min-w-[130px] sm:min-w-[170px]">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      {m.phone ? (
+                                        <span className="font-semibold text-slate-800">{m.phone}</span>
+                                      ) : (
+                                        <span className="text-rose-500 italic text-[10px] bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
+                                          Chưa có SĐT
+                                        </span>
+                                      )}
+                                    </div>
                                     {(() => {
                                       const parsed = parseMemberNote(m.note);
                                       if (parsed.meta.secondaryPhone) {
                                         return (
-                                          <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1" title="Số điện thoại phụ / SIM 2">
-                                            <span className="text-[9px] bg-slate-100 px-1 py-0.2 rounded text-slate-500 font-sans">SIM 2</span>
+                                          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1" title="Số điện thoại phụ / SIM 2">
+                                            <span className="text-[9px] bg-slate-100 px-1 py-0.2 rounded text-slate-600 font-sans font-medium">SIM 2</span>
                                             <span>{parsed.meta.secondaryPhone}</span>
                                           </div>
                                         );
                                       }
                                       return null;
                                     })()}
+
+                                    {/* Cảnh báo SĐT mới từ Điểm danh kèm 2 nút 1-chạm */}
+                                    {m.hasNewRsvpPhone && m.matchedRsvp?.phone && (
+                                      <div className="mt-1 p-1.5 bg-amber-50/95 border border-amber-300 rounded-lg text-[10px] font-sans shadow-2xs">
+                                        <div className="flex items-center gap-1 font-bold text-amber-900 leading-tight">
+                                          <Sparkles className="w-3 h-3 text-amber-600 shrink-0" />
+                                          <span>Điểm danh: <span className="font-mono text-emerald-800 font-extrabold">{m.matchedRsvp.phone}</span></span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSyncRosterPhoneAsPrimary(m, m.matchedRsvp!.phone)}
+                                            className="px-1.5 py-0.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded shadow-2xs transition cursor-pointer text-[9px] whitespace-nowrap"
+                                            title="Lưu số này làm SĐT chính (số cũ sẽ chuyển vào lịch sử oldPhones)"
+                                          >
+                                            ✓ Đổi SĐT chính
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSyncRosterPhoneAsSecondary(m, m.matchedRsvp!.phone)}
+                                            className="px-1.5 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-medium rounded transition cursor-pointer text-[9px] whitespace-nowrap"
+                                            title="Lưu số này làm SIM 2 trong chuỗi JSON"
+                                          >
+                                            + SIM 2
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
 
@@ -9299,6 +9484,57 @@ export default function AdminManagementHub({
                         placeholder="VD: 0988123456"
                         className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500 text-slate-900 font-semibold"
                       />
+
+                      {/* Gợi ý SĐT mới từ Điểm danh nếu có */}
+                      {editingRosterMember && (() => {
+                        const matched = rsvpList.find(r => 
+                          (r.memberId && r.memberId === editingRosterMember.id) || 
+                          (r.fullName && isVietnameseNameMatch(editingRosterMember, r.fullName))
+                        );
+                        const rsvpPhone = String(matched?.phone || '').trim();
+                        const isDiff = rsvpPhone.replace(/[^0-9]/g, '').length >= 9 && (!rosterFormData.phone || !isPhoneMatch(rosterFormData.phone, rsvpPhone));
+                        if (isDiff) {
+                          return (
+                            <div className="p-2 bg-amber-50/95 border border-amber-300 rounded-lg text-[11px] text-amber-950 mt-1.5 space-y-1 shadow-2xs">
+                              <div className="flex items-center gap-1 font-bold text-amber-900">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <span>SĐT vừa điểm danh: <span className="font-mono text-emerald-800 font-extrabold">{rsvpPhone}</span></span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const prev = rosterFormData.phone;
+                                    let oldList = [...(rosterFormData.oldPhones || [])];
+                                    if (prev && prev !== rsvpPhone && !oldList.includes(prev)) oldList.push(prev);
+                                    setRosterFormData({
+                                      ...rosterFormData,
+                                      phone: rsvpPhone,
+                                      oldPhones: oldList
+                                    });
+                                  }}
+                                  className="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded shadow-2xs transition cursor-pointer text-[10px]"
+                                >
+                                  ✓ Dùng làm SĐT chính
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRosterFormData({
+                                      ...rosterFormData,
+                                      secondaryPhone: rsvpPhone
+                                    });
+                                  }}
+                                  className="px-2 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-medium rounded transition cursor-pointer text-[10px]"
+                                >
+                                  + Lưu làm SIM 2
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     <div className="space-y-1">

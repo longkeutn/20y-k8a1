@@ -4012,13 +4012,14 @@ function cascadeSyncMemberToRSVP(member) {
 }
 
 /**
- * ĐỒNG BỘ NGƯỢC: Tự động lưu Size áo từ Điểm danh (Trang_tinh_1) về Danh bạ lớp (Danh_Sach_Lop)
- * Giúp lưu giữ size may áo của thành viên lâu dài để phục vụ các kỳ họp lớp sau này!
+ * ĐỒNG BỘ NGƯỢC: Tự động lưu Size áo & SĐT (nếu danh bạ chưa có) từ Điểm danh (Trang_tinh_1) về Danh bạ lớp (Danh_Sach_Lop)
+ * Giúp lưu giữ size may áo và số điện thoại của thành viên lâu dài để phục vụ các kỳ họp lớp sau này!
  */
 function syncRSVPToRoster(rsvpData) {
   if (!rsvpData) return;
   var rawSize = String(rsvpData.shirtSize || '').trim().toUpperCase();
-  if (!rawSize) return;
+  var rawPhone = String(rsvpData.phone || '').trim();
+  if (!rawSize && !rawPhone) return;
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -4066,7 +4067,14 @@ function syncRSVPToRoster(rsvpData) {
 
     if (targetRowIdx !== -1) {
       // Cột 7: Size áo (Col G)
-      rSheet.getRange(targetRowIdx, 7).setValue(rawSize);
+      if (rawSize) {
+        rSheet.getRange(targetRowIdx, 7).setValue(rawSize);
+      }
+      // Cột 4: SĐT (Col D) - Nếu danh bạ chưa có SĐT, tự động điền SĐT từ điểm danh
+      var currentRosterPhone = String(rows[targetRowIdx - 1][3] || '').trim();
+      if (!currentRosterPhone && rawPhone) {
+        rSheet.getRange(targetRowIdx, 4).setValue("'" + rawPhone);
+      }
       // Cột 9: Ngày cập nhật (Col I)
       rSheet.getRange(targetRowIdx, 9).setValue(formatDate(new Date()));
     }
@@ -5053,7 +5061,7 @@ function saveRSVP(data) {
       }
     }
 
-    if (data.shirtSize) {
+    if (data.shirtSize || data.phone) {
       syncRSVPToRoster(data);
     }
 
@@ -5100,7 +5108,7 @@ function saveRSVP(data) {
     ];
 
     sheet.appendRow(newRow);
-    if (data.shirtSize) {
+    if (data.shirtSize || data.phone) {
       syncRSVPToRoster(data);
     }
     return { status: 'success', message: 'Điểm danh thành công!' };

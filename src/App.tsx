@@ -853,12 +853,15 @@ export default function App() {
       return updated;
     });
 
-    // ĐỒNG BỘ NGƯỢC: Cập nhật size áo (và SĐT, biệt danh) của bạn học vào Danh bạ 65 thành viên K8A1 để lưu giữ lâu dài
+    // ĐỒNG BỘ NGƯỢC: Cập nhật SĐT (nếu danh bạ chưa có) và size áo của bạn học vào Danh bạ 65 thành viên K8A1 để lưu giữ lâu dài
     const chosenSize = normalizeShirtSize(newRsvp.shirtSize);
-    if (chosenSize) {
+    const rawRsvpPhone = String(newRsvp.phone || '').trim();
+    const cleanPhoneDigits = rawRsvpPhone.replace(/[^0-9]/g, '');
+
+    if (chosenSize || cleanPhoneDigits.length >= 9) {
       setClassRoster((prevRoster) => {
         const normName = normalizeNameForMatch(newRsvp.fullName);
-        const normPhone = normalizePhoneForMatch(newRsvp.phone);
+        const normPhone = normalizePhoneForMatch(rawRsvpPhone);
         let updated = false;
 
         const nextRoster = prevRoster.map((m) => {
@@ -867,11 +870,25 @@ export default function App() {
             (normName && normalizeNameForMatch(m.fullName) === normName);
 
           if (isMatch) {
-            updated = true;
-            return {
-              ...m,
-              shirtSize: chosenSize
-            };
+            let memberUpdated = false;
+            const nextMember = { ...m };
+
+            // 1. Tự động điền SĐT nếu danh bạ lớp trước đó chưa có số (hoặc đang trống)
+            if ((!m.phone || !m.phone.trim()) && cleanPhoneDigits.length >= 9) {
+              nextMember.phone = rawRsvpPhone;
+              memberUpdated = true;
+            }
+
+            // 2. Cập nhật size áo may đồng phục nếu có
+            if (chosenSize && chosenSize !== normalizeShirtSize(m.shirtSize)) {
+              nextMember.shirtSize = chosenSize;
+              memberUpdated = true;
+            }
+
+            if (memberUpdated) {
+              updated = true;
+              return nextMember;
+            }
           }
           return m;
         });
@@ -880,9 +897,13 @@ export default function App() {
           try {
             localStorage.setItem('k8a1_class_roster', JSON.stringify(nextRoster));
           } catch (e) {}
+
+          // Tự động đồng bộ lên Google Sheet tab "Danh_Sach_Lop"
+          syncToBackend('save_roster', { roster: nextRoster });
         }
         return nextRoster;
       });
+    }
 
       // Cập nhật activeMember nếu trùng với người vừa điểm danh
       setActiveMember((prevActive) => {
@@ -895,7 +916,8 @@ export default function App() {
         if (isMatch) {
           const updatedActive = {
             ...prevActive,
-            shirtSize: chosenSize
+            phone: cleanPhoneDigits.length >= 9 && (!prevActive.phone || !prevActive.phone.trim()) ? rawRsvpPhone : prevActive.phone,
+            shirtSize: chosenSize || prevActive.shirtSize
           };
           try {
             localStorage.setItem('k8a1_active_member', JSON.stringify(updatedActive));
@@ -904,7 +926,6 @@ export default function App() {
         }
         return prevActive;
       });
-    }
 
     // Đồng bộ trực tiếp lên Google Apps Script tab "Trang_tinh_1" / "Diem_Danh" (Backend sẽ tự động đồng bộ ngược sang "Danh_Sach_Lop")
     syncToBackend('rsvp', newRsvp);
