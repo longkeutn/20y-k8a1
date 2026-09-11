@@ -37,10 +37,10 @@ export default function ClassGatheringCounter({
 
   const confirmedCount = confirmedAttendees.length;
 
-  // Tổng sĩ số chuẩn của lớp (ưu tiên từ danh bạ động nếu có, hoặc dùng 40 bạn chuẩn)
+  // Tổng sĩ số chuẩn của lớp (ưu tiên từ danh bạ động từ sheet, hoặc dùng sĩ số 65 của lớp K8A1)
   const totalRoster = (classRoster && classRoster.length > 0) 
     ? classRoster.length 
-    : CLASS_ROSTER_K8A1.length;
+    : 65;
 
   // Tỷ lệ % tham gia
   const percent = Math.min(100, Math.round((confirmedCount / Math.max(totalRoster, 1)) * 100));

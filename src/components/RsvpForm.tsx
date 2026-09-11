@@ -816,7 +816,7 @@ export default function RsvpForm({
     if (!phoneToSend && useSavedPhone) {
       isUsingSavedPhone = true;
       // Ưu tiên tìm số điện thoại thực 10 chữ số chưa che mờ từ các nguồn uy tín
-      const rosterEntry = effectiveMemberId ? CLASS_ROSTER_K8A1.find(m => m.id === effectiveMemberId) : null;
+      const rosterEntry = effectiveMemberId ? rosterList.find(m => m.id === effectiveMemberId) : null;
       const candidates = [
         activeMember?.phone,
         rosterEntry?.phone,
