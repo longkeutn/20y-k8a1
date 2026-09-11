@@ -835,6 +835,13 @@ function doPost(e) {
     }
 
     if (action === 'upload_polo_sample' || action === 'upload_shirt_sample') {
+      if (!isAdmin && !postData.isBllMember) {
+        return handleResponse({
+          status: 'error',
+          code: 'UNAUTHORIZED',
+          message: 'Yêu cầu quyền Ban Liên Lạc hoặc Quản trị viên để đổi ảnh mẫu áo!'
+        });
+      }
       return handleResponse(uploadPoloSampleToDrive(postData));
     }
 

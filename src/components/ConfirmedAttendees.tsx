@@ -226,8 +226,12 @@ export default function ConfirmedAttendees({
     setTimeout(() => setCopiedZalo(false), 2500);
   };
 
-  // Kích hoạt input file ẩn để tải ảnh áo mới
+  // Kích hoạt input file ẩn để tải ảnh áo mới (chỉ dành riêng cho BLL & Admin)
   const handleTriggerFileInput = () => {
+    if (!isBLLOrAdmin) {
+      alert('Chức năng tải ảnh mẫu áo chỉ dành riêng cho Ban Liên Lạc và Quản trị viên.');
+      return;
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
@@ -236,6 +240,10 @@ export default function ConfirmedAttendees({
 
   // Xử lý khi chọn file ảnh mẫu áo polo mới
   const handlePoloFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isBLLOrAdmin) {
+      alert('Chức năng tải ảnh mẫu áo chỉ dành riêng cho Ban Liên Lạc và Quản trị viên.');
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -267,11 +275,14 @@ export default function ConfirmedAttendees({
       // 3. Tải lên Google Drive nếu backend Apps Script sẵn sàng
       if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
         try {
+          const pin = sessionStorage.getItem('admin_pin_token') || undefined;
           const response = await fetch(appsScriptUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
               action: 'upload_polo_sample',
+              pin,
+              isBllMember: Boolean(isBLLOrAdmin),
               fileData: base64Data
             })
           });
@@ -316,6 +327,10 @@ export default function ConfirmedAttendees({
 
   // Lưu link ảnh URL dán vào
   const handleSaveUrlInput = () => {
+    if (!isBLLOrAdmin) {
+      alert('Chức năng cập nhật link mẫu áo chỉ dành riêng cho Ban Liên Lạc và Quản trị viên.');
+      return;
+    }
     const trimmed = urlInputValue.trim();
     if (!trimmed) {
       alert('Vui lòng nhập link ảnh hợp lệ');
@@ -341,6 +356,10 @@ export default function ConfirmedAttendees({
 
   // Khôi phục về ảnh mẫu thiết kế mặc định ban đầu
   const handleResetDefaultPolo = () => {
+    if (!isBLLOrAdmin) {
+      alert('Chức năng khôi phục mẫu áo chỉ dành riêng cho Ban Liên Lạc và Quản trị viên.');
+      return;
+    }
     if (!window.confirm('Bạn có chắc chắn muốn đặt lại mẫu áo polo về hình ảnh thiết kế mặc định ban đầu không?')) {
       return;
     }
@@ -358,14 +377,16 @@ export default function ConfirmedAttendees({
 
   return (
     <div id="confirmed-attendees-module" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
-      {/* Hidden file input for uploading polo sample */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handlePoloFileChange}
-        accept="image/*"
-        className="hidden"
-      />
+      {/* Hidden file input for uploading polo sample - chỉ render khi là BLL/Admin */}
+      {isBLLOrAdmin && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handlePoloFileChange}
+          accept="image/*"
+          className="hidden"
+        />
+      )}
       
       {/* HEADER BẢNG VÀNG ĐIỂM DANH */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200/80 pb-3.5 gap-3">
@@ -678,38 +699,50 @@ export default function ConfirmedAttendees({
               </div>
             </button>
 
-            {/* Cụm 2 nút bấm: [Xem to] và [Đổi áo] */}
-            <div className="grid grid-cols-2 gap-1.5 w-full">
+            {/* Cụm nút điều khiển ảnh mẫu: Phân quyền theo Ban Liên Lạc / Admin */}
+            {isBLLOrAdmin ? (
+              <div className="grid grid-cols-2 gap-1.5 w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowPoloModal(true)}
+                  className="py-1 px-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer border border-amber-200/90 hover:border-amber-300"
+                  title="Xem ảnh phóng to chi tiết"
+                >
+                  <Eye className="w-3 h-3 text-amber-700" />
+                  <span>Xem to</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleTriggerFileInput}
+                  disabled={isUploadingPolo}
+                  className="py-1 px-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                  title="Tải lên ảnh mẫu áo polo mới (Chỉ dành riêng cho BLL & Admin)"
+                >
+                  {isUploadingPolo ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Đang tải...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3 h-3" />
+                      <span>Đổi áo</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
                 onClick={() => setShowPoloModal(true)}
-                className="py-1 px-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer border border-amber-200/90 hover:border-amber-300"
-                title="Xem ảnh phóng to chi tiết"
+                className="w-full py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer border border-amber-200/90 hover:border-amber-300"
+                title="Bấm để phóng to xem mẫu áo polo đồng phục K8A1"
               >
                 <Eye className="w-3 h-3 text-amber-700" />
-                <span>Xem to</span>
+                <span>Xem ảnh to</span>
               </button>
-
-              <button
-                type="button"
-                onClick={handleTriggerFileInput}
-                disabled={isUploadingPolo}
-                className="py-1 px-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
-                title="Tải lên ảnh mẫu áo polo mới"
-              >
-                {isUploadingPolo ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Đang tải...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-3 h-3" />
-                    <span>Đổi áo</span>
-                  </>
-                )}
-              </button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -1494,15 +1527,15 @@ export default function ConfirmedAttendees({
             </div>
 
             {/* Thông báo thành công khi upload */}
-            {uploadSuccessMsg && (
+            {uploadSuccessMsg && isBLLOrAdmin && (
               <div className="mx-3.5 sm:mx-4 mt-3 p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-xs flex items-center gap-2 animate-fadeIn">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="font-medium">{uploadSuccessMsg}</span>
               </div>
             )}
 
-            {/* Khung dán link URL ảnh mẫu */}
-            {showUrlInput && (
+            {/* Khung dán link URL ảnh mẫu (Chỉ hiển thị cho BLL & Admin) */}
+            {showUrlInput && isBLLOrAdmin && (
               <div className="mx-3.5 sm:mx-4 mt-3 p-3 bg-amber-50/90 border border-amber-300 rounded-xl flex flex-col sm:flex-row items-center gap-2 animate-fadeIn shadow-2xs">
                 <input
                   type="text"
@@ -1556,39 +1589,46 @@ export default function ConfirmedAttendees({
 
             {/* Modal Footer */}
             <div className="p-3 sm:p-3.5 border-t border-amber-200/80 bg-[#FFFDF9] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
-              {/* Cụm Quản lý / Upload mẫu áo */}
-              <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={handleTriggerFileInput}
-                  disabled={isUploadingPolo}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-sans font-bold text-[11px] transition shadow-2xs cursor-pointer disabled:opacity-50"
-                  title="Tải ảnh mẫu áo mới từ máy tính hoặc điện thoại (tự động nén & lưu Drive)"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Tải ảnh mới</span>
-                </button>
+              {/* Cụm Quản lý / Upload mẫu áo: Chỉ hiển thị khi là Ban Liên Lạc hoặc Admin */}
+              {isBLLOrAdmin ? (
+                <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleTriggerFileInput}
+                    disabled={isUploadingPolo}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-sans font-bold text-[11px] transition shadow-2xs cursor-pointer disabled:opacity-50"
+                    title="Tải ảnh mẫu áo mới từ máy tính hoặc điện thoại (Dành cho BLL & Admin)"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Tải ảnh mới</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowUrlInput(!showUrlInput)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-slate-700 font-sans font-medium text-[11px] transition shadow-2xs cursor-pointer"
-                  title="Dán đường link ảnh có sẵn từ web"
-                >
-                  <LinkIcon className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Dán link</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput(!showUrlInput)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-slate-700 font-sans font-medium text-[11px] transition shadow-2xs cursor-pointer"
+                    title="Dán đường link ảnh có sẵn từ web"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Dán link</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleResetDefaultPolo}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 font-sans text-[11px] transition cursor-pointer"
-                  title="Khôi phục về mẫu áo polo mặc định ban đầu"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Về gốc</span>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleResetDefaultPolo}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 font-sans text-[11px] transition cursor-pointer"
+                    title="Khôi phục về mẫu áo polo mặc định ban đầu"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Về gốc</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-600 flex items-center gap-1.5 font-sans">
+                  <Shirt className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Áo đồng phục Polo K8A1 — Kỷ niệm 20 Năm Ngày Ra Trường</span>
+                </div>
+              )}
 
               {/* Các thao tác tải về & đóng modal */}
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
