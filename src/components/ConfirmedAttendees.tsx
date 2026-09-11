@@ -19,10 +19,14 @@ import {
   X,
   Coins,
   Camera,
-  ArrowUp
+  ArrowUp,
+  AlertTriangle,
+  Info,
+  ChevronUp
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig } from '../types';
-import { normalizeShirtSize } from '../data';
+import { normalizeShirtSize, SHIRT_SIZE_OPTIONS } from '../data';
 
 interface ConfirmedAttendeesProps {
   appsScriptUrl: string;
@@ -52,6 +56,11 @@ export default function ConfirmedAttendees({
   const [copiedZalo, setCopiedZalo] = useState(false);
   const [viewingMessage, setViewingMessage] = useState<RsvpData | null>(null);
 
+  // Shirt Size Filter & Guide States
+  const [selectedShirtFilter, setSelectedShirtFilter] = useState<string | null>(null);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [copiedShirtSummary, setCopiedShirtSummary] = useState(false);
+
   // Total confirmed
   const confirmedAttendees = useMemo(() => {
     return rsvpList.filter(item => item.status === 'yes');
@@ -70,6 +79,16 @@ export default function ConfirmedAttendees({
       }, {} as Record<string, number>);
   }, [rsvpList]);
 
+  // Thành viên có mặt chưa chọn size áo
+  const confirmedWithoutShirt = useMemo(() => {
+    return confirmedAttendees.filter(i => !normalizeShirtSize(i.shirtSize));
+  }, [confirmedAttendees]);
+
+  // Tổng số lượng áo đã chọn size
+  const totalShirtsRegistered = useMemo(() => {
+    return Object.values(shirtStats).reduce((a, b) => a + b, 0);
+  }, [shirtStats]);
+
   // Apply filters, search and sort
   const filteredList = useMemo(() => {
     const term = (searchTerm || '').toLowerCase().trim();
@@ -77,6 +96,16 @@ export default function ConfirmedAttendees({
       // Status filter
       if (statusFilter === 'yes' && item.status !== 'yes') return false;
       if (statusFilter === 'no' && item.status !== 'no') return false;
+
+      // Shirt size filter
+      if (selectedShirtFilter) {
+        if (selectedShirtFilter === 'none') {
+          // Chưa chọn size (thành viên có mặt nhưng chưa đăng ký cỡ áo)
+          if (item.status !== 'yes' || Boolean(normalizeShirtSize(item.shirtSize))) return false;
+        } else {
+          if (normalizeShirtSize(item.shirtSize) !== selectedShirtFilter) return false;
+        }
+      }
 
       // Search term
       if (term) {
@@ -96,7 +125,7 @@ export default function ConfirmedAttendees({
     }
 
     return result;
-  }, [rsvpList, statusFilter, searchTerm, sortBy]);
+  }, [rsvpList, statusFilter, selectedShirtFilter, searchTerm, sortBy]);
 
   // Displayed slice
   const displayedItems = useMemo(() => {
@@ -109,6 +138,43 @@ export default function ConfirmedAttendees({
     const pStr = String(phone || '');
     if (!pStr || pStr.length < 6) return pStr;
     return pStr.slice(0, 3) + '••••' + pStr.slice(-3);
+  };
+
+  // Copy structured shirt order summary for tailoring workshop via Zalo
+  const handleCopyShirtSummary = () => {
+    const lines = [
+      '📋 TỔNG HỢP ĐƠN ĐẶT MAY ÁO POLO ĐỒNG PHỤC K8A1 (20 NĂM)',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `📅 Sự kiện: ${eventConfig?.eventDateText || 'Hội khóa 20 Năm K8A1'}`,
+      `👕 Tổng áo đã chốt size: ${totalShirtsRegistered} áo / ${confirmedAttendees.length} bạn có mặt`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      `• Size S   (35 - 45kg): ${shirtStats['S'] || 0} áo`,
+      `• Size M   (45 - 55kg): ${shirtStats['M'] || 0} áo`,
+      `• Size L   (55 - 65kg): ${shirtStats['L'] || 0} áo`,
+      `• Size XL  (65 - 75kg): ${shirtStats['XL'] || 0} áo`,
+      `• Size 2XL (75 - 85kg): ${shirtStats['XXL'] || 0} áo`,
+      `• Size 3XL (85 - 95kg): ${shirtStats['XXXL'] || 0} áo`,
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+    ];
+
+    if (confirmedWithoutShirt.length > 0) {
+      lines.push(`⚠️ Có ${confirmedWithoutShirt.length} bạn có mặt chưa chọn size áo:`);
+      const names = confirmedWithoutShirt.map(a => a.fullName).slice(0, 15).join(', ');
+      lines.push(`   ${names}${confirmedWithoutShirt.length > 15 ? ` và ${confirmedWithoutShirt.length - 15} bạn khác...` : ''}`);
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    }
+
+    lines.push('✨ Trích xuất tự động từ Webapp K8A1 THPT Thái Nguyên');
+
+    const text = lines.join('\n');
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+    }
+    setCopiedShirtSummary(true);
+    try {
+      confetti({ particleCount: 35, spread: 60, origin: { y: 0.6 } });
+    } catch (e) {}
+    setTimeout(() => setCopiedShirtSummary(false), 3000);
   };
 
   // Copy list summary for Zalo group
@@ -217,23 +283,290 @@ export default function ConfirmedAttendees({
         </div>
       </div>
 
-      {/* Shirt Sizes Summary for BTC */}
-      {Object.keys(shirtStats).length > 0 && (
-        <div className="bg-[#FAF8F5] border border-amber-200/90 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs">
-          <div className="flex items-center gap-1.5 font-sans font-bold text-[11px] uppercase tracking-wider text-amber-900">
-            <Shirt className="w-4 h-4 text-amber-600" />
-            <span>Tổng hợp size áo đồng phục K8A1:</span>
+      {/* Khối Tổng Hợp Size Áo Đồng Phục Polo K8A1 Chuyên Nghiệp (Showcase Card) */}
+      <div className="relative overflow-hidden rounded-2xl border-2 border-amber-400/90 bg-gradient-to-br from-amber-500/10 via-[#FFFDF9] to-amber-100/40 p-3.5 sm:p-5 shadow-sm space-y-3.5">
+        {/* Decorative Background Watermark */}
+        <div className="absolute -right-6 -bottom-6 text-amber-500/[0.06] pointer-events-none select-none transform -rotate-12">
+          <Shirt className="w-40 h-40" />
+        </div>
+
+        {/* Card Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center shadow-md shrink-0 ring-2 ring-amber-300/60">
+              <Shirt className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm sm:text-base font-serif font-bold text-slate-900 tracking-tight">
+                  TỔNG HỢP SIZE ÁO ĐỒNG PHỤC POLO K8A1
+                </h3>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-sans font-bold">
+                  <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                  Kỷ niệm 20 Năm
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600 pt-0.5 font-sans">
+                <span>
+                  Đã chốt: <strong className="text-amber-900 font-bold">{totalShirtsRegistered}</strong> / {confirmedAttendees.length} áo ({confirmedAttendees.length > 0 ? Math.round((totalShirtsRegistered / confirmedAttendees.length) * 100) : 0}%)
+                </span>
+                {confirmedWithoutShirt.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-rose-700 font-bold text-[11px] bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
+                    <AlertTriangle className="w-3 h-3 text-rose-500" />
+                    Còn {confirmedWithoutShirt.length} bạn chưa chọn size
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {Object.entries(shirtStats).map(([size, count]) => (
-              <span
-                key={size}
-                className="bg-white border border-amber-300/80 px-2.5 py-1 rounded-lg text-[11px] font-sans font-bold text-slate-800 shadow-2xs"
+
+          {/* Quick Action Buttons */}
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            {/* Toggle Size Guide Button */}
+            <button
+              type="button"
+              onClick={() => setShowSizeGuide(!showSizeGuide)}
+              className={`inline-flex items-center gap-1.5 text-xs font-sans font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                showSizeGuide
+                  ? 'bg-amber-100 text-amber-950 border-amber-400'
+                  : 'bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-900 border-amber-200/90'
+              }`}
+              title="Xem bảng thông số chiều cao, cân nặng và kích thước xưởng may"
+            >
+              <Info className="w-3.5 h-3.5 text-amber-600" />
+              <span>Bảng cỡ áo</span>
+              {showSizeGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Copy Shirt Summary Button */}
+            <button
+              type="button"
+              onClick={handleCopyShirtSummary}
+              className={`inline-flex items-center gap-1.5 text-xs font-sans font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                copiedShirtSummary
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white border-amber-600'
+              }`}
+              title="Sao chép toàn bộ danh sách số lượng size áo để gửi xưởng may qua Zalo"
+            >
+              {copiedShirtSummary ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Đã chép đơn!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Chép đơn may</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Size Grid (Click to filter list below) */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-1 relative z-10">
+          {[
+            { key: 'S', label: 'Size S', weight: '35 - 45kg', chest: '41cm', length: '55cm', shoulder: '35cm' },
+            { key: 'M', label: 'Size M', weight: '45 - 55kg', chest: '44cm', length: '59cm', shoulder: '37cm' },
+            { key: 'L', label: 'Size L', weight: '55 - 65kg', chest: '47cm', length: '63cm', shoulder: '39cm' },
+            { key: 'XL', label: 'Size XL', weight: '65 - 75kg', chest: '49cm', length: '67cm', shoulder: '41cm' },
+            { key: 'XXL', label: 'Size 2XL', weight: '75 - 85kg', chest: '51cm', length: '70cm', shoulder: '43cm' },
+            { key: 'XXXL', label: 'Size 3XL', weight: '85 - 95kg', chest: '53cm', length: '73cm', shoulder: '45cm' },
+          ].map((item) => {
+            const count = shirtStats[item.key] || 0;
+            const isSelected = selectedShirtFilter === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedShirtFilter(null);
+                  } else {
+                    setSelectedShirtFilter(item.key);
+                    if (statusFilter === 'no') setStatusFilter('yes');
+                    setVisibleCount(15);
+                  }
+                }}
+                className={`relative p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between group ${
+                  isSelected
+                    ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400 ring-offset-1 scale-[1.02]'
+                    : count > 0
+                    ? 'bg-white/95 hover:bg-amber-50/80 border-amber-200/90 hover:border-amber-400 text-slate-800 shadow-2xs hover:shadow-xs'
+                    : 'bg-white/60 border-slate-200 text-slate-400 hover:border-amber-300'
+                }`}
+                title={`Bấm để ${isSelected ? 'bỏ lọc' : `lọc danh sách thành viên đăng ký ${item.label}`}`}
               >
-                Size {size}: <strong className="text-amber-800">{count}</strong>
-              </span>
-            ))}
+                <div className="w-full flex items-center justify-between gap-1 text-[11px] font-bold">
+                  <span className={`font-serif tracking-tight ${isSelected ? 'text-amber-100' : 'text-amber-900'}`}>
+                    {item.label}
+                  </span>
+                  {isSelected && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  )}
+                </div>
+
+                <div className="my-1 flex items-baseline justify-center">
+                  <span className={`text-xl sm:text-2xl font-serif font-black tracking-tight ${
+                    isSelected ? 'text-white' : count > 0 ? 'text-amber-950' : 'text-slate-400'
+                  }`}>
+                    {count}
+                  </span>
+                  <span className={`text-[10px] font-sans ml-0.5 ${isSelected ? 'text-amber-100' : 'text-slate-500'}`}>
+                    áo
+                  </span>
+                </div>
+
+                <div className={`text-[10px] font-sans truncate w-full ${
+                  isSelected ? 'text-amber-100' : 'text-slate-500'
+                }`}>
+                  {item.weight}
+                </div>
+              </button>
+            );
+          })}
+
+          {/* Tile 7: Chưa chọn size */}
+          {(() => {
+            const count = confirmedWithoutShirt.length;
+            const isSelected = selectedShirtFilter === 'none';
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedShirtFilter(null);
+                  } else {
+                    setSelectedShirtFilter('none');
+                    if (statusFilter === 'no') setStatusFilter('yes');
+                    setVisibleCount(15);
+                  }
+                }}
+                className={`relative p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between group ${
+                  isSelected
+                    ? 'bg-gradient-to-b from-rose-500 to-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-400 ring-offset-1 scale-[1.02]'
+                    : count > 0
+                    ? 'bg-rose-50/70 hover:bg-rose-100/80 border-rose-200/90 hover:border-rose-400 text-rose-900 shadow-2xs hover:shadow-xs'
+                    : 'bg-emerald-50/60 border-emerald-200 text-emerald-800'
+                }`}
+                title={count > 0 ? `Bấm để ${isSelected ? 'bỏ lọc' : `lọc ${count} bạn có mặt chưa chọn size`}` : 'Tất cả các bạn có mặt đều đã chọn size'}
+              >
+                <div className="w-full flex items-center justify-between gap-1 text-[11px] font-bold">
+                  <span className={`truncate ${isSelected ? 'text-rose-100' : count > 0 ? 'text-rose-800' : 'text-emerald-800'}`}>
+                    {count > 0 ? 'Chưa chọn' : 'Đã chọn đủ'}
+                  </span>
+                  {count > 0 && !isSelected && (
+                    <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />
+                  )}
+                </div>
+
+                <div className="my-1 flex items-baseline justify-center">
+                  <span className={`text-xl sm:text-2xl font-serif font-black tracking-tight ${
+                    isSelected ? 'text-white' : count > 0 ? 'text-rose-700' : 'text-emerald-700'
+                  }`}>
+                    {count}
+                  </span>
+                  <span className={`text-[10px] font-sans ml-0.5 ${isSelected ? 'text-rose-100' : 'text-slate-500'}`}>
+                    bạn
+                  </span>
+                </div>
+
+                <div className={`text-[10px] font-sans truncate w-full ${
+                  isSelected ? 'text-rose-100' : count > 0 ? 'text-rose-600 font-semibold' : 'text-emerald-600'
+                }`}>
+                  {count > 0 ? 'Cần nhắc chọn' : '100% hoàn thành'}
+                </div>
+              </button>
+            );
+          })()}
+        </div>
+
+        {/* Collapsible Size Guide Table */}
+        {showSizeGuide && (
+          <div className="mt-3 bg-white/95 rounded-xl border border-amber-200/90 p-3 sm:p-4 shadow-sm space-y-2.5 relative z-10">
+            <div className="flex items-center justify-between border-b border-amber-100 pb-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 font-sans uppercase tracking-wider">
+                <Info className="w-4 h-4 text-amber-600" />
+                <span>Bảng quy đổi thông số may áo Polo K8A1 (Form Regular-Fit)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSizeGuide(false)}
+                className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer p-1"
+                title="Đóng bảng thông số"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse font-sans">
+                <thead>
+                  <tr className="bg-amber-50/70 text-amber-950 font-bold border-b border-amber-200/80">
+                    <th className="py-2 px-2.5 text-center">Cỡ áo</th>
+                    <th className="py-2 px-2.5">Cân nặng đề xuất</th>
+                    <th className="py-2 px-2.5 text-center">Rộng ngực</th>
+                    <th className="py-2 px-2.5 text-center">Dài áo</th>
+                    <th className="py-2 px-2.5 text-center">Rộng vai</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-100 text-slate-800">
+                  {[
+                    { key: 'S', label: 'Size S', weight: '35 - 45kg', chest: '41cm', length: '55cm', shoulder: '35cm' },
+                    { key: 'M', label: 'Size M', weight: '45 - 55kg', chest: '44cm', length: '59cm', shoulder: '37cm' },
+                    { key: 'L', label: 'Size L', weight: '55 - 65kg', chest: '47cm', length: '63cm', shoulder: '39cm' },
+                    { key: 'XL', label: 'Size XL', weight: '65 - 75kg', chest: '49cm', length: '67cm', shoulder: '41cm' },
+                    { key: 'XXL', label: 'Size 2XL (XXL)', weight: '75 - 85kg', chest: '51cm', length: '70cm', shoulder: '43cm' },
+                    { key: 'XXXL', label: 'Size 3XL (XXXL)', weight: '85 - 95kg', chest: '53cm', length: '73cm', shoulder: '45cm' },
+                  ].map((item) => (
+                    <tr 
+                      key={item.key} 
+                      className={`hover:bg-amber-50/40 transition-colors ${selectedShirtFilter === item.key ? 'bg-amber-100/60 font-semibold' : ''}`}
+                    >
+                      <td className="py-2 px-2.5 text-center font-bold text-amber-900">
+                        {item.label}
+                      </td>
+                      <td className="py-2 px-2.5 font-medium">{item.weight}</td>
+                      <td className="py-2 px-2.5 text-center text-slate-600">{item.chest}</td>
+                      <td className="py-2 px-2.5 text-center text-slate-600">{item.length}</td>
+                      <td className="py-2 px-2.5 text-center text-slate-600">{item.shoulder}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="text-[11px] text-slate-600 bg-amber-50/50 p-2.5 rounded-lg border border-amber-200/50 space-y-1 font-sans">
+              <p className="flex items-start gap-1">
+                <span className="text-amber-700 font-bold">💡 Gợi ý chọn cỡ:</span>
+                <span>Áo polo form regular-fit thoải mái, chất vải thun cá sấu 4 chiều co giãn tốt, thoáng khí.</span>
+              </p>
+              <p className="text-slate-500 pl-4">
+                • Nếu chiều cao hoặc cân nặng nằm ở ranh giới giữa 2 size, Ban Liên Lạc khuyên bạn nên chọn <strong>size lớn hơn</strong> để mặc cử động thoải mái nhất trong ngày hội ngộ.
+              </p>
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* Filter Active Alert / Clear Filter */}
+      {selectedShirtFilter && (
+        <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-100/90 border border-amber-300 text-amber-950 text-xs shadow-2xs animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-600 animate-ping" />
+            <span className="font-sans">
+              Đang lọc danh sách: <strong className="font-bold text-amber-900">{selectedShirtFilter === 'none' ? 'Các bạn chưa chọn size áo' : `Size ${selectedShirtFilter === 'XXL' ? '2XL (XXL)' : selectedShirtFilter === 'XXXL' ? '3XL (XXXL)' : selectedShirtFilter}`}</strong> ({filteredList.length} thành viên)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedShirtFilter(null)}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-white hover:bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-300 transition cursor-pointer shadow-2xs"
+          >
+            <X className="w-3 h-3" />
+            <span>Xem tất cả</span>
+          </button>
         </div>
       )}
 
@@ -263,7 +596,7 @@ export default function ConfirmedAttendees({
             </button>
             <button
               type="button"
-              onClick={() => { setStatusFilter('no'); setVisibleCount(15); }}
+              onClick={() => { setStatusFilter('no'); setSelectedShirtFilter(null); setVisibleCount(15); }}
               className={`px-2.5 py-1.5 text-center text-[11px] font-sans font-bold tracking-wide rounded-lg transition-all cursor-pointer ${
                 statusFilter === 'no' ? 'bg-white text-slate-900 shadow-2xs border border-slate-200' : 'text-slate-500 hover:text-slate-800'
               }`}
@@ -543,7 +876,7 @@ export default function ConfirmedAttendees({
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-serif font-bold text-slate-900 text-xs sm:text-sm truncate">
+                        <span className="font-serif font-bold text-slate-900 text-xs sm:text-sm break-words">
                           {attendee.fullName}
                         </span>
                         {attendee.nickname && (
@@ -575,11 +908,35 @@ export default function ConfirmedAttendees({
                 <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100 text-[11px]">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {attendee.status === 'yes' && normalizeShirtSize(attendee.shirtSize) ? (
-                      <span className="font-sans font-bold text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80">
-                        Áo: <strong>Size {normalizeShirtSize(attendee.shirtSize)}</strong>
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('update-member-shirt-size', { 
+                            detail: { memberId: attendee.memberId, fullName: attendee.fullName } 
+                          }));
+                        }}
+                        className="font-sans font-bold text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80 hover:bg-amber-100 hover:border-amber-400 transition cursor-pointer inline-flex items-center gap-1"
+                        title="Bấm để đổi cỡ áo polo khác"
+                      >
+                        <span>Áo: <strong>Size {normalizeShirtSize(attendee.shirtSize)}</strong></span>
+                        <span className="text-[9px] text-amber-600 opacity-70">✏️</span>
+                      </button>
+                    ) : attendee.status === 'yes' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('update-member-shirt-size', { 
+                            detail: { memberId: attendee.memberId, fullName: attendee.fullName } 
+                          }));
+                        }}
+                        className="text-amber-800 hover:underline text-[10px] font-bold cursor-pointer inline-flex items-center gap-1 bg-amber-50/80 hover:bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200/60"
+                        title="Bấm để chọn size áo"
+                      >
+                        <Shirt className="w-3 h-3 text-amber-600" />
+                        <span>+ Chọn size</span>
+                      </button>
                     ) : (
-                      <span className="text-slate-400 text-[10px]">Chưa chọn size</span>
+                      <span className="text-slate-400 text-[10px]">—</span>
                     )}
 
                     {attendee.status === 'yes' && (
@@ -666,7 +1023,7 @@ export default function ConfirmedAttendees({
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-baseline gap-1.5">
-                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-serif truncate">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-serif break-words">
                           {attendee.fullName}
                         </h4>
                         {attendee.nickname && (
@@ -692,11 +1049,35 @@ export default function ConfirmedAttendees({
 
                 {attendee.status === 'yes' && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    {normalizeShirtSize(attendee.shirtSize) && (
-                      <div className="inline-flex items-center gap-1 text-[10px] font-sans text-slate-700 bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-amber-200/80">
+                    {normalizeShirtSize(attendee.shirtSize) ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('update-member-shirt-size', { 
+                            detail: { memberId: attendee.memberId, fullName: attendee.fullName } 
+                          }));
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-sans text-slate-800 bg-[#FAF8F5] hover:bg-amber-100/70 hover:border-amber-400 px-2 py-0.5 rounded-md border border-amber-200/80 transition cursor-pointer"
+                        title="Bấm để đổi cỡ áo polo"
+                      >
                         <Shirt className="w-3 h-3 text-amber-700" />
                         <span>Áo: <strong>Size {normalizeShirtSize(attendee.shirtSize)}</strong></span>
-                      </div>
+                        <span className="text-[9px] text-amber-600 opacity-60">✏️</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('update-member-shirt-size', { 
+                            detail: { memberId: attendee.memberId, fullName: attendee.fullName } 
+                          }));
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-sans text-amber-800 bg-amber-50/80 hover:bg-amber-100 hover:border-amber-400 px-2 py-0.5 rounded-md border border-amber-200 transition cursor-pointer font-bold"
+                        title="Bấm để chọn size áo"
+                      >
+                        <Shirt className="w-3 h-3 text-amber-600" />
+                        <span>+ Chọn size</span>
+                      </button>
                     )}
 
                     {attendee.fundStatus === 'paid' ? (
