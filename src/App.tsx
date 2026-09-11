@@ -2381,6 +2381,8 @@ export default function App() {
                   isRefreshing={isRefreshing}
                   onOpenPassModal={handleOpenPass}
                   onOpenReceiptModal={handleOpenReceiptModal}
+                  onUpdateEventConfig={handleUpdateEventConfig}
+                  isBLLOrAdmin={isBLLOrAdmin}
                 />
               </div>
 

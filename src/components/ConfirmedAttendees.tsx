@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Users, 
   CheckCircle2, 
@@ -26,11 +26,16 @@ import {
   ZoomIn,
   Eye,
   Download,
-  ExternalLink
+  ExternalLink,
+  Upload,
+  Link as LinkIcon,
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig } from '../types';
-import { normalizeShirtSize, SHIRT_SIZE_OPTIONS } from '../data';
+import { normalizeShirtSize, SHIRT_SIZE_OPTIONS, DEFAULT_EVENT_CONFIG } from '../data';
+import { compressImageToJpeg } from '../utils/imageUtils';
 
 interface ConfirmedAttendeesProps {
   appsScriptUrl: string;
@@ -40,6 +45,8 @@ interface ConfirmedAttendeesProps {
   isRefreshing?: boolean;
   onOpenPassModal?: (attendee: RsvpData) => void;
   onOpenReceiptModal?: (attendee: RsvpData) => void;
+  onUpdateEventConfig?: (newConfig: EventConfig) => void;
+  isBLLOrAdmin?: boolean;
 }
 
 export default function ConfirmedAttendees({ 
@@ -49,10 +56,12 @@ export default function ConfirmedAttendees({
   onRefresh, 
   isRefreshing = false,
   onOpenPassModal,
-  onOpenReceiptModal
+  onOpenReceiptModal,
+  onUpdateEventConfig,
+  isBLLOrAdmin
 }: ConfirmedAttendeesProps) {
   const standardFundAmount = Number(eventConfig?.fundAmountPerPerson) || 700000;
-  const poloImageUrl = eventConfig?.poloSampleUrl || '/sample-polo-k8a1.jpg';
+  const poloImageUrl = eventConfig?.poloSampleUrl || DEFAULT_EVENT_CONFIG.poloSampleUrl || '/sample-polo-k8a1.jpg';
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'yes' | 'all' | 'no'>('yes');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
@@ -66,6 +75,13 @@ export default function ConfirmedAttendees({
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [copiedShirtSummary, setCopiedShirtSummary] = useState(false);
   const [showPoloModal, setShowPoloModal] = useState(false);
+
+  // States quản lý upload & đổi mẫu áo
+  const [isUploadingPolo, setIsUploadingPolo] = useState(false);
+  const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlInputValue, setUrlInputValue] = useState('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Total confirmed
   const confirmedAttendees = useMemo(() => {
@@ -210,8 +226,146 @@ export default function ConfirmedAttendees({
     setTimeout(() => setCopiedZalo(false), 2500);
   };
 
+  // Kích hoạt input file ẩn để tải ảnh áo mới
+  const handleTriggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  // Xử lý khi chọn file ảnh mẫu áo polo mới
+  const handlePoloFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file hình ảnh (JPG, PNG, WEBP,...)');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Kích thước file ảnh quá lớn. Vui lòng chọn ảnh dưới 15MB.');
+      return;
+    }
+
+    setIsUploadingPolo(true);
+    setUploadSuccessMsg(null);
+
+    try {
+      // 1. Nén ảnh chất lượng cao phía client (max width 1600px, quality 0.85)
+      const base64Data = await compressImageToJpeg(file, 1600, 0.85);
+
+      // 2. Cập nhật preview ngay tức thì (optimistic update)
+      if (onUpdateEventConfig && eventConfig) {
+        onUpdateEventConfig({
+          ...eventConfig,
+          poloSampleUrl: base64Data
+        });
+      }
+
+      // 3. Tải lên Google Drive nếu backend Apps Script sẵn sàng
+      if (appsScriptUrl && appsScriptUrl.startsWith('http')) {
+        try {
+          const response = await fetch(appsScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'upload_polo_sample',
+              fileData: base64Data
+            })
+          });
+
+          const resText = await response.text();
+          let result: any = null;
+          try {
+            result = JSON.parse(resText);
+          } catch {}
+
+          if (result && result.status === 'success' && result.url) {
+            if (onUpdateEventConfig && eventConfig) {
+              onUpdateEventConfig({
+                ...eventConfig,
+                poloSampleUrl: result.url
+              });
+            }
+          }
+        } catch (eUpload) {
+          console.warn('Backend Drive upload warning:', eUpload);
+        }
+      }
+
+      // 4. Hiệu ứng pháo hoa chúc mừng
+      try {
+        confetti({
+          particleCount: 45,
+          spread: 60,
+          origin: { y: 0.6 }
+        });
+      } catch {}
+
+      setUploadSuccessMsg('Đã cập nhật mẫu áo polo mới thành công!');
+      setTimeout(() => setUploadSuccessMsg(null), 5000);
+    } catch (err: any) {
+      console.error('Lỗi nén và tải ảnh áo polo:', err);
+      alert('Có lỗi khi xử lý ảnh mẫu: ' + (err.message || 'Vui lòng thử lại'));
+    } finally {
+      setIsUploadingPolo(false);
+    }
+  };
+
+  // Lưu link ảnh URL dán vào
+  const handleSaveUrlInput = () => {
+    const trimmed = urlInputValue.trim();
+    if (!trimmed) {
+      alert('Vui lòng nhập link ảnh hợp lệ');
+      return;
+    }
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('/')) {
+      alert('Link ảnh phải bắt đầu bằng http:// hoặc https://');
+      return;
+    }
+
+    if (onUpdateEventConfig && eventConfig) {
+      onUpdateEventConfig({
+        ...eventConfig,
+        poloSampleUrl: trimmed
+      });
+    }
+
+    setShowUrlInput(false);
+    setUrlInputValue('');
+    setUploadSuccessMsg('Đã cập nhật liên kết mẫu áo thành công!');
+    setTimeout(() => setUploadSuccessMsg(null), 4000);
+  };
+
+  // Khôi phục về ảnh mẫu thiết kế mặc định ban đầu
+  const handleResetDefaultPolo = () => {
+    if (!window.confirm('Bạn có chắc chắn muốn đặt lại mẫu áo polo về hình ảnh thiết kế mặc định ban đầu không?')) {
+      return;
+    }
+
+    const defaultUrl = DEFAULT_EVENT_CONFIG.poloSampleUrl || '/sample-polo-k8a1.jpg';
+    if (onUpdateEventConfig && eventConfig) {
+      onUpdateEventConfig({
+        ...eventConfig,
+        poloSampleUrl: defaultUrl
+      });
+    }
+    setUploadSuccessMsg('Đã khôi phục mẫu áo polo về mặc định!');
+    setTimeout(() => setUploadSuccessMsg(null), 4000);
+  };
+
   return (
     <div id="confirmed-attendees-module" className="bg-[#FAF7F2] border border-amber-200/90 rounded-2xl p-4 sm:p-6 shadow-md space-y-4 text-left relative overflow-hidden">
+      {/* Hidden file input for uploading polo sample */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handlePoloFileChange}
+        accept="image/*"
+        className="hidden"
+      />
       
       {/* HEADER BẢNG VÀNG ĐIỂM DANH */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200/80 pb-3.5 gap-3">
@@ -524,14 +678,38 @@ export default function ConfirmedAttendees({
               </div>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowPoloModal(true)}
-              className="w-full py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer border border-amber-200/90 hover:border-amber-300"
-            >
-              <Eye className="w-3 h-3 text-amber-700" />
-              <span>Xem ảnh to</span>
-            </button>
+            {/* Cụm 2 nút bấm: [Xem to] và [Đổi áo] */}
+            <div className="grid grid-cols-2 gap-1.5 w-full">
+              <button
+                type="button"
+                onClick={() => setShowPoloModal(true)}
+                className="py-1 px-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer border border-amber-200/90 hover:border-amber-300"
+                title="Xem ảnh phóng to chi tiết"
+              >
+                <Eye className="w-3 h-3 text-amber-700" />
+                <span>Xem to</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTriggerFileInput}
+                disabled={isUploadingPolo}
+                className="py-1 px-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                title="Tải lên ảnh mẫu áo polo mới"
+              >
+                {isUploadingPolo ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Đang tải...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3 h-3" />
+                    <span>Đổi áo</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1315,25 +1493,105 @@ export default function ConfirmedAttendees({
               </button>
             </div>
 
+            {/* Thông báo thành công khi upload */}
+            {uploadSuccessMsg && (
+              <div className="mx-3.5 sm:mx-4 mt-3 p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-xs flex items-center gap-2 animate-fadeIn">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-medium">{uploadSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Khung dán link URL ảnh mẫu */}
+            {showUrlInput && (
+              <div className="mx-3.5 sm:mx-4 mt-3 p-3 bg-amber-50/90 border border-amber-300 rounded-xl flex flex-col sm:flex-row items-center gap-2 animate-fadeIn shadow-2xs">
+                <input
+                  type="text"
+                  value={urlInputValue}
+                  onChange={(e) => setUrlInputValue(e.target.value)}
+                  placeholder="Dán đường link ảnh mẫu áo polo (https://...)"
+                  className="flex-1 w-full text-xs px-3 py-1.5 rounded-lg border border-amber-300 bg-white focus:outline-hidden focus:ring-1 focus:ring-amber-500 font-sans text-slate-800"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveUrlInput();
+                    if (e.key === 'Escape') setShowUrlInput(false);
+                  }}
+                />
+                <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleSaveUrlInput}
+                    className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-sans font-bold text-xs cursor-pointer shadow-2xs"
+                  >
+                    Lưu link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput(false)}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-sans text-xs cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Modal Body - Large Image Display */}
-            <div className="p-3 sm:p-5 overflow-y-auto flex-1 flex items-center justify-center bg-[#FAF8F5]">
-              <div className="relative rounded-xl overflow-hidden border border-amber-200/90 bg-white shadow-md max-h-[64vh] flex items-center justify-center">
+            <div className="p-3 sm:p-5 overflow-y-auto flex-1 flex flex-col items-center justify-center bg-[#FAF8F5] relative">
+              {isUploadingPolo && (
+                <div className="absolute inset-0 bg-white/85 backdrop-blur-xs flex flex-col items-center justify-center gap-2.5 z-20">
+                  <Loader2 className="w-9 h-9 text-amber-600 animate-spin" />
+                  <span className="text-xs font-bold text-slate-800">
+                    Đang nén ảnh & lưu trữ vào Google Drive (ChungTu_QuyLop_K8A1)...
+                  </span>
+                </div>
+              )}
+              <div className="relative rounded-xl overflow-hidden border border-amber-200/90 bg-white shadow-md max-h-[60vh] flex items-center justify-center">
                 <img
                   src={poloImageUrl}
                   alt="Mẫu thiết kế áo polo đồng phục 20 năm K8A1"
-                  className="max-h-[60vh] w-auto object-contain select-none"
+                  className="max-h-[56vh] w-auto object-contain select-none"
                 />
               </div>
             </div>
 
             {/* Modal Footer */}
             <div className="p-3 sm:p-3.5 border-t border-amber-200/80 bg-[#FFFDF9] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
-              <div className="text-[11px] text-slate-600 flex items-center gap-1.5 font-sans">
-                <span className="text-amber-700 font-bold">📁 Lưu trữ:</span>
-                <span>Ảnh mẫu đã được lưu vào thư mục Drive <strong>ChungTu_QuyLop_K8A1</strong></span>
+              {/* Cụm Quản lý / Upload mẫu áo */}
+              <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleTriggerFileInput}
+                  disabled={isUploadingPolo}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-sans font-bold text-[11px] transition shadow-2xs cursor-pointer disabled:opacity-50"
+                  title="Tải ảnh mẫu áo mới từ máy tính hoặc điện thoại (tự động nén & lưu Drive)"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Tải ảnh mới</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(!showUrlInput)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-slate-700 font-sans font-medium text-[11px] transition shadow-2xs cursor-pointer"
+                  title="Dán đường link ảnh có sẵn từ web"
+                >
+                  <LinkIcon className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Dán link</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetDefaultPolo}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 font-sans text-[11px] transition cursor-pointer"
+                  title="Khôi phục về mẫu áo polo mặc định ban đầu"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Về gốc</span>
+                </button>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              {/* Các thao tác tải về & đóng modal */}
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                 <a
                   href={poloImageUrl}
                   download="Mau_Ao_Polo_K8A1_20Nam.jpg"

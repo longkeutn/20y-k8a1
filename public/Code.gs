@@ -834,6 +834,10 @@ function doPost(e) {
       return handleResponse(uploadFundReceiptToDrive(postData));
     }
 
+    if (action === 'upload_polo_sample' || action === 'upload_shirt_sample') {
+      return handleResponse(uploadPoloSampleToDrive(postData));
+    }
+
     if (action === 'update_fund' || action === 'update_rsvp') {
       return handleResponse(updateRSVP(postData));
     }
@@ -1983,6 +1987,70 @@ function uploadFundReceiptToDrive(data) {
     };
   } catch (e) {
     return { status: 'error', message: 'Lỗi upload chứng từ Drive: ' + e.toString() };
+  }
+}
+
+/**
+ * Tải ảnh mẫu áo polo đồng phục lên thư mục con "ChungTu_QuyLop_K8A1" trong Google Drive
+ * và tự động cập nhật link vào Tab "Cau_Hinh" (key: poloSampleUrl)
+ */
+function uploadPoloSampleToDrive(data) {
+  try {
+    const rootFolderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+    let rootFolder = null;
+    if (rootFolderId) {
+      try { rootFolder = DriveApp.getFolderById(rootFolderId); } catch(e) {}
+    }
+    if (!rootFolder) {
+      try {
+        const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
+        if (folders.hasNext()) rootFolder = folders.next();
+      } catch(e) {}
+    }
+    if (!rootFolder) rootFolder = DriveApp.getRootFolder();
+
+    let targetFolder = null;
+    try {
+      const subFolders = rootFolder.getFoldersByName("ChungTu_QuyLop_K8A1");
+      if (subFolders.hasNext()) {
+        targetFolder = subFolders.next();
+      } else {
+        targetFolder = rootFolder.createFolder("ChungTu_QuyLop_K8A1");
+        targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+    } catch(e) {
+      targetFolder = rootFolder;
+    }
+
+    let rawBase64 = data.fileData || '';
+    if (rawBase64.indexOf(',') > -1) {
+      rawBase64 = rawBase64.split(',')[1];
+    }
+    const decoded = Utilities.base64Decode(rawBase64);
+    const fileName = 'Mau_Ao_Polo_K8A1_' + Date.now() + '.jpg';
+    const blob = Utilities.newBlob(decoded, 'image/jpeg', fileName);
+    const file = targetFolder.createFile(blob);
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch(eShare) {}
+
+    const fileId = file.getId();
+    const driveUrl = "https://lh3.googleusercontent.com/d/" + fileId + "=w1600";
+
+    try {
+      saveEventConfig({ config: { poloSampleUrl: driveUrl } });
+    } catch(eCfg) {
+      console.warn("Lỗi cập nhật Cau_Hinh poloSampleUrl:", eCfg);
+    }
+
+    return {
+      status: 'success',
+      url: driveUrl,
+      fileId: fileId,
+      message: 'Đã lưu ảnh mẫu áo polo vào thư mục ChungTu_QuyLop_K8A1 và cập nhật cấu hình!'
+    };
+  } catch(err) {
+    return { status: 'error', message: 'Lỗi tải ảnh mẫu áo polo: ' + err.toString() };
   }
 }
 
