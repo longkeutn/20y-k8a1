@@ -168,6 +168,7 @@ export default function App() {
     heroBannerPosition: cfg?.heroBannerPosition !== undefined ? (Number(cfg.heroBannerPosition) || 50) : 50,
     schoolLogoUrl: cfg?.schoolLogoUrl ? String(cfg.schoolLogoUrl) : DEFAULT_EVENT_CONFIG.schoolLogoUrl,
     poloSampleUrl: cfg?.poloSampleUrl ? normalizeImageUrl(String(cfg.poloSampleUrl)) : (DEFAULT_EVENT_CONFIG.poloSampleUrl || '/sample-polo-k8a1.jpg'),
+    poloDescription: cfg?.poloDescription ? String(cfg.poloDescription).trim() : (DEFAULT_EVENT_CONFIG.poloDescription || 'Thun cá sấu 4 chiều cao cấp • Cổ áo & tay áo bo viền hổ phách • Thêu logo vàng kim ngực trái'),
     backdrops: Array.isArray(cfg?.backdrops) && cfg.backdrops.length > 0 ? cfg.backdrops : (DEFAULT_EVENT_CONFIG.backdrops || DEFAULT_BACKDROPS),
     musicPlaylist: Array.isArray(cfg?.musicPlaylist) && cfg.musicPlaylist.length > 0 ? cfg.musicPlaylist : (DEFAULT_EVENT_CONFIG.musicPlaylist || DEFAULT_PLAYLIST),
     stageSettings: cfg?.stageSettings ? cfg.stageSettings : (DEFAULT_EVENT_CONFIG.stageSettings || DEFAULT_STAGE_SETTINGS)

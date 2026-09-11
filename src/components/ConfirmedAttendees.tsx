@@ -30,7 +30,8 @@ import {
   Upload,
   Link as LinkIcon,
   RotateCcw,
-  Loader2
+  Loader2,
+  Edit2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig } from '../types';
@@ -62,6 +63,7 @@ export default function ConfirmedAttendees({
 }: ConfirmedAttendeesProps) {
   const standardFundAmount = Number(eventConfig?.fundAmountPerPerson) || 700000;
   const poloImageUrl = eventConfig?.poloSampleUrl || DEFAULT_EVENT_CONFIG.poloSampleUrl || '/sample-polo-k8a1.jpg';
+  const poloDescription = eventConfig?.poloDescription || DEFAULT_EVENT_CONFIG.poloDescription || 'Thun cá sấu 4 chiều cao cấp • Cổ áo & tay áo bo viền hổ phách • Thêu logo vàng kim ngực trái';
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'yes' | 'all' | 'no'>('yes');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
@@ -82,6 +84,10 @@ export default function ConfirmedAttendees({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // State chỉnh sửa mô tả áo polo
+  const [isEditingPoloDesc, setIsEditingPoloDesc] = useState(false);
+  const [poloDescValue, setPoloDescValue] = useState(poloDescription);
 
   // Total confirmed
   const confirmedAttendees = useMemo(() => {
@@ -373,6 +379,28 @@ export default function ConfirmedAttendees({
     }
     setUploadSuccessMsg('Đã khôi phục mẫu áo polo về mặc định!');
     setTimeout(() => setUploadSuccessMsg(null), 4000);
+  };
+
+  // Cập nhật mô tả áo polo mới (dành cho BLL & Admin)
+  const handleSavePoloDesc = () => {
+    if (!isBLLOrAdmin) {
+      alert('Chức năng sửa mô tả chỉ dành riêng cho Ban Liên Lạc và Quản trị viên.');
+      return;
+    }
+    const trimmed = poloDescValue.trim();
+    if (!trimmed) {
+      alert('Vui lòng nhập nội dung mô tả');
+      return;
+    }
+    if (onUpdateEventConfig && eventConfig) {
+      onUpdateEventConfig({
+        ...eventConfig,
+        poloDescription: trimmed
+      });
+    }
+    setIsEditingPoloDesc(false);
+    setUploadSuccessMsg('Đã cập nhật mô tả áo polo thành công!');
+    setTimeout(() => setUploadSuccessMsg(null), 3500);
   };
 
   return (
@@ -1510,9 +1538,56 @@ export default function ConfirmedAttendees({
                       Kỷ niệm 20 Năm
                     </span>
                   </h3>
-                  <p className="text-[11px] text-slate-600 font-sans pt-0.5">
-                    Thun cá sấu 4 chiều cao cấp • Cổ áo & tay áo bo viền hổ phách • Thêu logo vàng kim ngực trái
-                  </p>
+                  {isEditingPoloDesc && isBLLOrAdmin ? (
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <input
+                        type="text"
+                        value={poloDescValue}
+                        onChange={(e) => setPoloDescValue(e.target.value)}
+                        className="text-xs px-2.5 py-1 rounded-lg border border-amber-300 bg-white focus:outline-hidden focus:ring-1 focus:ring-amber-500 font-sans text-slate-800 w-full"
+                        autoFocus
+                        placeholder="Nhập mô tả chất liệu, thiết kế áo polo..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSavePoloDesc();
+                          if (e.key === 'Escape') setIsEditingPoloDesc(false);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSavePoloDesc}
+                        className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-sans font-bold shrink-0 cursor-pointer shadow-2xs"
+                      >
+                        Lưu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingPoloDesc(false)}
+                        className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[10px] font-sans shrink-0 cursor-pointer"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <p className="text-[11px] text-slate-600 font-sans">
+                        {poloDescription}
+                      </p>
+                      {isBLLOrAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPoloDescValue(poloDescription);
+                            setIsEditingPoloDesc(true);
+                          }}
+                          className="text-[10px] text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer inline-flex items-center gap-0.5"
+                          title="Bấm để chỉnh sửa dòng mô tả này (Dành riêng cho BLL & Admin)"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                          <span>Sửa mô tả</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
