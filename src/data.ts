@@ -3604,7 +3604,11 @@ export const DEFAULT_STAGE_SETTINGS: StageSettings = {
   enableSparkles: true,
   volume: 80,
   showCaption: true,
-  shufflePhotos: false
+  shufflePhotos: false,
+  photoFrameStyle: 'gold',
+  particleEffect: 'petals',
+  photoFilter: 'sepia',
+  showCorners: true
 };
 
 // Danh sách các câu trích dẫn thanh xuân, hoài niệm tuổi học trò K8A1

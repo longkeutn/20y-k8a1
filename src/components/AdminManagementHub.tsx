@@ -8666,8 +8666,107 @@ export default function AdminManagementHub({
                     </div>
                   </div>
 
+                  {/* Photo Filter */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      Bộ lọc màu ảnh kỷ niệm (Hoài niệm xưa):
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'original', label: '🎨 Màu Gốc' },
+                        { id: 'sepia', label: '🍂 Sepia Ấm' },
+                        { id: 'film', label: '🎞️ Phim 2000s' },
+                        { id: 'bw', label: '📷 Đen Trắng' }
+                      ].map((flt) => (
+                        <button
+                          key={flt.id}
+                          type="button"
+                          onClick={() => setStageSettingsState(prev => ({ ...prev, photoFilter: flt.id as any }))}
+                          className={`py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                            (stageSettingsState.photoFilter || 'sepia') === flt.id
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {flt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Photo Frame Style */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      Kiểu khung ảnh kỷ niệm:
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'gold', label: '🏆 Khung Mạ Vàng' },
+                        { id: 'polaroid', label: '📸 Khung Polaroid' },
+                        { id: 'none', label: '🔲 Không Khung' }
+                      ].map((frm) => (
+                        <button
+                          key={frm.id}
+                          type="button"
+                          onClick={() => setStageSettingsState(prev => ({ ...prev, photoFrameStyle: frm.id as any }))}
+                          className={`py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                            (stageSettingsState.photoFrameStyle || 'gold') === frm.id
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {frm.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Particle Effect */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      Hiệu ứng hạt bay hoài niệm:
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'petals', label: '🌸 Hoa Phượng' },
+                        { id: 'chalk', label: '☀️ Bụi Phấn Nắng' },
+                        { id: 'sparkles', label: '✨ Bụi Sao' },
+                        { id: 'none', label: '❌ Tắt' }
+                      ].map((pt) => (
+                        <button
+                          key={pt.id}
+                          type="button"
+                          onClick={() => setStageSettingsState(prev => ({ 
+                            ...prev, 
+                            particleEffect: pt.id as any,
+                            enableSparkles: pt.id === 'sparkles'
+                          }))}
+                          className={`py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                            (stageSettingsState.particleEffect || 'petals') === pt.id
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {pt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Toggles */}
                   <div className="space-y-3 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">Họa tiết hoa văn 4 góc cổ điển mạ vàng</p>
+                        <p className="text-[11px] text-slate-500">Trang trí 4 góc ảnh phong cách album gia đình vintage</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={stageSettingsState.showCorners !== false}
+                        onChange={(e) => setStageSettingsState(prev => ({ ...prev, showCorners: e.target.checked }))}
+                        className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                      />
+                    </div>
                     <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
                       <div>
                         <p className="text-xs font-bold text-slate-900">Tự động phát nhạc nền khi mở màn LED</p>

@@ -3,12 +3,144 @@ import {
   X, Maximize2, Minimize2, Play, Pause, SkipForward, SkipBack, 
   Image as ImageIcon, Sparkles, Music, Volume2, VolumeX, Settings, 
   ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff,
-  WifiOff
+  WifiOff, Palette, Frame
 } from 'lucide-react';
 import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings } from '../types';
 import { getNostalgicPhotoCaption } from '../data';
 import MusicPlaylistModal from './MusicPlaylistModal';
 import { precacheMediaList, saveOfflineTrackFile, loadAllOfflineTracks } from '../utils/offlineStorage';
+
+// Họa tiết góc hoa văn cổ điển mạ vàng (Vintage Golden Corner Filigree)
+function VintageCorner({ position }: { position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' }) {
+  const posClasses = {
+    'top-left': 'top-2 left-2',
+    'top-right': 'top-2 right-2 rotate-90',
+    'bottom-right': 'bottom-2 right-2 rotate-180',
+    'bottom-left': 'bottom-2 left-2 -rotate-90'
+  }[position];
+
+  return (
+    <div className={`absolute z-30 pointer-events-none w-9 h-9 md:w-14 md:h-14 ${posClasses} drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]`}>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <defs>
+          <linearGradient id={`goldCornerGrad-${position}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#FEF08A" />
+            <stop offset="35%" stopColor="#F59E0B" />
+            <stop offset="70%" stopColor="#D97706" />
+            <stop offset="100%" stopColor="#78350F" />
+          </linearGradient>
+        </defs>
+        {/* Outer Corner Filigree Frame */}
+        <path
+          d="M 5 5 L 85 5 C 80 12, 70 18, 55 18 L 18 18 L 18 55 C 18 70, 12 80, 5 85 Z"
+          fill={`url(#goldCornerGrad-${position})`}
+        />
+        {/* Intricate Filigree Scroll */}
+        <path
+          d="M 12 12 L 65 12 C 55 22, 45 22, 38 18 C 30 18, 25 24, 25 32 C 25 40, 32 45, 40 45 C 48 45, 55 38, 55 30 C 55 20, 48 15, 40 15 C 32 15, 28 20, 28 28 L 28 65 C 20 55, 15 45, 12 12 Z"
+          fill="#FEF08A"
+          opacity="0.85"
+        />
+        {/* Corner Diamond / Jewel Accent */}
+        <polygon points="12,12 18,8 24,12 18,16" fill="#FFFBEB" />
+        <circle cx="20" cy="20" r="3.5" fill="#78350F" stroke="#FEF08A" strokeWidth="1" />
+      </svg>
+    </div>
+  );
+}
+
+// Hiệu ứng hạt bay hoài niệm (Hoa phượng đỏ rơi / Bụi phấn nắng vàng / Bụi sao sân khấu)
+function NostalgiaParticles({ type }: { type: 'petals' | 'chalk' | 'sparkles' | 'none' }) {
+  if (type === 'none') return null;
+
+  if (type === 'petals') {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+        {[...Array(16)].map((_, i) => {
+          const left = (i * 6.5 + (i % 3) * 3) % 96;
+          const delay = (i * 0.55) % 6;
+          const duration = 7 + (i % 5) * 1.5;
+          const size = 16 + (i % 4) * 6;
+          return (
+            <div
+              key={i}
+              className="absolute top-[-35px] animate-[k8a1PetalFall_linear_infinite]"
+              style={{
+                left: `${left}%`,
+                animationDelay: `${delay}s`,
+                animationDuration: `${duration}s`,
+              }}
+            >
+              <div 
+                className="animate-[k8a1PetalSway_ease-in-out_infinite]"
+                style={{
+                  animationDuration: `${2.8 + (i % 3) * 0.8}s`,
+                  animationDelay: `${delay * 0.5}s`
+                }}
+              >
+                <svg width={size} height={size * 1.25} viewBox="0 0 24 30" fill="none">
+                  <path
+                    d="M12 0 C16 8, 24 15, 20 25 C 16 32, 8 32, 4 25 C 0 15, 8 8, 12 0 Z"
+                    fill="url(#petalGradK8)"
+                    opacity="0.85"
+                  />
+                  <defs>
+                    <linearGradient id="petalGradK8" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#f87171" />
+                      <stop offset="40%" stopColor="#ef4444" />
+                      <stop offset="100%" stopColor="#991b1b" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (type === 'chalk') {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+        {[...Array(24)].map((_, i) => {
+          const left = (i * 4.5 + 2) % 96;
+          const top = (i * 6.5 + 8) % 86;
+          const size = 3 + (i % 4) * 2.5;
+          const delay = (i * 0.35) % 5;
+          const duration = 3.5 + (i % 4) * 1.8;
+          const isSunbeam = i % 3 === 0;
+          return (
+            <div
+              key={i}
+              className={`absolute rounded-full ${isSunbeam ? 'bg-amber-300/40 blur-[1px]' : 'bg-white/50 blur-[0.5px]'} animate-pulse`}
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `${size}px`,
+                height: `${size}px`,
+                animationDelay: `${delay}s`,
+                animationDuration: `${duration}s`
+              }}
+            />
+          );
+        })}
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-yellow-400/10 rounded-full blur-3xl pointer-events-none" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+      <div className="absolute top-1/4 left-1/5 w-2.5 h-2.5 bg-yellow-300 rounded-full blur-[1px] animate-ping opacity-70" />
+      <div className="absolute top-1/3 right-1/4 w-3.5 h-3.5 bg-amber-400 rounded-full blur-[1px] animate-pulse opacity-80" />
+      <div className="absolute bottom-1/3 left-1/3 w-2.5 h-2.5 bg-yellow-200 rounded-full blur-[1px] animate-ping opacity-60" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-2/3 right-1/5 w-3 h-3 bg-amber-300 rounded-full blur-[1px] animate-pulse opacity-70" style={{ animationDelay: '1.5s' }} />
+      <div className="absolute bottom-1/4 right-1/3 w-2 h-2 bg-yellow-400 rounded-full blur-[1px] animate-ping opacity-60" style={{ animationDelay: '2s' }} />
+    </div>
+  );
+}
 
 interface StagePresentationHubProps {
   isOpen: boolean;
@@ -40,6 +172,26 @@ export default function StagePresentationHub({
   const [slideshowSpeed, setSlideshowSpeed] = useState<number>(stageSettings.slideshowSpeed || 6000);
   const [enableSparkles, setEnableSparkles] = useState<boolean>(stageSettings.enableSparkles !== false);
   const [showCaption, setShowCaption] = useState<boolean>(stageSettings.showCaption !== false);
+
+  // Hiệu ứng hoài niệm & Khung ảnh kỷ niệm
+  const [photoFrameStyle, setPhotoFrameStyle] = useState<'gold' | 'polaroid' | 'none'>(stageSettings.photoFrameStyle || 'gold');
+  const [particleEffect, setParticleEffect] = useState<'none' | 'petals' | 'chalk' | 'sparkles'>(stageSettings.particleEffect || 'petals');
+  const [photoFilter, setPhotoFilter] = useState<'original' | 'sepia' | 'film' | 'bw'>(stageSettings.photoFilter || 'sepia');
+  const [showCorners, setShowCorners] = useState<boolean>(stageSettings.showCorners !== false);
+
+  // Bộ lọc màu ảnh kỷ niệm theo phong cách hoài niệm
+  const getPhotoFilterStyle = () => {
+    switch (photoFilter) {
+      case 'sepia':
+        return 'sepia(0.35) contrast(1.08) brightness(0.96) saturate(1.15)';
+      case 'film':
+        return 'contrast(1.2) brightness(0.92) saturate(0.82) hue-rotate(-6deg)';
+      case 'bw':
+        return 'grayscale(1) contrast(1.2) brightness(0.94)';
+      default:
+        return 'none';
+    }
+  };
 
   // Danh sách Backdrop & Backdrop đang chọn
   const defaultBdIndex = Math.max(0, backdrops.findIndex(b => b.isDefault));
@@ -319,6 +471,19 @@ export default function StagePresentationHub({
       className="fixed inset-0 z-[200] bg-black text-white select-none overflow-hidden flex flex-col justify-between"
       style={{ cursor: showControls ? 'default' : 'none' }}
     >
+      {/* Keyframe animation cho cánh hoa phượng rơi */}
+      <style>{`
+        @keyframes k8a1PetalFall {
+          0% { transform: translateY(0vh) rotate(0deg); opacity: 0; }
+          12% { opacity: 0.95; }
+          88% { opacity: 0.95; }
+          100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+        }
+        @keyframes k8a1PetalSway {
+          0%, 100% { transform: translateX(0px) rotate(0deg); }
+          50% { transform: translateX(38px) rotate(28deg); }
+        }
+      `}</style>
       {/* ========================================================================= */}
       {/* 1. SCENE 1: BACKDROP MÀN LED SÂN KHẤU CHÍNH                               */}
       {/* ========================================================================= */}
@@ -345,15 +510,8 @@ export default function StagePresentationHub({
             </div>
           )}
 
-          {/* Hiệu ứng bụi sao lấp lánh (Golden Sparkles) */}
-          {enableSparkles && (
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <div className="absolute top-1/4 left-1/5 w-2 h-2 bg-yellow-300 rounded-full blur-[1px] animate-ping opacity-60" />
-              <div className="absolute top-1/3 right-1/4 w-3 h-3 bg-amber-400 rounded-full blur-[1px] animate-pulse opacity-70" />
-              <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-yellow-200 rounded-full blur-[1px] animate-ping opacity-50" style={{ animationDelay: '1s' }} />
-              <div className="absolute top-2/3 right-1/5 w-2.5 h-2.5 bg-amber-300 rounded-full blur-[1px] animate-pulse opacity-60" style={{ animationDelay: '1.5s' }} />
-            </div>
-          )}
+          {/* Hiệu ứng hạt bay hoài niệm */}
+          <NostalgiaParticles type={particleEffect} />
         </div>
       )}
 
@@ -370,26 +528,82 @@ export default function StagePresentationHub({
                 style={{ backgroundImage: `url(${currentPhoto.url})` }}
               />
 
-              {/* Ảnh chính với hiệu ứng chuyển động Ken Burns */}
-              <img
-                key={currentPhoto.id || photoIndex}
-                src={currentPhoto.url}
-                alt={currentPhoto.caption || "Ảnh kỷ niệm K8A1"}
-                className={`relative z-10 max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
-              />
+              {/* Hiệu ứng hạt bay hoài niệm */}
+              <NostalgiaParticles type={particleEffect} />
 
-              {/* Dải Caption chú thích ảnh hoài niệm */}
+              {/* KHUNG ẢNH KỶ NIỆM THEO PHONG CÁCH TÙY CHỌN */}
+              {photoFrameStyle === 'gold' && (
+                <div className="relative z-10 max-w-[92vw] md:max-w-[82vw] max-h-[74vh] md:max-h-[78vh] p-2 md:p-3.5 bg-gradient-to-b from-amber-500/25 via-amber-950/20 to-black/85 rounded-2xl md:rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_25px_rgba(245,158,11,0.25)] flex items-center justify-center overflow-hidden">
+                  {showCorners && (
+                    <>
+                      <VintageCorner position="top-left" />
+                      <VintageCorner position="top-right" />
+                      <VintageCorner position="bottom-left" />
+                      <VintageCorner position="bottom-right" />
+                    </>
+                  )}
+                  <div className="w-full h-full overflow-hidden rounded-xl md:rounded-2xl flex items-center justify-center bg-black/40">
+                    <img
+                      key={currentPhoto.id || photoIndex}
+                      src={currentPhoto.url}
+                      alt={currentPhoto.caption || "Ảnh kỷ niệm K8A1"}
+                      style={{ filter: getPhotoFilterStyle() }}
+                      className={`max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {photoFrameStyle === 'polaroid' && (
+                <div className="relative z-10 max-w-[88vw] md:max-w-[68vw] max-h-[74vh] bg-[#FAF7F2] p-3 md:p-4 pb-12 md:pb-16 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
+                  {/* Dải băng dính washi hoài niệm dán ở trên */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 md:w-44 h-6 bg-amber-100/80 border border-amber-300/50 backdrop-blur-xs shadow-xs rotate-[-1deg] z-30" />
+
+                  {showCorners && (
+                    <>
+                      <VintageCorner position="top-left" />
+                      <VintageCorner position="top-right" />
+                      <VintageCorner position="bottom-left" />
+                      <VintageCorner position="bottom-right" />
+                    </>
+                  )}
+
+                  <div className="w-full overflow-hidden rounded-lg bg-slate-950 flex items-center justify-center max-h-[57vh]">
+                    <img
+                      key={currentPhoto.id || photoIndex}
+                      src={currentPhoto.url}
+                      alt={currentPhoto.caption || "Ảnh kỷ niệm K8A1"}
+                      style={{ filter: getPhotoFilterStyle() }}
+                      className={`max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                    />
+                  </div>
+
+                  {/* Chữ viết tay hoài niệm dưới chân ảnh Polaroid */}
+                  <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center">
+                    <p className="text-xs md:text-sm font-serif italic text-amber-950/85 font-bold tracking-wider">
+                      Kỷ niệm K8A1 — 20 Năm Ngày Trở Về (2003 — 2006)
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {photoFrameStyle === 'none' && (
+                <img
+                  key={currentPhoto.id || photoIndex}
+                  src={currentPhoto.url}
+                  alt={currentPhoto.caption || "Ảnh kỷ niệm K8A1"}
+                  style={{ filter: getPhotoFilterStyle() }}
+                  className={`relative z-10 max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                />
+              )}
+
+              {/* Dải Caption chú thích ảnh hoài niệm (ĐÃ BỎ DÒNG DATE/UPLOAD TIME) */}
               {showCaption && (
                 <div className="absolute bottom-16 md:bottom-20 left-0 right-0 z-20 flex justify-center px-6 pointer-events-none">
-                  <div className="max-w-3xl bg-black/70 backdrop-blur-md px-6 py-3 rounded-2xl border border-amber-500/40 text-center shadow-2xl">
+                  <div className="max-w-3xl bg-black/75 backdrop-blur-md px-6 py-3 rounded-2xl border border-amber-500/40 text-center shadow-2xl">
                     <p className="text-base md:text-xl font-bold font-serif italic text-amber-200 tracking-wide leading-relaxed">
                       “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
                     </p>
-                    {currentPhoto.date && (
-                      <p className="text-xs text-slate-300 mt-1 font-sans">
-                        {currentPhoto.date}
-                      </p>
-                    )}
                   </div>
                 </div>
               )}
@@ -418,27 +632,82 @@ export default function StagePresentationHub({
             <div className="absolute inset-0 bg-gradient-to-b from-[#0e162e] to-black" />
           )}
 
-          {/* Vùng ảnh kỷ niệm nổi bật ở trung tâm với khung viền mạ vàng */}
-          <div className="relative z-10 w-[90vw] md:w-[75vw] h-[65vh] md:h-[72vh] rounded-3xl overflow-hidden shadow-2xl shadow-black/90 border-2 border-amber-400/60 bg-black flex items-center justify-center">
-            {currentPhoto && (
-              <>
-                <img
-                  key={currentPhoto.id || photoIndex}
-                  src={currentPhoto.url}
-                  alt={currentPhoto.caption || "Kỷ niệm K8A1"}
-                  className={`w-full h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
-                />
+          {/* Lớp ánh sáng Vignette nghệ thuật cho sân khấu */}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.75) 100%)' }} />
 
-                {showCaption && (
-                  <div className="absolute bottom-4 left-4 right-4 bg-black/75 backdrop-blur-md px-5 py-2.5 rounded-xl border border-amber-500/30 text-center">
-                    <p className="text-sm md:text-lg font-bold font-serif italic text-amber-200">
-                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+          {/* Hiệu ứng hạt bay hoài niệm */}
+          <NostalgiaParticles type={particleEffect} />
+
+          {/* Vùng ảnh kỷ niệm nổi bật ở trung tâm */}
+          {currentPhoto && (
+            <>
+              {photoFrameStyle === 'polaroid' ? (
+                <div className="relative z-10 max-w-[85vw] md:max-w-[70vw] max-h-[72vh] bg-[#FAF7F2] p-3 md:p-4 pb-12 md:pb-16 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 md:w-44 h-6 bg-amber-100/80 border border-amber-300/50 backdrop-blur-xs shadow-xs rotate-[-1deg] z-30" />
+                  {showCorners && (
+                    <>
+                      <VintageCorner position="top-left" />
+                      <VintageCorner position="top-right" />
+                      <VintageCorner position="bottom-left" />
+                      <VintageCorner position="bottom-right" />
+                    </>
+                  )}
+                  <div className="w-full overflow-hidden rounded-lg bg-slate-950 flex items-center justify-center max-h-[55vh]">
+                    <img
+                      key={currentPhoto.id || photoIndex}
+                      src={currentPhoto.url}
+                      alt={currentPhoto.caption || "Kỷ niệm K8A1"}
+                      style={{ filter: getPhotoFilterStyle() }}
+                      className={`max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                    />
+                  </div>
+                  <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center">
+                    <p className="text-xs md:text-sm font-serif italic text-amber-950/85 font-bold tracking-wider">
+                      Kỷ niệm K8A1 — 20 Năm Ngày Trở Về (2003 — 2006)
                     </p>
                   </div>
-                )}
-              </>
-            )}
-          </div>
+                </div>
+              ) : photoFrameStyle === 'gold' ? (
+                <div className="relative z-10 w-[90vw] md:w-[76vw] h-[65vh] md:h-[72vh] p-2.5 md:p-4 bg-gradient-to-b from-amber-500/25 via-amber-900/15 to-black/80 rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center overflow-hidden">
+                  {showCorners && (
+                    <>
+                      <VintageCorner position="top-left" />
+                      <VintageCorner position="top-right" />
+                      <VintageCorner position="bottom-left" />
+                      <VintageCorner position="bottom-right" />
+                    </>
+                  )}
+                  <div className="w-full h-full overflow-hidden rounded-2xl flex items-center justify-center bg-black/40">
+                    <img
+                      key={currentPhoto.id || photoIndex}
+                      src={currentPhoto.url}
+                      alt={currentPhoto.caption || "Kỷ niệm K8A1"}
+                      style={{ filter: getPhotoFilterStyle() }}
+                      className={`w-full h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="relative z-10 w-[90vw] md:w-[75vw] h-[65vh] md:h-[72vh] rounded-3xl overflow-hidden shadow-2xl shadow-black/90 bg-black flex items-center justify-center">
+                  <img
+                    key={currentPhoto.id || photoIndex}
+                    src={currentPhoto.url}
+                    alt={currentPhoto.caption || "Kỷ niệm K8A1"}
+                    style={{ filter: getPhotoFilterStyle() }}
+                    className={`w-full h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                  />
+                </div>
+              )}
+
+              {showCaption && (
+                <div className="absolute bottom-4 left-4 right-4 z-20 bg-black/75 backdrop-blur-md px-5 py-2.5 rounded-xl border border-amber-500/30 text-center">
+                  <p className="text-sm md:text-lg font-bold font-serif italic text-amber-200">
+                    “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -638,35 +907,36 @@ export default function StagePresentationHub({
       {/* MODAL CÀI ĐẶT SÂN KHẤU (SPEED, SPARKLES, CAPTIONS)                        */}
       {/* ========================================================================= */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-2xl p-6 shadow-2xl text-slate-100">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-3 md:p-5 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-lg bg-slate-900 border border-amber-500/50 rounded-2xl p-5 md:p-6 shadow-2xl text-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-800 mb-4">
               <div className="flex items-center gap-2">
                 <Sliders className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-amber-200 text-base">Cài Đặt Trình Chiếu Sân Khấu</h3>
+                <h3 className="font-bold text-amber-200 text-base">Cài Đặt Trình Chiếu Sân Khấu & Hiệu Ứng Hoài Niệm</h3>
               </div>
               <button
                 onClick={() => setShowSettingsModal(false)}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
-              {/* Tốc độ chuyển ảnh */}
+              {/* Tốc độ chuyển ảnh Ken Burns */}
               <div>
-                <label className="block text-xs text-slate-400 mb-2">
-                  Tốc độ chuyển ảnh kỷ niệm Ken Burns:
+                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                  Tốc độ chuyển ảnh kỷ niệm (Ken Burns Slideshow):
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {[4000, 6000, 8000, 10000].map((spd) => (
                     <button
                       key={spd}
+                      type="button"
                       onClick={() => setSlideshowSpeed(spd)}
                       className={`py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                         slideshowSpeed === spd
-                          ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                          ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-sm'
                           : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
                       }`}
                     >
@@ -676,38 +946,133 @@ export default function StagePresentationHub({
                 </div>
               </div>
 
-              {/* Bật/Tắt hiệu ứng bụi sao */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-medium">Bụi sao lấp lánh trên màn LED</span>
+              {/* Bộ lọc màu ảnh xưa (Vintage Filters) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Bộ lọc màu ảnh kỷ niệm (Phong cách xưa cũ):</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'original', label: '🎨 Màu Gốc', desc: 'Sắc nét gốc' },
+                    { id: 'sepia', label: '🍂 Sepia Ấm', desc: 'Ánh vàng hoài niệm' },
+                    { id: 'film', label: '🎞️ Phim 2000s', desc: 'Màu phim xưa' },
+                    { id: 'bw', label: '📷 Đen Trắng', desc: 'Ký ức kinh điển' }
+                  ].map((flt) => (
+                    <button
+                      key={flt.id}
+                      type="button"
+                      onClick={() => setPhotoFilter(flt.id as any)}
+                      className={`p-2 rounded-xl text-xs font-medium border text-left transition-all cursor-pointer ${
+                        photoFilter === flt.id
+                          ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-1 ring-amber-400/40'
+                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      <p className="font-bold">{flt.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{flt.desc}</p>
+                    </button>
+                  ))}
                 </div>
-                <input
-                  type="checkbox"
-                  checked={enableSparkles}
-                  onChange={(e) => setEnableSparkles(e.target.checked)}
-                  className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
-                />
               </div>
 
-              {/* Bật/Tắt chú thích ảnh */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-medium">Hiển thị chú thích ảnh</span>
+              {/* Kiểu khung ảnh kỷ niệm */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+                  <Frame className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Kiểu khung ảnh kỷ niệm:</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'gold', label: '🏆 Khung Mạ Vàng', desc: 'Viền hoàng gia sang trọng' },
+                    { id: 'polaroid', label: '📸 Khung Polaroid', desc: 'Băng dính & Chữ viết tay' },
+                    { id: 'none', label: '🔲 Không Khung', desc: 'Toàn màn hình tự do' }
+                  ].map((frm) => (
+                    <button
+                      key={frm.id}
+                      type="button"
+                      onClick={() => setPhotoFrameStyle(frm.id as any)}
+                      className={`p-2 rounded-xl text-xs font-medium border text-left transition-all cursor-pointer ${
+                        photoFrameStyle === frm.id
+                          ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-1 ring-amber-400/40'
+                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      <p className="font-bold">{frm.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{frm.desc}</p>
+                    </button>
+                  ))}
                 </div>
-                <input
-                  type="checkbox"
-                  checked={showCaption}
-                  onChange={(e) => setShowCaption(e.target.checked)}
-                  className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
-                />
+              </div>
+
+              {/* Hiệu ứng hạt bay hoài niệm */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Hiệu ứng hạt bay lơ lửng trên sân khấu:</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'petals', label: '🌸 Hoa Phượng Rơi', desc: 'Mùa thi trường xưa' },
+                    { id: 'chalk', label: '☀️ Bụi Phấn & Nắng', desc: 'Ánh nắng lớp học' },
+                    { id: 'sparkles', label: '✨ Bụi Sao Hoàng Kim', desc: 'Lấp lánh sân khấu' },
+                    { id: 'none', label: '❌ Tắt Hạt Bay', desc: 'Màn hình tĩnh' }
+                  ].map((pt) => (
+                    <button
+                      key={pt.id}
+                      type="button"
+                      onClick={() => {
+                        setParticleEffect(pt.id as any);
+                        setEnableSparkles(pt.id === 'sparkles');
+                      }}
+                      className={`p-2 rounded-xl text-xs font-medium border text-left transition-all cursor-pointer ${
+                        particleEffect === pt.id
+                          ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-1 ring-amber-400/40'
+                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      <p className="font-bold">{pt.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{pt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Toggles chi tiết */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-800">
+                {/* Bật/Tắt họa tiết 4 góc cổ điển mạ vàng */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                  <div>
+                    <span className="text-xs font-medium text-slate-200">Họa tiết hoa văn 4 góc cổ điển mạ vàng</span>
+                    <p className="text-[10px] text-slate-400">Góc kim loại hoa văn phong cách album kỷ niệm gia đình</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={showCorners}
+                    onChange={(e) => setShowCorners(e.target.checked)}
+                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Bật/Tắt chú thích ảnh hoài niệm */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                  <div>
+                    <span className="text-xs font-medium text-slate-200">Hiển thị trích dẫn hoài niệm ở cuối màn hình</span>
+                    <p className="text-[10px] text-slate-400">Chỉ hiển thị các câu nói thanh xuân ý nghĩa, không hiện ngày giờ upload</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={showCaption}
+                    onChange={(e) => setShowCaption(e.target.checked)}
+                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                  />
+                </div>
               </div>
 
               {/* Chọn Backdrop mặc định */}
               {backdrops.length > 0 && (
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1.5">
+                <div className="pt-2 border-t border-slate-800">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                     Chọn Maket Backdrop sân khấu:
                   </label>
                   <select
@@ -725,18 +1090,30 @@ export default function StagePresentationHub({
               )}
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-5 pt-3 border-t border-slate-800 flex justify-end gap-2">
               <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="px-4 py-2 rounded-xl text-xs text-slate-300 bg-slate-800 hover:bg-slate-700"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   if (onUpdateSettings) {
                     onUpdateSettings({
                       slideshowSpeed,
                       defaultScene: currentScene,
                       autoPlayMusic: isMusicPlaying,
-                      enableSparkles,
+                      enableSparkles: particleEffect === 'sparkles',
                       volume,
                       showCaption,
-                      shufflePhotos: isShuffled
+                      shufflePhotos: isShuffled,
+                      photoFrameStyle,
+                      particleEffect,
+                      photoFilter,
+                      showCorners
                     });
                   }
                   setShowSettingsModal(false);
