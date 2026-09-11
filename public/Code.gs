@@ -2155,14 +2155,14 @@ function recordPageView() {
 function formatDate(date) {
   if (!(date instanceof Date)) return String(date);
   const pad = (n) => (n < 10 ? '0' + n : n);
-  return \`\${pad(date.getDate())}/\${pad(date.getMonth() + 1)}/\${date.getFullYear()} \${pad(date.getHours())}:\${pad(date.getMinutes())}\`;
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function formatDateTimeVi(date) {
   if (!date) return '';
   if (date instanceof Date) {
     const pad = (n) => (n < 10 ? '0' + n : n);
-    return \`\${pad(date.getHours())}:\${pad(date.getMinutes())} ngày \${pad(date.getDate())}/\${pad(date.getMonth() + 1)}/\${date.getFullYear()}\`;
+    return `${pad(date.getHours())}:${pad(date.getMinutes())} ngày ${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
   }
   return String(date);
 }
