@@ -9,7 +9,7 @@ export {
 } from './utils/phoneUtils';
 
 // Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
-export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_photos_fix_v7';
+export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.11_phone_fix_v8';
 
 /**
  * Tự động kiểm tra và dọn dẹp sạch toàn bộ cache cũ tàn dư trên điện thoại thành viên
@@ -777,7 +777,7 @@ export const INITIAL_RSVP_LIST: RsvpData[] = [
     "memberId": "m49",
     "fullName": "Hoàng Bảo Thi",
     "nickname": "Bảo Thi",
-    "phone": "012058002680969965424",
+    "phone": "0969965424",
     "status": "yes",
     "shirtSize": "2XL",
     "message": "",
@@ -4797,13 +4797,21 @@ function saveRSVP(data) {
     }
   }
 
-  var normNewPhone = normalizePhone(data.phone);
+  var rawPhoneInput = String(data.phone || '').trim();
+  var isMaskedPhone = (
+    data.isSavedPhone === true ||
+    rawPhoneInput.indexOf('•') !== -1 ||
+    rawPhoneInput.indexOf('*') !== -1 ||
+    (rawPhoneInput.replace(/[^0-9]/g, '').length > 0 && rawPhoneInput.replace(/[^0-9]/g, '').length < 9)
+  );
+
+  var normNewPhone = isMaskedPhone ? '' : normalizePhone(data.phone);
   var normNewName = normalizeName(data.fullName);
   var targetMemberId = String(data.memberId || '').trim();
   var isAdminRequest = checkAdminAuthPin(data.pin || data.adminPin || '');
 
-  // 🛡️ Kiểm tra định dạng số điện thoại di động Việt Nam (chuẩn 10 chữ số)
-  if (normNewPhone && normNewPhone.indexOf('•') === -1 && normNewPhone.indexOf('*') === -1) {
+  // 🛡️ Kiểm tra định dạng số điện thoại di động Việt Nam (chuẩn 10 chữ số) NẾU không phải là số đã lưu/che mờ
+  if (!isMaskedPhone && normNewPhone) {
     var isValidPhoneFormat = /^0(3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/.test(normNewPhone);
     if (!isValidPhoneFormat && !isAdminRequest) {
       return {
@@ -4873,8 +4881,8 @@ function saveRSVP(data) {
     }
   }
 
-  // 3. Ưu tiên số 3: Khớp theo SĐT hợp lệ
-  if (matchedRowIndex === -1 && normNewPhone) {
+  // 3. Ưu tiên số 3: Khớp theo SĐT hợp lệ (chỉ khi số không bị che mờ)
+  if (matchedRowIndex === -1 && normNewPhone && !isMaskedPhone) {
     for (var i = 1; i < rows.length; i++) {
       var row = rows[i];
       var rowPhone = normalizePhone(row[2]);
@@ -4901,7 +4909,7 @@ function saveRSVP(data) {
     }
   }
 
-  var phoneValue = normNewPhone ? ("'" + normNewPhone) : (data.phone ? ("'" + String(data.phone).trim()) : '');
+  var phoneValue = (!isMaskedPhone && normNewPhone && normNewPhone.length >= 9) ? ("'" + normNewPhone) : '';
   var effectiveMemberId = targetMemberId;
 
   if (matchedRowIndex !== -1) {
@@ -4915,6 +4923,30 @@ function saveRSVP(data) {
         effectiveMemberId = rosterMap.byPhone[normNewPhone].id;
       } else if (normNewName && rosterMap.byName[normNewName] && rosterMap.byName[normNewName].length === 1) {
         effectiveMemberId = rosterMap.byName[normNewName][0].id;
+      }
+    }
+
+    // 🛡️ XỬ LÝ BẢO VỆ SỐ ĐIỆN THOẠI: TUYỆT ĐỐI KHÔNG GHI ĐÈ BỞI SỐ CHE MỜ HOẶC SỐ BỊ CẮT BỚT
+    var finalPhoneCell = '';
+    var existingPhoneRaw = existingRow ? String(existingRow[2] || '').trim() : '';
+    var cleanExisting = existingPhoneRaw.replace(/[^0-9]/g, '');
+
+    if (!isMaskedPhone && phoneValue) {
+      // Người dùng nhập SĐT mới 10 số hợp lệ -> Cập nhật SĐT mới
+      finalPhoneCell = phoneValue;
+    } else if (cleanExisting.length >= 9) {
+      // Giữ nguyên SĐT chuẩn đã lưu trong Sheet
+      finalPhoneCell = existingPhoneRaw.indexOf("'") === 0 ? existingPhoneRaw : ("'" + cleanExisting);
+    } else {
+      // Nếu ô SĐT trong Sheet đang trống hoặc từng bị lưu lỗi (< 9 số):
+      // Tự động khôi phục ngay từ Danh Sách Lớp K8A1 (Single Source of Truth)
+      var rosterMap = getRosterLookupMap();
+      var rMember = (effectiveMemberId && rosterMap.byId[effectiveMemberId]) 
+        || (normNewName && rosterMap.byName[normNewName] && rosterMap.byName[normNewName][0]);
+      if (rMember && rMember.phone && rMember.phone.length >= 9) {
+        finalPhoneCell = "'" + rMember.phone;
+      } else {
+        finalPhoneCell = existingPhoneRaw;
       }
     }
 
@@ -4945,7 +4977,7 @@ function saveRSVP(data) {
     var updatedRow = [
       data.fullName || existingRow[0] || '',
       (data.nickname !== undefined && data.nickname !== '') ? data.nickname : (existingRow[1] || ''),
-      phoneValue || existingRow[2] || '',
+      finalPhoneCell || '',
       data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
       (data.shirtSize !== undefined ? (data.shirtSize || 'CHƯA CHỌN') : (existingRow[4] || 'CHƯA CHỌN')),
       (data.message !== undefined && data.message !== '') ? data.message : (existingRow[5] || ''),
@@ -4987,10 +5019,20 @@ function saveRSVP(data) {
       }
     }
 
+    var newPhoneCell = phoneValue;
+    if (!newPhoneCell || isMaskedPhone) {
+      var rosterMap = getRosterLookupMap();
+      var rMember = (effectiveMemberId && rosterMap.byId[effectiveMemberId]) 
+        || (normNewName && rosterMap.byName[normNewName] && rosterMap.byName[normNewName][0]);
+      if (rMember && rMember.phone && rMember.phone.length >= 9) {
+        newPhoneCell = "'" + rMember.phone;
+      }
+    }
+
     var newRow = [
       data.fullName || '',
       data.nickname || '',
-      phoneValue,
+      newPhoneCell || '',
       data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt',
       data.shirtSize || 'CHƯA CHỌN',
       data.message || '',
@@ -5041,8 +5083,14 @@ function updateRSVP(data) {
       if (data.fullName) sheet.getRange(rowIndex, 1).setValue(data.fullName);
       if (data.nickname !== undefined) sheet.getRange(rowIndex, 2).setValue(data.nickname);
       if (data.phone) {
-        var normP = normalizePhone(data.phone);
-        sheet.getRange(rowIndex, 3).setValue(normP ? "'" + normP : data.phone);
+        var rawP = String(data.phone).trim();
+        var isMaskedP = rawP.indexOf('•') !== -1 || rawP.indexOf('*') !== -1 || rawP.replace(/[^0-9]/g, '').length < 9;
+        if (!isMaskedP) {
+          var normP = normalizePhone(data.phone);
+          if (normP && normP.length >= 9) {
+            sheet.getRange(rowIndex, 3).setValue("'" + normP);
+          }
+        }
       }
       if (data.status) sheet.getRange(rowIndex, 4).setValue(data.status === 'yes' ? 'Có tham gia' : 'Rất tiếc vắng mặt');
       if (data.shirtSize !== undefined) sheet.getRange(rowIndex, 5).setValue(data.shirtSize || 'CHƯA CHỌN');

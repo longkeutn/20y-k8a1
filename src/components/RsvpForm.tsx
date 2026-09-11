@@ -599,15 +599,28 @@ export default function RsvpForm({
       });
 
       // Xác định SĐT đã lưu (nếu có): bảo vệ PII bằng cách lưu vào savedExistingPhone và che mờ, không in số trần
-      const existingPhone = existing?.phone ? String(existing.phone).trim() : (activeMember.phone ? String(activeMember.phone).trim() : '');
+      const rawExisting = existing?.phone ? String(existing.phone).trim() : '';
+      const cleanExisting = rawExisting.replace(/[^0-9]/g, '');
+      const isCorruptedExisting = cleanExisting.length > 0 && cleanExisting.length < 10 && !rawExisting.includes('•') && !rawExisting.includes('*');
+
+      let existingPhone = rawExisting;
+      // Nếu số trong rsvpList chưa có hoặc bị lỗi thiếu số (< 10 số), khôi phục ngay từ activeMember trong danh bạ lớp
+      if (!existingPhone || isCorruptedExisting) {
+        if (activeMember.phone && String(activeMember.phone).trim()) {
+          existingPhone = String(activeMember.phone).trim();
+        }
+      }
+
       if (existingPhone) {
         setSavedExistingPhone(existingPhone);
-        setUseSavedPhone(true);
+        setUseSavedPhone(prev => (phone.trim() ? prev : true));
       } else {
         setSavedExistingPhone('');
         setUseSavedPhone(false);
       }
-      setPhone('');
+      if (useSavedPhone && !phone.trim()) {
+        setPhone('');
+      }
 
       if (existing) {
         if (existing.shirtSize) {
@@ -740,45 +753,7 @@ export default function RsvpForm({
       return;
     }
 
-    const finalPhone = phone.trim() || (useSavedPhone ? savedExistingPhone : '');
-    if (!fullName.trim() || !finalPhone) {
-      setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
-      return;
-    }
-
-    // 🛡️ Kiểm định chặt chẽ tính hợp lệ của số điện thoại:
-    if (!useSavedPhone || !savedExistingPhone) {
-      const valResult = isValidVietnamesePhone(finalPhone);
-      if (!valResult.isValid) {
-        setSubmitError(valResult.error || 'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 chữ số chuẩn Việt Nam!');
-        const phoneInput = document.getElementById('rsvp-phone');
-        if (phoneInput) phoneInput.focus();
-        return;
-      }
-
-      // Kiểm tra xem số này có bị trùng với bạn học khác trong danh bạ lớp không
-      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, activeMember?.id);
-      if (dup) {
-        setSubmitError(`Số điện thoại này đã được lưu cho bạn "${dup.fullName}" trong danh bạ lớp. Vui lòng kiểm tra lại!`);
-        const phoneInput = document.getElementById('rsvp-phone');
-        if (phoneInput) phoneInput.focus();
-        return;
-      }
-    }
-
-    if (targetStatus === 'yes') {
-      const cleanShirtSize = normalizeShirtSize(shirtSize);
-      if (!cleanShirtSize && shirtSize !== 'CHƯA CHỌN' && shirtSize !== 'pending') {
-        setSubmitError('Vui lòng chọn Size Áo polo đồng phục (hoặc bấm "Tôi chưa rõ số đo / Báo size sau") trước khi hoàn tất!');
-        const shirtSection = document.getElementById('rsvp-shirt-size-section');
-        if (shirtSection) {
-          shirtSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        return;
-      }
-    }
-
-    // Tự động nhận diện và bảo vệ chống trùng lặp nếu người dùng tự gõ họ tên trùng khớp 1 bạn duy nhất trong danh bạ
+    // Tự động nhận diện thành viên sớm để tra cứu danh bạ và bảo vệ chống trùng lặp
     const isMemberNameMatched = activeMember && (
       normalizeName(activeMember.fullName) === normalizeName(fullName) ||
       isVietnameseNameMatch(activeMember, fullName.trim(), nickname)
@@ -790,8 +765,8 @@ export default function RsvpForm({
     if (!effectiveMemberId) {
       const n = normalizeName(fullName);
       let uniqueMatch = rosterList.filter(m => normalizeName(m.fullName) === n);
-      if (uniqueMatch.length === 0 && finalPhone) {
-        uniqueMatch = rosterList.filter(m => isPhoneMatch(m.phone, finalPhone));
+      if (uniqueMatch.length === 0 && (phone.trim() || savedExistingPhone)) {
+        uniqueMatch = rosterList.filter(m => isPhoneMatch(m.phone, phone.trim() || savedExistingPhone));
       }
       if (uniqueMatch.length === 0) {
         uniqueMatch = rosterList.filter(m => isVietnameseNameMatch(m, fullName.trim(), nickname));
@@ -800,7 +775,7 @@ export default function RsvpForm({
         effectiveMemberId = uniqueMatch[0].id;
         const existingInRsvp = (rsvpList || []).find(r => 
           (r.memberId && r.memberId === effectiveMemberId) || 
-          isPhoneMatch(r.phone, finalPhone) ||
+          isPhoneMatch(r.phone, phone.trim() || savedExistingPhone) ||
           isVietnameseNameMatch(uniqueMatch[0], r.fullName)
         );
         if (existingInRsvp) {
@@ -823,6 +798,73 @@ export default function RsvpForm({
       return;
     }
 
+    // 🛡️ XỬ LÝ SỐ ĐIỆN THOẠI THÔNG MINH - CHỐNG MẤT SỐ HOẶC GỬI CHUỖI CHE MỜ
+    let phoneToSend = phone.trim();
+    let isUsingSavedPhone = false;
+
+    if (!phoneToSend && useSavedPhone) {
+      isUsingSavedPhone = true;
+      // Ưu tiên tìm số điện thoại thực 10 chữ số chưa che mờ từ các nguồn uy tín
+      const rosterEntry = effectiveMemberId ? CLASS_ROSTER_K8A1.find(m => m.id === effectiveMemberId) : null;
+      const candidates = [
+        activeMember?.phone,
+        rosterEntry?.phone,
+        matchedExistingAttendee?.phone,
+        savedExistingPhone
+      ];
+      for (const cand of candidates) {
+        if (cand) {
+          const s = String(cand).trim();
+          const clean = s.replace(/[^0-9]/g, '');
+          if (!s.includes('•') && !s.includes('*') && clean.length >= 10) {
+            phoneToSend = s;
+            break;
+          }
+        }
+      }
+      if (!phoneToSend) {
+        phoneToSend = savedExistingPhone;
+      }
+    }
+
+    if (!fullName.trim() || !phoneToSend) {
+      setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
+      return;
+    }
+
+    // 🛡️ Kiểm định chặt chẽ tính hợp lệ NẾU người dùng tự nhập số điện thoại mới:
+    if (!isUsingSavedPhone) {
+      const valResult = isValidVietnamesePhone(phoneToSend);
+      if (!valResult.isValid) {
+        setSubmitError(valResult.error || 'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 chữ số chuẩn Việt Nam!');
+        const phoneInput = document.getElementById('rsvp-phone');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+
+      // Kiểm tra xem số này có bị trùng với bạn học khác trong danh bạ lớp không
+      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, activeMember?.id);
+      if (dup) {
+        setSubmitError(`Số điện thoại này đã được lưu cho bạn "${dup.fullName}" trong danh bạ lớp. Vui lòng kiểm tra lại!`);
+        const phoneInput = document.getElementById('rsvp-phone');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+      phoneToSend = valResult.phone;
+    }
+
+    if (targetStatus === 'yes') {
+      const cleanShirtSize = normalizeShirtSize(shirtSize);
+      if (!cleanShirtSize && shirtSize !== 'CHƯA CHỌN' && shirtSize !== 'pending') {
+        setSubmitError('Vui lòng chọn Size Áo polo đồng phục (hoặc bấm "Tôi chưa rõ số đo / Báo size sau") trước khi hoàn tất!');
+        const shirtSection = document.getElementById('rsvp-shirt-size-section');
+        if (shirtSection) {
+          shirtSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(null);
@@ -835,7 +877,7 @@ export default function RsvpForm({
       memberId: effectiveMemberId,
       fullName: fullName.trim(),
       nickname: nickname.trim() || undefined,
-      phone: finalPhone,
+      phone: phoneToSend,
       className: 'K8A1',
       shirtSize: cleanChosenShirtSize,
       status: targetStatus,
@@ -857,7 +899,7 @@ export default function RsvpForm({
     };
 
     setLastSubmittedAttendee(rsvpPayload);
-    setSavedExistingPhone(finalPhone);
+    setSavedExistingPhone(phoneToSend);
     setUseSavedPhone(true);
     setPhone('');
 
@@ -871,6 +913,7 @@ export default function RsvpForm({
           },
           body: JSON.stringify({
             action: 'rsvp',
+            isSavedPhone: isUsingSavedPhone,
             ...rsvpPayload
           })
         });
@@ -966,9 +1009,9 @@ export default function RsvpForm({
       return;
     }
 
-    // 🛡️ Kiểm định chặt chẽ số điện thoại:
-    if (!useSavedPhone || !savedExistingPhone) {
-      const valResult = isValidVietnamesePhone(finalPhone);
+    // 🛡️ Kiểm định chặt chẽ số điện thoại nếu người dùng nhập số mới:
+    if (!useSavedPhone && phone.trim()) {
+      const valResult = isValidVietnamesePhone(phone.trim());
       if (!valResult.isValid) {
         setSubmitError(valResult.error || 'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 chữ số chuẩn Việt Nam!');
         const phoneInput = document.getElementById('rsvp-phone');
