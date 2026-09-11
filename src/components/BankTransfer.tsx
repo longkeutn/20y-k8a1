@@ -85,6 +85,10 @@ export default function BankTransfer({
   const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
   const [ledgerTab, setLedgerTab] = useState<'expense' | 'income'>('expense');
   const [ledgerTimeFilter, setLedgerTimeFilter] = useState<'all' | 'this_month' | 'year_2026'>('all');
+  const [previewReceipt, setPreviewReceipt] = useState<{ url: string; title: string } | null>(null);
+
+  // Quyền Ban Liên Lạc / Thủ Quỹ / Admin được xem hóa đơn/bill đối soát
+  const isAdminOrTreasurer = currentUserRole === 'admin' || currentUserRole === 'treasurer' || currentUserRole === 'bll';
 
   // Chuẩn hóa an toàn tuyệt đối các biến cấu hình tài khoản
   const accountStr = String(bankAccount || '10123456789');
@@ -479,6 +483,22 @@ export default function BankTransfer({
             </p>
           </div>
         </div>
+
+        {/* Cam kết minh bạch & bảo mật */}
+        <div className="pt-2.5 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 font-sans">
+          <div className="flex items-center gap-1.5 text-emerald-800 font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Minh bạch 100% thu chi — Bảo mật riêng tư ảnh bill & số tài khoản</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsLedgerModalOpen(true)}
+            className="text-amber-800 hover:text-amber-950 font-bold hover:underline cursor-pointer flex items-center gap-1 ml-auto"
+          >
+            <span>Mở sổ thu chi ({paidAttendees.length} bạn đã nộp, {effectiveExpenses.length} khoản chi)</span>
+            <ChevronRight className="w-3 h-3 text-amber-700" />
+          </button>
+        </div>
       </div>
 
       {/* COMPACT & ELEGANT ACTION FOOTER STRIP */}
@@ -700,6 +720,21 @@ export default function BankTransfer({
               </div>
             </div>
 
+            {/* Thanh cam kết Bảo mật & Minh bạch */}
+            <div className="bg-amber-50/90 border-b border-amber-200/70 px-4 py-2 sm:px-6 flex flex-wrap items-center justify-between gap-2 text-xs font-sans text-amber-950 shrink-0">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>
+                  <strong>Nguyên tắc công khai:</strong> Minh bạch mọi khoản thu chi cho thành viên K8A1. Ảnh bill ngân hàng & STK cá nhân được bảo mật riêng tư tuyệt đối.
+                </span>
+              </span>
+              {isAdminOrTreasurer && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-bold shrink-0 border border-indigo-200">
+                  👑 Chế độ BLL & Thủ Quỹ: Có quyền xem chứng từ gốc
+                </span>
+              )}
+            </div>
+
             {/* Tab Switcher & Bộ lọc thời gian */}
             <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 bg-white">
               <div className="flex items-center gap-2">
@@ -849,6 +884,17 @@ export default function BankTransfer({
                             <span className="text-base sm:text-lg font-bold font-mono text-rose-700">
                               -{Number(item.amount || 0).toLocaleString('vi-VN')} đ
                             </span>
+                            {isAdminOrTreasurer && Boolean(item.receiptUrl) && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewReceipt({ url: item.receiptUrl!, title: `Chứng từ chi: ${item.title}` })}
+                                className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-1 rounded-lg cursor-pointer transition shadow-2xs"
+                                title="Xem ảnh hóa đơn chứng từ gốc (Chế độ BLL & Thủ quỹ)"
+                              >
+                                <ImageIcon className="w-3 h-3 text-indigo-600" />
+                                <span>Xem Hóa Đơn</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -883,9 +929,22 @@ export default function BankTransfer({
                                   Khai báo: {(att.fundAmount || fundAmountNum).toLocaleString('vi-VN')} đ
                                 </p>
                               </div>
-                              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-medium border border-amber-300 shrink-0">
-                                ⏳ Chờ khớp lệnh
-                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-medium border border-amber-300 shrink-0">
+                                  ⏳ Chờ khớp lệnh
+                                </span>
+                                {isAdminOrTreasurer && Boolean(att.fundReceiptUrl) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewReceipt({ url: att.fundReceiptUrl!, title: `Bill nộp quỹ: ${att.fullName}` })}
+                                    className="p-1 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition cursor-pointer text-[10px] font-bold inline-flex items-center gap-1"
+                                    title="Xem bill để khớp lệnh đối soát (Dành cho Thủ quỹ)"
+                                  >
+                                    <ImageIcon className="w-3 h-3 text-amber-700" />
+                                    <span>Xem Bill</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -946,6 +1005,17 @@ export default function BankTransfer({
                                   <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800">
                                     +{Number(item.amount || 0).toLocaleString('vi-VN')} đ
                                   </span>
+                                  {isAdminOrTreasurer && Boolean(item.receiptUrl) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewReceipt({ url: item.receiptUrl!, title: `Biên lai: ${item.title} (${item.payerName})` })}
+                                      className="inline-flex items-center gap-1 text-[10.5px] font-sans font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md cursor-pointer transition shadow-2xs"
+                                      title="Xem biên lai chuyển khoản tài trợ (Dành cho Thủ quỹ)"
+                                    >
+                                      <ImageIcon className="w-3 h-3 text-emerald-600" />
+                                      <span>Xem Bill</span>
+                                    </button>
+                                  )}
                                   {(currentUserRole === 'admin' || currentUserRole === 'treasurer') && onDeleteIncome && (
                                     <button
                                       type="button"
@@ -1001,10 +1071,25 @@ export default function BankTransfer({
                                     <span>{formattedDate ? `Ngày nộp: ${formattedDate}` : 'Đã xác nhận đóng quỹ'}</span>
                                   </p>
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                                   <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
                                     +{amount.toLocaleString('vi-VN')} đ
                                   </span>
+                                  <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                    <Check className="w-3 h-3 text-emerald-600" />
+                                    <span>Đã hoàn thành</span>
+                                  </span>
+                                  {isAdminOrTreasurer && Boolean(att.fundReceiptUrl) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewReceipt({ url: att.fundReceiptUrl!, title: `Bill nộp quỹ: ${att.fullName}` })}
+                                      className="p-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 transition cursor-pointer text-[10px] font-bold inline-flex items-center gap-1"
+                                      title="Xem bill để đối soát sao kê (Dành cho Thủ quỹ)"
+                                    >
+                                      <ImageIcon className="w-3 h-3 text-emerald-700" />
+                                      <span className="hidden sm:inline">Xem Bill</span>
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -1026,6 +1111,65 @@ export default function BankTransfer({
                 type="button"
                 onClick={() => setIsLedgerModalOpen(false)}
                 className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🖼️ MODAL XEM ẢNH BIÊN LAI / HÓA ĐƠN GỐC (DÀNH CHO THỦ QUỸ / ADMIN ĐỐI SOÁT) */}
+      {previewReceipt && (
+        <div 
+          className="fixed inset-0 z-60 bg-slate-900/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200"
+          onClick={() => setPreviewReceipt(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-amber-200 space-y-4 animate-in zoom-in-95 duration-200 relative text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="min-w-0 pr-2">
+                <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-indigo-700 block">
+                  Đối Soát Chứng Từ (Chế độ BLL & Thủ Quỹ)
+                </span>
+                <h4 className="text-sm font-bold text-slate-900 truncate">
+                  {previewReceipt.title}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewReceipt(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-slate-100 rounded-2xl overflow-hidden flex items-center justify-center max-h-[65vh] border border-slate-200">
+              <img 
+                src={previewReceipt.url} 
+                alt={previewReceipt.title}
+                className="max-h-[65vh] w-auto object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+              <a 
+                href={previewReceipt.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-semibold transition"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                <span>Mở ảnh gốc</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setPreviewReceipt(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold transition cursor-pointer"
               >
                 Đóng
               </button>
