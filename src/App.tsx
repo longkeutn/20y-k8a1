@@ -2567,12 +2567,14 @@ export default function App() {
           onLoginSuccess={(role) => {
             setCurrentUserRole(role);
             sessionStorage.setItem('user_role', role);
+            sessionStorage.setItem('k8a1_allow_devtools', 'true');
             hydrateAllData(activeAppsScriptUrl);
           }}
           onLogout={() => {
             setCurrentUserRole('guest');
             sessionStorage.removeItem('user_role');
             sessionStorage.removeItem('admin_pin_token');
+            sessionStorage.removeItem('k8a1_allow_devtools');
             hydrateAllData(activeAppsScriptUrl);
           }}
           rsvpList={rsvpList}
