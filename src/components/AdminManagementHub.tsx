@@ -1874,7 +1874,7 @@ export default function AdminManagementHub({
     setIsRosterModalOpen(true);
   };
 
-  // Nén ảnh canvas và tải trực tiếp lên Google Drive (Thư mục Avatar_Thanh_Vien)
+  // Nén ảnh canvas và tải ảnh thẻ lên hệ thống
   const handleRosterAvatarUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Vui lòng chọn file hình ảnh (JPG, PNG, WebP)!');
@@ -1911,7 +1911,7 @@ export default function AdminManagementHub({
           setRosterFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
 
           setIsUploadingRosterAvatar(true);
-          setRosterAvatarUploadMsg('Đang lưu avatar vào Google Drive...');
+          setRosterAvatarUploadMsg('Đang lưu ảnh đại diện...');
           
           uploadMemberAvatarViaBackend({
             fileData: dataUrl,
@@ -1921,7 +1921,7 @@ export default function AdminManagementHub({
             setIsUploadingRosterAvatar(false);
             if (res.success && res.avatarUrl) {
               setRosterFormData(prev => ({ ...prev, avatarUrl: res.avatarUrl }));
-              setRosterAvatarUploadMsg('✓ Đã lưu avatar vào thư mục Avatar_Thanh_Vien trên Drive!');
+              setRosterAvatarUploadMsg('✓ Đã cập nhật ảnh đại diện thành công!');
               try {
                 if (rosterFormData.fullName) {
                   const key = `k8a1_avatar_${rosterFormData.fullName.trim().toLowerCase()}`;
@@ -1929,7 +1929,7 @@ export default function AdminManagementHub({
                 }
               } catch (e) {}
             } else {
-              setRosterAvatarUploadMsg(res.message || 'Đã lưu tạm (chưa đồng bộ Drive)');
+              setRosterAvatarUploadMsg(res.message || 'Đã lưu ảnh đại diện tạm thời');
             }
             setTimeout(() => setRosterAvatarUploadMsg(''), 5000);
           }).catch(() => {
@@ -4262,7 +4262,7 @@ export default function AdminManagementHub({
                                             type="button"
                                             onClick={() => handleSyncRosterPhoneAsPrimary(m, m.matchedRsvp!.phone)}
                                             className="px-1.5 py-0.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded shadow-2xs transition cursor-pointer text-[9px] whitespace-nowrap"
-                                            title="Lưu số này làm SĐT chính (số cũ sẽ chuyển vào lịch sử oldPhones)"
+                                            title="Lưu số này làm SĐT chính (số cũ sẽ chuyển vào lịch sử)"
                                           >
                                             ✓ Đổi SĐT chính
                                           </button>
@@ -4270,7 +4270,7 @@ export default function AdminManagementHub({
                                             type="button"
                                             onClick={() => handleSyncRosterPhoneAsSecondary(m, m.matchedRsvp!.phone)}
                                             className="px-1.5 py-0.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-medium rounded transition cursor-pointer text-[9px] whitespace-nowrap"
-                                            title="Lưu số này làm SIM 2 trong chuỗi JSON"
+                                            title="Lưu số này làm SIM 2 (SĐT phụ)"
                                           >
                                             + SIM 2
                                           </button>
@@ -9322,7 +9322,7 @@ export default function AdminManagementHub({
                       {editingRosterMember ? 'Chỉnh Sửa Bạn Học Trong Danh Bạ Lớp' : 'Thêm Bạn Học Vào Danh Bạ Lớp'}
                     </h3>
                     <p className="text-[11px] text-emerald-700 font-sans">
-                      Lưu và đồng bộ trực tiếp lên hệ thống (Google Sheets tab Danh_Sach_Lop)
+                      Lưu và đồng bộ trực tiếp vào danh bạ lớp
                     </p>
                   </div>
                 </div>
@@ -9337,15 +9337,12 @@ export default function AdminManagementHub({
 
               {/* Scrollable Form */}
               <form onSubmit={handleSaveRosterMember} className="p-6 overflow-y-auto space-y-4 font-sans max-h-[calc(92vh-120px)]">
-                {/* PHẦN 0: ẢNH THẺ / AVATAR THÀNH VIÊN (LƯU VÀO GOOGLE DRIVE) */}
+                {/* PHẦN 0: ẢNH THẺ / AVATAR THÀNH VIÊN */}
                 <div className="bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-3.5 rounded-xl border border-amber-200 shadow-2xs">
                   <div className="flex items-center justify-between pb-2 mb-3 border-b border-amber-200/60">
                     <span className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
                       <Camera className="w-3.5 h-3.5 text-amber-700" />
                       <span>Ảnh Thẻ / Avatar Thành Viên</span>
-                    </span>
-                    <span className="text-[10px] text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300 font-medium">
-                      Drive: Avatar_Thanh_Vien
                     </span>
                   </div>
 
@@ -9405,7 +9402,7 @@ export default function AdminManagementHub({
                           {isUploadingRosterAvatar ? (
                             <>
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>Đang tải lên Drive...</span>
+                              <span>Đang tải ảnh lên...</span>
                             </>
                           ) : (
                             <>
@@ -9414,18 +9411,6 @@ export default function AdminManagementHub({
                             </>
                           )}
                         </button>
-
-                        {rosterFormData.avatarUrl && (
-                          <a
-                            href={rosterFormData.avatarUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs border border-slate-300 rounded-lg transition"
-                          >
-                            <ExternalLink className="w-3 h-3 text-slate-400" />
-                            <span>Xem ảnh Drive</span>
-                          </a>
-                        )}
                       </div>
 
                       {rosterAvatarUploadMsg && (
@@ -9437,7 +9422,7 @@ export default function AdminManagementHub({
                       )}
 
                       <p className="text-[11px] text-slate-500 leading-snug">
-                        Ảnh sẽ tự động nén tối ưu, tải lên thư mục <span className="font-semibold text-amber-900">Avatar_Thanh_Vien</span> trên Google Drive và đồng bộ link Direct CDN vào chuỗi JSON cột Ghi chú của học sinh.
+                        Ảnh đại diện được nén tối ưu và hiển thị đồng bộ trên Thẻ học sinh kỷ niệm.
                       </p>
                     </div>
                   </div>
@@ -9594,15 +9579,12 @@ export default function AdminManagementHub({
                   </div>
                 </div>
 
-                {/* PHẦN 2: HỒ SƠ CHI TIẾT (LƯU DẠNG JSON VÀO CỘT GHI CHÚ) */}
+                {/* PHẦN 2: HỒ SƠ CHI TIẾT */}
                 <div className="pt-3 border-t border-amber-200/80">
                   <div className="flex items-center justify-between pb-2 mb-3 border-b border-amber-100">
                     <span className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Hồ Sơ Mở Rộng & Nơi Ở, Công Tác (Chuỗi JSON)</span>
-                    </span>
-                    <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300/80 px-2 py-0.5 rounded font-mono font-medium">
-                      Lưu Cột Ghi Chú Sheet
+                      <span>Hồ Sơ Mở Rộng & Nơi Ở, Công Tác</span>
                     </span>
                   </div>
 
@@ -9781,14 +9763,6 @@ export default function AdminManagementHub({
                       className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-slate-800"
                     />
                   </div>
-
-                  {/* Gợi ý đóng gói */}
-                  <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-lg mt-3 text-[11px] text-blue-800 flex items-start gap-2">
-                    <span className="text-base shrink-0">💡</span>
-                    <span>
-                      Toàn bộ thông tin mở rộng trên sẽ được tự động đóng gói thành chuỗi JSON chuẩn hóa và lưu an toàn vào cột Ghi chú của Google Sheet, đảm bảo tra cứu nhanh và không làm lệch cấu trúc bảng.
-                    </span>
-                  </div>
                 </div>
 
                 {/* Action Buttons */}
@@ -9805,7 +9779,7 @@ export default function AdminManagementHub({
                     className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-lg font-bold shadow-md transition cursor-pointer flex items-center gap-1.5"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    <span>{editingRosterMember ? 'Lưu Thay Đổi Vào Sheet' : 'Thêm Vào Danh Bạ Sheet'}</span>
+                    <span>{editingRosterMember ? 'Lưu Thay Đổi' : 'Thêm Vào Danh Bạ'}</span>
                   </button>
                 </div>
               </form>

@@ -263,9 +263,9 @@ export default function StudentPassModal({
             console.warn('LocalStorage save error:', err);
           }
 
-          // Tự động tải avatar lên Google Drive (Folder con Avatar_Thanh_Vien)
+          // Tự động tải avatar lên hệ thống
           setIsUploadingAvatar(true);
-          setAvatarUploadMsg('Đang lưu avatar vào Google Drive...');
+          setAvatarUploadMsg('Đang lưu ảnh đại diện...');
           uploadMemberAvatarViaBackend({
             fileData: dataUrl,
             memberId: effectiveMemberId,
@@ -274,7 +274,7 @@ export default function StudentPassModal({
             setIsUploadingAvatar(false);
             if (res.success && res.avatarUrl) {
               setAvatarUrl(res.avatarUrl);
-              setAvatarUploadMsg('✓ Đã lưu avatar vào thư mục Avatar_Thanh_Vien trên Drive!');
+              setAvatarUploadMsg('✓ Đã cập nhật ảnh đại diện thành công!');
               try {
                 const key = `k8a1_avatar_${name.trim().toLowerCase()}`;
                 localStorage.setItem(key, res.avatarUrl);
@@ -287,12 +287,12 @@ export default function StudentPassModal({
                 });
               }
             } else {
-              setAvatarUploadMsg(res.message || 'Đã lưu trên máy (chưa đồng bộ Drive)');
+              setAvatarUploadMsg(res.message || 'Đã lưu ảnh trên thiết bị');
             }
             setTimeout(() => setAvatarUploadMsg(''), 5000);
           }).catch(() => {
             setIsUploadingAvatar(false);
-            setAvatarUploadMsg('Đã lưu tạm trên máy (chờ mạng để đẩy lên Drive)');
+            setAvatarUploadMsg('Đã lưu ảnh tạm thời trên thiết bị');
             setTimeout(() => setAvatarUploadMsg(''), 5000);
           });
         }
