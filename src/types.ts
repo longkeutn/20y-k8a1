@@ -286,6 +286,7 @@ export interface EventConfig {
   heroBannerUrl?: string;
   heroBannerPosition?: number;
   schoolLogoUrl?: string;
+  poloSampleUrl?: string;
   backdrops?: BackdropItem[];
   musicPlaylist?: MusicTrack[];
   stageSettings?: StageSettings;

@@ -2010,6 +2010,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   heroBannerUrl: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
   heroBannerPosition: 82,
   schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
+  poloSampleUrl: "/sample-polo-k8a1.jpg",
   backdrops: DEFAULT_BACKDROPS,
   musicPlaylist: DEFAULT_PLAYLIST,
   stageSettings: DEFAULT_STAGE_SETTINGS

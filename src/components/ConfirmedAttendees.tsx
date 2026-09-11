@@ -22,7 +22,11 @@ import {
   ArrowUp,
   AlertTriangle,
   Info,
-  ChevronUp
+  ChevronUp,
+  ZoomIn,
+  Eye,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig } from '../types';
@@ -48,6 +52,7 @@ export default function ConfirmedAttendees({
   onOpenReceiptModal
 }: ConfirmedAttendeesProps) {
   const standardFundAmount = Number(eventConfig?.fundAmountPerPerson) || 700000;
+  const poloImageUrl = eventConfig?.poloSampleUrl || '/sample-polo-k8a1.jpg';
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'yes' | 'all' | 'no'>('yes');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
@@ -60,6 +65,7 @@ export default function ConfirmedAttendees({
   const [selectedShirtFilter, setSelectedShirtFilter] = useState<string | null>(null);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [copiedShirtSummary, setCopiedShirtSummary] = useState(false);
+  const [showPoloModal, setShowPoloModal] = useState(false);
 
   // Total confirmed
   const confirmedAttendees = useMemo(() => {
@@ -364,122 +370,169 @@ export default function ConfirmedAttendees({
           </div>
         </div>
 
-        {/* Interactive Size Grid (Click to filter list below) */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-1 relative z-10">
-          {[
-            { key: 'S', label: 'Size S', weight: '35 - 45kg', chest: '41cm', length: '55cm', shoulder: '35cm' },
-            { key: 'M', label: 'Size M', weight: '45 - 55kg', chest: '44cm', length: '59cm', shoulder: '37cm' },
-            { key: 'L', label: 'Size L', weight: '55 - 65kg', chest: '47cm', length: '63cm', shoulder: '39cm' },
-            { key: 'XL', label: 'Size XL', weight: '65 - 75kg', chest: '49cm', length: '67cm', shoulder: '41cm' },
-            { key: 'XXL', label: 'Size 2XL', weight: '75 - 85kg', chest: '51cm', length: '70cm', shoulder: '43cm' },
-            { key: 'XXXL', label: 'Size 3XL', weight: '85 - 95kg', chest: '53cm', length: '73cm', shoulder: '45cm' },
-          ].map((item) => {
-            const count = shirtStats[item.key] || 0;
-            const isSelected = selectedShirtFilter === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => {
-                  if (isSelected) {
-                    setSelectedShirtFilter(null);
-                  } else {
-                    setSelectedShirtFilter(item.key);
-                    if (statusFilter === 'no') setStatusFilter('yes');
-                    setVisibleCount(15);
-                  }
-                }}
-                className={`relative p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between group ${
-                  isSelected
-                    ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400 ring-offset-1 scale-[1.02]'
-                    : count > 0
-                    ? 'bg-white/95 hover:bg-amber-50/80 border-amber-200/90 hover:border-amber-400 text-slate-800 shadow-2xs hover:shadow-xs'
-                    : 'bg-white/60 border-slate-200 text-slate-400 hover:border-amber-300'
-                }`}
-                title={`Bấm để ${isSelected ? 'bỏ lọc' : `lọc danh sách thành viên đăng ký ${item.label}`}`}
-              >
-                <div className="w-full flex items-center justify-between gap-1 text-[11px] font-bold">
-                  <span className={`font-serif tracking-tight ${isSelected ? 'text-amber-100' : 'text-amber-900'}`}>
-                    {item.label}
-                  </span>
-                  {isSelected && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  )}
-                </div>
+        {/* Content Row: Compact Size Tiles (Left/Center) + Sample Uniform Preview (Right) */}
+        <div className="flex flex-col lg:flex-row items-stretch gap-2.5 sm:gap-3 pt-1 relative z-10">
+          
+          {/* Cột Trái: 7 Ô Size Tinh Gọn (Interactive Compact Size Tiles) */}
+          <div className="flex-1 min-w-0 grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2">
+            {[
+              { key: 'S', label: 'Size S', weight: '35 - 45kg', chest: '41cm', length: '55cm', shoulder: '35cm' },
+              { key: 'M', label: 'Size M', weight: '45 - 55kg', chest: '44cm', length: '59cm', shoulder: '37cm' },
+              { key: 'L', label: 'Size L', weight: '55 - 65kg', chest: '47cm', length: '63cm', shoulder: '39cm' },
+              { key: 'XL', label: 'Size XL', weight: '65 - 75kg', chest: '49cm', length: '67cm', shoulder: '41cm' },
+              { key: 'XXL', label: 'Size 2XL', weight: '75 - 85kg', chest: '51cm', length: '70cm', shoulder: '43cm' },
+              { key: 'XXXL', label: 'Size 3XL', weight: '85 - 95kg', chest: '53cm', length: '73cm', shoulder: '45cm' },
+            ].map((item) => {
+              const count = shirtStats[item.key] || 0;
+              const isSelected = selectedShirtFilter === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedShirtFilter(null);
+                    } else {
+                      setSelectedShirtFilter(item.key);
+                      if (statusFilter === 'no') setStatusFilter('yes');
+                      setVisibleCount(15);
+                    }
+                  }}
+                  className={`relative p-1.5 sm:p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between group min-h-[66px] sm:min-h-[72px] ${
+                    isSelected
+                      ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400 ring-offset-1 scale-[1.02]'
+                      : count > 0
+                      ? 'bg-white/95 hover:bg-amber-50/80 border-amber-200/90 hover:border-amber-400 text-slate-800 shadow-2xs hover:shadow-xs'
+                      : 'bg-white/60 border-slate-200 text-slate-400 hover:border-amber-300'
+                  }`}
+                  title={`Bấm để ${isSelected ? 'bỏ lọc' : `lọc danh sách thành viên đăng ký ${item.label}`}`}
+                >
+                  <div className="w-full flex items-center justify-between gap-0.5 text-[10px] sm:text-[11px] font-bold">
+                    <span className={`font-serif tracking-tight truncate ${isSelected ? 'text-amber-100' : 'text-amber-900'}`}>
+                      {item.label}
+                    </span>
+                    {isSelected && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
+                    )}
+                  </div>
 
-                <div className="my-1 flex items-baseline justify-center">
-                  <span className={`text-xl sm:text-2xl font-serif font-black tracking-tight ${
-                    isSelected ? 'text-white' : count > 0 ? 'text-amber-950' : 'text-slate-400'
+                  <div className="my-0.5 flex items-baseline justify-center">
+                    <span className={`text-base sm:text-xl font-serif font-black tracking-tight ${
+                      isSelected ? 'text-white' : count > 0 ? 'text-amber-950' : 'text-slate-400'
+                    }`}>
+                      {count}
+                    </span>
+                    <span className={`text-[9px] font-sans ml-0.5 ${isSelected ? 'text-amber-100' : 'text-slate-500'}`}>
+                      áo
+                    </span>
+                  </div>
+
+                  <div className={`text-[8.5px] sm:text-[9.5px] font-sans truncate w-full ${
+                    isSelected ? 'text-amber-100' : 'text-slate-500'
                   }`}>
-                    {count}
-                  </span>
-                  <span className={`text-[10px] font-sans ml-0.5 ${isSelected ? 'text-amber-100' : 'text-slate-500'}`}>
-                    áo
-                  </span>
-                </div>
+                    {item.weight}
+                  </div>
+                </button>
+              );
+            })}
 
-                <div className={`text-[10px] font-sans truncate w-full ${
-                  isSelected ? 'text-amber-100' : 'text-slate-500'
-                }`}>
-                  {item.weight}
-                </div>
-              </button>
-            );
-          })}
+            {/* Tile 7: Chưa chọn size */}
+            {(() => {
+              const count = confirmedWithoutShirt.length;
+              const isSelected = selectedShirtFilter === 'none';
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedShirtFilter(null);
+                    } else {
+                      setSelectedShirtFilter('none');
+                      if (statusFilter === 'no') setStatusFilter('yes');
+                      setVisibleCount(15);
+                    }
+                  }}
+                  className={`relative p-1.5 sm:p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between group min-h-[66px] sm:min-h-[72px] ${
+                    isSelected
+                      ? 'bg-gradient-to-b from-rose-500 to-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-400 ring-offset-1 scale-[1.02]'
+                      : count > 0
+                      ? 'bg-rose-50/70 hover:bg-rose-100/80 border-rose-200/90 hover:border-rose-400 text-rose-900 shadow-2xs hover:shadow-xs'
+                      : 'bg-emerald-50/60 border-emerald-200 text-emerald-800'
+                  }`}
+                  title={count > 0 ? `Bấm để ${isSelected ? 'bỏ lọc' : `lọc ${count} bạn có mặt chưa chọn size`}` : 'Tất cả các bạn có mặt đều đã chọn size'}
+                >
+                  <div className="w-full flex items-center justify-between gap-0.5 text-[10px] sm:text-[11px] font-bold">
+                    <span className={`truncate ${isSelected ? 'text-rose-100' : count > 0 ? 'text-rose-800' : 'text-emerald-800'}`}>
+                      {count > 0 ? 'Chưa chọn' : 'Đã chọn đủ'}
+                    </span>
+                    {count > 0 && !isSelected && (
+                      <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />
+                    )}
+                  </div>
 
-          {/* Tile 7: Chưa chọn size */}
-          {(() => {
-            const count = confirmedWithoutShirt.length;
-            const isSelected = selectedShirtFilter === 'none';
-            return (
-              <button
-                type="button"
-                onClick={() => {
-                  if (isSelected) {
-                    setSelectedShirtFilter(null);
-                  } else {
-                    setSelectedShirtFilter('none');
-                    if (statusFilter === 'no') setStatusFilter('yes');
-                    setVisibleCount(15);
-                  }
-                }}
-                className={`relative p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between group ${
-                  isSelected
-                    ? 'bg-gradient-to-b from-rose-500 to-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-400 ring-offset-1 scale-[1.02]'
-                    : count > 0
-                    ? 'bg-rose-50/70 hover:bg-rose-100/80 border-rose-200/90 hover:border-rose-400 text-rose-900 shadow-2xs hover:shadow-xs'
-                    : 'bg-emerald-50/60 border-emerald-200 text-emerald-800'
-                }`}
-                title={count > 0 ? `Bấm để ${isSelected ? 'bỏ lọc' : `lọc ${count} bạn có mặt chưa chọn size`}` : 'Tất cả các bạn có mặt đều đã chọn size'}
-              >
-                <div className="w-full flex items-center justify-between gap-1 text-[11px] font-bold">
-                  <span className={`truncate ${isSelected ? 'text-rose-100' : count > 0 ? 'text-rose-800' : 'text-emerald-800'}`}>
-                    {count > 0 ? 'Chưa chọn' : 'Đã chọn đủ'}
-                  </span>
-                  {count > 0 && !isSelected && (
-                    <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />
-                  )}
-                </div>
+                  <div className="my-0.5 flex items-baseline justify-center">
+                    <span className={`text-base sm:text-xl font-serif font-black tracking-tight ${
+                      isSelected ? 'text-white' : count > 0 ? 'text-rose-700' : 'text-emerald-700'
+                    }`}>
+                      {count}
+                    </span>
+                    <span className={`text-[9px] font-sans ml-0.5 ${isSelected ? 'text-rose-100' : 'text-slate-500'}`}>
+                      bạn
+                    </span>
+                  </div>
 
-                <div className="my-1 flex items-baseline justify-center">
-                  <span className={`text-xl sm:text-2xl font-serif font-black tracking-tight ${
-                    isSelected ? 'text-white' : count > 0 ? 'text-rose-700' : 'text-emerald-700'
+                  <div className={`text-[8.5px] sm:text-[9.5px] font-sans truncate w-full ${
+                    isSelected ? 'text-rose-100' : count > 0 ? 'text-rose-600 font-semibold' : 'text-emerald-600'
                   }`}>
-                    {count}
-                  </span>
-                  <span className={`text-[10px] font-sans ml-0.5 ${isSelected ? 'text-rose-100' : 'text-slate-500'}`}>
-                    bạn
-                  </span>
-                </div>
+                    {count > 0 ? 'Cần nhắc' : '100% đủ'}
+                  </div>
+                </button>
+              );
+            })()}
+          </div>
 
-                <div className={`text-[10px] font-sans truncate w-full ${
-                  isSelected ? 'text-rose-100' : count > 0 ? 'text-rose-600 font-semibold' : 'text-emerald-600'
-                }`}>
-                  {count > 0 ? 'Cần nhắc chọn' : '100% hoàn thành'}
-                </div>
-              </button>
-            );
-          })()}
+          {/* Cột Phải: Khung Ảnh Nhỏ Mẫu Đồng Phục K8A1 (Click phóng to mở modal) */}
+          <div className="w-full lg:w-44 xl:w-48 shrink-0 flex flex-col justify-between p-2 rounded-xl border border-amber-300/90 bg-white/95 shadow-2xs hover:shadow-xs hover:border-amber-400 transition-all group">
+            <div className="flex items-center justify-between gap-1 pb-1 border-b border-amber-100/90 text-[10px] font-sans font-bold text-amber-900">
+              <span className="flex items-center gap-1">
+                <Shirt className="w-3 h-3 text-amber-600" />
+                <span>Mẫu Áo Thực Tế</span>
+              </span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-semibold">20 Năm</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowPoloModal(true)}
+              className="relative my-1.5 w-full h-18 sm:h-20 rounded-lg overflow-hidden border border-amber-200/80 bg-amber-50 cursor-pointer block group/thumb text-left"
+              title="Bấm vào đây để phóng to xem chi tiết mẫu áo polo đồng phục K8A1"
+            >
+              <img
+                src={poloImageUrl}
+                alt="Mẫu áo đồng phục Polo K8A1"
+                className="w-full h-full object-cover object-center group-hover/thumb:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/15 to-transparent opacity-80 group-hover/thumb:opacity-95 transition-opacity flex items-end justify-between p-1.5">
+                <span className="text-[10px] font-bold text-white flex items-center gap-1 drop-shadow-xs">
+                  <ZoomIn className="w-3 h-3 text-amber-300" />
+                  <span>Phóng to</span>
+                </span>
+                <span className="text-[8.5px] bg-white/90 text-slate-900 px-1 py-0.2 rounded font-medium shadow-2xs">
+                  Xem mẫu
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowPoloModal(true)}
+              className="w-full py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 font-sans font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer border border-amber-200/90 hover:border-amber-300"
+            >
+              <Eye className="w-3 h-3 text-amber-700" />
+              <span>Xem ảnh to</span>
+            </button>
+          </div>
         </div>
 
         {/* Collapsible Size Guide Table */}
@@ -1218,6 +1271,96 @@ export default function ConfirmedAttendees({
               >
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Phóng To Xem Ảnh Mẫu Áo Polo Đồng Phục K8A1 (Polo Sample Lightbox) */}
+      {showPoloModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setShowPoloModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border-2 border-amber-400/90 overflow-hidden flex flex-col max-h-[92vh] animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-amber-200/80 bg-gradient-to-r from-amber-500/10 via-[#FFFDF9] to-amber-100/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center shadow-xs shrink-0 ring-2 ring-amber-300/60">
+                  <Shirt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span>Mẫu Áo Polo Đồng Phục K8A1</span>
+                    <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      Kỷ niệm 20 Năm
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-600 font-sans pt-0.5">
+                    Thun cá sấu 4 chiều cao cấp • Cổ áo & tay áo bo viền hổ phách • Thêu logo vàng kim ngực trái
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPoloModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
+                title="Đóng (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body - Large Image Display */}
+            <div className="p-3 sm:p-5 overflow-y-auto flex-1 flex items-center justify-center bg-[#FAF8F5]">
+              <div className="relative rounded-xl overflow-hidden border border-amber-200/90 bg-white shadow-md max-h-[64vh] flex items-center justify-center">
+                <img
+                  src={poloImageUrl}
+                  alt="Mẫu thiết kế áo polo đồng phục 20 năm K8A1"
+                  className="max-h-[60vh] w-auto object-contain select-none"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 sm:p-3.5 border-t border-amber-200/80 bg-[#FFFDF9] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
+              <div className="text-[11px] text-slate-600 flex items-center gap-1.5 font-sans">
+                <span className="text-amber-700 font-bold">📁 Lưu trữ:</span>
+                <span>Ảnh mẫu đã được lưu vào thư mục Drive <strong>ChungTu_QuyLop_K8A1</strong></span>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={poloImageUrl}
+                  download="Mau_Ao_Polo_K8A1_20Nam.jpg"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-slate-800 font-sans font-bold text-[11px] transition shadow-2xs cursor-pointer"
+                  title="Tải ảnh mẫu áo polo về máy"
+                >
+                  <Download className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Tải ảnh về</span>
+                </a>
+                <a
+                  href={poloImageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-slate-800 font-sans font-bold text-[11px] transition shadow-2xs cursor-pointer"
+                  title="Mở ảnh gốc trong tab mới"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Mở tab mới</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowPoloModal(false)}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-sans font-bold text-[11px] transition shadow-2xs cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>
