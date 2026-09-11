@@ -13,11 +13,13 @@ import {
   Camera,
   Trash2,
   Download,
-  Shirt
+  Shirt,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig, ClassMember } from '../types';
-import { SHIRT_SIZE_OPTIONS, normalizeShirtSize, isVietnameseNameMatch } from '../data';
+import { SHIRT_SIZE_OPTIONS, normalizeShirtSize, isVietnameseNameMatch, uploadMemberAvatarViaBackend } from '../data';
+import { parseMemberNote } from '../utils/memberUtils';
 
 interface StudentPassModalProps {
   isOpen: boolean;
@@ -27,6 +29,8 @@ interface StudentPassModalProps {
   classRoster?: ClassMember[];
   activeMember?: ClassMember | null;
   eventConfig?: EventConfig;
+  appsScriptUrl?: string;
+  onUpdateAvatar?: (data: { memberId?: string; fullName: string; avatarUrl: string }) => void;
 }
 
 function normalizeName(n?: any): string {
@@ -64,12 +68,16 @@ export default function StudentPassModal({
   allAttendees = [],
   classRoster = [],
   activeMember,
-  eventConfig
+  eventConfig,
+  appsScriptUrl,
+  onUpdateAvatar
 }: StudentPassModalProps) {
   const [name, setName] = useState(defaultAttendee?.fullName || 'Thành Long');
   const [className, setClassName] = useState(defaultAttendee?.className || 'K8A1');
   const [shirtSize, setShirtSize] = useState(defaultAttendee?.shirtSize ? normalizeShirtSize(defaultAttendee.shirtSize) : '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(defaultAttendee?.avatarUrl || null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarUploadMsg, setAvatarUploadMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -77,9 +85,22 @@ export default function StudentPassModal({
   const cardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper to load avatar from localStorage or attendee
+  // Helper to load avatar from attendee, classRoster note metadata, or localStorage
   const getSavedAvatar = (personName: string, attendeeObj?: RsvpData | null): string | null => {
     if (attendeeObj?.avatarUrl) return attendeeObj.avatarUrl;
+
+    if (classRoster && classRoster.length > 0) {
+      const found = classRoster.find(m => 
+        (attendeeObj?.memberId && m.id === attendeeObj.memberId) || 
+        normalizeName(m.fullName) === normalizeName(personName) || 
+        (m.nickname && normalizeName(m.nickname) === normalizeName(personName))
+      );
+      if (found) {
+        const meta = found.noteMeta || parseMemberNote(found.note).meta;
+        if (meta?.avatarUrl) return meta.avatarUrl;
+      }
+    }
+
     try {
       const key = `k8a1_avatar_${personName.trim().toLowerCase()}`;
       return localStorage.getItem(key) || null;
@@ -241,6 +262,39 @@ export default function StudentPassModal({
           } catch (err) {
             console.warn('LocalStorage save error:', err);
           }
+
+          // Tự động tải avatar lên Google Drive (Folder con Avatar_Thanh_Vien)
+          setIsUploadingAvatar(true);
+          setAvatarUploadMsg('Đang lưu avatar vào Google Drive...');
+          uploadMemberAvatarViaBackend({
+            fileData: dataUrl,
+            memberId: effectiveMemberId,
+            fullName: name
+          }, appsScriptUrl).then((res) => {
+            setIsUploadingAvatar(false);
+            if (res.success && res.avatarUrl) {
+              setAvatarUrl(res.avatarUrl);
+              setAvatarUploadMsg('✓ Đã lưu avatar vào thư mục Avatar_Thanh_Vien trên Drive!');
+              try {
+                const key = `k8a1_avatar_${name.trim().toLowerCase()}`;
+                localStorage.setItem(key, res.avatarUrl);
+              } catch (e) {}
+              if (onUpdateAvatar) {
+                onUpdateAvatar({
+                  memberId: effectiveMemberId,
+                  fullName: name,
+                  avatarUrl: res.avatarUrl
+                });
+              }
+            } else {
+              setAvatarUploadMsg(res.message || 'Đã lưu trên máy (chưa đồng bộ Drive)');
+            }
+            setTimeout(() => setAvatarUploadMsg(''), 5000);
+          }).catch(() => {
+            setIsUploadingAvatar(false);
+            setAvatarUploadMsg('Đã lưu tạm trên máy (chờ mạng để đẩy lên Drive)');
+            setTimeout(() => setAvatarUploadMsg(''), 5000);
+          });
         }
       };
       img.src = event.target?.result as string;
@@ -257,6 +311,13 @@ export default function StudentPassModal({
     } catch {}
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (onUpdateAvatar) {
+      onUpdateAvatar({
+        memberId: effectiveMemberId,
+        fullName: name,
+        avatarUrl: ''
+      });
     }
   };
 
@@ -779,6 +840,19 @@ export default function StudentPassModal({
                 <Camera className="w-3.5 h-3.5 text-amber-700" />
                 <span>{avatarUrl ? 'Đổi ảnh chân dung' : 'Tải ảnh đại diện / thẻ'}</span>
               </button>
+
+              {isUploadingAvatar && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-1 rounded">
+                  <Loader2 className="w-3 h-3 animate-spin text-amber-700" />
+                  <span>Đang lưu Drive...</span>
+                </span>
+              )}
+
+              {avatarUploadMsg && !isUploadingAvatar && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-1 rounded">
+                  <span>{avatarUploadMsg}</span>
+                </span>
+              )}
 
               {avatarUrl && (
                 <button

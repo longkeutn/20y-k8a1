@@ -4584,6 +4584,10 @@ function doPost(e) {
       return handleResponse(uploadPhotoToDrive(postData));
     }
 
+    if (action === 'upload_member_avatar' || action === 'upload_avatar' || action === 'uploadMemberAvatar') {
+      return handleResponse(uploadMemberAvatarToDrive(postData));
+    }
+
     if (action === 'upload_fund_receipt' || action === 'upload_receipt' || action === 'upload_expense_receipt') {
       return handleResponse(uploadFundReceiptToDrive(postData));
     }
@@ -5737,6 +5741,140 @@ function uploadFundReceiptToDrive(data) {
     };
   } catch (e) {
     return { status: 'error', message: 'Lỗi upload chứng từ Drive: ' + e.toString() };
+  }
+}
+
+/**
+ * Tải ảnh đại diện / Avatar học sinh lên thư mục con "Avatar_Thanh_Vien" trong Google Drive
+ * và tự động cập nhật link vào chuỗi JSON cột Ghi chú của Tab Danh_Sach_Lop
+ */
+function uploadMemberAvatarToDrive(data) {
+  const rootFolderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+  let rootFolder = null;
+
+  if (rootFolderId) {
+    try {
+      rootFolder = DriveApp.getFolderById(rootFolderId);
+    } catch (e) {
+      console.warn("Không mở được root folder: " + e.toString());
+    }
+  }
+
+  if (!rootFolder) {
+    try {
+      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
+      if (folders.hasNext()) {
+        rootFolder = folders.next();
+      } else {
+        rootFolder = DriveApp.createFolder("K8A1_KyNiem_20Nam");
+        rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
+    } catch (e) {
+      rootFolder = DriveApp.getRootFolder();
+    }
+  }
+
+  // Tự động tìm hoặc tạo thư mục con riêng biệt "Avatar_Thanh_Vien"
+  let avatarFolder = null;
+  try {
+    const subFolders = rootFolder.getFoldersByName("Avatar_Thanh_Vien");
+    if (subFolders.hasNext()) {
+      avatarFolder = subFolders.next();
+    } else {
+      avatarFolder = rootFolder.createFolder("Avatar_Thanh_Vien");
+      avatarFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+  } catch (e) {
+    avatarFolder = rootFolder;
+  }
+
+  try {
+    let rawBase64 = data.fileData || data.base64 || data.imageBase64 || '';
+    if (rawBase64.indexOf(',') > -1) {
+      rawBase64 = rawBase64.split(',')[1];
+    }
+    if (!rawBase64) {
+      return { status: 'error', message: 'Không tìm thấy dữ liệu ảnh base64' };
+    }
+
+    const decoded = Utilities.base64Decode(rawBase64);
+
+    const cleanStr = function(str) {
+      if (!str) return '';
+      return String(str)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+    };
+
+    const memberId = String(data.memberId || data.id || '').trim();
+    const fullName = cleanStr(data.fullName || data.name || 'ThanhVien');
+    const now = new Date();
+    const pad = function(n) { return n < 10 ? '0' + n : String(n); };
+    const timeStamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes());
+    const fileName = 'Avatar_' + (memberId ? memberId + '_' : '') + fullName + '_' + timeStamp + '.jpg';
+
+    const blob = Utilities.newBlob(decoded, 'image/jpeg', fileName);
+    const file = avatarFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileId = file.getId();
+    const directUrl = 'https://lh3.googleusercontent.com/d/' + fileId + '=w1000';
+    const driveUrl = file.getUrl();
+
+    // 1. Cập nhật vào Tab Danh_Sach_Lop (cột 8 - chuỗi JSON ghi chú)
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const rosterSheet = ss.getSheetByName(CONFIG.ROSTER_SHEET_NAME);
+    if (rosterSheet) {
+      const rows = rosterSheet.getDataRange().getValues();
+      for (let i = 1; i < rows.length; i++) {
+        const rowId = String(rows[i][0] || '').trim();
+        const rowName = String(rows[i][1] || '').trim().toLowerCase();
+        const targetName = String(data.fullName || data.name || '').trim().toLowerCase();
+
+        if ((memberId && rowId === memberId) || (targetName && rowName === targetName)) {
+          let currentNote = String(rows[i][7] || '').trim();
+          let noteObj = {};
+          if (currentNote.startsWith('{') && currentNote.endsWith('}')) {
+            try { noteObj = JSON.parse(currentNote); } catch (e) {}
+          } else if (currentNote) {
+            noteObj.generalNote = currentNote;
+          }
+          noteObj.avatarUrl = directUrl;
+          rosterSheet.getRange(i + 1, 8).setValue(JSON.stringify(noteObj));
+          break;
+        }
+      }
+    }
+
+    // 2. Cập nhật vào Tab Điểm danh RSVP (cột 9 / avatarUrl)
+    const rsvpSheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+    if (rsvpSheet) {
+      const rRows = rsvpSheet.getDataRange().getValues();
+      for (let j = 1; j < rRows.length; j++) {
+        const rMemberId = String(rRows[j][0] || '').trim();
+        const rName = String(rRows[j][2] || '').trim().toLowerCase();
+        const targetName = String(data.fullName || data.name || '').trim().toLowerCase();
+        if ((memberId && rMemberId === memberId) || (targetName && rName === targetName)) {
+          rsvpSheet.getRange(j + 1, 9).setValue(directUrl);
+          break;
+        }
+      }
+    }
+
+    return {
+      status: 'success',
+      avatarUrl: directUrl,
+      directUrl: directUrl,
+      driveUrl: driveUrl,
+      fileId: fileId,
+      message: 'Đã lưu avatar vào thư mục Drive Avatar_Thanh_Vien và cập nhật chuỗi JSON thành công!'
+    };
+  } catch (err) {
+    return { status: 'error', message: 'Lỗi tải avatar lên Drive: ' + err.toString() };
   }
 }
 
@@ -7316,5 +7454,59 @@ export async function uploadBackdropViaBackend(
     return { success: false, message: 'Lỗi kết nối máy chủ Drive: ' + (err?.message || err) };
   }
 }
+
+/**
+ * Tải ảnh đại diện của học sinh lên thư mục con "Avatar_Thanh_Vien" trên Google Drive
+ * Đồng thời tự động cập nhật link ảnh vào chuỗi JSON của thành viên
+ */
+export async function uploadMemberAvatarViaBackend(
+  payload: {
+    fileData: string;
+    memberId?: string;
+    fullName?: string;
+  },
+  appsScriptUrl?: string
+): Promise<{ success: boolean; avatarUrl?: string; message?: string }> {
+  const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
+    ? appsScriptUrl.trim()
+    : DEFAULT_APPS_SCRIPT_URL;
+
+  if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
+  }
+
+  try {
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'upload_member_avatar',
+        fileData: payload.fileData,
+        memberId: payload.memberId || '',
+        fullName: payload.fullName || ''
+      })
+    });
+
+    const json = await res.json();
+    if (json && (json.status === 'success' || json.avatarUrl)) {
+      return {
+        success: true,
+        avatarUrl: json.avatarUrl || json.directUrl || json.url,
+        message: json.message || 'Đã lưu avatar vào thư mục Avatar_Thanh_Vien trên Google Drive!'
+      };
+    }
+
+    return {
+      success: false,
+      message: json?.message || 'Không thể lưu avatar lên Google Drive'
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: 'Lỗi kết nối máy chủ Google Drive: ' + (err?.message || err)
+    };
+  }
+}
+
 
 

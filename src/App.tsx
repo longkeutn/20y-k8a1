@@ -32,7 +32,7 @@ import {
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
 import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
-import { parseMemberNote } from './utils/memberUtils';
+import { parseMemberNote, serializeMemberNote } from './utils/memberUtils';
 
 import AudioPlayer from './components/AudioPlayer';
 import CountdownTimer from './components/CountdownTimer';
@@ -411,12 +411,14 @@ export default function App() {
       const updatedRsvp = prev.map(r => {
         if (r.memberId && rosterMap.has(r.memberId)) {
           const m = rosterMap.get(r.memberId)!;
+          const parsed = parseMemberNote(m.note);
           return {
             ...r,
             fullName: m.fullName,
             nickname: m.nickname || r.nickname,
             phone: m.phone || r.phone,
-            shirtSize: normalizeShirtSize(m.shirtSize) || normalizeShirtSize(r.shirtSize)
+            shirtSize: normalizeShirtSize(m.shirtSize) || normalizeShirtSize(r.shirtSize),
+            avatarUrl: parsed.meta.avatarUrl || r.avatarUrl
           };
         }
         return r;
@@ -429,6 +431,86 @@ export default function App() {
 
     // Ghi trực tiếp lên Google Sheet tab "Danh_Sach_Lop" (Backend sẽ tự cascade sang sheet Điểm danh)
     syncToBackend('save_roster', { roster: sanitized });
+  };
+
+  // Cập nhật Avatar thành viên đồng thời vào chuỗi JSON Danh Bạ Lớp và RSVP
+  const handleUpdateAvatar = ({ memberId, fullName, avatarUrl }: { memberId?: string; fullName: string; avatarUrl: string }) => {
+    // 1. Cập nhật classRoster (lưu chuỗi JSON vào Cột H tab Danh_Sach_Lop)
+    setClassRoster(prev => {
+      let targetId = memberId;
+      if (!targetId) {
+        const found = prev.find(m => isVietnameseNameMatch(m, fullName));
+        if (found) targetId = found.id;
+      }
+      if (!targetId) return prev;
+
+      const updated = prev.map(m => {
+        if (m.id === targetId) {
+          const parsed = parseMemberNote(m.note);
+          if (avatarUrl) {
+            parsed.meta.avatarUrl = avatarUrl;
+          } else {
+            delete parsed.meta.avatarUrl;
+          }
+          const newNote = serializeMemberNote(parsed.meta);
+          return {
+            ...m,
+            note: newNote,
+            noteMeta: parsed.meta
+          };
+        }
+        return m;
+      });
+
+      try {
+        localStorage.setItem('k8a1_class_roster', JSON.stringify(updated));
+      } catch (e) {}
+
+      // Tự động đồng bộ lên Google Sheet backend
+      syncToBackend('save_roster', { roster: updated });
+
+      return updated;
+    });
+
+    // 2. Cập nhật rsvpList (lưu vào state và localStorage)
+    setRsvpList(prev => {
+      const updated = prev.map(r => {
+        if ((memberId && r.memberId === memberId) || isVietnameseNameMatch({ fullName: r.fullName, nickname: r.nickname }, fullName)) {
+          return {
+            ...r,
+            avatarUrl: avatarUrl || undefined
+          };
+        }
+        return r;
+      });
+      try {
+        localStorage.setItem('rsvp_list', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 3. Cập nhật activeMember nếu đang chọn đúng người này
+    setActiveMember(prev => {
+      if (!prev) return null;
+      if ((memberId && prev.id === memberId) || isVietnameseNameMatch(prev, fullName)) {
+        const parsed = parseMemberNote(prev.note);
+        if (avatarUrl) {
+          parsed.meta.avatarUrl = avatarUrl;
+        } else {
+          delete parsed.meta.avatarUrl;
+        }
+        const updated = {
+          ...prev,
+          note: serializeMemberNote(parsed.meta),
+          noteMeta: parsed.meta
+        };
+        try {
+          localStorage.setItem('k8a1_active_member', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      }
+      return prev;
+    });
   };
 
   // Đồng bộ định danh thành viên toàn bộ WebApp (chọn 1 lần sẽ tự điền ở Lưu bút, Điểm danh RSVP, Quỹ lớp)
@@ -2548,6 +2630,8 @@ export default function App() {
         classRoster={classRoster}
         activeMember={activeMember}
         eventConfig={eventConfig}
+        appsScriptUrl={activeAppsScriptUrl}
+        onUpdateAvatar={handleUpdateAvatar}
       />
 
       {/* Modal Tải Lên Biên Lai Đóng Quỹ (Self-Service Receipt Uploader) */}

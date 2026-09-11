@@ -1,6 +1,7 @@
 export type UserRole = 'guest' | 'bll' | 'treasurer' | 'admin';
 
 export interface MemberNoteMetadata {
+  avatarUrl?: string;       // Link ảnh thẻ / avatar trên Google Drive (thư mục con Avatar_Thanh_Vien)
   residence?: string;       // Nơi ở hiện tại (Tỉnh/Thành phố hoặc địa chỉ cụ thể)
   workplace?: string;       // Nơi công tác / Đơn vị / Cơ quan / Doanh nghiệp
   occupation?: string;      // Nghề nghiệp / Chức danh / Lĩnh vực chuyên môn

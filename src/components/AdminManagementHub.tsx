@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import {
@@ -106,6 +106,7 @@ import {
   DEFAULT_PLAYLIST,
   DEFAULT_STAGE_SETTINGS,
   uploadBackdropViaBackend,
+  uploadMemberAvatarViaBackend,
   fetchDriveBackdrops,
   VIETNAM_BANKS, 
   resolveBankCode, 
@@ -631,6 +632,7 @@ export default function AdminManagementHub({
     gender: 'male' as 'male' | 'female',
     shirtSize: '',
     note: '',
+    avatarUrl: '',
     residence: 'Thái Nguyên',
     residenceCustom: '',
     workplace: '',
@@ -643,6 +645,9 @@ export default function AdminManagementHub({
     contactStatus: 'Đã kết nối',
     generalNote: ''
   });
+  const [isUploadingRosterAvatar, setIsUploadingRosterAvatar] = useState(false);
+  const [rosterAvatarUploadMsg, setRosterAvatarUploadMsg] = useState('');
+  const rosterAvatarFileInputRef = useRef<HTMLInputElement>(null);
   const [isRosterSyncing, setIsRosterSyncing] = useState(false);
   const [rosterFeedbackMsg, setRosterFeedbackMsg] = useState('');
 
@@ -1805,6 +1810,7 @@ export default function AdminManagementHub({
       gender: 'male',
       shirtSize: '',
       note: '',
+      avatarUrl: '',
       residence: 'Thái Nguyên',
       residenceCustom: '',
       workplace: '',
@@ -1817,6 +1823,8 @@ export default function AdminManagementHub({
       contactStatus: 'Đã kết nối',
       generalNote: ''
     });
+    setIsUploadingRosterAvatar(false);
+    setRosterAvatarUploadMsg('');
     setIsRosterModalOpen(true);
   };
 
@@ -1839,6 +1847,7 @@ export default function AdminManagementHub({
       gender: member.gender || 'male',
       shirtSize: member.shirtSize ? normalizeShirtSize(member.shirtSize) : '',
       note: String(member.note || ''),
+      avatarUrl: meta.avatarUrl || '',
       residence: isKnownRes ? existingRes : (existingRes ? '__custom__' : 'Thái Nguyên'),
       residenceCustom: isKnownRes ? '' : existingRes,
       workplace: meta.workplace || '',
@@ -1851,7 +1860,79 @@ export default function AdminManagementHub({
       contactStatus: meta.contactStatus || 'Đã kết nối',
       generalNote: meta.generalNote || ''
     });
+    setIsUploadingRosterAvatar(false);
+    setRosterAvatarUploadMsg('');
     setIsRosterModalOpen(true);
+  };
+
+  // Nén ảnh canvas và tải trực tiếp lên Google Drive (Thư mục Avatar_Thanh_Vien)
+  const handleRosterAvatarUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file hình ảnh (JPG, PNG, WebP)!');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_WIDTH = 400;
+        const MAX_HEIGHT = 500;
+        let { width, height } = img;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          setRosterFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+
+          setIsUploadingRosterAvatar(true);
+          setRosterAvatarUploadMsg('Đang lưu avatar vào Google Drive...');
+          
+          uploadMemberAvatarViaBackend({
+            fileData: dataUrl,
+            memberId: rosterFormData.id || undefined,
+            fullName: rosterFormData.fullName || 'Thành viên'
+          }, appsScriptUrl).then((res) => {
+            setIsUploadingRosterAvatar(false);
+            if (res.success && res.avatarUrl) {
+              setRosterFormData(prev => ({ ...prev, avatarUrl: res.avatarUrl }));
+              setRosterAvatarUploadMsg('✓ Đã lưu avatar vào thư mục Avatar_Thanh_Vien trên Drive!');
+              try {
+                if (rosterFormData.fullName) {
+                  const key = `k8a1_avatar_${rosterFormData.fullName.trim().toLowerCase()}`;
+                  localStorage.setItem(key, res.avatarUrl);
+                }
+              } catch (e) {}
+            } else {
+              setRosterAvatarUploadMsg(res.message || 'Đã lưu tạm (chưa đồng bộ Drive)');
+            }
+            setTimeout(() => setRosterAvatarUploadMsg(''), 5000);
+          }).catch(() => {
+            setIsUploadingRosterAvatar(false);
+            setRosterAvatarUploadMsg('Đã lưu tạm trên trình duyệt');
+            setTimeout(() => setRosterAvatarUploadMsg(''), 5000);
+          });
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveRosterMember = (e: React.FormEvent) => {
@@ -1880,6 +1961,7 @@ export default function AdminManagementHub({
       : String(rosterFormData.occupation || '').trim();
 
     const noteMetadata: MemberNoteMetadata = {
+      avatarUrl: String(rosterFormData.avatarUrl || '').trim() || undefined,
       residence: effectiveResidence || undefined,
       workplace: String(rosterFormData.workplace || '').trim() || undefined,
       occupation: effectiveOccupation || undefined,
@@ -1951,7 +2033,8 @@ export default function AdminManagementHub({
             fullName: cleanName,
             nickname: String(rosterFormData.nickname || '').trim(),
             phone: String(rosterFormData.phone || '').trim(),
-            shirtSize: cleanShirt
+            shirtSize: cleanShirt,
+            avatarUrl: String(rosterFormData.avatarUrl || '').trim() || r.avatarUrl
           };
         }
         return r;
@@ -3915,19 +3998,42 @@ export default function AdminManagementHub({
                                   {m.index}
                                 </td>
 
-                                <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 sticky left-8 sm:left-10 z-10 bg-white group-hover:bg-[#FFF9EE] min-w-[105px] sm:min-w-[160px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
-                                  <div className="font-bold text-slate-900 text-xs sm:text-sm leading-tight sm:leading-normal">
-                                    {m.fullName}
-                                  </div>
-                                  <div className="flex flex-wrap items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
-                                    {m.nickname && (
-                                      <span className="text-amber-800 italic">“{m.nickname}”</span>
-                                    )}
-                                    {m.role && m.role !== 'Thành viên' && (
-                                      <span className="bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded text-[9px] font-bold">
-                                        {m.role}
-                                      </span>
-                                    )}
+                                <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 sticky left-8 sm:left-10 z-10 bg-white group-hover:bg-[#FFF9EE] min-w-[120px] sm:min-w-[180px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                                  <div className="flex items-center gap-2">
+                                    {(() => {
+                                      const parsed = parseMemberNote(m.note);
+                                      const avUrl = parsed.meta.avatarUrl || m.matchedRsvp?.avatarUrl;
+                                      if (avUrl) {
+                                        return (
+                                          <img
+                                            src={avUrl}
+                                            alt={m.fullName}
+                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-amber-300 shadow-2xs shrink-0"
+                                            onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                                          />
+                                        );
+                                      }
+                                      return (
+                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-100/80 border border-amber-200/80 flex items-center justify-center text-amber-800 font-bold text-[10px] sm:text-xs shrink-0 select-none">
+                                          {m.fullName.split(' ').slice(-1)[0]?.charAt(0) || 'K'}
+                                        </div>
+                                      );
+                                    })()}
+                                    <div className="min-w-0">
+                                      <div className="font-bold text-slate-900 text-xs sm:text-sm leading-tight sm:leading-normal truncate">
+                                        {m.fullName}
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
+                                        {m.nickname && (
+                                          <span className="text-amber-800 italic">“{m.nickname}”</span>
+                                        )}
+                                        {m.role && m.role !== 'Thành viên' && (
+                                          <span className="bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                            {m.role}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                   {(() => {
                                     const parsed = parseMemberNote(m.note);
@@ -9046,6 +9152,112 @@ export default function AdminManagementHub({
 
               {/* Scrollable Form */}
               <form onSubmit={handleSaveRosterMember} className="p-6 overflow-y-auto space-y-4 font-sans max-h-[calc(92vh-120px)]">
+                {/* PHẦN 0: ẢNH THẺ / AVATAR THÀNH VIÊN (LƯU VÀO GOOGLE DRIVE) */}
+                <div className="bg-gradient-to-r from-amber-50/80 to-orange-50/50 p-3.5 rounded-xl border border-amber-200 shadow-2xs">
+                  <div className="flex items-center justify-between pb-2 mb-3 border-b border-amber-200/60">
+                    <span className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Ảnh Thẻ / Avatar Thành Viên</span>
+                    </span>
+                    <span className="text-[10px] text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-300 font-medium">
+                      Drive: Avatar_Thanh_Vien
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {/* Avatar Preview */}
+                    <div className="relative group shrink-0">
+                      <div className="w-20 h-24 rounded-lg bg-white border-2 border-dashed border-amber-300 overflow-hidden flex items-center justify-center shadow-inner">
+                        {rosterFormData.avatarUrl ? (
+                          <img
+                            src={rosterFormData.avatarUrl}
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-amber-600/70 p-1 text-center">
+                            <Camera className="w-6 h-6 mb-1 opacity-70" />
+                            <span className="text-[10px] leading-tight font-medium">Chưa có ảnh</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {rosterFormData.avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRosterFormData(prev => ({ ...prev, avatarUrl: '' }));
+                            if (rosterAvatarFileInputRef.current) rosterAvatarFileInputRef.current.value = '';
+                          }}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full flex items-center justify-center shadow transition cursor-pointer"
+                          title="Xóa ảnh đại diện"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Upload Controls & Details */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <input
+                        type="file"
+                        ref={rosterAvatarFileInputRef}
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleRosterAvatarUpload(file);
+                        }}
+                      />
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={isUploadingRosterAvatar}
+                          onClick={() => rosterAvatarFileInputRef.current?.click()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-xs transition cursor-pointer disabled:opacity-50"
+                        >
+                          {isUploadingRosterAvatar ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Đang tải lên Drive...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{rosterFormData.avatarUrl ? 'Đổi ảnh thẻ' : 'Tải lên ảnh thẻ'}</span>
+                            </>
+                          )}
+                        </button>
+
+                        {rosterFormData.avatarUrl && (
+                          <a
+                            href={rosterFormData.avatarUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs border border-slate-300 rounded-lg transition"
+                          >
+                            <ExternalLink className="w-3 h-3 text-slate-400" />
+                            <span>Xem ảnh Drive</span>
+                          </a>
+                        )}
+                      </div>
+
+                      {rosterAvatarUploadMsg && (
+                        <p className={`text-xs font-medium flex items-center gap-1 ${
+                          rosterAvatarUploadMsg.includes('✓') ? 'text-emerald-700 font-semibold' : 'text-amber-700'
+                        }`}>
+                          <span>{rosterAvatarUploadMsg}</span>
+                        </p>
+                      )}
+
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        Ảnh sẽ tự động nén tối ưu, tải lên thư mục <span className="font-semibold text-amber-900">Avatar_Thanh_Vien</span> trên Google Drive và đồng bộ link Direct CDN vào chuỗi JSON cột Ghi chú của học sinh.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* PHẦN 1: THÔNG TIN ĐỊNH DANH & VAI TRÒ */}
                 <div>
                   <div className="flex items-center gap-1.5 pb-2 mb-3 border-b border-slate-100 text-slate-800 font-bold text-xs uppercase tracking-wider">

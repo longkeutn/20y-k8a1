@@ -111,9 +111,11 @@ export function parseMemberNote(rawNote?: string | null): ParsedMemberNote {
         const email = anyParsed.email || undefined;
         const socialLink = anyParsed.socialLink || anyParsed.facebook || anyParsed.fb || undefined;
         const contactStatus = anyParsed.contactStatus || anyParsed.status || undefined;
+        const avatarUrl = anyParsed.avatarUrl || anyParsed.avatar || undefined;
         const generalNote = anyParsed.generalNote || anyParsed.note || anyParsed.desc || undefined;
 
         const meta: MemberNoteMetadata = {};
+        if (avatarUrl) meta.avatarUrl = String(avatarUrl).trim();
         if (residence) meta.residence = String(residence).trim();
         if (workplace) meta.workplace = String(workplace).trim();
         if (occupation) meta.occupation = String(occupation).trim();
@@ -176,6 +178,9 @@ export function serializeMemberNote(meta: MemberNoteMetadata): string {
 
   const cleaned: Record<string, any> = {};
 
+  if (meta.avatarUrl && String(meta.avatarUrl).trim()) {
+    cleaned.avatarUrl = String(meta.avatarUrl).trim();
+  }
   if (meta.residence && String(meta.residence).trim()) {
     cleaned.residence = String(meta.residence).trim();
   }
