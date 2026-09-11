@@ -3456,25 +3456,34 @@ export default function AdminManagementHub({
 
   const handleResetToDefault = async () => {
     if (currentUserRole !== 'admin') return;
-    const pinConfirm = prompt('Nhập mã PIN Admin hiện tại để xác nhận khôi phục mã PIN hệ thống về mặc định:');
+    const pinConfirm = prompt('Nhập mã PIN Admin hiện tại để xác nhận đổi/cài đặt lại mã PIN:');
     if (!pinConfirm) return;
+
+    const newAdminPin = prompt('Nhập mã PIN Admin mới (tối thiểu 4 ký tự):');
+    if (!newAdminPin || newAdminPin.trim().length < 4) {
+      alert('Mã PIN Admin mới không hợp lệ (cần ít nhất 4 ký tự)!');
+      return;
+    }
+
+    const newTreasurerPin = prompt('Nhập mã PIN Thủ Quỹ mới (bỏ trống để dùng chung mã Admin):') || newAdminPin;
+    const newBllPin = prompt('Nhập mã PIN Ban Liên Lạc mới (bỏ trống để dùng chung mã Admin):') || newAdminPin;
 
     setIsUpdatingPins(true);
     try {
       const res = await updatePinsViaBackend({
         currentAdminPin: pinConfirm.trim(),
-        newAdminPin: '8888',
-        newTreasurerPin: '6868',
-        newBllPin: '2006'
+        newAdminPin: newAdminPin.trim(),
+        newTreasurerPin: newTreasurerPin.trim(),
+        newBllPin: newBllPin.trim()
       }, appsScriptUrl);
 
       if (res.success) {
         localStorage.removeItem('k8a1_admin_pin');
         localStorage.removeItem('k8a1_treasurer_pin');
         localStorage.removeItem('k8a1_bll_pin');
-        alert('Đã khôi phục cài đặt mã PIN về mặc định thành công!');
+        alert('Đã cập nhật toàn bộ mã PIN mới lên Google Sheets thành công!');
       } else {
-        alert('Khôi phục thất bại: ' + res.message);
+        alert('Cập nhật thất bại: ' + res.message);
       }
     } catch (e: any) {
       alert('Lỗi kết nối: ' + (e?.message || e));
@@ -8327,7 +8336,7 @@ export default function AdminManagementHub({
                             onClick={handleResetToDefault}
                             className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-bold border border-slate-200 transition cursor-pointer disabled:opacity-50"
                           >
-                            {isUpdatingPins ? 'Đang Xử Lý...' : 'Khôi Phục PIN Mặc Định (8888 / 6868 / 2006)'}
+                            {isUpdatingPins ? 'Đang Xử Lý...' : 'Cài Đặt Lại Toàn Bộ Mã PIN'}
                           </button>
                         </div>
                       </div>
