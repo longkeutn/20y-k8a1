@@ -2673,6 +2673,7 @@ export default function App() {
       <ClassCharterModal
         isOpen={isCharterModalOpen}
         onClose={() => setIsCharterModalOpen(false)}
+        classRoster={classRoster}
       />
 
       {/* 📖 CẨM NANG HƯỚNG DẪN VẬN HÀNH & QUẢN LÝ HOẠT ĐỘNG K8A1 */}

@@ -14,32 +14,35 @@ import {
   Copy,
   BookOpen
 } from 'lucide-react';
-import { maskPhone } from '../data';
+import { ClassMember } from '../types';
+import { maskPhone, isOfficialBLLMember } from '../data';
 
 interface ClassCharterModalProps {
   isOpen: boolean;
   onClose: () => void;
   googleDocsUrl?: string;
+  classRoster?: ClassMember[];
 }
-
-const BLL_MEMBERS = [
-  { id: 1, name: "Hứa Thị Vân Anh", phone: "0912018448", location: "Hà Nội" },
-  { id: 2, name: "Nguyễn Tuấn Thành", phone: "0968404466", location: "Hà Nội" },
-  { id: 3, name: "Hoàng Đức Kiên", phone: "0979830488", location: "Thái Nguyên" },
-  { id: 4, name: "Bùi Thành Long", phone: "0936581222", location: "Thái Nguyên" },
-  { id: 5, name: "Trần Đức Quyết", phone: "0943060288", location: "Thái Nguyên" },
-  { id: 6, name: "Huyền Trang B", phone: "0985887333", location: "Thái Nguyên" },
-  { id: 7, name: "Trần Thanh Nhạn", phone: "", location: "Thái Nguyên" },
-  { id: 8, name: "Nguyễn Thành Long", phone: "0919337588", location: "Hà Nội" },
-];
 
 export default function ClassCharterModal({
   isOpen,
   onClose,
-  googleDocsUrl = "https://docs.google.com/document/d/1TCh66RwSevWDaHbbAZPADyJt0lzVO7G2dNI6JPAPMZI/edit?usp=sharing"
+  googleDocsUrl = "https://docs.google.com/document/d/1TCh66RwSevWDaHbbAZPADyJt0lzVO7G2dNI6JPAPMZI/edit?usp=sharing",
+  classRoster = []
 }: ClassCharterModalProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'd1' | 'd2' | 'd3' | 'd4' | 'd5'>('all');
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
+
+  // Lọc động danh sách Ban Liên Lạc từ Google Sheets
+  const bllMembers = useMemo(() => {
+    if (!classRoster || classRoster.length === 0) return [];
+    return classRoster.filter(m => isOfficialBLLMember(m)).map((m, idx) => ({
+      id: idx + 1,
+      name: m.fullName,
+      phone: m.phone || '',
+      location: m.province || (m.noteMeta?.residence) || 'Thái Nguyên'
+    }));
+  }, [classRoster]);
 
   // Đóng modal bằng phím ESC
   useEffect(() => {
@@ -361,7 +364,12 @@ export default function ClassCharterModal({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
-                  {BLL_MEMBERS.map((m) => (
+                  {bllMembers.length === 0 ? (
+                    <div className="col-span-full p-4 text-center text-slate-400 text-xs italic bg-slate-50 rounded-xl">
+                      Danh sách Ban Liên Lạc đang được đồng bộ từ Google Sheets...
+                    </div>
+                  ) : (
+                    bllMembers.map((m) => (
                     <div 
                       key={m.id} 
                       className="p-2.5 rounded-xl bg-white border border-amber-200/70 hover:border-amber-400 transition-all shadow-2xs space-y-1.5 text-xs"
@@ -402,7 +410,7 @@ export default function ClassCharterModal({
                         <span className="text-slate-400 italic text-[11px]">Đang cập nhật SĐT</span>
                       )}
                     </div>
-                  ))}
+                  )))}
                 </div>
               </div>
             </div>
