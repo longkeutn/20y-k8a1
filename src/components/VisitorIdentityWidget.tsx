@@ -116,7 +116,7 @@ export function IdentitySelectorModal({
       onClick={onClose}
     >
       <div 
-        className="bg-[#FFFDF9] border-2 border-amber-400/80 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scaleUp flex flex-col max-h-[85vh] my-auto"
+        className="bg-[#FFFDF9] border-2 border-amber-400/80 rounded-2xl max-w-xl sm:max-w-2xl w-full shadow-2xl overflow-hidden animate-scaleUp flex flex-col max-h-[85vh] my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
@@ -275,7 +275,7 @@ export function IdentitySelectorModal({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-serif font-bold text-slate-900 text-xs sm:text-sm truncate">
+                        <span className="font-serif font-bold text-slate-900 text-xs sm:text-[13px] leading-snug">
                           {member.fullName}
                         </span>
                         {member.id && (

@@ -147,7 +147,7 @@ export default function MusicPlaylistModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-6 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div 
-        className="relative w-full max-w-2xl bg-gradient-to-b from-[#131b2e] via-[#0b1120] to-[#070b14] border border-amber-500/30 rounded-2xl shadow-2xl shadow-amber-950/40 flex flex-col max-h-[92vh] overflow-hidden text-slate-100"
+        className="relative w-full max-w-3xl bg-gradient-to-b from-[#131b2e] via-[#0b1120] to-[#070b14] border border-amber-500/30 rounded-2xl shadow-2xl shadow-amber-950/40 flex flex-col max-h-[92vh] overflow-hidden text-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

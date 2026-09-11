@@ -667,7 +667,7 @@ export default function BankTransfer({
           onClick={() => setIsLedgerModalOpen(false)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-amber-200 overflow-hidden animate-in zoom-in-95 duration-200 text-left"
+            className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-amber-200 overflow-hidden animate-in zoom-in-95 duration-200 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -922,28 +922,31 @@ export default function BankTransfer({
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {pendingAttendees.map((att, idx) => (
-                            <div key={att.id || idx} className="bg-white border border-amber-200 rounded-lg p-2.5 flex items-center justify-between gap-2 shadow-2xs">
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-800 truncate">{att.fullName}</p>
-                                <p className="text-[10.5px] text-amber-700 font-mono font-bold">
+                            <div key={att.id || idx} className="bg-white border border-amber-200 rounded-xl p-2.5 flex flex-col justify-between gap-1.5 shadow-2xs">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-xs font-bold text-slate-800 leading-snug">{att.fullName}</p>
+                                <p className="text-[11px] text-amber-700 font-mono font-bold shrink-0 whitespace-nowrap">
                                   Khai báo: {(att.fundAmount || fundAmountNum).toLocaleString('vi-VN')} đ
                                 </p>
                               </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-medium border border-amber-300 shrink-0">
-                                  ⏳ Chờ khớp lệnh
-                                </span>
-                                {isAdminOrTreasurer && Boolean(att.fundReceiptUrl) && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewReceipt({ url: att.fundReceiptUrl!, title: `Bill nộp quỹ: ${att.fullName}` })}
-                                    className="p-1 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition cursor-pointer text-[10px] font-bold inline-flex items-center gap-1"
-                                    title="Xem bill để khớp lệnh đối soát (Dành cho Thủ quỹ)"
-                                  >
-                                    <ImageIcon className="w-3 h-3 text-amber-700" />
-                                    <span>Xem Bill</span>
-                                  </button>
-                                )}
+                              <div className="flex items-center justify-between gap-1.5 pt-0.5 border-t border-amber-100 text-[10px]">
+                                <span className="text-amber-800/80 font-sans">Đang chờ đối soát sao kê</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-medium border border-amber-300">
+                                    ⏳ Chờ khớp lệnh
+                                  </span>
+                                  {isAdminOrTreasurer && Boolean(att.fundReceiptUrl) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewReceipt({ url: att.fundReceiptUrl!, title: `Bill nộp quỹ: ${att.fullName}` })}
+                                      className="p-1 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition cursor-pointer text-[10px] font-bold inline-flex items-center gap-1"
+                                      title="Xem bill để khớp lệnh đối soát (Dành cho Thủ quỹ)"
+                                    >
+                                      <ImageIcon className="w-3 h-3 text-amber-700" />
+                                      <span>Xem Bill</span>
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -975,41 +978,44 @@ export default function BankTransfer({
                             return (
                               <div 
                                 key={item.id || idx}
-                                className="bg-[#FAF9F6] border border-amber-200/70 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
+                                className="bg-[#FAF9F6] border border-amber-200/70 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between gap-1.5 shadow-2xs hover:border-amber-300 transition-colors"
                               >
-                                <div className="min-w-0 space-y-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className={`text-[10px] font-sans font-bold px-2 py-0.2 rounded-full border ${catMeta.badgeBg} ${catMeta.badgeText} ${catMeta.badgeBorder}`}>
-                                      {catMeta.label}
-                                    </span>
-                                    <span className="text-[11px] text-slate-500 font-sans flex items-center gap-1">
-                                      <Calendar className="w-3 h-3 text-amber-600 shrink-0" />
-                                      {formatDateOnlyVi(item.date) || '—'}
-                                    </span>
-                                    {item.eventScope && (
-                                      <span className="text-[10px] font-sans font-medium bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
-                                        {item.eventScope}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 space-y-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className={`text-[9.5px] font-sans font-bold px-2 py-0.2 rounded-full border ${catMeta.badgeBg} ${catMeta.badgeText} ${catMeta.badgeBorder}`}>
+                                        {catMeta.label}
                                       </span>
+                                      <span className="text-[10.5px] text-slate-500 font-sans flex items-center gap-1">
+                                        <Calendar className="w-3 h-3 text-amber-600 shrink-0" />
+                                        {formatDateOnlyVi(item.date) || '—'}
+                                      </span>
+                                      {item.eventScope && (
+                                        <span className="text-[9.5px] font-sans font-medium bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
+                                          {item.eventScope}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs sm:text-[13px] font-sans font-bold text-slate-900 leading-snug">
+                                      {item.payerName} — <span className="text-slate-700 font-normal">{item.title}</span>
+                                    </p>
+                                    {item.note && (
+                                      <p className="text-[11px] text-slate-500 font-sans italic leading-relaxed">
+                                        {item.note}
+                                      </p>
                                     )}
                                   </div>
-                                  <p className="text-xs sm:text-sm font-sans font-bold text-slate-900 truncate">
-                                    {item.payerName} — <span className="text-slate-700 font-normal">{item.title}</span>
-                                  </p>
-                                  {item.note && (
-                                    <p className="text-xs text-slate-500 font-sans italic">
-                                      {item.note}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 border-t sm:border-t-0 border-slate-200/60 pt-1.5 sm:pt-0">
-                                  <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800">
+                                  <span className="text-xs sm:text-[13px] font-bold font-mono text-emerald-800 shrink-0 whitespace-nowrap">
                                     +{Number(item.amount || 0).toLocaleString('vi-VN')} đ
                                   </span>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 shrink-0 border-t border-amber-100/60 pt-1 text-[10.5px]">
                                   {isAdminOrTreasurer && Boolean(item.receiptUrl) && (
                                     <button
                                       type="button"
                                       onClick={() => setPreviewReceipt({ url: item.receiptUrl!, title: `Biên lai: ${item.title} (${item.payerName})` })}
-                                      className="inline-flex items-center gap-1 text-[10.5px] font-sans font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md cursor-pointer transition shadow-2xs"
+                                      className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md cursor-pointer transition shadow-2xs"
                                       title="Xem biên lai chuyển khoản tài trợ (Dành cho Thủ quỹ)"
                                     >
                                       <ImageIcon className="w-3 h-3 text-emerald-600" />
@@ -1052,7 +1058,7 @@ export default function BankTransfer({
                             </span>
                           </div>
                         )}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                           {displayedPaidAttendees.map((att, idx) => {
                             const amount = Number(att.fundAmount) || Number((att as any).verifiedAmount) || Number((att as any).paidAmount) || fundAmountNum;
                             const dateDisplay = att.fundPaidAt || (att as any).paidAt || att.submittedAt;
@@ -1060,36 +1066,48 @@ export default function BankTransfer({
                             return (
                               <div 
                                 key={att.id || idx}
-                                className="bg-[#FAF9F6] border border-emerald-200/70 rounded-xl p-3 flex items-center justify-between gap-2 shadow-2xs"
+                                className="bg-[#FAF9F6] border border-emerald-200/70 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between gap-1.5 shadow-2xs hover:border-emerald-300 transition-colors"
                               >
-                                <div className="min-w-0 space-y-0.5">
-                                  <p className="text-xs sm:text-sm font-sans font-bold text-slate-900 truncate">
-                                    {idx + 1}. {att.fullName} {att.nickname ? `(“${att.nickname}”)` : ''}
-                                  </p>
-                                  <p className="text-[11px] text-slate-500 font-sans flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
-                                    <span>{formattedDate ? `Ngày nộp: ${formattedDate}` : 'Đã xác nhận đóng quỹ'}</span>
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                                  <span className="text-xs sm:text-sm font-bold font-mono text-emerald-800 shrink-0">
+                                {/* Hàng 1: Số thứ tự + Họ tên + Biệt danh + Số tiền */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex items-baseline gap-1.5 flex-wrap">
+                                    <span className="text-xs font-bold text-slate-900 leading-snug">
+                                      {idx + 1}. {att.fullName}
+                                    </span>
+                                    {att.nickname && (
+                                      <span className="text-[11px] font-medium text-amber-800 leading-snug">
+                                        (“{att.nickname}”)
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-xs sm:text-[13px] font-bold font-mono text-emerald-800 shrink-0 whitespace-nowrap">
                                     +{amount.toLocaleString('vi-VN')} đ
                                   </span>
-                                  <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                                    <Check className="w-3 h-3 text-emerald-600" />
-                                    <span>Đã hoàn thành</span>
+                                </div>
+
+                                {/* Hàng 2: Ngày nộp + Nhãn Hoàn thành + Nút Xem Bill */}
+                                <div className="flex items-center justify-between gap-1.5 pt-0.5 border-t border-emerald-100/60 text-[10.5px]">
+                                  <span className="text-slate-500 font-sans flex items-center gap-1 min-w-0 truncate">
+                                    <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
+                                    <span>{formattedDate ? `Ngày nộp: ${formattedDate}` : 'Đã xác nhận đóng quỹ'}</span>
                                   </span>
-                                  {isAdminOrTreasurer && Boolean(att.fundReceiptUrl) && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setPreviewReceipt({ url: att.fundReceiptUrl!, title: `Bill nộp quỹ: ${att.fullName}` })}
-                                      className="p-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 transition cursor-pointer text-[10px] font-bold inline-flex items-center gap-1"
-                                      title="Xem bill để đối soát sao kê (Dành cho Thủ quỹ)"
-                                    >
-                                      <ImageIcon className="w-3 h-3 text-emerald-700" />
-                                      <span className="hidden sm:inline">Xem Bill</span>
-                                    </button>
-                                  )}
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-100/90 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                                      <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                      <span>Đã hoàn thành</span>
+                                    </span>
+                                    {isAdminOrTreasurer && Boolean(att.fundReceiptUrl) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewReceipt({ url: att.fundReceiptUrl!, title: `Bill nộp quỹ: ${att.fullName}` })}
+                                        className="px-1.5 py-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 transition cursor-pointer text-[10px] font-bold inline-flex items-center gap-1"
+                                        title="Xem bill để đối soát sao kê (Dành cho Thủ quỹ)"
+                                      >
+                                        <ImageIcon className="w-3 h-3 text-emerald-700" />
+                                        <span>Xem Bill</span>
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -1126,7 +1144,7 @@ export default function BankTransfer({
           onClick={() => setPreviewReceipt(null)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-amber-200 space-y-4 animate-in zoom-in-95 duration-200 relative text-left"
+            className="bg-white rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-amber-200 space-y-4 animate-in zoom-in-95 duration-200 relative text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">

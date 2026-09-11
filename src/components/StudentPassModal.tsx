@@ -737,7 +737,7 @@ export default function StudentPassModal({
         }
       `}} />
 
-      <div className="relative w-full max-w-lg bg-[#FAF8F5] rounded-xl shadow-2xl border border-brand-gold/30 p-4 sm:p-6 my-6 text-brand-text">
+      <div className="relative w-full max-w-xl sm:max-w-2xl bg-[#FAF8F5] rounded-xl shadow-2xl border border-brand-gold/30 p-4 sm:p-6 my-6 text-brand-text">
         {/* Hidden file input for avatar upload */}
         <input
           type="file"

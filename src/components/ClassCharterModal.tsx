@@ -81,7 +81,7 @@ export default function ClassCharterModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
       {/* Khung Modal */}
       <div 
-        className="relative w-full max-w-4xl max-h-[92vh] bg-[#FAF7F2] rounded-3xl border border-amber-300/80 shadow-2xl flex flex-col overflow-hidden text-slate-700 font-sans"
+        className="relative w-full max-w-5xl max-h-[92vh] bg-[#FAF7F2] rounded-3xl border border-amber-300/80 shadow-2xl flex flex-col overflow-hidden text-slate-700 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER MODAL */}

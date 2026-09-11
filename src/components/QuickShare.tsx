@@ -240,7 +240,7 @@ export default function QuickShare({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2 }}
-              className="bg-[#FAF8F5] border border-brand-border rounded-sm max-w-md w-full p-6 space-y-5 shadow-2xl text-left relative overflow-hidden"
+              className="bg-[#FAF8F5] border border-brand-border rounded-sm max-w-lg w-full p-6 space-y-5 shadow-2xl text-left relative overflow-hidden"
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">

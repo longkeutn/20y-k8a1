@@ -509,7 +509,7 @@ export default function ReceiptUploadModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-lg overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-xl sm:max-w-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header Modal */}
         <div className="px-5 py-4 bg-gradient-to-r from-[#1A1613] via-[#26201A] to-[#14110F] text-white flex items-center justify-between border-b border-amber-500/30">

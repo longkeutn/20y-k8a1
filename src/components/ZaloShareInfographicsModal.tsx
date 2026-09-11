@@ -1026,7 +1026,7 @@ export default function ZaloShareInfographicsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
       {/* KHỐI MODAL CHÍNH */}
-      <div className="relative w-full max-w-4xl max-h-[96vh] bg-[#FAF8F5] rounded-2xl shadow-2xl border border-amber-200/80 flex flex-col overflow-hidden text-slate-800">
+      <div className="relative w-full max-w-5xl max-h-[96vh] bg-[#FAF8F5] rounded-2xl shadow-2xl border border-amber-200/80 flex flex-col overflow-hidden text-slate-800">
         
         {/* HEADER MODAL */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 bg-gradient-to-r from-[#8D5B28] via-[#784A1E] to-[#5C3714] text-white shrink-0">
