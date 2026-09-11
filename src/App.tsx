@@ -32,6 +32,7 @@ import {
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
 import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
+import { parseMemberNote } from './utils/memberUtils';
 
 import AudioPlayer from './components/AudioPlayer';
 import CountdownTimer from './components/CountdownTimer';
@@ -363,18 +364,24 @@ export default function App() {
   });
 
   // Helper chuẩn hóa dữ liệu học sinh danh bạ lớp, chống crash do dữ liệu dạng số từ Google Sheet
-  const sanitizeClassMember = (item: any, idx: number): ClassMember => ({
-    id: item.id ? String(item.id) : ('m' + (idx < 9 ? '0' + (idx + 1) : (idx + 1))),
-    fullName: String(item.fullName || '').trim(),
-    nickname: item.nickname ? String(item.nickname).trim() : '',
-    phone: item.phone ? String(item.phone).trim() : '',
-    role: item.role ? String(item.role).trim() : 'Thành viên',
-    gender: (item.gender === 'female' || String(item.gender).toLowerCase().includes('nữ')) ? 'female' : 'male',
-    shirtSize: (item.shirtSize && String(item.shirtSize).trim() !== '' && !String(item.shirtSize).toLowerCase().includes('chưa chọn') && !String(item.shirtSize).toLowerCase().includes('chua chon'))
-      ? String(item.shirtSize).trim().toUpperCase()
-      : '',
-    note: item.note ? String(item.note).trim() : ''
-  });
+  const sanitizeClassMember = (item: any, idx: number): ClassMember => {
+    const rawNote = item.note ? String(item.note).trim() : '';
+    const parsedNote = parseMemberNote(rawNote);
+    return {
+      id: item.id ? String(item.id) : ('m' + (idx < 9 ? '0' + (idx + 1) : (idx + 1))),
+      fullName: String(item.fullName || '').trim(),
+      nickname: item.nickname ? String(item.nickname).trim() : '',
+      phone: item.phone ? String(item.phone).trim() : '',
+      role: item.role ? String(item.role).trim() : 'Thành viên',
+      gender: (item.gender === 'female' || String(item.gender).toLowerCase().includes('nữ')) ? 'female' : 'male',
+      shirtSize: (item.shirtSize && String(item.shirtSize).trim() !== '' && !String(item.shirtSize).toLowerCase().includes('chưa chọn') && !String(item.shirtSize).toLowerCase().includes('chua chon'))
+        ? String(item.shirtSize).trim().toUpperCase()
+        : '',
+      province: item.province ? String(item.province).trim() : (parsedNote.meta.residence || ''),
+      note: rawNote,
+      noteMeta: parsedNote.meta
+    };
+  };
 
   // Class Roster Master Directory state (Sĩ số học sinh lớp K8A1)
   const [classRoster, setClassRoster] = useState<ClassMember[]>(() => {

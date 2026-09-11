@@ -89,7 +89,15 @@ import {
   Layers,
   PlaySquare
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene } from '../types';
+import { 
+  parseMemberNote, 
+  serializeMemberNote, 
+  RESIDENCE_OPTIONS, 
+  OCCUPATION_OPTIONS, 
+  CONTACT_STATUS_OPTIONS, 
+  ROSTER_ROLE_OPTIONS 
+} from '../utils/memberUtils';
 import { 
   K8A1_DRIVE_FOLDER_ID, 
   K8A1_DRIVE_FOLDER_URL, 
@@ -544,11 +552,20 @@ export default function AdminManagementHub({
   const filteredRoster = useMemo(() => {
     const q = (memberSearch || '').toLowerCase().trim();
     return enrichedRoster.filter(m => {
+      const parsed = parseMemberNote(m.note);
+      const meta = parsed.meta;
       const matchQuery = !q ||
         String(m.fullName || '').toLowerCase().includes(q) ||
         String(m.nickname || '').toLowerCase().includes(q) ||
         String(m.phone || '').includes(q) ||
-        String(m.role || '').toLowerCase().includes(q);
+        String(m.role || '').toLowerCase().includes(q) ||
+        String(m.note || '').toLowerCase().includes(q) ||
+        String(meta.residence || '').toLowerCase().includes(q) ||
+        String(meta.workplace || '').toLowerCase().includes(q) ||
+        String(meta.occupation || '').toLowerCase().includes(q) ||
+        String(meta.secondaryPhone || '').includes(q) ||
+        String(meta.contactStatus || '').toLowerCase().includes(q) ||
+        String(meta.generalNote || '').toLowerCase().includes(q);
 
       const matchFilter =
         rosterStatusFilter === 'all' ||
@@ -605,14 +622,26 @@ export default function AdminManagementHub({
   // State Quản Lý Danh Bạ Lớp K8A1 (Lưu trên Google Sheet tab "Danh_Sach_Lop")
   const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
   const [editingRosterMember, setEditingRosterMember] = useState<ClassMember | null>(null);
-  const [rosterFormData, setRosterFormData] = useState<Partial<ClassMember>>({
+  const [rosterFormData, setRosterFormData] = useState({
+    id: '',
     fullName: '',
     nickname: '',
     phone: '',
     role: 'Thành viên',
-    gender: 'male',
+    gender: 'male' as 'male' | 'female',
     shirtSize: '',
-    note: ''
+    note: '',
+    residence: 'Thái Nguyên',
+    residenceCustom: '',
+    workplace: '',
+    occupation: '',
+    occupationCustom: '',
+    secondaryPhone: '',
+    oldPhones: [] as string[],
+    email: '',
+    socialLink: '',
+    contactStatus: 'Đã kết nối',
+    generalNote: ''
   });
   const [isRosterSyncing, setIsRosterSyncing] = useState(false);
   const [rosterFeedbackMsg, setRosterFeedbackMsg] = useState('');
@@ -1768,19 +1797,39 @@ export default function AdminManagementHub({
   const handleOpenAddRosterMember = () => {
     setEditingRosterMember(null);
     setRosterFormData({
+      id: '',
       fullName: '',
       nickname: '',
       phone: '',
       role: 'Thành viên',
       gender: 'male',
       shirtSize: '',
-      note: ''
+      note: '',
+      residence: 'Thái Nguyên',
+      residenceCustom: '',
+      workplace: '',
+      occupation: '',
+      occupationCustom: '',
+      secondaryPhone: '',
+      oldPhones: [],
+      email: '',
+      socialLink: '',
+      contactStatus: 'Đã kết nối',
+      generalNote: ''
     });
     setIsRosterModalOpen(true);
   };
 
   const handleOpenEditRosterMember = (member: ClassMember) => {
     setEditingRosterMember(member);
+    const parsed = parseMemberNote(member.note);
+    const meta = parsed.meta;
+    const existingRes = meta.residence || member.province || '';
+    const isKnownRes = RESIDENCE_OPTIONS.some(o => o.value !== '__custom__' && o.value.toLowerCase() === existingRes.toLowerCase());
+    
+    const existingOcc = meta.occupation || '';
+    const isKnownOcc = OCCUPATION_OPTIONS.some(o => o.value !== '__custom__' && o.value.toLowerCase() === existingOcc.toLowerCase());
+
     setRosterFormData({
       id: member.id,
       fullName: String(member.fullName || ''),
@@ -1789,7 +1838,18 @@ export default function AdminManagementHub({
       role: String(member.role || 'Thành viên'),
       gender: member.gender || 'male',
       shirtSize: member.shirtSize ? normalizeShirtSize(member.shirtSize) : '',
-      note: String(member.note || '')
+      note: String(member.note || ''),
+      residence: isKnownRes ? existingRes : (existingRes ? '__custom__' : 'Thái Nguyên'),
+      residenceCustom: isKnownRes ? '' : existingRes,
+      workplace: meta.workplace || '',
+      occupation: isKnownOcc ? existingOcc : (existingOcc ? '__custom__' : ''),
+      occupationCustom: isKnownOcc ? '' : existingOcc,
+      secondaryPhone: meta.secondaryPhone || '',
+      oldPhones: meta.oldPhones || [],
+      email: meta.email || '',
+      socialLink: meta.socialLink || '',
+      contactStatus: meta.contactStatus || 'Đã kết nối',
+      generalNote: meta.generalNote || ''
     });
     setIsRosterModalOpen(true);
   };
@@ -1802,6 +1862,36 @@ export default function AdminManagementHub({
       return;
     }
 
+    const cleanPhone = String(rosterFormData.phone || '').trim();
+    let oldPhonesList = [...(rosterFormData.oldPhones || [])];
+    if (editingRosterMember && editingRosterMember.phone) {
+      const prevPhone = String(editingRosterMember.phone).trim();
+      if (prevPhone && cleanPhone && prevPhone !== cleanPhone && !oldPhonesList.includes(prevPhone)) {
+        oldPhonesList.push(prevPhone);
+      }
+    }
+
+    const effectiveResidence = rosterFormData.residence === '__custom__'
+      ? String(rosterFormData.residenceCustom || '').trim()
+      : String(rosterFormData.residence || '').trim();
+
+    const effectiveOccupation = rosterFormData.occupation === '__custom__'
+      ? String(rosterFormData.occupationCustom || '').trim()
+      : String(rosterFormData.occupation || '').trim();
+
+    const noteMetadata: MemberNoteMetadata = {
+      residence: effectiveResidence || undefined,
+      workplace: String(rosterFormData.workplace || '').trim() || undefined,
+      occupation: effectiveOccupation || undefined,
+      secondaryPhone: String(rosterFormData.secondaryPhone || '').trim() || undefined,
+      oldPhones: oldPhonesList.length > 0 ? oldPhonesList : undefined,
+      email: String(rosterFormData.email || '').trim() || undefined,
+      socialLink: String(rosterFormData.socialLink || '').trim() || undefined,
+      contactStatus: String(rosterFormData.contactStatus || '').trim() || undefined,
+      generalNote: String(rosterFormData.generalNote || '').trim() || undefined
+    };
+
+    const noteJson = serializeMemberNote(noteMetadata);
     const cleanShirt = rosterFormData.shirtSize ? normalizeShirtSize(rosterFormData.shirtSize) : '';
 
     let updatedList: ClassMember[] = [];
@@ -1812,11 +1902,13 @@ export default function AdminManagementHub({
             ...item,
             fullName: cleanName,
             nickname: String(rosterFormData.nickname || '').trim(),
-            phone: String(rosterFormData.phone || '').trim(),
+            phone: cleanPhone,
             role: String(rosterFormData.role || 'Thành viên').trim(),
             gender: (rosterFormData.gender === 'female' ? 'female' : 'male'),
             shirtSize: cleanShirt,
-            note: String(rosterFormData.note || '').trim()
+            province: effectiveResidence || item.province || '',
+            note: noteJson,
+            noteMeta: noteMetadata
           };
         }
         return item;
@@ -1828,11 +1920,13 @@ export default function AdminManagementHub({
         id: newId,
         fullName: cleanName,
         nickname: String(rosterFormData.nickname || '').trim(),
-        phone: String(rosterFormData.phone || '').trim(),
+        phone: cleanPhone,
         role: String(rosterFormData.role || 'Thành viên').trim(),
         gender: (rosterFormData.gender === 'female' ? 'female' : 'male'),
         shirtSize: cleanShirt,
-        note: String(rosterFormData.note || '').trim()
+        province: effectiveResidence || '',
+        note: noteJson,
+        noteMeta: noteMetadata
       };
       updatedList = [...rosterList, newMember];
       setRosterFeedbackMsg(`✓ Đã thêm bạn "${cleanName}" vào danh bạ lớp thành công!`);
@@ -3825,7 +3919,7 @@ export default function AdminManagementHub({
                                   <div className="font-bold text-slate-900 text-xs sm:text-sm leading-tight sm:leading-normal">
                                     {m.fullName}
                                   </div>
-                                  <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
+                                  <div className="flex flex-wrap items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
                                     {m.nickname && (
                                       <span className="text-amber-800 italic">“{m.nickname}”</span>
                                     )}
@@ -3835,10 +3929,64 @@ export default function AdminManagementHub({
                                       </span>
                                     )}
                                   </div>
+                                  {(() => {
+                                    const parsed = parseMemberNote(m.note);
+                                    const meta = parsed.meta;
+                                    const hasAnyTag = meta.residence || meta.workplace || meta.occupation || meta.contactStatus;
+                                    if (!hasAnyTag && !meta.generalNote) return null;
+                                    return (
+                                      <div className="flex flex-wrap items-center gap-1 mt-1 text-[9px] sm:text-[10px]">
+                                        {meta.residence && (
+                                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 bg-blue-50 text-blue-700 border border-blue-200/80 rounded font-medium" title={`Nơi ở hiện tại: ${meta.residence}`}>
+                                            📍 {meta.residence}
+                                          </span>
+                                        )}
+                                        {meta.workplace && (
+                                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 bg-slate-100 text-slate-700 border border-slate-200 rounded font-medium max-w-[120px] sm:max-w-[150px] truncate" title={`Cơ quan / Công tác: ${meta.workplace}`}>
+                                            🏢 {meta.workplace}
+                                          </span>
+                                        )}
+                                        {meta.occupation && (
+                                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded font-medium" title={`Nghề nghiệp: ${meta.occupation}`}>
+                                            💼 {meta.occupation}
+                                          </span>
+                                        )}
+                                        {meta.contactStatus && (
+                                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded font-medium ${
+                                            meta.contactStatus === 'Đã kết nối' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                                            meta.contactStatus === 'Thỉnh thoảng' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                                            meta.contactStatus === 'Mới kết nối' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
+                                            'bg-rose-50 text-rose-800 border border-rose-200'
+                                          }`} title={`Tình trạng liên lạc: ${meta.contactStatus}`}>
+                                            📶 {meta.contactStatus}
+                                          </span>
+                                        )}
+                                        {meta.generalNote && !parsed.isJson && (
+                                          <span className="text-slate-400 italic line-clamp-1 max-w-[120px]" title={meta.generalNote}>
+                                            "{meta.generalNote}"
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </td>
 
                                 <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 font-mono text-slate-600 text-[11px] sm:text-xs border-b border-slate-100">
-                                  {m.matchedRsvp?.phone || m.phone || <span className="text-slate-400 italic">Chưa có SĐT</span>}
+                                  <div>
+                                    {m.matchedRsvp?.phone || m.phone || <span className="text-slate-400 italic">Chưa có SĐT</span>}
+                                    {(() => {
+                                      const parsed = parseMemberNote(m.note);
+                                      if (parsed.meta.secondaryPhone) {
+                                        return (
+                                          <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1" title="Số điện thoại phụ / SIM 2">
+                                            <span className="text-[9px] bg-slate-100 px-1 py-0.2 rounded text-slate-500 font-sans">SIM 2</span>
+                                            <span>{parsed.meta.secondaryPhone}</span>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                                  </div>
                                 </td>
 
                                 <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 border-b border-slate-100">
@@ -8870,11 +9018,12 @@ export default function AdminManagementHub({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-lg p-6 space-y-4 text-xs"
+              className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col text-xs overflow-hidden"
             >
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-800 font-bold">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-gradient-to-r from-amber-50/70 to-orange-50/40">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 font-bold shadow-xs">
                     {editingRosterMember ? '✏️' : '➕'}
                   </div>
                   <div>
@@ -8882,7 +9031,7 @@ export default function AdminManagementHub({
                       {editingRosterMember ? 'Chỉnh Sửa Bạn Học Trong Danh Bạ Lớp' : 'Thêm Bạn Học Vào Danh Bạ Lớp'}
                     </h3>
                     <p className="text-[11px] text-emerald-700 font-sans">
-                      Lưu và đồng bộ trực tiếp lên hệ thống
+                      Lưu và đồng bộ trực tiếp lên hệ thống (Google Sheets tab Danh_Sach_Lop)
                     </p>
                   </div>
                 </div>
@@ -8895,115 +9044,306 @@ export default function AdminManagementHub({
                 </button>
               </div>
 
-              <form onSubmit={handleSaveRosterMember} className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Họ và Tên (*):</label>
-                    <input
-                      type="text"
-                      required
-                      value={rosterFormData.fullName || ''}
-                      onChange={(e) => setRosterFormData({ ...rosterFormData, fullName: e.target.value })}
-                      placeholder="VD: Nguyễn Tuấn Anh"
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 font-bold text-slate-900"
-                    />
+              {/* Scrollable Form */}
+              <form onSubmit={handleSaveRosterMember} className="p-6 overflow-y-auto space-y-4 font-sans max-h-[calc(92vh-120px)]">
+                {/* PHẦN 1: THÔNG TIN ĐỊNH DANH & VAI TRÒ */}
+                <div>
+                  <div className="flex items-center gap-1.5 pb-2 mb-3 border-b border-slate-100 text-slate-800 font-bold text-xs uppercase tracking-wider">
+                    <span>👤 Thông Tin Định Danh & Vai Trò</span>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Biệt danh thời cấp 3:</label>
-                    <input
-                      type="text"
-                      value={rosterFormData.nickname || ''}
-                      onChange={(e) => setRosterFormData({ ...rosterFormData, nickname: e.target.value })}
-                      placeholder="VD: Tuấn Báo, Hương Béo..."
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-amber-800 font-medium"
-                    />
-                  </div>
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Họ và Tên (*):</label>
+                      <input
+                        type="text"
+                        required
+                        value={rosterFormData.fullName || ''}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, fullName: e.target.value })}
+                        placeholder="VD: Nguyễn Tuấn Anh"
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 font-bold text-slate-900"
+                      />
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Số Điện Thoại:</label>
-                    <input
-                      type="tel"
-                      value={rosterFormData.phone || ''}
-                      onChange={(e) => setRosterFormData({ ...rosterFormData, phone: e.target.value })}
-                      placeholder="VD: 0988123456"
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Vai trò trong lớp:</label>
-                    <select
-                      value={rosterFormData.role || 'Thành viên'}
-                      onChange={(e) => setRosterFormData({ ...rosterFormData, role: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer font-medium"
-                    >
-                      <option value="Thành viên">Thành viên</option>
-                      <option value="Lớp trưởng">Lớp trưởng</option>
-                      <option value="Lớp phó">Lớp phó</option>
-                      <option value="Bí thư">Bí thư</option>
-                      <option value="Thủ quỹ">Thủ quỹ</option>
-                      <option value="Ban Liên Lạc (Admin)">Ban Liên Lạc (Admin)</option>
-                      <option value="Thầy cô">Thầy cô giáo</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Giới tính:</label>
-                    <div className="flex items-center gap-4 pt-1.5">
-                      <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
-                        <input
-                          type="radio"
-                          name="rosterGender"
-                          checked={rosterFormData.gender !== 'female'}
-                          onChange={() => setRosterFormData({ ...rosterFormData, gender: 'male' })}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span>Nam</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
-                        <input
-                          type="radio"
-                          name="rosterGender"
-                          checked={rosterFormData.gender === 'female'}
-                          onChange={() => setRosterFormData({ ...rosterFormData, gender: 'female' })}
-                          className="text-amber-600 focus:ring-amber-500"
-                        />
-                        <span>Nữ</span>
-                      </label>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Biệt danh thời cấp 3:</label>
+                      <input
+                        type="text"
+                        value={rosterFormData.nickname || ''}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, nickname: e.target.value })}
+                        placeholder="VD: Tuấn Báo, Hương Béo..."
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-amber-800 font-medium"
+                      />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Size Áo Dự Kiến:</label>
-                    <select
-                      value={normalizeShirtSize(rosterFormData.shirtSize)}
-                      onChange={(e) => setRosterFormData({ ...rosterFormData, shirtSize: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer text-xs sm:text-sm"
-                    >
-                      <option value="">-- Chưa chọn size áo --</option>
-                      {SHIRT_SIZE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Số Điện Thoại Chính:</label>
+                      <input
+                        type="tel"
+                        value={rosterFormData.phone || ''}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, phone: e.target.value })}
+                        placeholder="VD: 0988123456"
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500 text-slate-900 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Vai trò trong lớp:</label>
+                      <select
+                        value={rosterFormData.role || 'Thành viên'}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, role: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer font-medium"
+                      >
+                        {ROSTER_ROLE_OPTIONS.map((roleOpt) => (
+                          <option key={roleOpt} value={roleOpt}>{roleOpt}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Giới tính:</label>
+                      <div className="flex items-center gap-4 pt-1.5">
+                        <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                          <input
+                            type="radio"
+                            name="rosterGender"
+                            checked={rosterFormData.gender !== 'female'}
+                            onChange={() => setRosterFormData({ ...rosterFormData, gender: 'male' })}
+                            className="text-amber-600 focus:ring-amber-500"
+                          />
+                          <span>Nam</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                          <input
+                            type="radio"
+                            name="rosterGender"
+                            checked={rosterFormData.gender === 'female'}
+                            onChange={() => setRosterFormData({ ...rosterFormData, gender: 'female' })}
+                            className="text-amber-600 focus:ring-amber-500"
+                          />
+                          <span>Nữ</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">Size Áo Dự Kiến:</label>
+                      <select
+                        value={normalizeShirtSize(rosterFormData.shirtSize)}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, shirtSize: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer text-xs sm:text-sm"
+                      >
+                        <option value="">-- Chưa chọn size áo --</option>
+                        {SHIRT_SIZE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Ghi chú (Nơi ở, công tác, ghi chú riêng):</label>
-                  <textarea
-                    rows={2}
-                    value={rosterFormData.note || ''}
-                    onChange={(e) => setRosterFormData({ ...rosterFormData, note: e.target.value })}
-                    placeholder="VD: Đang ở Thái Nguyên, bay từ Sài Gòn..."
-                    className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500"
-                  />
+                {/* PHẦN 2: HỒ SƠ CHI TIẾT (LƯU DẠNG JSON VÀO CỘT GHI CHÚ) */}
+                <div className="pt-3 border-t border-amber-200/80">
+                  <div className="flex items-center justify-between pb-2 mb-3 border-b border-amber-100">
+                    <span className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Hồ Sơ Mở Rộng & Nơi Ở, Công Tác (Chuỗi JSON)</span>
+                    </span>
+                    <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300/80 px-2 py-0.5 rounded font-mono font-medium">
+                      Lưu Cột Ghi Chú Sheet
+                    </span>
+                  </div>
+
+                  {/* Dropdown Nơi ở & Dropdown Nghề nghiệp */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 flex items-center justify-between">
+                        <span>📍 Nơi ở hiện tại / Tỉnh thành:</span>
+                        {rosterFormData.residence === '__custom__' && (
+                          <button
+                            type="button"
+                            onClick={() => setRosterFormData({ ...rosterFormData, residence: 'Thái Nguyên', residenceCustom: '' })}
+                            className="text-[10px] text-amber-700 hover:underline cursor-pointer"
+                          >
+                            Chọn từ danh mục
+                          </button>
+                        )}
+                      </label>
+                      <select
+                        value={rosterFormData.residence}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, residence: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer font-medium text-slate-800"
+                      >
+                        {RESIDENCE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {rosterFormData.residence === '__custom__' && (
+                        <input
+                          type="text"
+                          autoFocus
+                          value={rosterFormData.residenceCustom}
+                          onChange={(e) => setRosterFormData({ ...rosterFormData, residenceCustom: e.target.value })}
+                          placeholder="Nhập địa chỉ / nơi ở chi tiết (VD: Cầu Giấy, Hà Nội)..."
+                          className="w-full px-3 py-1.5 mt-1 bg-amber-50/50 border border-amber-300 rounded-lg text-xs focus:outline-none focus:border-amber-600 text-slate-900"
+                        />
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 flex items-center justify-between">
+                        <span>💼 Nghề nghiệp / Lĩnh vực:</span>
+                        {rosterFormData.occupation === '__custom__' && (
+                          <button
+                            type="button"
+                            onClick={() => setRosterFormData({ ...rosterFormData, occupation: 'Kỹ sư / CNTT', occupationCustom: '' })}
+                            className="text-[10px] text-amber-700 hover:underline cursor-pointer"
+                          >
+                            Chọn từ danh mục
+                          </button>
+                        )}
+                      </label>
+                      <select
+                        value={rosterFormData.occupation}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, occupation: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer font-medium text-slate-800"
+                      >
+                        <option value="">-- Chưa chọn lĩnh vực --</option>
+                        {OCCUPATION_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {rosterFormData.occupation === '__custom__' && (
+                        <input
+                          type="text"
+                          autoFocus
+                          value={rosterFormData.occupationCustom}
+                          onChange={(e) => setRosterFormData({ ...rosterFormData, occupationCustom: e.target.value })}
+                          placeholder="Nhập nghề nghiệp / chuyên môn chi tiết..."
+                          className="w-full px-3 py-1.5 mt-1 bg-amber-50/50 border border-amber-300 rounded-lg text-xs focus:outline-none focus:border-amber-600 text-slate-900"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Nơi công tác & Dropdown Tình trạng kết nối BLL */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">🏢 Nơi công tác / Đơn vị / Doanh nghiệp:</label>
+                      <input
+                        type="text"
+                        value={rosterFormData.workplace || ''}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, workplace: e.target.value })}
+                        placeholder="VD: Bệnh viện Đa khoa TW, Viettel, FPT, Tự doanh..."
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-slate-800"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">📶 Tình trạng liên lạc (BLL):</label>
+                      <select
+                        value={rosterFormData.contactStatus || 'Đã kết nối'}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, contactStatus: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 cursor-pointer font-medium text-slate-800"
+                      >
+                        {CONTACT_STATUS_OPTIONS.map((stat) => (
+                          <option key={stat.value} value={stat.value}>{stat.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* SĐT Phụ / SIM 2 & Email */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">📞 SĐT phụ / SIM 2 / Zalo khác:</label>
+                      <input
+                        type="tel"
+                        value={rosterFormData.secondaryPhone || ''}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, secondaryPhone: e.target.value })}
+                        placeholder="VD: 0912345678"
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono focus:outline-none focus:border-amber-500 text-slate-800"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700">✉️ Email liên hệ:</label>
+                      <input
+                        type="email"
+                        value={rosterFormData.email || ''}
+                        onChange={(e) => setRosterFormData({ ...rosterFormData, email: e.target.value })}
+                        placeholder="VD: banhoc@gmail.com"
+                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Link Facebook / Zalo cá nhân */}
+                  <div className="space-y-1 mt-3">
+                    <label className="font-bold text-slate-700">🌐 Liên kết Facebook / Zalo cá nhân:</label>
+                    <input
+                      type="text"
+                      value={rosterFormData.socialLink || ''}
+                      onChange={(e) => setRosterFormData({ ...rosterFormData, socialLink: e.target.value })}
+                      placeholder="VD: https://facebook.com/tenbanhoc hoặc link Zalo..."
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-slate-800"
+                    />
+                  </div>
+
+                  {/* Lịch sử SĐT cũ nếu có */}
+                  {rosterFormData.oldPhones && rosterFormData.oldPhones.length > 0 && (
+                    <div className="space-y-1 mt-3">
+                      <label className="font-bold text-slate-700 flex items-center justify-between">
+                        <span>🕒 Lịch sử số điện thoại cũ:</span>
+                        <span className="text-[10px] text-slate-400">Tự động lưu khi đổi SĐT mới</span>
+                      </label>
+                      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-amber-50/50 rounded-lg border border-amber-200">
+                        {rosterFormData.oldPhones.map((oldP, pIdx) => (
+                          <span key={pIdx} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-white text-slate-700 font-mono text-[11px] rounded border border-amber-300 shadow-2xs">
+                            <span>{oldP}</span>
+                            <button
+                              type="button"
+                              onClick={() => setRosterFormData(prev => ({
+                                ...prev,
+                                oldPhones: prev.oldPhones.filter((_, i) => i !== pIdx)
+                              }))}
+                              className="text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                              title="Xóa số này khỏi danh sách lịch sử"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ghi chú riêng của BLL */}
+                  <div className="space-y-1 mt-3">
+                    <label className="font-bold text-slate-700">📝 Ghi chú riêng BLL / Kỷ niệm họp lớp:</label>
+                    <textarea
+                      rows={2}
+                      value={rosterFormData.generalNote || ''}
+                      onChange={(e) => setRosterFormData({ ...rosterFormData, generalNote: e.target.value })}
+                      placeholder="VD: Đón tại bến xe Thái Nguyên, đi cùng phu nhân, đã nhận đồng phục..."
+                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-slate-800"
+                    />
+                  </div>
+
+                  {/* Gợi ý đóng gói */}
+                  <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-lg mt-3 text-[11px] text-blue-800 flex items-start gap-2">
+                    <span className="text-base shrink-0">💡</span>
+                    <span>
+                      Toàn bộ thông tin mở rộng trên sẽ được tự động đóng gói thành chuỗi JSON chuẩn hóa và lưu an toàn vào cột Ghi chú của Google Sheet, đảm bảo tra cứu nhanh và không làm lệch cấu trúc bảng.
+                    </span>
+                  </div>
                 </div>
 
+                {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
                   <button
                     type="button"

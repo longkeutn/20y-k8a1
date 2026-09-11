@@ -1,5 +1,17 @@
 export type UserRole = 'guest' | 'bll' | 'treasurer' | 'admin';
 
+export interface MemberNoteMetadata {
+  residence?: string;       // Nơi ở hiện tại (Tỉnh/Thành phố hoặc địa chỉ cụ thể)
+  workplace?: string;       // Nơi công tác / Đơn vị / Cơ quan / Doanh nghiệp
+  occupation?: string;      // Nghề nghiệp / Chức danh / Lĩnh vực chuyên môn
+  secondaryPhone?: string;  // Số điện thoại phụ / Hotline / SIM 2 / Zalo khác
+  oldPhones?: string[];     // Lịch sử các số điện thoại cũ (tự động lưu khi đổi SĐT)
+  email?: string;           // Email liên hệ
+  socialLink?: string;      // Link Facebook / Zalo / Website cá nhân
+  contactStatus?: string;   // Tình trạng liên lạc ('Đã kết nối' | 'Thỉnh thoảng' | 'Chưa liên lạc được'...)
+  generalNote?: string;     // Ghi chú riêng của Ban Liên Lạc / Kỷ niệm
+}
+
 export interface ClassMember {
   id: string;
   fullName: string;
@@ -9,7 +21,8 @@ export interface ClassMember {
   gender?: 'male' | 'female';
   shirtSize?: string;
   province?: string;       // Tỉnh / Thành phố sinh sống hiện tại (VD: Thái Nguyên, Hà Nội, TP.HCM...)
-  note?: string;
+  note?: string;           // Chuỗi JSON tổng hợp lưu trữ trong Google Sheet tab Danh_Sach_Lop
+  noteMeta?: MemberNoteMetadata; // Dữ liệu ghi chú đã được parse thành object cấu trúc
 }
 
 export interface RsvpData {
