@@ -112,7 +112,6 @@ import {
   resolveBankCode, 
   generateVietQrUrl, 
   sanitizeVietQrText, 
-  GOOGLE_APPS_SCRIPT_CODE,
   CLASS_ROSTER_K8A1,
   TEACHERS_LIST,
   TEACHER_SUBJECT_OPTIONS,
@@ -138,6 +137,7 @@ import {
 import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
 import { extractYouTubeVideoId } from './AudioPlayer';
+import { fetchGoogleAppsScriptCode } from '../utils/scriptCodeLoader';
 
 /**
  * Nén ảnh bằng Canvas HTML5 trước khi lưu trữ hoặc đẩy lên Google Drive / Sheet:
@@ -409,6 +409,8 @@ export default function AdminManagementHub({
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
   const [copiedScriptCode, setCopiedScriptCode] = useState(false);
   const [showScriptCodeModal, setShowScriptCodeModal] = useState(false);
+  const [scriptCode, setScriptCode] = useState('');
+  const [isLoadingScriptCode, setIsLoadingScriptCode] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isCheckingSecuritySheet, setIsCheckingSecuritySheet] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -3492,10 +3494,27 @@ export default function AdminManagementHub({
     }
   };
 
-  const handleCopyScriptCode = () => {
-    navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
-    setCopiedScriptCode(true);
-    setTimeout(() => setCopiedScriptCode(false), 3000);
+  const handleCopyScriptCode = async () => {
+    try {
+      setIsLoadingScriptCode(true);
+      let codeToCopy = scriptCode;
+      if (!codeToCopy) {
+        codeToCopy = await fetchGoogleAppsScriptCode();
+        if (codeToCopy) setScriptCode(codeToCopy);
+      }
+      if (codeToCopy) {
+        await navigator.clipboard.writeText(codeToCopy);
+        setCopiedScriptCode(true);
+        setTimeout(() => setCopiedScriptCode(false), 3000);
+      } else {
+        alert('Không thể tải mã nguồn Code.gs tự động. Vui lòng thử lại hoặc tải trực tiếp file Code.gs.');
+      }
+    } catch (e) {
+      console.error('Lỗi sao chép Code.gs:', e);
+      alert('Không thể sao chép mã nguồn tự động.');
+    } finally {
+      setIsLoadingScriptCode(false);
+    }
   };
 
   const handleTestConnection = async () => {
@@ -8221,15 +8240,22 @@ export default function AdminManagementHub({
 
                               <button
                                 type="button"
+                                disabled={isLoadingScriptCode}
                                 onClick={handleCopyScriptCode}
                                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm shrink-0 ${
                                   copiedScriptCode
                                     ? 'bg-emerald-600 text-white'
                                     : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white'
-                                }`}
+                                } disabled:opacity-50`}
                               >
-                                {copiedScriptCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                                <span>{copiedScriptCode ? 'Đã Sao Chép Code.gs!' : '📋 Sao Chép Mã Code.gs Mới'}</span>
+                                {isLoadingScriptCode ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : copiedScriptCode ? (
+                                  <Check className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                                <span>{isLoadingScriptCode ? 'Đang Tải Mã...' : copiedScriptCode ? 'Đã Sao Chép Code.gs!' : '📋 Sao Chép Mã Code.gs Mới'}</span>
                               </button>
                             </div>
                           </div>
@@ -8303,27 +8329,59 @@ export default function AdminManagementHub({
                               <span>💡 Dữ liệu Điểm danh, Lời chúc, Ảnh biên lai và Cấu hình sự kiện được lưu trữ bảo mật trên hệ thống.</span>
                               <button
                                 type="button"
-                                onClick={() => setShowScriptCodeModal(!showScriptCodeModal)}
-                                className="text-amber-700 hover:text-amber-900 underline font-semibold cursor-pointer shrink-0 ml-2"
+                                onClick={async () => {
+                                  const next = !showScriptCodeModal;
+                                  setShowScriptCodeModal(next);
+                                  if (next && !scriptCode) {
+                                    setIsLoadingScriptCode(true);
+                                    const c = await fetchGoogleAppsScriptCode();
+                                    if (c) setScriptCode(c);
+                                    setIsLoadingScriptCode(false);
+                                  }
+                                }}
+                                className="text-amber-700 hover:text-amber-900 underline font-semibold cursor-pointer shrink-0 ml-2 flex items-center gap-1"
                               >
-                                {showScriptCodeModal ? 'Ẩn mã Code.gs' : 'Xem mã Code.gs'}
+                                {isLoadingScriptCode && <Loader2 className="w-3 h-3 animate-spin" />}
+                                <span>{showScriptCodeModal ? 'Ẩn mã Code.gs' : 'Xem mã Code.gs'}</span>
                               </button>
                             </div>
 
                             {showScriptCodeModal && (
                               <div className="mt-2 p-3 bg-slate-900 text-slate-200 rounded-xl max-h-64 overflow-y-auto font-mono text-[11px] space-y-2 border border-slate-700">
-                                <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-                                  <span className="text-amber-400 font-bold">Mã Nguồn Code.gs (Google Apps Script)</span>
-                                  <button
-                                    type="button"
-                                    onClick={handleCopyScriptCode}
-                                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-[10px] transition cursor-pointer flex items-center gap-1"
-                                  >
-                                    <Copy className="w-3 h-3" />
-                                    <span>{copiedScriptCode ? 'Đã sao chép!' : 'Chép mã'}</span>
-                                  </button>
+                                <div className="flex items-center justify-between border-b border-slate-700 pb-2 sticky top-0 bg-slate-900 z-10">
+                                  <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                                    <FileCode className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Mã Nguồn Code.gs (Mới nhất)</span>
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href="/Code.gs"
+                                      download="Code.gs"
+                                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded text-[10px] font-bold transition cursor-pointer flex items-center gap-1"
+                                      title="Tải file Code.gs về máy"
+                                    >
+                                      <Download className="w-3 h-3" />
+                                      <span>Tải .gs</span>
+                                    </a>
+                                    <button
+                                      type="button"
+                                      disabled={isLoadingScriptCode}
+                                      onClick={handleCopyScriptCode}
+                                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-[10px] transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                                    >
+                                      {isLoadingScriptCode ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
+                                      <span>{copiedScriptCode ? 'Đã sao chép!' : 'Chép mã'}</span>
+                                    </button>
+                                  </div>
                                 </div>
-                                <pre className="whitespace-pre-wrap select-all leading-relaxed">{GOOGLE_APPS_SCRIPT_CODE}</pre>
+                                {isLoadingScriptCode ? (
+                                  <div className="py-8 text-center text-slate-400 text-xs italic flex items-center justify-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                                    <span>Đang nạp mã nguồn Code.gs từ file tách biệt...</span>
+                                  </div>
+                                ) : (
+                                  <pre className="whitespace-pre-wrap select-all leading-relaxed">{scriptCode || '// Nhấn "Chép mã" hoặc "Tải .gs" để lấy toàn bộ mã nguồn Code.gs'}</pre>
+                                )}
                               </div>
                             )}
                           </div>

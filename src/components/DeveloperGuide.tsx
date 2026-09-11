@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { GOOGLE_APPS_SCRIPT_CODE } from '../data';
+import React, { useState, useEffect } from 'react';
+import { fetchGoogleAppsScriptCode } from '../utils/scriptCodeLoader';
 import { 
   BookOpen, 
   Copy, 
@@ -23,7 +23,8 @@ import {
   Send,
   Layers,
   Sparkles,
-  UserCheck
+  UserCheck,
+  Loader2
 } from 'lucide-react';
 import ReceptionCheckin from './ReceptionCheckin';
 import { RsvpData } from '../types';
@@ -74,10 +75,39 @@ export default function DeveloperGuide({
     sampleDataCount?: number;
   } | null>(null);
 
-  const handleCopyScript = () => {
-    navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
-    setCopiedScript(true);
-    setTimeout(() => setCopiedScript(false), 2000);
+  const [scriptCode, setScriptCode] = useState<string>('');
+  const [isLoadingScript, setIsLoadingScript] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (activeSubTab === 'code' && !scriptCode) {
+      setIsLoadingScript(true);
+      fetchGoogleAppsScriptCode().then(c => {
+        if (c) setScriptCode(c);
+        setIsLoadingScript(false);
+      });
+    }
+  }, [activeSubTab, scriptCode]);
+
+  const handleCopyScript = async () => {
+    try {
+      setIsLoadingScript(true);
+      let codeToCopy = scriptCode;
+      if (!codeToCopy) {
+        codeToCopy = await fetchGoogleAppsScriptCode();
+        if (codeToCopy) setScriptCode(codeToCopy);
+      }
+      if (codeToCopy) {
+        await navigator.clipboard.writeText(codeToCopy);
+        setCopiedScript(true);
+        setTimeout(() => setCopiedScript(false), 2000);
+      } else {
+        alert('Không thể nạp mã nguồn Code.gs tự động.');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingScript(false);
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -735,33 +765,57 @@ export default function DeveloperGuide({
                 Bao gồm API tiếp nhận đăng ký tham dự, Sổ lưu bút, Tải ảnh lên Google Drive và Đếm số lượt truy cập.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleCopyScript}
-              className="flex items-center gap-2 text-xs uppercase font-sans tracking-wider text-white bg-brand-text hover:bg-brand-gold font-bold px-4 py-2.5 rounded-sm shadow-xs cursor-pointer shrink-0 transition-colors"
-            >
-              {copiedScript ? (
-                <>
-                  <Check className="w-4 h-4 text-green-400" />
-                  <span>Đã sao chép vào bộ nhớ tạm!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 text-brand-gold" />
-                  <span>Sao Chép Toàn Bộ Mã</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href="/Code.gs"
+                download="Code.gs"
+                className="flex items-center gap-1.5 text-xs uppercase font-sans tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 font-bold px-3 py-2.5 rounded-sm shadow-xs cursor-pointer transition-colors"
+                title="Tải file Code.gs về máy"
+              >
+                <Download className="w-4 h-4 text-amber-600" />
+                <span>Tải .gs</span>
+              </a>
+              <button
+                type="button"
+                disabled={isLoadingScript}
+                onClick={handleCopyScript}
+                className="flex items-center gap-2 text-xs uppercase font-sans tracking-wider text-white bg-brand-text hover:bg-brand-gold font-bold px-4 py-2.5 rounded-sm shadow-xs cursor-pointer transition-colors disabled:opacity-50"
+              >
+                {isLoadingScript ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                    <span>Đang nạp mã...</span>
+                  </>
+                ) : copiedScript ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-400" />
+                    <span>Đã sao chép vào bộ nhớ tạm!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-brand-gold" />
+                    <span>Sao Chép Toàn Bộ Mã</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-brand-text font-serif italic">
-            <strong>Thông báo:</strong> Mã ID thư mục Google Drive của bạn (<code>1Skmip1HQhmXan-58kwbY_msamP-bWokq</code>) đã được tích hợp sẵn vào mã nguồn bên dưới! Bạn chỉ cần copy và dán trực tiếp vào Google Apps Script.
+            <strong>Thông báo:</strong> Mã nguồn đã được tách rời độc lập thành file <code>Code.gs</code> để tối ưu tốc độ và bảo mật hệ thống. Bạn có thể nhấn <strong>Sao Chép Toàn Bộ Mã</strong> hoặc <strong>Tải .gs</strong> về máy để dán vào Apps Script.
           </div>
 
           <div className="overflow-hidden rounded-sm border border-brand-border bg-slate-900 shadow-lg max-h-[450px] overflow-y-auto">
-            <pre className="p-4 text-[11px] font-mono text-slate-100 leading-relaxed overflow-x-auto select-all">
-              {GOOGLE_APPS_SCRIPT_CODE}
-            </pre>
+            {isLoadingScript ? (
+              <div className="p-8 text-center text-slate-400 text-xs italic flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                <span>Đang nạp mã nguồn Code.gs từ file tách biệt...</span>
+              </div>
+            ) : (
+              <pre className="p-4 text-[11px] font-mono text-slate-100 leading-relaxed overflow-x-auto select-all">
+                {scriptCode || '// Nhấn nút "Sao Chép Toàn Bộ Mã" hoặc "Tải .gs" ở trên để lấy mã nguồn'}
+              </pre>
+            )}
           </div>
         </div>
       )}
