@@ -167,11 +167,13 @@ export interface MusicTrack {
   id: string;
   title: string;
   artist?: string;
-  sourceType: 'youtube' | 'drive' | 'direct';
+  sourceType: 'youtube' | 'drive' | 'direct' | 'offline';
   url: string;
   thumbnail?: string;
   duration?: string;
   isCustom?: boolean;
+  isOffline?: boolean;
+  fileSize?: number;
 }
 
 // Model ảnh Backdrop sân khấu màn LED

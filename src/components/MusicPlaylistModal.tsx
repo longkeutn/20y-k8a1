@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, Play, Pause, SkipForward, SkipBack, Shuffle, Repeat, 
   Volume2, VolumeX, Plus, Trash2, ExternalLink, Music, Disc, Sparkles,
-  Search, Check
+  Search, Check, WifiOff, HardDriveDownload
 } from 'lucide-react';
 import { MusicTrack } from '../types';
 import { extractYouTubeVideoId } from './AudioPlayer';
@@ -26,6 +26,8 @@ interface MusicPlaylistModalProps {
   onAddTrack?: (track: MusicTrack) => void;
   onRemoveTrack?: (trackId: string) => void;
   isAdmin?: boolean;
+  isOnline?: boolean;
+  onUploadOfflineFile?: (file: File) => Promise<void>;
 }
 
 export default function MusicPlaylistModal({
@@ -46,7 +48,9 @@ export default function MusicPlaylistModal({
   onVolumeChange,
   onAddTrack,
   onRemoveTrack,
-  isAdmin = false
+  isAdmin = false,
+  isOnline = true,
+  onUploadOfflineFile
 }: MusicPlaylistModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -54,6 +58,29 @@ export default function MusicPlaylistModal({
   const [newArtist, setNewArtist] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [addError, setAddError] = useState('');
+  const [isUploadingOffline, setIsUploadingOffline] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|m4a|aac|ogg|flac)$/i)) {
+      alert('Vui lòng chọn file âm thanh (.mp3, .m4a, .wav, .aac, .ogg)!');
+      return;
+    }
+    if (onUploadOfflineFile) {
+      try {
+        setIsUploadingOffline(true);
+        await onUploadOfflineFile(file);
+      } catch (err: any) {
+        alert('Lỗi nạp file offline: ' + (err?.message || err));
+      } finally {
+        setIsUploadingOffline(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -152,6 +179,18 @@ export default function MusicPlaylistModal({
           </button>
         </div>
 
+        {/* Banner trạng thái Offline khi mất kết nối mạng */}
+        {!isOnline && (
+          <div className="bg-amber-500/20 border-b border-amber-500/40 px-4 py-2.5 flex items-center justify-between text-xs text-amber-200 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <WifiOff className="w-4 h-4 text-amber-400 flex-shrink-0 animate-pulse" />
+              <span>
+                <strong>Chế độ Ngoại tuyến (Mất mạng):</strong> Hệ thống đang ưu tiên phát nhạc từ bộ nhớ máy tính. Các bài YouTube cần có kết nối Internet để tải luồng.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Current Playing Banner (Hero Mini Player) */}
         {currentTrack && (
           <div className="p-4 md:p-5 bg-gradient-to-r from-amber-950/30 via-slate-900/60 to-amber-950/20 border-b border-slate-800/80 flex flex-col md:flex-row items-center gap-4">
@@ -175,7 +214,7 @@ export default function MusicPlaylistModal({
                   {isPlaying ? "Đang phát" : "Tạm dừng"}
                 </span>
                 <span className="text-[10px] text-slate-400 uppercase font-mono">
-                  {currentTrack.sourceType === 'youtube' ? 'YouTube' : currentTrack.sourceType === 'drive' ? 'Google Drive' : 'MP3 Trực tiếp'}
+                  {currentTrack.sourceType === 'offline' || currentTrack.isOffline ? 'Offline (Máy)' : currentTrack.sourceType === 'youtube' ? 'YouTube' : currentTrack.sourceType === 'drive' ? 'Google Drive' : 'MP3 Trực tiếp'}
                 </span>
               </div>
               <h4 className="text-base md:text-lg font-bold text-amber-100 truncate">
@@ -235,11 +274,17 @@ export default function MusicPlaylistModal({
                   className={`p-2 rounded-full transition-all cursor-pointer relative ${
                     repeatMode !== 'off' 
                       ? 'text-amber-400 bg-amber-500/20 border border-amber-500/40' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      : 'text-slate-500 hover:text-white hover:bg-slate-800'
                   }`}
-                  title={repeatMode === 'one' ? "Đang lặp 1 bài" : repeatMode === 'all' ? "Đang lặp toàn bộ danh sách" : "Không lặp lại"}
+                  title={
+                    repeatMode === 'one' 
+                      ? "Chế độ: Lặp lại 1 bài (Bấm để chuyển: Dừng khi hết danh sách)" 
+                      : repeatMode === 'all' 
+                      ? "Chế độ: Lặp toàn bộ danh sách (Bấm để chuyển: Lặp lại 1 bài)" 
+                      : "Chế độ: Dừng và quay về bài đầu khi hết danh sách (Bấm để chuyển: Lặp toàn bộ danh sách)"
+                  }
                 >
-                  <Repeat className="w-4 h-4" />
+                  <Repeat className={`w-4 h-4 ${repeatMode === 'off' ? 'opacity-40' : ''}`} />
                   {repeatMode === 'one' && (
                     <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-amber-400 text-slate-950 px-1 rounded-full">
                       1
@@ -274,8 +319,8 @@ export default function MusicPlaylistModal({
         )}
 
         {/* Filter & Action Toolbar */}
-        <div className="px-4 py-3 bg-slate-900/40 border-b border-slate-800 flex items-center justify-between gap-3">
-          <div className="relative flex-1">
+        <div className="px-4 py-3 bg-slate-900/40 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="relative flex-1 min-w-[180px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -286,13 +331,39 @@ export default function MusicPlaylistModal({
             />
           </div>
 
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all cursor-pointer whitespace-nowrap"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Thêm bài hát</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Input file ẩn để nạp MP3 từ máy tính */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac"
+              onChange={handleFileSelected}
+              style={{ display: 'none' }}
+            />
+
+            {/* Nút nạp nhạc Offline từ máy tính */}
+            {onUploadOfflineFile && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingOffline}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all cursor-pointer whitespace-nowrap"
+                title="Chọn file MP3 từ máy tính để lưu vào bộ nhớ máy, phát ổn định 100% không lo mất mạng tại hội trường"
+              >
+                <HardDriveDownload className="w-3.5 h-3.5" />
+                <span>{isUploadingOffline ? 'Đang lưu...' : '📁 Nạp MP3 từ máy (Offline)'}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Thêm link online</span>
+            </button>
+          </div>
         </div>
 
         {/* Add Track Collapsible Form */}
@@ -416,11 +487,16 @@ export default function MusicPlaylistModal({
 
                     {/* Track info */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <p className={`text-xs md:text-sm font-semibold truncate ${isCurrent ? 'text-amber-300' : 'text-slate-200 group-hover:text-amber-200'}`}>
                           {track.title}
                         </p>
-                        {track.isCustom && (
+                        {(track.isOffline || track.sourceType === 'offline') && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-semibold">
+                            💾 Offline
+                          </span>
+                        )}
+                        {track.isCustom && !track.isOffline && track.sourceType !== 'offline' && (
                           <span className="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
                             Tự thêm
                           </span>
@@ -435,7 +511,7 @@ export default function MusicPlaylistModal({
                   {/* Actions & Badge */}
                   <div className="flex items-center gap-2 ml-3">
                     <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
-                      {track.sourceType === 'youtube' ? 'YouTube' : 'Drive'}
+                      {track.sourceType === 'offline' || track.isOffline ? 'Offline' : track.sourceType === 'youtube' ? 'YouTube' : 'Drive'}
                     </span>
 
                     {/* Play/Pause icon button */}

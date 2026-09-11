@@ -3,6 +3,7 @@ import { Music, Loader2, ListMusic, Play, Pause, SkipForward, SkipBack, Volume2,
 import { MusicTrack } from '../types';
 import { DEFAULT_PLAYLIST } from '../data';
 import MusicPlaylistModal from './MusicPlaylistModal';
+import { saveOfflineTrackFile, loadAllOfflineTracks, deleteOfflineTrack } from '../utils/offlineStorage';
 
 interface AudioPlayerProps {
   customAudioUrl?: string;
@@ -116,14 +117,89 @@ export default function AudioPlayer({
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [isShuffled, setIsShuffled] = useState<boolean>(false);
-  const [repeatMode, setRepeatMode] = useState<'all' | 'one' | 'off'>('all');
+  const [repeatMode, setRepeatMode] = useState<'all' | 'one' | 'off'>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_music_repeat_mode');
+      if (saved === 'all' || saved === 'one' || saved === 'off') return saved;
+    } catch {}
+    return 'all';
+  });
   const [volume, setVolume] = useState<number>(85);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [offlineNotice, setOfflineNotice] = useState<string>('');
+
+  // Thay đổi chế độ lặp và lưu vào localStorage
+  const handleToggleRepeat = useCallback(() => {
+    const modes: ('all' | 'one' | 'off')[] = ['all', 'one', 'off'];
+    const curIdx = modes.indexOf(repeatMode);
+    const nextMode = modes[(curIdx + 1) % modes.length];
+    setRepeatMode(nextMode);
+    try {
+      localStorage.setItem('k8a1_music_repeat_mode', nextMode);
+    } catch {}
+  }, [repeatMode]);
+
+  // Nạp toàn bộ các ca khúc offline đã lưu trong IndexedDB vào playlist
+  useEffect(() => {
+    loadAllOfflineTracks().then((offlineTracks) => {
+      if (offlineTracks && offlineTracks.length > 0) {
+        setInternalPlaylist((prev) => {
+          const existingIds = new Set(prev.map(t => t.id));
+          const toAdd = offlineTracks.filter(t => !existingIds.has(t.id));
+          return [...prev, ...toAdd];
+        });
+      }
+    }).catch((e) => console.warn('Lỗi nạp bài hát offline:', e));
+  }, []);
+
+  // Theo dõi trạng thái mạng Internet
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setOfflineNotice('✅ Đã kết nối Internet trở lại!');
+      setTimeout(() => setOfflineNotice(''), 4000);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setOfflineNotice('⚠️ Mất kết nối mạng! Hệ thống đang kích hoạt chế độ dự phòng Offline.');
+      
+      // Nếu đang phát bài YouTube trực tuyến mà mất mạng, kiểm tra xem có bài Offline lưu sẵn trong máy không
+      const cur = internalPlaylistRef.current[currentIndexRef.current];
+      const isCurYt = cur && (cur.sourceType === 'youtube' || (!cur.sourceType && !cur.url.includes('drive.google.com') && !cur.url.endsWith('.mp3'))) && !cur.isOffline && cur.sourceType !== 'offline' && !cur.url.startsWith('blob:');
+      
+      if (isCurYt && isPlayingRef.current) {
+        const offlineIdx = internalPlaylistRef.current.findIndex(t => t.sourceType === 'offline' || t.isOffline);
+        if (offlineIdx !== -1) {
+          setOfflineNotice(`⚠️ Mất kết nối Internet! Tự động chuyển sang bài "${internalPlaylistRef.current[offlineIdx].title}" lưu trên máy.`);
+          setTimeout(() => {
+            handleSelectTrack(offlineIdx);
+          }, 800);
+        } else {
+          setOfflineNotice('⚠️ Mất mạng Internet! Bạn có thể bấm "Nạp file MP3 từ máy tính" để phát không cần mạng.');
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Sync khi prop playlist thay đổi
   useEffect(() => {
     if (playlist && playlist.length > 0) {
-      setInternalPlaylist(playlist);
+      setInternalPlaylist((prev) => {
+        // Giữ lại các ca khúc offline đã thêm
+        const offlineTracks = prev.filter(t => t.isOffline || t.sourceType === 'offline');
+        const existingIds = new Set(playlist.map(t => t.id));
+        const customPreserved = offlineTracks.filter(t => !existingIds.has(t.id));
+        return [...playlist, ...customPreserved];
+      });
     }
   }, [playlist]);
 
@@ -142,7 +218,7 @@ export default function AudioPlayer({
     url: customAudioUrl || 'https://youtu.be/ocvlV5LZ93Q'
   };
 
-  const isYouTube = currentTrack.sourceType === 'youtube' || (!currentTrack.sourceType && !currentTrack.url.includes('drive.google.com') && !currentTrack.url.endsWith('.mp3')) || currentTrack.url.includes('youtu');
+  const isYouTube = (currentTrack.sourceType === 'youtube' || (!currentTrack.sourceType && !currentTrack.url.includes('drive.google.com') && !currentTrack.url.endsWith('.mp3'))) && !currentTrack.isOffline && currentTrack.sourceType !== 'offline' && !currentTrack.url.startsWith('blob:');
   const videoId = isYouTube ? extractYouTubeVideoId(currentTrack.url) : '';
 
   const playerRef = useRef<any>(null);
@@ -160,7 +236,7 @@ export default function AudioPlayer({
   const internalPlaylistRef = useRef<MusicTrack[]>(internalPlaylist);
   const isPlayingRef = useRef<boolean>(isPlaying);
   const currentTrackRef = useRef<MusicTrack>(currentTrack);
-  const handleNextTrackRef = useRef<() => void>(() => {});
+  const handleNextTrackRef = useRef<(isManual?: boolean) => void>(() => {});
 
   useEffect(() => { volumeRef.current = volume; }, [volume]);
   useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
@@ -182,8 +258,8 @@ export default function AudioPlayer({
     }
   }, [volume]);
 
-  // Xử lý chuyển bài kế tiếp
-  const handleNextTrack = useCallback(() => {
+  // Xử lý chuyển bài kế tiếp (isManual = true khi người dùng bấm nút Next trên UI, false khi tự động hết bài)
+  const handleNextTrack = useCallback((isManual = false) => {
     const list = internalPlaylistRef.current;
     if (list.length <= 1) {
       // Chỉ có 1 bài, phát lại từ đầu
@@ -208,16 +284,28 @@ export default function AudioPlayer({
         nextIdx = (currentIndexRef.current + 1) % list.length;
       }
     } else if (nextIdx >= list.length) {
-      if (repeatModeRef.current === 'off') {
+      // ĐÃ ĐẾN CUỐI DANH SÁCH:
+      if (!isManual && repeatModeRef.current === 'off') {
+        // Tự động hết bài ở chế độ "Không lặp":
+        // Dừng phát nhạc và đưa con trỏ về Bài 1 (đầu danh sách) ở trạng thái chờ sẵn
         setIsPlaying(false);
         setIsBuffering(false);
+        pendingPlayRef.current = false;
+        setCurrentIndex(0);
+        currentIndexRef.current = 0;
+        if (onTrackChange) onTrackChange(0);
+        window.dispatchEvent(new CustomEvent('k8a1-track-changed', { detail: { index: 0, track: list[0] } }));
         return;
       }
+      // Người dùng chủ động bấm nút Next HOẶC chế độ lặp toàn bộ (repeatMode === 'all'):
+      // Luôn luôn quay vòng về bài đầu tiên (Bài 1)
       nextIdx = 0;
     }
 
+    currentIndexRef.current = nextIdx;
     setCurrentIndex(nextIdx);
     if (onTrackChange) onTrackChange(nextIdx);
+    window.dispatchEvent(new CustomEvent('k8a1-track-changed', { detail: { index: nextIdx, track: list[nextIdx] } }));
     pendingPlayRef.current = true;
     setIsPlaying(true);
     setIsBuffering(true);
@@ -234,8 +322,10 @@ export default function AudioPlayer({
     if (prevIdx < 0) {
       prevIdx = list.length - 1;
     }
+    currentIndexRef.current = prevIdx;
     setCurrentIndex(prevIdx);
     if (onTrackChange) onTrackChange(prevIdx);
+    window.dispatchEvent(new CustomEvent('k8a1-track-changed', { detail: { index: prevIdx, track: list[prevIdx] } }));
     pendingPlayRef.current = true;
     setIsPlaying(true);
     setIsBuffering(true);
@@ -246,8 +336,10 @@ export default function AudioPlayer({
     const list = internalPlaylistRef.current;
     if (index >= 0 && index < list.length) {
       consecutiveErrorsRef.current = 0;
+      currentIndexRef.current = index;
       setCurrentIndex(index);
       if (onTrackChange) onTrackChange(index);
+      window.dispatchEvent(new CustomEvent('k8a1-track-changed', { detail: { index: index, track: list[index] } }));
       pendingPlayRef.current = true;
       setIsPlaying(true);
       setIsBuffering(true);
@@ -320,7 +412,7 @@ export default function AudioPlayer({
                   } catch (e) {}
                 } else {
                   if (handleNextTrackRef.current) {
-                    handleNextTrackRef.current();
+                    handleNextTrackRef.current(false);
                   }
                 }
               } else if (event.data === 3) {
@@ -339,7 +431,7 @@ export default function AudioPlayer({
                 console.warn(`[YouTube Audio Player] Bài bị lỗi/hạn chế bản quyền phát nhúng. Tự động chuyển bài tiếp theo (${consecutiveErrorsRef.current}/${maxAllowed})...`);
                 setTimeout(() => {
                   if (handleNextTrackRef.current) {
-                    handleNextTrackRef.current();
+                    handleNextTrackRef.current(false);
                   }
                 }, 600);
               } else {
@@ -403,7 +495,7 @@ export default function AudioPlayer({
     }
   }, [videoId, isYouTube, isPlaying, currentTrack.url]);
 
-  // Quản lý thẻ <audio> cho Drive / Direct MP3
+  // Quản lý thẻ <audio> cho Drive / Direct MP3 / File Offline
   useEffect(() => {
     if (isYouTube) {
       if (audioTagRef.current) {
@@ -415,7 +507,10 @@ export default function AudioPlayer({
     const audio = audioTagRef.current;
     if (!audio) return;
 
-    const streamUrl = getDriveAudioStreamUrl(currentTrack.url);
+    const streamUrl = (currentTrack.sourceType === 'offline' || currentTrack.isOffline || currentTrack.url.startsWith('blob:'))
+      ? currentTrack.url
+      : getDriveAudioStreamUrl(currentTrack.url);
+
     if (audio.src !== streamUrl) {
       audio.src = streamUrl;
       audio.load();
@@ -429,7 +524,7 @@ export default function AudioPlayer({
       });
       pendingPlayRef.current = false;
     }
-  }, [currentTrack.url, isYouTube, repeatMode, volume, isPlaying]);
+  }, [currentTrack.url, isYouTube, repeatMode, volume, isPlaying, currentTrack.sourceType, currentTrack.isOffline]);
 
   // Lắng nghe Custom Events toàn hệ thống
   useEffect(() => {
@@ -458,15 +553,27 @@ export default function AudioPlayer({
       }
     };
 
-    const handleNextMusic = () => handleNextTrack();
+    const handleNextMusic = () => handleNextTrack(true);
     const handlePrevMusic = () => handlePrevTrack();
     const handleOpenModal = () => setIsModalOpen(true);
+    const handleOfflineTrackAdded = (e: any) => {
+      if (e.detail?.track) {
+        const track = e.detail.track;
+        setInternalPlaylist((prev) => {
+          if (prev.some(t => t.id === track.id)) return prev;
+          return [...prev, track];
+        });
+        setOfflineNotice(`✅ Đã lưu bài Offline: "${track.title}"`);
+        setTimeout(() => setOfflineNotice(''), 5000);
+      }
+    };
 
     window.addEventListener('pause-bg-music', handlePauseBgMusic);
     window.addEventListener('k8a1-play-music' as any, handlePlayMusic);
     window.addEventListener('k8a1-next-music' as any, handleNextMusic);
     window.addEventListener('k8a1-prev-music' as any, handlePrevMusic);
     window.addEventListener('open-music-modal' as any, handleOpenModal);
+    window.addEventListener('k8a1-offline-track-added' as any, handleOfflineTrackAdded);
 
     return () => {
       window.removeEventListener('pause-bg-music', handlePauseBgMusic);
@@ -474,6 +581,7 @@ export default function AudioPlayer({
       window.removeEventListener('k8a1-next-music' as any, handleNextMusic);
       window.removeEventListener('k8a1-prev-music' as any, handlePrevMusic);
       window.removeEventListener('open-music-modal' as any, handleOpenModal);
+      window.removeEventListener('k8a1-offline-track-added' as any, handleOfflineTrackAdded);
     };
   }, [handleNextTrack, handlePrevTrack, handleSelectTrack, isYouTube]);
 
@@ -514,24 +622,54 @@ export default function AudioPlayer({
   const handleAddTrack = (newTrack: MusicTrack) => {
     const updated = [...internalPlaylist, newTrack];
     setInternalPlaylist(updated);
-    // Tự động chuyển sang bài vừa thêm và phát
     const newIdx = updated.length - 1;
+    currentIndexRef.current = newIdx;
     setCurrentIndex(newIdx);
     if (onTrackChange) onTrackChange(newIdx);
+    window.dispatchEvent(new CustomEvent('k8a1-track-changed', { detail: { index: newIdx, track: newTrack } }));
     pendingPlayRef.current = true;
     setIsPlaying(true);
   };
 
+  // Nạp file MP3 từ máy tính để phát offline
+  const handleUploadOfflineFile = async (file: File) => {
+    try {
+      setIsBuffering(true);
+      const newTrack = await saveOfflineTrackFile(file);
+      const updated = [...internalPlaylist, newTrack];
+      setInternalPlaylist(updated);
+      const newIdx = updated.length - 1;
+      currentIndexRef.current = newIdx;
+      setCurrentIndex(newIdx);
+      if (onTrackChange) onTrackChange(newIdx);
+      window.dispatchEvent(new CustomEvent('k8a1-track-changed', { detail: { index: newIdx, track: newTrack } }));
+      window.dispatchEvent(new CustomEvent('k8a1-offline-track-added', { detail: { track: newTrack } }));
+      pendingPlayRef.current = true;
+      setIsPlaying(true);
+      setOfflineNotice(`✅ Đã lưu bài "${newTrack.title}" vào bộ nhớ máy để phát offline!`);
+      setTimeout(() => setOfflineNotice(''), 5000);
+    } catch (err: any) {
+      alert('Không thể lưu file âm thanh offline: ' + (err?.message || err));
+    } finally {
+      setIsBuffering(false);
+    }
+  };
+
   // Xóa bài hát khỏi playlist
-  const handleRemoveTrack = (trackId: string) => {
+  const handleRemoveTrack = async (trackId: string) => {
     if (internalPlaylist.length <= 1) {
       alert('Playlist cần giữ lại ít nhất 1 bài hát!');
       return;
+    }
+    const target = internalPlaylist.find(t => t.id === trackId);
+    if (target?.isOffline) {
+      await deleteOfflineTrack(trackId);
     }
     const updated = internalPlaylist.filter(t => t.id !== trackId);
     setInternalPlaylist(updated);
     if (currentIndex >= updated.length) {
       setCurrentIndex(0);
+      currentIndexRef.current = 0;
     }
   };
 
@@ -567,7 +705,7 @@ export default function AudioPlayer({
               audioTagRef.current.play().catch(() => {});
             }
           } else {
-            handleNextTrack();
+            handleNextTrack(false);
           }
         }}
         onPlay={() => setIsPlaying(true)}
@@ -577,10 +715,31 @@ export default function AudioPlayer({
     </>
   );
 
+  // Banner thông báo trạng thái mạng / Offline
+  const renderOfflineNoticeToast = () => {
+    if (!offlineNotice) return null;
+    return (
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[300] max-w-md w-[92vw] md:w-auto bg-slate-950/95 text-amber-200 border border-amber-500/60 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-semibold flex items-center justify-between gap-3 animate-fadeIn">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0" />
+          <span>{offlineNotice}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOfflineNotice('')}
+          className="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+    );
+  };
+
   if (variant === 'hidden') {
     return (
       <>
         {renderHiddenEngines()}
+        {renderOfflineNoticeToast()}
         <MusicPlaylistModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -590,16 +749,14 @@ export default function AudioPlayer({
           isShuffled={isShuffled}
           repeatMode={repeatMode}
           volume={volume}
+          isOnline={isOnline}
+          onUploadOfflineFile={handleUploadOfflineFile}
           onSelectTrack={handleSelectTrack}
           onTogglePlay={togglePlay}
-          onNextTrack={handleNextTrack}
+          onNextTrack={() => handleNextTrack(true)}
           onPrevTrack={handlePrevTrack}
           onToggleShuffle={() => setIsShuffled(!isShuffled)}
-          onToggleRepeat={() => {
-            const modes: ('all' | 'one' | 'off')[] = ['all', 'one', 'off'];
-            const curIdx = modes.indexOf(repeatMode);
-            setRepeatMode(modes[(curIdx + 1) % modes.length]);
-          }}
+          onToggleRepeat={handleToggleRepeat}
           onVolumeChange={(v) => setVolume(v)}
           onAddTrack={handleAddTrack}
           onRemoveTrack={handleRemoveTrack}
@@ -650,6 +807,7 @@ export default function AudioPlayer({
         </div>
 
         {renderHiddenEngines()}
+        {renderOfflineNoticeToast()}
 
         <MusicPlaylistModal
           isOpen={isModalOpen}
@@ -660,16 +818,14 @@ export default function AudioPlayer({
           isShuffled={isShuffled}
           repeatMode={repeatMode}
           volume={volume}
+          isOnline={isOnline}
+          onUploadOfflineFile={handleUploadOfflineFile}
           onSelectTrack={handleSelectTrack}
           onTogglePlay={togglePlay}
-          onNextTrack={handleNextTrack}
+          onNextTrack={() => handleNextTrack(true)}
           onPrevTrack={handlePrevTrack}
           onToggleShuffle={() => setIsShuffled(!isShuffled)}
-          onToggleRepeat={() => {
-            const modes: ('all' | 'one' | 'off')[] = ['all', 'one', 'off'];
-            const curIdx = modes.indexOf(repeatMode);
-            setRepeatMode(modes[(curIdx + 1) % modes.length]);
-          }}
+          onToggleRepeat={handleToggleRepeat}
           onVolumeChange={(v) => setVolume(v)}
           onAddTrack={handleAddTrack}
           onRemoveTrack={handleRemoveTrack}
@@ -717,6 +873,7 @@ export default function AudioPlayer({
       </div>
 
       {renderHiddenEngines()}
+      {renderOfflineNoticeToast()}
 
       <MusicPlaylistModal
         isOpen={isModalOpen}
@@ -727,16 +884,14 @@ export default function AudioPlayer({
         isShuffled={isShuffled}
         repeatMode={repeatMode}
         volume={volume}
+        isOnline={isOnline}
+        onUploadOfflineFile={handleUploadOfflineFile}
         onSelectTrack={handleSelectTrack}
         onTogglePlay={togglePlay}
-        onNextTrack={handleNextTrack}
+        onNextTrack={() => handleNextTrack(true)}
         onPrevTrack={handlePrevTrack}
         onToggleShuffle={() => setIsShuffled(!isShuffled)}
-        onToggleRepeat={() => {
-          const modes: ('all' | 'one' | 'off')[] = ['all', 'one', 'off'];
-          const curIdx = modes.indexOf(repeatMode);
-          setRepeatMode(modes[(curIdx + 1) % modes.length]);
-        }}
+        onToggleRepeat={handleToggleRepeat}
         onVolumeChange={(v) => setVolume(v)}
         onAddTrack={handleAddTrack}
         onRemoveTrack={handleRemoveTrack}

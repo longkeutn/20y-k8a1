@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   X, Maximize2, Minimize2, Play, Pause, SkipForward, SkipBack, 
   Image as ImageIcon, Sparkles, Music, Volume2, VolumeX, Settings, 
-  ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff
+  ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff,
+  WifiOff
 } from 'lucide-react';
 import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings } from '../types';
 import { getNostalgicPhotoCaption } from '../data';
 import MusicPlaylistModal from './MusicPlaylistModal';
+import { precacheMediaList, saveOfflineTrackFile, loadAllOfflineTracks } from '../utils/offlineStorage';
 
 interface StagePresentationHubProps {
   isOpen: boolean;
@@ -55,15 +57,114 @@ export default function StagePresentationHub({
   const [showMusicModal, setShowMusicModal] = useState<boolean>(false);
   const [showBackdropSelector, setShowBackdropSelector] = useState<boolean>(false);
 
+  // Trạng thái mạng Online / Offline
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+
   // Quản lý âm thanh Playlist
+  const [internalPlaylist, setInternalPlaylist] = useState<MusicTrack[]>(playlist && playlist.length > 0 ? playlist : []);
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(stageSettings.autoPlayMusic !== false);
   const [volume, setVolume] = useState<number>(stageSettings.volume || 85);
   const [isShuffled, setIsShuffled] = useState<boolean>(false);
-  const [repeatMode, setRepeatMode] = useState<'all' | 'one' | 'off'>('all');
+  const [repeatMode, setRepeatMode] = useState<'all' | 'one' | 'off'>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_music_repeat_mode');
+      if (saved === 'all' || saved === 'one' || saved === 'off') return saved;
+    } catch {}
+    return 'all';
+  });
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const idleTimeoutRef = useRef<any>(null);
+
+  // Nạp toàn bộ các ca khúc offline đã lưu trong máy
+  useEffect(() => {
+    loadAllOfflineTracks().then((offlineTracks) => {
+      if (offlineTracks && offlineTracks.length > 0) {
+        setInternalPlaylist((prev) => {
+          const base = prev.length > 0 ? prev : playlist;
+          const existingIds = new Set(base.map(t => t.id));
+          const toAdd = offlineTracks.filter(t => !existingIds.has(t.id));
+          return [...base, ...toAdd];
+        });
+      }
+    }).catch(() => {});
+  }, [playlist]);
+
+  // Đồng bộ khi prop playlist thay đổi
+  useEffect(() => {
+    if (playlist && playlist.length > 0) {
+      setInternalPlaylist((prev) => {
+        const offlineTracks = prev.filter(t => t.isOffline || t.sourceType === 'offline');
+        const existingIds = new Set(playlist.map(t => t.id));
+        const customPreserved = offlineTracks.filter(t => !existingIds.has(t.id));
+        return [...playlist, ...customPreserved];
+      });
+    }
+  }, [playlist]);
+
+  // Lắng nghe bài offline mới được nạp từ bất kỳ đâu
+  useEffect(() => {
+    const handleOfflineTrackAdded = (e: any) => {
+      if (e.detail?.track) {
+        setInternalPlaylist((prev) => {
+          if (prev.some(t => t.id === e.detail.track.id)) return prev;
+          return [...prev, e.detail.track];
+        });
+      }
+    };
+    window.addEventListener('k8a1-offline-track-added' as any, handleOfflineTrackAdded);
+    return () => {
+      window.removeEventListener('k8a1-offline-track-added' as any, handleOfflineTrackAdded);
+    };
+  }, []);
+
+  const handleUploadOfflineFile = async (file: File) => {
+    try {
+      const newTrack = await saveOfflineTrackFile(file);
+      setInternalPlaylist((prev) => [...prev, newTrack]);
+      window.dispatchEvent(new CustomEvent('k8a1-offline-track-added', { detail: { track: newTrack } }));
+    } catch (err: any) {
+      alert('Không thể lưu file offline: ' + (err?.message || err));
+    }
+  };
+
+  // Theo dõi trạng thái mạng Internet để hiển thị chỉ báo trên sân khấu
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Lắng nghe sự kiện đổi bài từ AudioPlayer để đồng bộ bài đang phát trên sân khấu
+  useEffect(() => {
+    const handleTrackChanged = (e: any) => {
+      if (e.detail && typeof e.detail.index === 'number') {
+        setCurrentTrackIndex(e.detail.index);
+        setIsMusicPlaying(true);
+      }
+    };
+    window.addEventListener('k8a1-track-changed' as any, handleTrackChanged);
+    return () => {
+      window.removeEventListener('k8a1-track-changed' as any, handleTrackChanged);
+    };
+  }, []);
+
+  // Tiền tải (pre-cache) toàn bộ ảnh backdrop và thư viện kỷ niệm vào bộ nhớ trình duyệt để chiếu offline mượt mà
+  useEffect(() => {
+    if (!isOpen) return;
+    const urlsToCache: string[] = [];
+    backdrops.forEach(b => { if (b.url) urlsToCache.push(b.url); });
+    memories.forEach(m => { if (m.url) urlsToCache.push(m.url); });
+    if (urlsToCache.length > 0) {
+      precacheMediaList(urlsToCache);
+    }
+  }, [isOpen, backdrops, memories]);
 
   // Tự động phát nhạc khi mở trình chiếu
   useEffect(() => {
@@ -198,7 +299,8 @@ export default function StagePresentationHub({
 
   const currentBackdrop = backdrops[selectedBackdropIndex] || backdrops[0];
   const currentPhoto = memories[photoIndex] || memories[0];
-  const currentTrack = playlist[currentTrackIndex] || playlist[0];
+  const effectivePlaylist = internalPlaylist.length > 0 ? internalPlaylist : playlist;
+  const currentTrack = effectivePlaylist[currentTrackIndex] || effectivePlaylist[0];
 
   // Các hiệu ứng Ken Burns Pan & Zoom đa hướng
   const getKenBurnsClass = () => {
@@ -362,8 +464,14 @@ export default function StagePresentationHub({
           </div>
         </div>
 
-        {/* Nút thoát & Fullscreen góc phải trên */}
+        {/* Nút thoát, trạng thái mạng & Fullscreen góc phải trên */}
         <div className="flex items-center gap-2 pointer-events-auto">
+          {!isOnline && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-semibold animate-pulse">
+              <WifiOff className="w-3.5 h-3.5" />
+              <span>Ngoại tuyến</span>
+            </div>
+          )}
           <button
             onClick={toggleFullscreen}
             className="p-2.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 text-slate-300 hover:text-white transition-all cursor-pointer"
@@ -648,12 +756,14 @@ export default function StagePresentationHub({
       <MusicPlaylistModal
         isOpen={showMusicModal}
         onClose={() => setShowMusicModal(false)}
-        playlist={playlist}
+        playlist={effectivePlaylist}
         currentTrackIndex={currentTrackIndex}
         isPlaying={isMusicPlaying}
         isShuffled={isShuffled}
         repeatMode={repeatMode}
         volume={volume}
+        isOnline={isOnline}
+        onUploadOfflineFile={handleUploadOfflineFile}
         onSelectTrack={(idx) => {
           setCurrentTrackIndex(idx);
           window.dispatchEvent(new CustomEvent('k8a1-play-music', { detail: { index: idx } }));
@@ -668,20 +778,20 @@ export default function StagePresentationHub({
           }
         }}
         onNextTrack={() => {
-          const nextIdx = (currentTrackIndex + 1) % playlist.length;
-          setCurrentTrackIndex(nextIdx);
-          window.dispatchEvent(new CustomEvent('k8a1-play-music', { detail: { index: nextIdx } }));
+          window.dispatchEvent(new CustomEvent('k8a1-next-music'));
         }}
         onPrevTrack={() => {
-          const prevIdx = (currentTrackIndex - 1 + playlist.length) % playlist.length;
-          setCurrentTrackIndex(prevIdx);
-          window.dispatchEvent(new CustomEvent('k8a1-play-music', { detail: { index: prevIdx } }));
+          window.dispatchEvent(new CustomEvent('k8a1-prev-music'));
         }}
         onToggleShuffle={() => setIsShuffled(!isShuffled)}
         onToggleRepeat={() => {
           const modes: ('all' | 'one' | 'off')[] = ['all', 'one', 'off'];
           const curIdx = modes.indexOf(repeatMode);
-          setRepeatMode(modes[(curIdx + 1) % modes.length]);
+          const nextMode = modes[(curIdx + 1) % modes.length];
+          setRepeatMode(nextMode);
+          try {
+            localStorage.setItem('k8a1_music_repeat_mode', nextMode);
+          } catch {}
         }}
         onVolumeChange={(v) => setVolume(v)}
         isAdmin={isAdmin}
