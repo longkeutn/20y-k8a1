@@ -474,8 +474,11 @@ export default function RsvpForm({
     const fromRoster = activeMember?.phone ? String(activeMember.phone).trim() : '';
     const fromRsvp = matchedExistingAttendee?.phone ? String(matchedExistingAttendee.phone).trim() : '';
     const phoneCandidate = fromRoster || fromRsvp || savedExistingPhone;
-    const clean = normalizeVietnamesePhone(phoneCandidate);
-    return clean.length >= 9 ? phoneCandidate : '';
+    const clean = phoneCandidate.replace(/[^0-9]/g, '');
+    const isMasked = phoneCandidate.includes('•') || phoneCandidate.includes('*');
+    if (isMasked && clean.length >= 6) return phoneCandidate;
+    if (clean.length >= 9) return phoneCandidate;
+    return '';
   }, [activeMember, matchedExistingAttendee, savedExistingPhone]);
 
   // Thành viên có phải chính chủ trên thiết bị này (hoặc là BLL) không?
@@ -548,7 +551,7 @@ export default function RsvpForm({
     if (useSavedPhone || !phone.trim()) return null;
     const res = isValidVietnamesePhone(phone);
     if (res.isValid) {
-      const dup = findDuplicatePhoneInRoster(res.phone, rosterList, activeMember?.id);
+      const dup = findDuplicatePhoneInRoster(res.phone, rosterList, activeMember?.id, rsvpList, CLASS_ROSTER_K8A1);
       if (dup) {
         return {
           ...res,
@@ -558,7 +561,7 @@ export default function RsvpForm({
       }
     }
     return res;
-  }, [phone, useSavedPhone, rosterList, activeMember]);
+  }, [phone, useSavedPhone, rosterList, activeMember, rsvpList]);
 
   // Đồng bộ thông tin khi activeMember thay đổi từ bất kỳ đâu (nhận diện chuẩn xác từng người, không đè người trùng tên)
   useEffect(() => {
@@ -611,7 +614,12 @@ export default function RsvpForm({
         }
       }
 
-      if (existingPhone) {
+      // Kiểm tra tính hợp lệ của SĐT: Bắt buộc phải là số thực (không phải "Ko có số" hay chuỗi rác)
+      const cleanPhoneDigits = existingPhone.replace(/[^0-9]/g, '');
+      const isMaskedPhoneCand = existingPhone.includes('•') || existingPhone.includes('*');
+      const isValidSavedPhone = isMaskedPhoneCand ? cleanPhoneDigits.length >= 6 : cleanPhoneDigits.length >= 9;
+
+      if (isValidSavedPhone) {
         setSavedExistingPhone(existingPhone);
         setUseSavedPhone(prev => (phone.trim() ? prev : true));
       } else {
@@ -692,8 +700,11 @@ export default function RsvpForm({
           setShirtSize('');
         }
         const mPhone = member.phone ? String(member.phone).trim() : '';
-        setSavedExistingPhone(mPhone);
-        setUseSavedPhone(!!mPhone);
+        const mClean = mPhone.replace(/[^0-9]/g, '');
+        const mMasked = mPhone.includes('•') || mPhone.includes('*');
+        const mValid = mMasked ? mClean.length >= 6 : mClean.length >= 9;
+        setSavedExistingPhone(mValid ? mPhone : '');
+        setUseSavedPhone(mValid);
         setPhone('');
       }
     }
@@ -842,10 +853,10 @@ export default function RsvpForm({
         return;
       }
 
-      // Kiểm tra xem số này có bị trùng với bạn học khác trong danh bạ lớp không
-      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, activeMember?.id);
+      // Kiểm tra xem số này có bị trùng với bạn học khác trong danh bạ lớp hoặc danh sách điểm danh không
+      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, effectiveMemberId, rsvpList, CLASS_ROSTER_K8A1);
       if (dup) {
-        setSubmitError(`Số điện thoại này đã được lưu cho bạn "${dup.fullName}" trong danh bạ lớp. Vui lòng kiểm tra lại!`);
+        setSubmitError(`Số điện thoại này đã được lưu cho bạn "${dup.fullName}" trong lớp. Vui lòng kiểm tra lại!`);
         const phoneInput = document.getElementById('rsvp-phone');
         if (phoneInput) phoneInput.focus();
         return;
@@ -1019,9 +1030,9 @@ export default function RsvpForm({
         return;
       }
 
-      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, activeMember?.id);
+      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, activeMember?.id, rsvpList, CLASS_ROSTER_K8A1);
       if (dup) {
-        setSubmitError(`Số điện thoại này đã thuộc về bạn "${dup.fullName}" trong danh bạ lớp. Vui lòng kiểm tra lại!`);
+        setSubmitError(`Số điện thoại này đã thuộc về bạn "${dup.fullName}" trong lớp. Vui lòng kiểm tra lại!`);
         const phoneInput = document.getElementById('rsvp-phone');
         if (phoneInput) phoneInput.focus();
         return;

@@ -9,7 +9,7 @@ export {
 } from './utils/phoneUtils';
 
 // Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
-export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.11_phone_fix_v8';
+export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.11_dup_phone_fix_v9';
 
 /**
  * Tự động kiểm tra và dọn dẹp sạch toàn bộ cache cũ tàn dư trên điện thoại thành viên
@@ -4881,16 +4881,62 @@ function saveRSVP(data) {
     }
   }
 
-  // 3. Ưu tiên số 3: Khớp theo SĐT hợp lệ (chỉ khi số không bị che mờ)
+  // 🛡️ CHỐNG TRÙNG LẶP SỐ ĐIỆN THOẠI TRÊN TOÀN BỘ CƠ SỞ DỮ LIỆU GOOGLE SHEETS
+  // Bất kỳ ai nhập số điện thoại mới (chưa có số hoặc đổi số): BẮT BUỘC kiểm tra không được trùng với bạn khác trong lớp!
+  if (!isMaskedPhone && normNewPhone && !isAdminRequest) {
+    // 1. Kiểm tra trong danh bạ gốc (Sheet "Danh_Sach_Lop")
+    if (rosterMap && rosterMap.allMembers) {
+      for (var rmi = 0; rmi < rosterMap.allMembers.length; rmi++) {
+        var rMem = rosterMap.allMembers[rmi];
+        var isSameMember = (targetMemberId && rMem.id === targetMemberId) || (normNewName && normalizeName(rMem.fullName) === normNewName);
+        if (isSameMember) continue;
+
+        var rMemPhone = normalizePhone(rMem.phone);
+        if (rMemPhone && rMemPhone === normNewPhone) {
+          return {
+            status: 'error',
+            code: 'DUPLICATE_PHONE',
+            message: 'Số điện thoại "' + (data.phone || normNewPhone) + '" đã thuộc về bạn "' + rMem.fullName + '" trong danh bạ lớp K8A1. Vui lòng kiểm tra lại hoặc liên hệ Ban Liên Lạc!'
+          };
+        }
+      }
+    }
+
+    // 2. Kiểm tra trong các bản ghi điểm danh hiện tại (Sheet RSVP "Trang_tinh_1")
+    for (var rsi = 1; rsi < rows.length; rsi++) {
+      if (matchedRowIndex !== -1 && (rsi + 1) === matchedRowIndex) continue;
+      var existingRowMid = String(rows[rsi][16] || '').trim();
+      var existingRowName = String(rows[rsi][0] || '').trim();
+      var existingRowPhone = normalizePhone(rows[rsi][2]);
+
+      var isSameRow = (targetMemberId && existingRowMid && existingRowMid === targetMemberId) || (normNewName && normalizeName(existingRowName) === normNewName);
+      if (isSameRow) continue;
+
+      if (existingRowPhone && existingRowPhone === normNewPhone) {
+        return {
+          status: 'error',
+          code: 'DUPLICATE_PHONE',
+          message: 'Số điện thoại "' + (data.phone || normNewPhone) + '" đã được bạn "' + existingRowName + '" đăng ký điểm danh trước đó. Vui lòng kiểm tra lại hoặc liên hệ Ban Liên Lạc!'
+        };
+      }
+    }
+  }
+
+  // 3. Ưu tiên số 3: Khớp theo SĐT hợp lệ (chỉ khi số không bị che mờ và khớp với chính thành viên này)
   if (matchedRowIndex === -1 && normNewPhone && !isMaskedPhone) {
     for (var i = 1; i < rows.length; i++) {
       var row = rows[i];
       var rowPhone = normalizePhone(row[2]);
       if (rowPhone && normNewPhone === rowPhone) {
-        if (matchedRowIndex === -1) {
-          matchedRowIndex = i + 1;
-        } else if (matchedRowIndex !== (i + 1)) {
-          duplicateRowIndices.push(i + 1);
+        var rowMid = String(row[16] || '').trim();
+        var rowName = normalizeName(row[0]);
+        var isOwnRecord = (!targetMemberId || !rowMid || targetMemberId === rowMid) && (!normNewName || !rowName || normNewName === rowName);
+        if (isOwnRecord) {
+          if (matchedRowIndex === -1) {
+            matchedRowIndex = i + 1;
+          } else if (matchedRowIndex !== (i + 1)) {
+            duplicateRowIndices.push(i + 1);
+          }
         }
       }
     }

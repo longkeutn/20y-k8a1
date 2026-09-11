@@ -244,31 +244,77 @@ export function verifyLast4Digits(fullPhone?: any, inputLast4?: string): boolean
 }
 
 /**
- * Kiểm tra xem số điện thoại nhập vào có bị trùng với bạn học nào khác trong danh bạ lớp không
+ * Kiểm tra xem số điện thoại nhập vào có bị trùng với bạn học nào khác trong danh bạ lớp hoặc danh sách RSVP không
  * (Ngoại trừ chính thành viên đang thao tác)
+ * Hỗ trợ so khớp đa tầng: Số đầy đủ 10 số, số bị che mờ PII (09xx ••• xxx), danh bạ tĩnh và rsvpList.
  */
 export function findDuplicatePhoneInRoster(
   targetPhone: string,
   roster: ClassMember[],
-  currentMemberId?: string
-): ClassMember | null {
+  currentMemberId?: string,
+  rsvpList?: any[],
+  staticRoster?: ClassMember[]
+): { fullName: string; id?: string; phone?: string } | null {
   const cleanTarget = normalizeVietnamesePhone(targetPhone);
   if (!cleanTarget || cleanTarget.length < 9) return null;
 
-  for (const m of roster) {
-    // Bỏ qua chính bạn học này
-    if (currentMemberId && m.id === currentMemberId) continue;
-    if (!m.phone) continue;
+  // Helper so khớp SĐT linh hoạt (hỗ trợ cả số che mờ ••• hoặc nhiều số cách nhau)
+  const isMatch = (candPhone?: any): boolean => {
+    if (!candPhone) return false;
+    const raw = String(candPhone).trim();
+    if (!raw || raw.toLowerCase().includes('ko') || raw.toLowerCase().includes('không')) return false;
 
-    const memberClean = normalizeVietnamesePhone(m.phone);
-    if (memberClean && memberClean === cleanTarget) {
-      return m;
+    // 1. Nếu cả 2 đều là số đầy đủ (hoặc chứa nhiều số phân cách)
+    const cleanCand = normalizeVietnamesePhone(raw);
+    if (cleanCand && cleanCand.length >= 9) {
+      if (cleanCand === cleanTarget) return true;
+      const parts = raw.split(/[\s,;\/\-]+/).map(normalizeVietnamesePhone).filter(Boolean);
+      if (parts.includes(cleanTarget)) return true;
     }
 
-    // Nếu SĐT bạn trong danh bạ có nhiều số phân cách
-    const parts = String(m.phone).split(/[\s,;\/\-]+/).map(normalizeVietnamesePhone).filter(Boolean);
-    if (parts.includes(cleanTarget)) {
-      return m;
+    // 2. Nếu số trong danh bạ bị che mờ dạng "0919 ••• 588" hoặc "0919***588"
+    if (raw.includes('•') || raw.includes('*')) {
+      const cleanDigits = raw.replace(/[^0-9]/g, '');
+      if (cleanDigits.length >= 6) {
+        // Lấy 4 số đầu và 3 số cuối (chuẩn che mờ maskPhoneScript)
+        const prefix = cleanDigits.slice(0, 4);
+        const suffix = cleanDigits.slice(-3);
+        if (cleanTarget.startsWith(prefix) && cleanTarget.endsWith(suffix)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  // 1. Quét danh bạ gốc tĩnh (Single Source of Truth có SĐT 10 số thực)
+  if (Array.isArray(staticRoster)) {
+    for (const m of staticRoster) {
+      if (currentMemberId && m.id === currentMemberId) continue;
+      if (isMatch(m.phone)) {
+        return { fullName: m.fullName, id: m.id, phone: m.phone };
+      }
+    }
+  }
+
+  // 2. Quét danh bạ hiện tại (rosterList)
+  if (Array.isArray(roster)) {
+    for (const m of roster) {
+      if (currentMemberId && m.id === currentMemberId) continue;
+      if (isMatch(m.phone)) {
+        return { fullName: m.fullName, id: m.id, phone: m.phone };
+      }
+    }
+  }
+
+  // 3. Quét danh sách thành viên đã điểm danh (rsvpList)
+  if (Array.isArray(rsvpList)) {
+    for (const r of rsvpList) {
+      if (currentMemberId && r.memberId && r.memberId === currentMemberId) continue;
+      if (isMatch(r.phone)) {
+        return { fullName: r.fullName, id: r.memberId, phone: r.phone };
+      }
     }
   }
 
