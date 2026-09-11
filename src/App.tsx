@@ -570,7 +570,11 @@ export default function App() {
 
   useEffect(() => {
     const handleOpenIdentity = () => setIsIdentityModalOpen(true);
-    const handleOpenZaloShare = () => setIsZaloShareModalOpen(true);
+    const handleOpenZaloShare = () => {
+      if (isBLLOrAdmin) {
+        setIsZaloShareModalOpen(true);
+      }
+    };
     window.addEventListener('open-identity-modal', handleOpenIdentity);
     window.addEventListener('open-zalo-share-modal', handleOpenZaloShare);
 
@@ -583,7 +587,7 @@ export default function App() {
       window.removeEventListener('open-identity-modal', handleOpenIdentity);
       window.removeEventListener('open-zalo-share-modal', handleOpenZaloShare);
     };
-  }, []);
+  }, [isBLLOrAdmin]);
 
   // RSVP list state
   const [rsvpList, setRsvpList] = useState<RsvpData[]>(() => {
@@ -2073,15 +2077,17 @@ export default function App() {
                 <span>Xem Bạn Bè ({confirmedCount})</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsZaloShareModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 sm:px-5 py-3.5 bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-600 hover:to-indigo-600 text-white font-sans font-semibold text-xs sm:text-sm rounded-xl border border-blue-400/40 backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-                title="Tạo ảnh infographic bản tin hội ngộ sắc nét để chia sẻ lên nhóm lớp"
-              >
-                <Camera className="w-4 h-4 text-blue-200" />
-                <span>Tạo Poster Nhóm Lớp</span>
-              </button>
+              {isBLLOrAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setIsZaloShareModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-3.5 bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-600 hover:to-indigo-600 text-white font-sans font-semibold text-xs sm:text-sm rounded-xl border border-blue-400/40 backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                  title="Tạo ảnh infographic bản tin hội ngộ sắc nét để chia sẻ lên nhóm lớp (Dành cho BLL & Admin)"
+                >
+                  <Camera className="w-4 h-4 text-blue-200" />
+                  <span>Tạo Poster Nhóm Lớp</span>
+                </button>
+              )}
 
               <QuickShare 
                 variant="pill"
@@ -2207,7 +2213,7 @@ export default function App() {
               classRoster={classRoster}
               activeMember={activeMember}
               isSyncing={isRefreshing}
-              onOpenZaloShareModal={() => setIsZaloShareModalOpen(true)}
+              onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
             />
 
             {/* 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}
@@ -2727,7 +2733,7 @@ export default function App() {
         hasTeachers={teachersList.length > 0} 
         activeMember={activeMember}
         onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
-        onOpenZaloShareModal={() => setIsZaloShareModalOpen(true)}
+        onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
       />
 
       {/* 🎓 BẢNG DANH BẠ 65 BẠN HỌC K8A1 (CHỌN TÊN ĐỂ NHẬN DIỆN & CÁ NHÂN HÓA) */}
@@ -2743,17 +2749,19 @@ export default function App() {
         }}
       />
 
-      {/* 📸 MODAL TẠO POSTER BẢN TIN HỘI NGỘ K8A1 */}
-      <ZaloShareInfographicsModal
-        isOpen={isZaloShareModalOpen}
-        onClose={() => setIsZaloShareModalOpen(false)}
-        rsvpList={rsvpList}
-        classRoster={classRoster}
-        eventConfig={eventConfig}
-        activeMember={activeMember}
-        appsScriptUrl={activeAppsScriptUrl}
-        onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
-      />
+      {/* 📸 MODAL TẠO POSTER BẢN TIN HỘI NGỘ K8A1 — Dành riêng cho Ban Liên Lạc & Admin */}
+      {isBLLOrAdmin && (
+        <ZaloShareInfographicsModal
+          isOpen={isZaloShareModalOpen}
+          onClose={() => setIsZaloShareModalOpen(false)}
+          rsvpList={rsvpList}
+          classRoster={classRoster}
+          eventConfig={eventConfig}
+          activeMember={activeMember}
+          appsScriptUrl={activeAppsScriptUrl}
+          onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
+        />
+      )}
 
       {/* Toast thông báo realtime */}
       <ActivityToastManager
