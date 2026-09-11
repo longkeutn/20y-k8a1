@@ -229,18 +229,26 @@ export function verifyLast4Digits(fullPhone?: any, inputLast4?: string): boolean
   if (inputDigits.length !== 4) return false;
 
   const fullStr = String(fullPhone).trim();
+  const isMasked = fullStr.includes('•') || fullStr.includes('*');
   
   // Tách các mảnh SĐT nếu chuỗi chứa nhiều số
-  const chunks = fullStr.split(/[\s,;\/\-]+/).map(c => c.replace(/[^0-9]/g, '')).filter(Boolean);
+  const chunks = fullStr.split(/[\s,;\/\-]+/).filter(Boolean);
   
-  for (const chunk of chunks) {
-    if (chunk.length >= 4 && chunk.endsWith(inputDigits)) {
+  for (const rawChunk of chunks) {
+    const chunkDigits = rawChunk.replace(/[^0-9]/g, '');
+    if (chunkDigits.length >= 4 && chunkDigits.endsWith(inputDigits)) {
+      return true;
+    }
+    // Nếu số đã bị mask dạng 091••••588 (chỉ còn 3 số cuối hiển thị)
+    if (isMasked && chunkDigits.length >= 3 && chunkDigits.endsWith(inputDigits.slice(-3))) {
       return true;
     }
   }
 
   const allDigits = fullStr.replace(/[^0-9]/g, '');
-  return allDigits.endsWith(inputDigits);
+  if (allDigits.endsWith(inputDigits)) return true;
+  if (isMasked && allDigits.length >= 3 && allDigits.endsWith(inputDigits.slice(-3))) return true;
+  return false;
 }
 
 /**
