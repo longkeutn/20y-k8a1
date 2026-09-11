@@ -29,7 +29,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { RsvpData, ClassMember, ExpenseItem, IncomeItem, UserRole } from '../types';
-import { generateVietQrUrl, EXPENSE_CATEGORIES, INCOME_CATEGORIES, formatDateOnlyVi, parseDate } from '../data';
+import { generateVietQrUrl, EXPENSE_CATEGORIES, INCOME_CATEGORIES, formatDateOnlyVi, parseDate, removeVietnameseAccents } from '../data';
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
@@ -94,9 +94,9 @@ export default function BankTransfer({
   const fundAmountNum = Number(fundAmount) || 700000;
   const bankCodeStr = String(bankCode || 'vietcombank');
 
-  // Tự động cá nhân hóa cú pháp chuyển khoản khi đã nhận diện thành viên
+  // Tự động cá nhân hóa cú pháp chuyển khoản khi đã nhận diện thành viên (Chuẩn Napas không dấu, tuyệt đối không lộ SĐT để bảo mật)
   const effectiveSyntax = activeMember
-    ? `K8A1 ${activeMember.fullName.toUpperCase()} ${activeMember.phone ? activeMember.phone : ''}`.trim()
+    ? `K8A1 ${removeVietnameseAccents(activeMember.fullName).toUpperCase()}`.trim()
     : transferSyntaxStr;
 
   // Sinh mã VietQR chuẩn xác, tương thích 100% Napas và app ngân hàng
@@ -815,6 +815,12 @@ export default function BankTransfer({
                               {item.eventScope && (
                                 <span className="text-[10px] font-sans font-medium bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
                                   {item.eventScope}
+                                </span>
+                              )}
+                              {((item as any).hasReceipt || Boolean(item.receiptUrl)) && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full" title="Khoản chi đã có đầy đủ hóa đơn / chứng từ">
+                                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                  <span>Đã có chứng từ</span>
                                 </span>
                               )}
                             </div>

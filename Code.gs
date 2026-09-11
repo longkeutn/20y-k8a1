@@ -585,12 +585,12 @@ function doGet(e) {
 
     // 1b. Lấy danh sách chi tiêu quỹ lớp
     if (action === 'get_expenses' || action === 'get_expense_list') {
-      return handleResponse(getExpensesList());
+      return handleResponse(getExpensesList(isAdmin));
     }
 
     // 1c. Lấy danh sách khoản thu quỹ lớp (Sheet: "Khoan_Thu")
     if (action === 'get_incomes' || action === 'get_income_list') {
-      return handleResponse(getIncomesList());
+      return handleResponse(getIncomesList(isAdmin));
     }
 
     // 2. Lấy cấu hình sự kiện
@@ -971,7 +971,7 @@ function getRSVPList(isAdmin) {
       fundStatus: row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 'paid' : (row[9] === 'CHỜ ĐỐI SOÁT' || row[9] === 'pending' ? 'pending' : (row[9] === 'MIỄN' || row[9] === 'exempt' ? 'exempt' : 'unpaid')),
       fundAmount: Number(row[10]) || (row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 700000 : 0),
       fundNote: String(row[11] || ''),
-      fundReceiptUrl: String(row[12] || ''),
+      fundReceiptUrl: isAdmin ? String(row[12] || '') : '',
       hasReceipt: !!row[12],
       fundPaidAt: formatDateTimeVi(row[13] || ''),
       fundPaymentMethod: String(row[14] || 'bank_transfer'),
@@ -997,7 +997,7 @@ function getRSVPList(isAdmin) {
         fundStatus: (existing.fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus === 'pending' || existing.fundStatus === 'pending' ? 'pending' : item.fundStatus),
         fundAmount: Math.max(existing.fundAmount || 0, item.fundAmount || 0),
         fundNote: item.fundNote || existing.fundNote,
-        fundReceiptUrl: item.fundReceiptUrl || existing.fundReceiptUrl || '',
+        fundReceiptUrl: isAdmin ? (item.fundReceiptUrl || existing.fundReceiptUrl || '') : '',
         hasReceipt: existing.hasReceipt || item.hasReceipt,
         fundPaidAt: item.fundPaidAt || existing.fundPaidAt,
         fundPaymentMethod: item.fundPaymentMethod || existing.fundPaymentMethod,
@@ -2663,7 +2663,7 @@ function deleteClassMember(postData) {
  * 3E. QUẢN LÝ SỔ CHI TIÊU QUỸ LỚP (Sheet: "Khoan_Chi")
  * -------------------------------------------------------------
  */
-function getExpensesList() {
+function getExpensesList(isAdmin) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(CONFIG.EXPENSES_SHEET_NAME);
@@ -2703,7 +2703,8 @@ function getExpensesList() {
         date: expDate,
         spender: String(r[5] || ''),
         recipient: String(r[6] || ''),
-        receiptUrl: String(r[7] || ''),
+        receiptUrl: isAdmin ? String(r[7] || '') : '',
+        hasReceipt: !!r[7],
         eventScope: String(r[8] || ''),
         note: String(r[9] || ''),
         createdAt: String(r[10] || '')
@@ -2754,7 +2755,7 @@ function saveExpensesList(postData) {
  * 3E-2. QUẢN LÝ SỔ THU QUỸ LỚP (Sheet: "Khoan_Thu")
  * -------------------------------------------------------------
  */
-function getIncomesList() {
+function getIncomesList(isAdmin) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(CONFIG.INCOMES_SHEET_NAME);
@@ -2809,11 +2810,12 @@ function getIncomesList() {
         amount: Number(r[3]) || 0,
         date: incDate || '',
         payerName: String(r[5] || ''),
-        payerPhone: String(r[6] || ''),
+        payerPhone: isAdmin ? String(r[6] || '') : maskPhoneScript(String(r[6] || '')),
         memberId: String(r[7] || ''),
         paymentMethod: String(r[8] || 'bank_transfer'),
         auditor: String(r[9] || ''),
-        receiptUrl: String(r[10] || ''),
+        receiptUrl: isAdmin ? String(r[10] || '') : '',
+        hasReceipt: !!r[10],
         eventScope: String(r[11] || 'Kỷ niệm 20 năm'),
         note: String(r[12] || ''),
         createdAt: String(r[13] || '')
@@ -3383,10 +3385,10 @@ function getAllData(isAdmin) {
     try { drivePhotos = (getDrivePhotos() || {}).data || []; } catch (e) {}
 
     let expenses = [];
-    try { expenses = (getExpensesList() || {}).data || []; } catch (e) {}
+    try { expenses = (getExpensesList(isAdmin) || {}).data || []; } catch (e) {}
 
     let incomes = [];
-    try { incomes = (getIncomesList() || {}).data || []; } catch (e) {}
+    try { incomes = (getIncomesList(isAdmin) || {}).data || []; } catch (e) {}
 
     let teachers = [];
     try { teachers = (getTeachersList(isAdmin) || {}).data || []; } catch (e) {}
