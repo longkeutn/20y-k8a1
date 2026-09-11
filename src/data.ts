@@ -2087,37 +2087,13 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
 
 /**
  * ============================================================================
- * 🔐 BẢO MẬT XÁC THỰC MÃ PIN CLIENT & SERVER (SHA-256 + GOOGLE APPS SCRIPT)
+/**
+ * ============================================================================
+ * 🔐 XÁC THỰC MÃ PIN BẢO MẬT 100% QUA GOOGLE APPS SCRIPT
+ * Tuyệt đối không lưu mã PIN hay chuỗi băm dự phòng trên trình duyệt frontend.
+ * Mọi yêu cầu đăng nhập bắt buộc phải được máy chủ Google Sheets xác thực.
  * ============================================================================
  */
-const SALT_PIN = 'k8a1_2026_secure_salt_';
-
-export async function hashPinWithSalt(pin: string): Promise<string> {
-  const clean = String(pin || '').trim();
-  try {
-    if (typeof crypto !== 'undefined' && crypto.subtle) {
-      const msgUint8 = new TextEncoder().encode(SALT_PIN + clean);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-  } catch (e) {}
-  // Basic fallback if crypto.subtle is unavailable
-  let hash = 0;
-  const str = SALT_PIN + clean;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return String(hash);
-}
-
-// Băm mật mã SHA-256 dự phòng ngoại tuyến (Tuyệt đối không lưu số thô trong source code)
-export const OFFLINE_PIN_HASHES = {
-  admin: '2ab5884752e41a50371f5c94a5e9dcd5ae6afcfd44f260b8537658fa0ee698af',
-  treasurer: '80b1cb0fcdaabeb4ecaf7a38408205a1752a480009f59abe79aa03fab60e0b63',
-  bll: '098bb9c2c2bf457738976a8b3fe99c535151ae8759d3e4161558ddd25f65845f'
-};
 
 /**
  * Xác thực mã PIN an toàn qua Google Apps Script / Google Sheets
@@ -2135,61 +2111,52 @@ export async function verifyPinViaBackend(
     ? appsScriptUrl.trim()
     : DEFAULT_APPS_SCRIPT_URL;
 
-  // 1. Thử xác thực trực tuyến qua Google Apps Script / Google Sheets
-  if (targetUrl && !targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+  if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
+  }
+
+  // 1. Thử xác thực trực tuyến qua Google Apps Script / Google Sheets (POST)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'verify_pin', pin: cleanPin }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const json = await res.json();
+    if (json.status === 'success' && json.role) {
+      return { success: true, role: json.role as UserRole, message: json.message };
+    }
+    return {
+      success: false,
+      message: json.message || 'Mã PIN không đúng!',
+      isLocked: json.code === 'LOCKED'
+    };
+  } catch (netErr: any) {
+    // 2. Dự phòng qua GET nếu POST bị mạng/CORS can thiệp
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-      const res = await fetch(targetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'verify_pin', pin: cleanPin }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      const json = await res.json();
-      if (json.status === 'success' && json.role) {
-        return { success: true, role: json.role as UserRole, message: json.message };
+      const getRes = await fetch(`${targetUrl}?action=verify_pin&pin=${encodeURIComponent(cleanPin)}&t=${Date.now()}`);
+      const getJson = await getRes.json();
+      if (getJson.status === 'success' && getJson.role) {
+        return { success: true, role: getJson.role as UserRole, message: getJson.message };
       }
       return {
         success: false,
-        message: json.message || 'Mã PIN không đúng!',
-        isLocked: json.code === 'LOCKED'
+        message: getJson.message || 'Mã PIN không đúng!',
+        isLocked: getJson.code === 'LOCKED'
       };
-    } catch (netErr: any) {
-      // Fallback qua GET nếu POST bị mạng/CORS can thiệp
-      try {
-        const getRes = await fetch(`${targetUrl}?action=verify_pin&pin=${encodeURIComponent(cleanPin)}&t=${Date.now()}`);
-        const getJson = await getRes.json();
-        if (getJson.status === 'success' && getJson.role) {
-          return { success: true, role: getJson.role as UserRole, message: getJson.message };
-        }
-        return {
-          success: false,
-          message: getJson.message || 'Mã PIN không đúng!',
-          isLocked: getJson.code === 'LOCKED'
-        };
-      } catch (getErr) {
-        console.warn('Backend PIN check failed, using secure offline hash fallback:', getErr);
-      }
+    } catch (getErr) {
+      return {
+        success: false,
+        message: 'Không thể kết nối tới máy chủ Google Sheets để xác thực mã PIN. Vui lòng kiểm tra lại kết nối mạng!'
+      };
     }
   }
-
-  // 2. Chế độ dự phòng Ngoại tuyến (Offline): So sánh chuỗi băm SHA-256 (không để lộ mã thô)
-  const hashed = await hashPinWithSalt(cleanPin);
-  if (hashed === OFFLINE_PIN_HASHES.admin) {
-    return { success: true, role: 'admin' };
-  }
-  if (hashed === OFFLINE_PIN_HASHES.treasurer) {
-    return { success: true, role: 'treasurer' };
-  }
-  if (hashed === OFFLINE_PIN_HASHES.bll) {
-    return { success: true, role: 'bll' };
-  }
-
-  return { success: false, message: 'Mã PIN không đúng! Vui lòng thử lại.' };
 }
 
 /**
