@@ -158,8 +158,9 @@ export default function App() {
     letterSubtitle: String(cfg?.letterSubtitle || DEFAULT_EVENT_CONFIG.letterSubtitle),
     letterParagraph1: String(cfg?.letterParagraph1 || DEFAULT_EVENT_CONFIG.letterParagraph1),
     letterParagraph2: String(cfg?.letterParagraph2 || DEFAULT_EVENT_CONFIG.letterParagraph2),
-    letterSignatureTitle: String(cfg?.letterSignatureTitle || DEFAULT_EVENT_CONFIG.letterSignatureTitle),
-    fundAmountPerPerson: Number(cfg?.fundAmountPerPerson) || DEFAULT_EVENT_CONFIG.fundAmountPerPerson,
+    fundAmountPerPerson: cfg?.fundAmountPerPerson !== undefined && cfg?.fundAmountPerPerson !== '' && !isNaN(Number(cfg.fundAmountPerPerson)) ? Number(cfg.fundAmountPerPerson) : DEFAULT_EVENT_CONFIG.fundAmountPerPerson,
+    fundTitle: cfg?.fundTitle ? String(cfg.fundTitle) : undefined,
+    fundDescription: cfg?.fundDescription ? String(cfg.fundDescription) : undefined,
     customQrUrl: cfg?.customQrUrl ? String(cfg.customQrUrl) : '',
     bankCode: cfg?.bankCode ? String(cfg.bankCode) : DEFAULT_EVENT_CONFIG.bankCode,
     qrTemplate: cfg?.qrTemplate || DEFAULT_EVENT_CONFIG.qrTemplate,
@@ -2384,6 +2385,8 @@ export default function App() {
 
               {/* Thông Tin Quỹ Lớp Minh Bạch */}
               <BankTransfer 
+                fundTitle={eventConfig.fundTitle}
+                fundDescription={eventConfig.fundDescription}
                 bankName={eventConfig.bankName}
                 bankAccount={eventConfig.bankAccount}
                 bankHolder={eventConfig.bankHolder}

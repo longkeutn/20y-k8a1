@@ -33,6 +33,8 @@ import { generateVietQrUrl, EXPENSE_CATEGORIES, INCOME_CATEGORIES, formatDateOnl
 import ReceiptUploadModal from './ReceiptUploadModal';
 
 interface BankTransferProps {
+  fundTitle?: string;
+  fundDescription?: string;
   customQrUrl?: string;
   bankName?: string;
   bankAccount?: string;
@@ -55,6 +57,8 @@ interface BankTransferProps {
 }
 
 export default function BankTransfer({
+  fundTitle,
+  fundDescription,
   customQrUrl,
   bankName = "Vietcombank (VCB)",
   bankAccount = "10123456789",
@@ -95,7 +99,7 @@ export default function BankTransfer({
   const bankNameStr = String(bankName || 'Vietcombank (VCB)');
   const bankHolderStr = String(bankHolder || 'NGUYEN VAN BAN TO CHUC');
   const transferSyntaxStr = String(transferSyntax || 'KY NIEM 20 NAM K8A1');
-  const fundAmountNum = Number(fundAmount) || 700000;
+  const fundAmountNum = typeof fundAmount === 'number' && !isNaN(fundAmount) ? fundAmount : (Number(fundAmount) || 700000);
   const bankCodeStr = String(bankCode || 'vietcombank');
 
   // Tự động cá nhân hóa cú pháp chuyển khoản khi đã nhận diện thành viên (Chuẩn Napas không dấu, tuyệt đối không lộ SĐT để bảo mật)
@@ -244,13 +248,15 @@ export default function BankTransfer({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-200/80 pb-3.5 gap-3">
         <div className="space-y-1 min-w-0">
           <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
-            Đóng Quỹ Họp Lớp K8A1
+            {fundTitle ? fundTitle.toUpperCase() : (fundAmountNum === 700000 ? 'Đóng Quỹ Họp Lớp K8A1' : 'Quỹ Thường Niên & Hiếu Hỷ K8A1')}
           </span>
           <h3 className="text-xl sm:text-2xl font-serif font-bold text-[#1E293B] tracking-tight">
-            Thông Tin Quỹ Lớp (Tạm Ứng {fundAmountNum ? fundAmountNum.toLocaleString('vi-VN') : '700.000'}đ / Bạn)
+            {fundTitle || 'Thông Tin Quỹ Lớp'} {fundAmountNum > 0 ? `(${fundAmountNum === 700000 ? 'Tạm Ứng ' : ''}${fundAmountNum.toLocaleString('vi-VN')}đ / Bạn)` : '(Đóng Góp Tùy Tâm)'}
           </h3>
           <p className="text-xs text-slate-500 font-serif italic">
-            Kinh phí bao gồm: Tiệc trưa giao lưu hội ngộ, Áo polo đồng phục 20 năm, Thẻ học sinh & quà lưu niệm
+            {fundDescription || (fundAmountNum === 700000 
+              ? 'Kinh phí bao gồm: Tiệc trưa giao lưu hội ngộ, Áo polo đồng phục 20 năm, Thẻ học sinh & quà lưu niệm'
+              : 'Duy trì hoạt động kết nối, thăm hỏi hiếu hỷ & tri ân theo Quy chế lớp K8A1')}
           </p>
 
           {activeMember && (
