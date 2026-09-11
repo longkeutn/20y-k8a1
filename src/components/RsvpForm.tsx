@@ -28,10 +28,19 @@ import {
   Crown,
   Lock,
   Unlock,
-  KeyRound
+  KeyRound,
+  AlertCircle
 } from 'lucide-react';
 import { RsvpData, ClassMember, EventConfig, UserRole } from '../types';
 import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize, maskPhone, isPhoneMatch, isVietnameseNameMatch } from '../data';
+import { 
+  isValidVietnamesePhone, 
+  normalizeVietnamesePhone, 
+  formatPhoneDisplay, 
+  maskPhoneSecure, 
+  verifyLast4Digits, 
+  findDuplicatePhoneInRoster 
+} from '../utils/phoneUtils';
 import LiveGoldenPass from './LiveGoldenPass';
 
 interface RsvpFormProps {
@@ -460,10 +469,18 @@ export default function RsvpForm({
   // Xác định mã thành viên đang được tương tác
   const currentTargetMemberId = activeMember?.id || matchedExistingAttendee?.memberId;
 
+  // Xác định xem bạn học đang chọn có SĐT bảo vệ trong danh bạ hoặc RSVP không
+  const existingProtectionPhone = useMemo(() => {
+    const fromRoster = activeMember?.phone ? String(activeMember.phone).trim() : '';
+    const fromRsvp = matchedExistingAttendee?.phone ? String(matchedExistingAttendee.phone).trim() : '';
+    const phoneCandidate = fromRoster || fromRsvp || savedExistingPhone;
+    const clean = normalizeVietnamesePhone(phoneCandidate);
+    return clean.length >= 9 ? phoneCandidate : '';
+  }, [activeMember, matchedExistingAttendee, savedExistingPhone]);
+
   // Thành viên có phải chính chủ trên thiết bị này (hoặc là BLL) không?
   const isOwner = useMemo(() => {
     if (isBLL) return true;
-    if (!matchedExistingAttendee) return true; // Chưa ai đăng ký trước đó thì ai nộp mới cũng là chính chủ
     if (!currentTargetMemberId) return false;
 
     // Đã được mở khóa trên thiết bị này
@@ -475,15 +492,24 @@ export default function RsvpForm({
       if (savedVisitorId && savedVisitorId === currentTargetMemberId) return true;
     } catch {}
 
-    return false;
-  }, [isBLL, matchedExistingAttendee, currentTargetMemberId, unlockedMemberIds]);
+    // NẾU BẠN NÀY CHƯA TỪNG CÓ SĐT TRONG DANH BẠ LẪN RSVP (ví dụ: "Ko có số" hoặc trống)
+    // Và chưa có ai đăng ký trước đó: người đầu tiên nhập SĐT mới hợp lệ sẽ là chính chủ
+    if (!existingProtectionPhone && !matchedExistingAttendee) {
+      return true;
+    }
 
-  // Hồ sơ đã đăng ký trước đó và đang bị khóa đối với người lạ / thiết bị lạ
+    return false;
+  }, [isBLL, currentTargetMemberId, unlockedMemberIds, existingProtectionPhone, matchedExistingAttendee]);
+
+  // Hồ sơ bị khóa đối với người lạ / thiết bị lạ nếu bạn này đã có SĐT bảo vệ hoặc đã có RSVP
   const isLocked = useMemo(() => {
     if (isBLL) return false;
-    if (!matchedExistingAttendee) return false;
-    return !isOwner;
-  }, [isBLL, matchedExistingAttendee, isOwner]);
+    // Nếu bạn này có SĐT bảo vệ hoặc đã có hồ sơ RSVP: BẮT BUỘC phải là isOwner
+    if (existingProtectionPhone || matchedExistingAttendee) {
+      return !isOwner;
+    }
+    return false;
+  }, [isBLL, existingProtectionPhone, matchedExistingAttendee, isOwner]);
 
   // Xác thực 4 số cuối SĐT để mở khóa hồ sơ
   const handleVerifyPhoneUnlock = (e?: React.FormEvent) => {
@@ -495,20 +521,9 @@ export default function RsvpForm({
       return;
     }
 
-    const candidatePhone = savedExistingPhone || matchedExistingAttendee?.phone || activeMember?.phone || '';
-    const cleanCandidate = String(candidatePhone).replace(/[^0-9]/g, '');
-
-    let isMatched = false;
-    if (cleanCandidate.endsWith(inputDigits)) {
-      isMatched = true;
-    } else {
-      const phoneChunks = cleanCandidate.match(/\d{9,11}/g) || [];
-      if (phoneChunks.some(chunk => chunk.endsWith(inputDigits))) {
-        isMatched = true;
-      }
-    }
-
-    if (isMatched) {
+    const candidatePhone = existingProtectionPhone || savedExistingPhone || matchedExistingAttendee?.phone || activeMember?.phone || '';
+    
+    if (verifyLast4Digits(candidatePhone, inputDigits)) {
       const targetId = currentTargetMemberId;
       if (targetId) {
         const nextUnlocked = Array.from(new Set([...unlockedMemberIds, targetId]));
@@ -521,12 +536,29 @@ export default function RsvpForm({
       setShowPhoneUnlockModal(false);
       setUnlockPhoneDigits('');
       setUnlockError(null);
-      setSubmitSuccess('Đã mở khóa hồ sơ thành công! Bạn có thể thoải mái cập nhật size áo và lời chúc.');
+      setSubmitSuccess('Đã xác thực chính chủ thành công! Bạn có thể thoải mái cập nhật thông tin và số điện thoại.');
       setTimeout(() => setSubmitSuccess(null), 5000);
     } else {
-      setUnlockError('4 số cuối số điện thoại chưa khớp với thông tin đã lưu. Vui lòng kiểm tra lại hoặc liên hệ Ban Liên Lạc.');
+      setUnlockError('4 số cuối chưa khớp với số điện thoại trong hồ sơ. Vui lòng kiểm tra lại hoặc liên hệ Ban Liên Lạc.');
     }
   };
+
+  // Kiểm định số điện thoại mới thời gian thực (Real-time Validation)
+  const phoneValidation = useMemo(() => {
+    if (useSavedPhone || !phone.trim()) return null;
+    const res = isValidVietnamesePhone(phone);
+    if (res.isValid) {
+      const dup = findDuplicatePhoneInRoster(res.phone, rosterList, activeMember?.id);
+      if (dup) {
+        return {
+          ...res,
+          isValid: false,
+          error: `Số này đã được lưu cho bạn "${dup.fullName}" trong lớp.`
+        };
+      }
+    }
+    return res;
+  }, [phone, useSavedPhone, rosterList, activeMember]);
 
   // Đồng bộ thông tin khi activeMember thay đổi từ bất kỳ đâu (nhận diện chuẩn xác từng người, không đè người trùng tên)
   useEffect(() => {
@@ -712,6 +744,26 @@ export default function RsvpForm({
     if (!fullName.trim() || !finalPhone) {
       setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
       return;
+    }
+
+    // 🛡️ Kiểm định chặt chẽ tính hợp lệ của số điện thoại:
+    if (!useSavedPhone || !savedExistingPhone) {
+      const valResult = isValidVietnamesePhone(finalPhone);
+      if (!valResult.isValid) {
+        setSubmitError(valResult.error || 'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 chữ số chuẩn Việt Nam!');
+        const phoneInput = document.getElementById('rsvp-phone');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+
+      // Kiểm tra xem số này có bị trùng với bạn học khác trong danh bạ lớp không
+      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, activeMember?.id);
+      if (dup) {
+        setSubmitError(`Số điện thoại này đã được lưu cho bạn "${dup.fullName}" trong danh bạ lớp. Vui lòng kiểm tra lại!`);
+        const phoneInput = document.getElementById('rsvp-phone');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
     }
 
     if (targetStatus === 'yes') {
@@ -912,6 +964,25 @@ export default function RsvpForm({
     if (!fullName.trim() || !finalPhone) {
       setSubmitError('Vui lòng điền đầy đủ Họ và tên và Số điện thoại liên hệ.');
       return;
+    }
+
+    // 🛡️ Kiểm định chặt chẽ số điện thoại:
+    if (!useSavedPhone || !savedExistingPhone) {
+      const valResult = isValidVietnamesePhone(finalPhone);
+      if (!valResult.isValid) {
+        setSubmitError(valResult.error || 'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 chữ số chuẩn Việt Nam!');
+        const phoneInput = document.getElementById('rsvp-phone');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+
+      const dup = findDuplicatePhoneInRoster(valResult.phone, rosterList, activeMember?.id);
+      if (dup) {
+        setSubmitError(`Số điện thoại này đã thuộc về bạn "${dup.fullName}" trong danh bạ lớp. Vui lòng kiểm tra lại!`);
+        const phoneInput = document.getElementById('rsvp-phone');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
     }
 
     // Nếu thành viên chọn VẮNG MẶT, hiển thị Modal kêu gọi tâm tình nghĩ lại trước khi gửi
@@ -1670,36 +1741,70 @@ export default function RsvpForm({
               </div>
 
               {savedExistingPhone && useSavedPhone ? (
-                /* Card hiển thị SĐT đã lưu: Che bảo mật PII, thiết kế tinh tế, không co ép trên mobile */
-                <div className="p-3 bg-stone-50 border border-slate-200 hover:border-amber-300 rounded-xl transition-all shadow-2xs space-y-2">
+                /* Card hiển thị SĐT đã lưu: Che bảo mật PII, kèm trạng thái khóa chính chủ */
+                <div className={`p-3 rounded-xl transition-all shadow-2xs space-y-2 border ${
+                  isLocked ? 'bg-amber-50/80 border-amber-300' : 'bg-stone-50 border-slate-200 hover:border-amber-300'
+                }`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs text-slate-600 font-sans shrink-0">SĐT đã lưu:</span>
                       <span className="font-mono font-bold text-sm text-slate-900 tracking-wider">
-                        {maskPhone(savedExistingPhone)}
+                        {maskPhoneSecure(savedExistingPhone)}
                       </span>
+                      {isLocked ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-200/80 text-amber-900 flex items-center gap-1 shrink-0">
+                          <Lock className="w-2.5 h-2.5" />
+                          <span>Chưa mở khóa</span>
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1 shrink-0">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          <span>Chính chủ</span>
+                        </span>
+                      )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUseSavedPhone(false);
-                        setPhone('');
-                      }}
-                      className="px-2.5 py-1 text-xs font-semibold text-amber-900 hover:text-amber-950 bg-white hover:bg-amber-100/60 border border-amber-300 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0 flex items-center gap-1"
-                    >
-                      <Edit className="w-3 h-3 text-amber-700" />
-                      <span>Đổi số khác</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isLocked ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUnlockError(null);
+                            setUnlockPhoneDigits('');
+                            setShowPhoneUnlockModal(true);
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold text-white bg-[#8D5B28] hover:bg-[#784A1E] rounded-lg shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <KeyRound className="w-3 h-3" />
+                          <span>Mở khóa 4 số cuối</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUseSavedPhone(false);
+                            setPhone('');
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold text-amber-900 hover:text-amber-950 bg-white hover:bg-amber-100/60 border border-amber-300 rounded-lg shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Edit className="w-3 h-3 text-amber-700" />
+                          <span>Đổi số khác</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 font-sans border-t border-slate-200/60 pt-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    <span>Hệ thống dùng số này để gửi vé & liên hệ. Bấm <strong>"Đổi số khác"</strong> nếu bạn đã đổi SĐT mới.</span>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isLocked ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                    {isLocked ? (
+                      <span>Hồ sơ đang được bảo vệ. Vui lòng bấm <strong>"Mở khóa 4 số cuối"</strong> trước khi sửa thông tin.</span>
+                    ) : (
+                      <span>Hệ thống dùng số này để gửi vé & liên hệ. Bấm <strong>"Đổi số khác"</strong> nếu bạn đã đổi SĐT mới.</span>
+                    )}
                   </div>
                 </div>
               ) : (
-                /* Ô nhập số điện thoại mới trực quan, thoáng đãng */
+                /* Ô nhập số điện thoại mới trực quan, kèm kiểm tra thời gian thực */
                 <div className="space-y-1.5">
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1717,6 +1822,27 @@ export default function RsvpForm({
                     />
                   </div>
 
+                  {/* Phản hồi kiểm định thời gian thực khi gõ */}
+                  {phone.trim() && phoneValidation && (
+                    <div className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border font-medium transition-all ${
+                      phoneValidation.isValid 
+                        ? 'text-emerald-800 bg-emerald-50/90 border-emerald-200' 
+                        : 'text-rose-800 bg-rose-50/90 border-rose-200'
+                    }`}>
+                      {phoneValidation.isValid ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>✓ Hợp lệ: Nhà mạng <strong>{phoneValidation.telecom}</strong> ({phoneValidation.formatted})</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                          <span>{phoneValidation.error}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {savedExistingPhone && (
                     <div className="flex items-center justify-between text-[11px] px-1 text-slate-500 font-sans">
                       <span className="text-amber-800">✍️ Đang nhập số mới</span>
@@ -1728,7 +1854,7 @@ export default function RsvpForm({
                         }}
                         className="text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
                       >
-                        Dùng lại số đã lưu ({maskPhone(savedExistingPhone)})
+                        Dùng lại số đã lưu ({maskPhoneSecure(savedExistingPhone)})
                       </button>
                     </div>
                   )}
@@ -2146,9 +2272,9 @@ export default function RsvpForm({
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Để bảo vệ hồ sơ tránh bị người khác vô tình đổi size áo hoặc sửa thông tin, vui lòng nhập <strong>4 số cuối</strong> của số điện thoại đã lưu:
                 </p>
-                {savedExistingPhone && (
+                {(savedExistingPhone || existingProtectionPhone) && (
                   <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2 font-mono text-center">
-                    Gợi ý: {maskPhone(savedExistingPhone)}
+                    Gợi ý: {maskPhoneSecure(savedExistingPhone || existingProtectionPhone)}
                   </p>
                 )}
               </div>

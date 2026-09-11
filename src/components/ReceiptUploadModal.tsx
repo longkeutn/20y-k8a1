@@ -30,7 +30,8 @@ import { RsvpData, ClassMember, EventConfig, IncomeItem, IncomeCategory } from '
 import { 
   INCOME_CATEGORIES, 
   removeVietnameseAccents, 
-  getVietnameseGivenName 
+  getVietnameseGivenName,
+  isValidVietnamesePhone
 } from '../data';
 
 interface ReceiptUploadModalProps {
@@ -347,6 +348,12 @@ export default function ReceiptUploadModal({
 
     if (!finalPhone) {
       setUploadError('Vui lòng điền Số Điện Thoại để Thủ quỹ liên hệ đối soát!');
+      return;
+    }
+
+    const valPhone = isValidVietnamesePhone(finalPhone);
+    if (!valPhone.isValid) {
+      setUploadError(valPhone.error || 'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 chữ số chuẩn Việt Nam!');
       return;
     }
 

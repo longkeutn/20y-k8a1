@@ -1,4 +1,12 @@
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings } from './types';
+export {
+  isValidVietnamesePhone,
+  normalizeVietnamesePhone,
+  formatPhoneDisplay,
+  maskPhoneSecure,
+  verifyLast4Digits,
+  findDuplicatePhoneInRoster
+} from './utils/phoneUtils';
 
 // Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
 export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.10_photos_fix_v7';
@@ -4792,11 +4800,23 @@ function saveRSVP(data) {
   var normNewPhone = normalizePhone(data.phone);
   var normNewName = normalizeName(data.fullName);
   var targetMemberId = String(data.memberId || '').trim();
+  var isAdminRequest = checkAdminAuthPin(data.pin || data.adminPin || '');
+
+  // 🛡️ Kiểm tra định dạng số điện thoại di động Việt Nam (chuẩn 10 chữ số)
+  if (normNewPhone && normNewPhone.indexOf('•') === -1 && normNewPhone.indexOf('*') === -1) {
+    var isValidPhoneFormat = /^0(3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/.test(normNewPhone);
+    if (!isValidPhoneFormat && !isAdminRequest) {
+      return {
+        status: 'error',
+        code: 'INVALID_PHONE_FORMAT',
+        message: 'Số điện thoại "' + (data.phone || '') + '" không đúng định dạng di động 10 chữ số tại Việt Nam!'
+      };
+    }
+  }
 
   // 🛡️ PHƯƠNG ÁN 1: Bắt buộc họ tên người điểm danh phải thuộc danh bạ lớp K8A1
   var rosterMap = getRosterLookupMap();
   var rosterMembersCount = Object.keys(rosterMap.byId).length;
-  var isAdminRequest = checkAdminAuthPin(data.pin || data.adminPin || '');
 
   if (rosterMembersCount > 0 && !isAdminRequest) {
     var isMemberWhitelisted = false;
