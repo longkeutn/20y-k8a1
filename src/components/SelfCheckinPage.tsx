@@ -512,7 +512,7 @@ export default function SelfCheckinPage({
       ctx.font = 'bold 20px Georgia, serif';
       ctx.fillText('K8A1 (2003 — 2006)', infoX + 16, gridY + 54);
 
-      // Box 2: Quyền lợi áo Polo
+      // Box 2: Hạng vé danh dự
       const box2X = infoX + boxW + 20;
       ctx.fillStyle = '#FFFFFF';
       roundRect(ctx, box2X, gridY, boxW, boxH, 8);
@@ -521,10 +521,10 @@ export default function SelfCheckinPage({
       ctx.stroke();
       ctx.fillStyle = '#64748B';
       ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText('QUYỀN LỢI ĐÓN TIẾP', box2X + 16, gridY + 26);
+      ctx.fillText('HẠNG VÉ MỜI', box2X + 16, gridY + 26);
       ctx.fillStyle = '#0F172A';
-      const sizeText = selectedShirtSize ? `Áo Polo Size ${selectedShirtSize}` : 'Áo Polo K8A1';
-      ctx.fillText(sizeText, box2X + 16, gridY + 54);
+      ctx.font = 'bold 20px Georgia, serif';
+      ctx.fillText('Vé Vàng Tri Kỷ 20 Năm', box2X + 16, gridY + 54);
 
       // Box 3: Thời gian
       const gridY2 = gridY + boxH + 15;
@@ -968,21 +968,19 @@ export default function SelfCheckinPage({
 
                   <div className="pt-1.5 border-t border-brand-gold/25 space-y-1">
                     <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <span className="text-[8.5px] uppercase font-sans text-slate-500 font-bold">Lớp:</span>
-                        <span className="font-serif font-bold text-amber-900 text-xs sm:text-sm">K8A1</span>
+                        <span className="font-serif font-bold text-amber-900 text-xs sm:text-sm">K8A1 (2003 — 2006)</span>
+                        {selectedShirtSize && (
+                          <span className="text-[9px] font-sans text-slate-400 font-normal ml-0.5">
+                            (Size {selectedShirtSize})
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <span className="text-[8.5px] uppercase font-sans text-slate-500 font-bold">Size Áo:</span>
-                        {selectedShirtSize ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded text-amber-950 font-sans font-bold text-[11px]">
-                            <Shirt className="w-3 h-3 text-amber-800" />
-                            <span>Size {selectedShirtSize}</span>
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-amber-800 italic">Chưa chọn size</span>
-                        )}
+                        <span className="text-[8.5px] uppercase font-sans text-slate-500 font-bold">Hạng Vé:</span>
+                        <span className="font-serif font-bold text-amber-900 text-xs sm:text-sm">Tri Kỷ 20 Năm</span>
                       </div>
                     </div>
 
@@ -1017,34 +1015,6 @@ export default function SelfCheckinPage({
               )}
             </div>
 
-            {/* QUICK SHIRT SIZE SELECTOR IF NOT CHOSEN */}
-            <div className="bg-white border border-brand-border rounded-xl p-3.5 sm:p-4 shadow-xs space-y-2">
-              <label className="block text-xs font-sans font-bold uppercase tracking-wider text-brand-text flex items-center justify-between">
-                <span>Chọn kích cỡ áo polo đồng phục kỷ niệm:</span>
-                {selectedShirtSize && (
-                  <span className="text-emerald-700 text-[11px] font-semibold flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Đã chọn size {selectedShirtSize}
-                  </span>
-                )}
-              </label>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-                {SHIRT_SIZE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setSelectedShirtSize(opt.value)}
-                    className={`py-1.5 px-2 rounded text-xs font-sans font-bold border transition-all cursor-pointer ${
-                      selectedShirtSize === opt.value
-                        ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
-                        : 'bg-white border-brand-border text-brand-text hover:bg-amber-50'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* CHECK-IN ACTION BUTTONS */}
             <div className="space-y-3 pt-2">
               {!checkInDone ? (
@@ -1073,7 +1043,7 @@ export default function SelfCheckinPage({
                     <span>Chào mừng {selectedMember.fullName} đã có mặt tại ngày hội ngộ!</span>
                   </div>
                   <p className="text-xs text-emerald-700 font-sans">
-                    Điểm danh thành công lúc {checkInTime || 'vừa xong'}. Vui lòng đến bàn lễ tân để nhận áo đồng phục Size {selectedShirtSize || '(Chưa chọn)'}!
+                    Điểm danh thành công lúc {checkInTime || 'vừa xong'}. Chào mừng bạn đã về lại mái trường xưa hội ngộ cùng thầy cô và bạn bè K8A1!
                   </p>
                 </div>
               )}

@@ -639,7 +639,7 @@ export default function StudentPassModal({
       ctx.font = 'bold 20px Georgia, serif';
       ctx.fillText(className || 'K8A1 (2003 — 2006)', infoX + 16, gridY + 54);
 
-      // Box 2: Quyền Lợi Đón Tiếp (Chỉ giữ Áo Polo)
+      // Box 2: Hạng Vé Mời Danh Dự
       const box2X = infoX + boxW + 20;
       ctx.fillStyle = '#FFFFFF';
       roundRect(ctx, box2X, gridY, boxW, boxH, 8);
@@ -650,10 +650,10 @@ export default function StudentPassModal({
 
       ctx.fillStyle = '#64748B';
       ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText('QUYỀN LỢI ĐÓN TIẾP', box2X + 16, gridY + 26);
+      ctx.fillText('HẠNG VÉ MỜI', box2X + 16, gridY + 26);
       ctx.fillStyle = '#0F172A';
-      const passShirtText = normalizeShirtSize(shirtSize) ? `Áo Polo Size ${normalizeShirtSize(shirtSize)}` : 'Áo Polo (Chưa chọn)';
-      ctx.fillText(passShirtText, box2X + 16, gridY + 54);
+      ctx.font = 'bold 20px Georgia, serif';
+      ctx.fillText('Vé Vàng Tri Kỷ 20 Năm', box2X + 16, gridY + 54);
 
       // Box 3: Thời Gian
       const gridY2 = gridY + boxH + 15;
@@ -1033,25 +1033,20 @@ export default function StudentPassModal({
 
               {/* Dải thông số: Lớp & Quyền Lợi Áo Polo (Không bị tràn/cắt chữ) */}
               <div className="pt-1.5 border-t border-brand-gold/25 space-y-1">
-                <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs">
-                  <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-[8.5px] uppercase font-sans text-slate-500 font-bold">Lớp:</span>
-                    <span className="font-serif font-bold text-amber-900 text-xs sm:text-sm">{className || 'K8A1'}</span>
+                    <span className="font-serif font-bold text-amber-900 text-xs sm:text-sm">{className || 'K8A1 (2003 — 2006)'}</span>
+                    {normalizeShirtSize(shirtSize) && (
+                      <span className="text-[9px] font-sans text-slate-400 font-normal ml-0.5">
+                        (Size {normalizeShirtSize(shirtSize)})
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <span className="text-[8.5px] uppercase font-sans text-slate-500 font-bold">Áo Polo:</span>
-                    {normalizeShirtSize(shirtSize) ? (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded text-amber-950 font-sans font-bold text-[11px] whitespace-nowrap">
-                        <Shirt className="w-3 h-3 text-amber-800 shrink-0" />
-                        <span>Size {normalizeShirtSize(shirtSize)}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 border border-amber-300 rounded text-amber-900 font-sans font-semibold text-[10px] whitespace-nowrap">
-                        <Shirt className="w-3 h-3 text-amber-700 shrink-0" />
-                        <span>Chưa chọn size</span>
-                      </span>
-                    )}
+                    <span className="text-[8.5px] uppercase font-sans text-slate-500 font-bold">Hạng Vé:</span>
+                    <span className="font-serif font-bold text-amber-900 text-xs sm:text-sm">Tri Kỷ 20 Năm</span>
                   </div>
                 </div>
 

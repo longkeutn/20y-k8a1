@@ -169,28 +169,21 @@ export default function LiveGoldenPass({
             )}
           </div>
 
-          {/* DẢI THÔNG SỐ VÉ: CHỈ GIỮ QUYỀN LỢI ÁO POLO, NGÀY VÀ ĐỊA ĐIỂM */}
+          {/* DẢI THÔNG SỐ VÉ: LỚP NIÊN KHÓA, NGÀY VÀ ĐỊA ĐIỂM */}
           <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-dashed border-amber-300/80 bg-white/70 rounded-xl p-2 text-center">
             
-            {/* Quyền lợi Áo Polo (Giữ nguyên theo yêu cầu) */}
+            {/* Lớp & Niên Khóa */}
             <div className="space-y-0.5">
               <span className="text-[9px] uppercase font-sans font-bold text-slate-500 block">
-                Quyền Lợi Áo Polo
+                Lớp & Niên Khóa
               </span>
-              {isAttending ? (
-                normalizedSize ? (
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-sans font-bold text-xs rounded-md shadow-2xs">
-                    <Shirt className="w-3 h-3 text-amber-100 shrink-0" />
-                    <span>Size {normalizedSize}</span>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 font-sans font-bold text-[10px] rounded-md shadow-2xs">
-                    <Shirt className="w-3 h-3 text-amber-700 shrink-0" />
-                    <span>Chưa chọn size</span>
-                  </div>
-                )
-              ) : (
-                <span className="text-[11px] font-sans font-medium text-slate-400 block">—</span>
+              <span className="text-[11px] font-serif font-black text-amber-900 block">
+                {className || 'K8A1'} (03—06)
+              </span>
+              {normalizedSize && (
+                <span className="text-[8.5px] font-sans text-slate-400 block leading-none">
+                  (Áo: {normalizedSize})
+                </span>
               )}
             </div>
 
