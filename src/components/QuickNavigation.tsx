@@ -6,6 +6,7 @@ import {
   Coins, 
   Camera, 
   ArrowUp, 
+  ArrowDown,
   ChevronDown, 
   ChevronUp, 
   Sparkles,
@@ -86,7 +87,7 @@ export default function QuickNavigation({
     },
   ];
 
-  // Cuộn mượt mà đến phần tử theo ID
+  // Cuộn mượt mà đến phần tử theo ID (trừ hao 70px chiều cao navbar cố định)
   const scrollToTarget = useCallback((targetId: string) => {
     if (targetId === 'hero') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -95,8 +96,7 @@ export default function QuickNavigation({
 
     const element = document.getElementById(targetId);
     if (element) {
-      // Tính toán offset để trừ hao chiều cao navbar cố định (khoảng 64px)
-      const navOffset = 64;
+      const navOffset = 70;
       const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
       const offsetPosition = Math.max(0, elementPosition - navOffset);
 
@@ -112,6 +112,30 @@ export default function QuickNavigation({
       }
     }
   }, []);
+
+  // Danh sách các khối chính theo thứ tự hiển thị từ trên xuống dưới
+  const orderedBlockIds = [
+    'hero',
+    'invitation-letter-card',
+    'dia-diem',
+    'diem-danh',
+    'danh-sach-diem-danh',
+    'bank-transfer-card',
+    ...(hasTeachers ? ['thay-co'] : []),
+    'ky-uc',
+  ];
+
+  const handlePrevBlock = useCallback(() => {
+    const currentIdx = orderedBlockIds.findIndex((id) => id === activeSection);
+    const prevIdx = currentIdx > 0 ? currentIdx - 1 : 0;
+    scrollToTarget(orderedBlockIds[prevIdx]);
+  }, [activeSection, hasTeachers, scrollToTarget]);
+
+  const handleNextBlock = useCallback(() => {
+    const currentIdx = orderedBlockIds.findIndex((id) => id === activeSection);
+    const nextIdx = currentIdx >= 0 && currentIdx < orderedBlockIds.length - 1 ? currentIdx + 1 : orderedBlockIds.length - 1;
+    scrollToTarget(orderedBlockIds[nextIdx]);
+  }, [activeSection, hasTeachers, scrollToTarget]);
 
   // Tự động thu gọn floating dock khi người dùng bấm mở Điểm Danh / Báo Danh để không che khuất danh sách
   useEffect(() => {
@@ -300,16 +324,27 @@ export default function QuickNavigation({
           {/* Vạch ngăn cách trang nhã */}
           <div className="w-[1px] h-4 bg-slate-700 mx-0.5 shrink-0" />
 
-          {/* Nút Cuộn Lên Đầu Trang (Back-to-Top) */}
-          <button
-            type="button"
-            onClick={() => scrollToTarget('hero')}
-            className="p-2 rounded-full text-slate-400 hover:text-amber-300 hover:bg-white/10 transition-all cursor-pointer shrink-0"
-            title="Cuộn lên đầu trang"
-            aria-label="Cuộn lên đầu trang"
-          >
-            <ArrowUp className="w-4 h-4" />
-          </button>
+          {/* Cặp mũi tên lật chuyển khối lên / xuống liên tiếp */}
+          <div className="flex items-center gap-0.5 bg-black/40 rounded-full p-0.5 border border-white/10 shrink-0">
+            <button
+              type="button"
+              onClick={handlePrevBlock}
+              className="p-1.5 rounded-full text-amber-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              title="Khối trước (⬆️)"
+              aria-label="Khối trước"
+            >
+              <ArrowUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextBlock}
+              className="p-1.5 rounded-full text-amber-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+              title="Khối tiếp theo (⬇️)"
+              aria-label="Khối tiếp theo"
+            >
+              <ArrowDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Nút Thu Gọn Dock (chỉ hiện trên tablet/desktop sm+) */}
           <button

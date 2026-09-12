@@ -57,6 +57,7 @@ import QuickNavigation from './components/QuickNavigation';
 import TeachersHonorRoll from './components/TeachersHonorRoll';
 import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
+import { SectionTransitionNav, QuickJumpRibbon, scrollToBlock } from './components/BlockNavigator';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -1689,10 +1690,10 @@ export default function App() {
       
       {/* 📌 THANH TIÊU ĐỀ CỐ ĐỊNH & TINH GỌN (PREMIUM FIXED NAVBAR) */}
       <header className="fixed top-0 inset-x-0 z-50 w-full backdrop-blur-md bg-[#161B26]/90 border-b border-amber-500/25 text-white shadow-md transition-all">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 sm:h-15 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-2 sm:gap-3">
           
           {/* Brand Logo & Class Name */}
-          <a href="#hero" className="flex items-center space-x-2 sm:space-x-2.5 group">
+          <a href="#hero" className="flex items-center space-x-2 sm:space-x-2.5 group shrink-0">
             <div className="relative shrink-0">
               <img 
                 src={eventConfig.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
@@ -1707,132 +1708,138 @@ export default function App() {
               </span>
             </div>
             <div>
-              <span className="font-serif font-bold text-sm sm:text-base tracking-wide text-amber-200 group-hover:text-amber-300 transition">
+              <span className="font-serif font-bold text-sm sm:text-base tracking-wide text-amber-200 group-hover:text-amber-300 transition whitespace-nowrap">
                 K8A1
               </span>
-              <span className="text-[10px] block text-slate-300 -mt-1 font-mono">
+              <span className="text-[10px] block text-slate-300 -mt-1 font-mono whitespace-nowrap">
                 THPT Thái Nguyên
               </span>
             </div>
           </a>
 
           {/* Navigation Links & Action Buttons */}
-          <nav className="flex items-center space-x-1 sm:space-x-2 text-xs font-medium">
-            {/* Bạn Bè (Danh sách đã xác nhận) */}
-            <a 
-              href="#danh-sach-diem-danh" 
-              className="hidden md:flex items-center space-x-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-lg hover:bg-white/10"
-              title="Danh sách bạn bè đã xác nhận"
-            >
-              <Users className="w-3.5 h-3.5 text-amber-400" />
-              <span>Bạn Bè</span>
-              {confirmedCount > 0 && (
-                <span className="bg-amber-500/30 text-amber-200 text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold leading-none">
-                  {confirmedCount}
-                </span>
-              )}
-            </a>
+          <nav className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium">
+            {/* Secondary Nav Links: Chỉ hiện trên màn hình lớn xl+ để không bao giờ chèn ép các nút chính */}
+            <div className="hidden xl:flex items-center gap-1 text-xs">
+              {/* Bạn Bè (Danh sách đã xác nhận) */}
+              <button
+                type="button"
+                onClick={() => scrollToBlock('danh-sach-diem-danh')}
+                className="flex items-center gap-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-full hover:bg-white/10 cursor-pointer whitespace-nowrap"
+                title="Danh sách bạn bè đã xác nhận"
+              >
+                <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Bạn Bè</span>
+                {confirmedCount > 0 && (
+                  <span className="bg-amber-500/30 text-amber-200 text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold leading-none shrink-0">
+                    {confirmedCount}
+                  </span>
+                )}
+              </button>
 
-            {/* Sổ Quỹ Lớp */}
-            <a 
-              href="#bank-transfer-card" 
-              className="hidden md:flex items-center space-x-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-lg hover:bg-white/10"
-              title="Sổ quỹ lớp & Cổng đóng góp"
-            >
-              <Coins className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Quỹ Lớp</span>
-            </a>
+              {/* Sổ Quỹ Lớp */}
+              <button
+                type="button"
+                onClick={() => scrollToBlock('bank-transfer-card')}
+                className="flex items-center gap-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-full hover:bg-white/10 cursor-pointer whitespace-nowrap"
+                title="Sổ quỹ lớp & Cổng đóng góp"
+              >
+                <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Quỹ Lớp</span>
+              </button>
 
-            {/* Cẩm Nang Hoạt Động & Vận Hành K8A1 */}
-            <button
-              type="button"
-              onClick={() => handleOpenGuideModal()}
-              className="flex items-center space-x-1 text-slate-300 hover:text-amber-300 transition px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
-              title="Cẩm nang hướng dẫn vận hành & nghiệp vụ K8A1"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Cẩm Nang</span>
-            </button>
+              {/* Cẩm Nang Hoạt Động & Vận Hành K8A1 */}
+              <button
+                type="button"
+                onClick={() => handleOpenGuideModal()}
+                className="flex items-center gap-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-full hover:bg-white/10 cursor-pointer whitespace-nowrap"
+                title="Cẩm nang hướng dẫn vận hành & nghiệp vụ K8A1"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Cẩm Nang</span>
+              </button>
+            </div>
 
-            {/* Trình Chiếu Sân Khấu / Màn LED — Chỉ hiển thị cho Ban Liên Lạc & Admin */}
+            {/* Trình Chiếu Sân Khấu / Màn LED — Chỉ hiển thị khi ĐÃ XÁC THỰC MÃ PIN */}
             {isBLLOrAdmin && (
               <button
                 type="button"
                 onClick={() => setIsStagePresentationOpen(true)}
-                className="flex items-center space-x-1 text-slate-300 hover:text-cyan-300 transition px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer animate-in fade-in duration-200"
-                title="Chế độ Trình Chiếu Backdrop & Thư Viện Kỷ Niệm lên Màn LED Sân Khấu (16:9) — Dành cho BLL & Admin"
+                className="hidden sm:flex items-center gap-1 text-slate-300 hover:text-cyan-300 transition px-2.5 py-1.5 rounded-full hover:bg-white/10 cursor-pointer whitespace-nowrap animate-in fade-in duration-200 shrink-0"
+                title="Chế độ Trình Chiếu Màn LED Sân Khấu (16:9) — Dành cho BLL & Admin"
               >
-                <Tv className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="hidden md:inline text-cyan-200 font-medium">Màn LED</span>
+                <Tv className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-cyan-200 font-medium">Màn LED</span>
               </button>
             )}
 
             {/* Background Audio Player & Trình Phát Playlist */}
-            <AudioPlayer 
-              variant="navbar" 
-              customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" 
-              playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
-              isAdmin={isBLLOrAdmin}
-            />
+            <div className="shrink-0">
+              <AudioPlayer 
+                variant="navbar" 
+                customAudioUrl="https://youtu.be/ocvlV5LZ93Q?si=V4rWQY_LKJTVDaaV" 
+                playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
+                isAdmin={isBLLOrAdmin}
+              />
+            </div>
 
-            {/* Live Realtime Sync Status Badge */}
+            {/* Live Realtime Sync Status Badge (Siêu gọn gàng) */}
             <button
               type="button"
               onClick={handleRefreshData}
               disabled={isRefreshing}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer shadow-xs ${
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap ${
                 syncStatus === 'live'
                   ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/80 hover:border-emerald-400'
                   : syncStatus === 'syncing'
                   ? 'bg-amber-950/70 text-amber-300 border-amber-500/40 animate-pulse'
                   : 'bg-rose-950/70 text-rose-300 border-rose-500/40 hover:bg-rose-900/80'
               }`}
-              title={`Dữ liệu mới nhất từ hệ thống. Bấm để làm mới! ${lastSyncedTime ? `(Lúc ${lastSyncedTime})` : ''}`}
+              title={`Dữ liệu Google Sheets. Bấm để làm mới! ${lastSyncedTime ? `(Lúc ${lastSyncedTime})` : ''}`}
             >
               {syncStatus === 'error' ? (
-                <AlertCircle className="w-3 h-3 text-rose-400" />
+                <AlertCircle className="w-3 h-3 text-rose-400 shrink-0" />
               ) : (
-                <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-amber-400' : 'text-emerald-400'}`} />
+                <RefreshCw className={`w-3 h-3 shrink-0 ${isRefreshing ? 'animate-spin text-amber-400' : 'text-emerald-400'}`} />
               )}
-              <span className="hidden xl:inline">
-                {syncStatus === 'live' ? (lastSyncedTime ? `Cập nhật ${lastSyncedTime}` : 'Mới nhất') : syncStatus === 'syncing' ? 'Đang cập nhật...' : 'Dữ liệu lưu tạm'}
-              </span>
-              <span className="xl:hidden">
-                {syncStatus === 'live' ? (lastSyncedTime ? lastSyncedTime.slice(0, 5) : 'Mới nhất') : syncStatus === 'syncing' ? '...' : '!'}
+              <span className="hidden md:inline font-mono">
+                {syncStatus === 'live' ? (lastSyncedTime ? lastSyncedTime.slice(0, 5) : 'Mới nhất') : syncStatus === 'syncing' ? 'Đang tải...' : '!'}
               </span>
             </button>
 
             {/* Nhận Diện Bạn Học K8A1 (Ưu Tiên 2 - Sticky Navbar Cố Định Đỉnh Trang) */}
-            <NavbarIdentityBadge
-              currentVisitor={activeMember}
-              onSelectVisitor={handleSelectActiveMember}
-              classRoster={classRoster}
-              rsvpList={rsvpList}
-              onOpenPassModal={(attendee) => {
-                setSelectedPassAttendee(attendee);
-                setIsPassModalOpen(true);
-              }}
-              onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
-            />
+            <div className="shrink-0">
+              <NavbarIdentityBadge
+                currentVisitor={activeMember}
+                onSelectVisitor={handleSelectActiveMember}
+                classRoster={classRoster}
+                rsvpList={rsvpList}
+                onOpenPassModal={(attendee) => {
+                  setSelectedPassAttendee(attendee);
+                  setIsPassModalOpen(true);
+                }}
+                onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
+              />
+            </div>
 
             {/* Primary Action Button Duy Nhất: Điểm Danh */}
             <a 
               href="#diem-danh" 
               onClick={(e) => {
                 e.preventDefault();
-                window.dispatchEvent(new CustomEvent('focus-diem-danh'));
+                scrollToBlock('diem-danh');
               }}
-              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-1 text-xs cursor-pointer"
+              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center gap-1 text-xs cursor-pointer shrink-0 whitespace-nowrap"
               title="Xác nhận tham dự họp lớp"
             >
-              <CheckCircle className="w-3.5 h-3.5 text-amber-200" />
+              <CheckCircle className="w-3.5 h-3.5 text-amber-200 shrink-0" />
               <span>Điểm Danh</span>
             </a>
 
             {/* Discrete Mini Admin Button */}
             <button
               onClick={() => setIsAdminHubOpen(true)}
-              className={`p-1.5 sm:p-2 rounded-full transition-all duration-200 cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-full transition-all duration-200 cursor-pointer shrink-0 ${
                 currentUserRole === 'admin'
                   ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/50 shadow-xs'
                   : currentUserRole === 'treasurer'
@@ -1947,8 +1954,8 @@ export default function App() {
           <div className="absolute inset-x-0 bottom-0 h-40 sm:h-56 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7]/85 to-transparent pointer-events-none" />
         </div>
 
-        {/* 2. Overlaid Hero Content (Đè nội dung lên ảnh, căn giữa trong max-w-4xl) */}
-        <div className="max-w-4xl mx-auto px-4 pt-20 pb-16 sm:pt-24 sm:pb-24 md:pt-26 md:pb-28 relative z-10 space-y-6 text-left">
+        {/* 2. Overlaid Hero Content (Đè nội dung lên ảnh, căn giữa trong max-w-4xl, tối ưu khung hình) */}
+        <div className="max-w-4xl mx-auto px-4 pt-16 pb-8 sm:pt-18 sm:pb-10 md:pt-20 md:pb-12 relative z-10 space-y-4 sm:space-y-5 text-left">
           
           {/* Gợi ý thông minh khi truy cập bằng trình duyệt Zalo WebView */}
           {isZaloBrowser && !isZaloTipDismissed && (
@@ -2065,19 +2072,17 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  window.dispatchEvent(new CustomEvent('focus-diem-danh'));
+                  scrollToBlock('diem-danh');
                 }}
-                className="inline-flex items-center gap-2 px-6 sm:px-8 py-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-amber-300/40"
+                className="inline-flex items-center gap-2 px-5 sm:px-6 py-3.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer border border-amber-400/50"
               >
-                <CheckCircle className="w-4 h-4 text-amber-100" />
+                <CheckCircle className="w-4 h-4 text-amber-200" />
                 <span>Xác Nhận Tham Dự Ngay</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => {
-                  document.getElementById('danh-sach-diem-danh')?.scrollIntoView({ behavior: 'smooth' });
-                }}
+                onClick={() => scrollToBlock('danh-sach-diem-danh')}
                 className="inline-flex items-center gap-2 px-4 sm:px-5 py-3.5 bg-white/10 hover:bg-white/20 text-white font-sans font-semibold text-xs sm:text-sm rounded-xl border border-white/20 backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
               >
                 <Users className="w-4 h-4 text-amber-300" />
@@ -2104,75 +2109,19 @@ export default function App() {
               />
             </div>
 
-            {/* Quick Jump Ribbon Pills within Hero */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-sans">
-              <span className="text-slate-300/80 font-medium">Chuyển nhanh tới:</span>
-              <button
-                type="button"
-                onClick={() => setIsIdentityModalOpen(true)}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 hover:text-white border border-amber-400/60 backdrop-blur-md transition cursor-pointer font-medium"
-                title="Bấm để chọn tên bạn trong danh sách 65 bạn học K8A1"
-              >
-                <GraduationCap className="w-3 h-3 text-amber-300" />
-                <span>{activeMember ? activeMember.fullName : 'Chọn Tên Bạn'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => document.getElementById('dia-diem')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
-              >
-                <MapPin className="w-3 h-3 text-amber-400" />
-                <span>Địa Điểm Họp Lớp</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => document.getElementById('bank-transfer-card')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
-              >
-                <Coins className="w-3 h-3 text-emerald-400" />
-                <span>Sổ Quỹ Lớp</span>
-              </button>
-              {teachersList.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('thay-co')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
-                >
-                  <GraduationCap className="w-3 h-3 text-amber-400" />
-                  <span>Quý Thầy Cô ({teachersList.length})</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => document.getElementById('ky-uc')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
-              >
-                <Camera className="w-3 h-3 text-amber-400" />
-                <span>Thước Phim & Kỷ Niệm</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => document.getElementById('invitation-letter-card')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/40 hover:bg-black/60 text-slate-200 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 backdrop-blur-md transition cursor-pointer"
-              >
-                <MailOpen className="w-3 h-3 text-rose-400" />
-                <span>Bức Thư Ngỏ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOpenGuideModal()}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 hover:text-amber-100 border border-amber-400/50 backdrop-blur-md transition cursor-pointer font-medium"
-              >
-                <BookOpen className="w-3 h-3 text-amber-300" />
-                <span>Cẩm Nang Hoạt Động</span>
-              </button>
-            </div>
+            {/* Quick Jump Ribbon tinh gọn, không rớt dòng lộn xộn */}
+            <QuickJumpRibbon 
+              confirmedCount={confirmedCount}
+              teachersCount={teachersList.length}
+              onOpenGuideModal={handleOpenGuideModal}
+              className="pt-2"
+            />
           </div>
         </div>
       </section>
 
       {/* Main Container */}
-      <main className="w-full max-w-4xl px-3 sm:px-4 -mt-6 sm:-mt-8 md:-mt-10 relative z-20 space-y-8 sm:space-y-10">
+      <main className="w-full max-w-4xl px-3 sm:px-4 -mt-6 sm:-mt-8 md:-mt-10 relative z-20 space-y-6 sm:space-y-8">
         
         {showLegacyAdminPanel ? (
           <motion.div
@@ -2223,10 +2172,13 @@ export default function App() {
               onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
             />
 
+            {/* Mũi tên điều hướng chuyển tiếp */}
+            <SectionTransitionNav currentBlockId="invitation-letter-card" />
+
             {/* 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}
             <div 
               id="invitation-letter-card" 
-              className="bg-[#FFFEFA] border-[3px] border-double border-amber-500/60 rounded-xl p-6 sm:p-9 md:p-12 shadow-xl relative overflow-hidden text-left space-y-6"
+              className="bg-[#FFFEFA] border-[3px] border-double border-amber-500/60 rounded-xl p-5 sm:p-7 md:p-9 shadow-xl relative overflow-hidden text-left space-y-5 scroll-mt-20"
             >
               {/* Classical Ornate Corner Accents */}
               <div className="absolute top-2.5 left-2.5 w-6 h-6 border-t-2 border-l-2 border-amber-600/80 pointer-events-none" />
@@ -2354,6 +2306,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 📍 PHÂN VÙNG 2: ĐỊA ĐIỂM TỔ CHỨC HỌP LỚP K8A1 */}
             {/* ======================================================== */}
+            <SectionTransitionNav currentBlockId="dia-diem" />
             <AlumniConvergenceMap
               eventConfig={eventConfig}
             />
@@ -2361,6 +2314,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 🎟️ PHÂN VÙNG 3: ĐIỂM DANH & THÀNH VIÊN VÀ QUỸ LỚP */}
             {/* ======================================================== */}
+            <SectionTransitionNav currentBlockId="diem-danh" />
             <section id="diem-danh" className="space-y-6 scroll-mt-20">
               {/* Form Điểm Danh */}
               <RsvpForm 
@@ -2377,6 +2331,7 @@ export default function App() {
               />
 
               {/* Danh Sách Thành Viên Đã Xác Nhận */}
+              <SectionTransitionNav currentBlockId="danh-sach-diem-danh" />
               <div id="danh-sach-diem-danh" className="scroll-mt-20">
                 <ConfirmedAttendees
                   appsScriptUrl={activeAppsScriptUrl}
@@ -2392,6 +2347,7 @@ export default function App() {
               </div>
 
               {/* Thông Tin Quỹ Lớp Minh Bạch */}
+              <SectionTransitionNav currentBlockId="bank-transfer-card" />
               <BankTransfer 
                 fundTitle={eventConfig.fundTitle}
                 fundDescription={eventConfig.fundDescription}
@@ -2420,6 +2376,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 🎓 PHÂN VÙNG 4: TRI ÂN QUÝ THẦY CÔ GIÁO K8A1 */}
             {/* ======================================================== */}
+            <SectionTransitionNav currentBlockId="thay-co" />
             <TeachersHonorRoll
               teachers={teachersList}
             />
@@ -2427,6 +2384,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 🎞️ PHÂN VÙNG 5: KHO KÝ ỨC THANH XUÂN K8A1 */}
             {/* ======================================================== */}
+            <SectionTransitionNav currentBlockId="ky-uc" />
             <section id="ky-uc" className="space-y-6 scroll-mt-20">
               <MemoryCorner 
                 appsScriptUrl={activeAppsScriptUrl} 
