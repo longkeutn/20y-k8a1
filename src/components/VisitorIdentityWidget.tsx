@@ -664,26 +664,26 @@ export function NavbarIdentityBadge({
             if (onOpenIdentityModal) onOpenIdentityModal();
             else window.dispatchEvent(new CustomEvent('open-identity-modal'));
           }}
-          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 hover:text-white text-xs font-sans font-bold transition cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 hover:text-white text-xs font-sans font-bold transition cursor-pointer shadow-xs whitespace-nowrap shrink-0"
           title="Bấm để chọn tên bạn trong danh sách 65 bạn học K8A1"
         >
-          <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
+          <GraduationCap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
           <span className="hidden sm:inline">Chọn tên bạn</span>
           <span className="sm:hidden">Chọn tên</span>
-          <ChevronDown className="w-3 h-3 opacity-70" />
+          <ChevronDown className="w-3 h-3 opacity-70 shrink-0" />
         </button>
         ) : (
           /* Huy hiệu khi ĐÃ CHỌN TÊN */
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/20 to-amber-700/30 hover:from-amber-600/40 hover:to-amber-700/40 border border-amber-400/60 text-amber-100 text-xs font-sans font-bold transition cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-600/30 via-amber-500/20 to-amber-700/30 hover:from-amber-600/40 hover:to-amber-700/40 border border-amber-400/60 text-amber-100 text-xs font-sans font-bold transition cursor-pointer shadow-xs whitespace-nowrap shrink-0"
             title={`Đang nhận diện: ${currentVisitor.fullName} (Bấm để xem menu cá nhân)`}
           >
             <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] flex items-center justify-center shrink-0">
               {currentVisitor.fullName.slice(0, 1).toUpperCase()}
             </span>
-            <span className="max-w-[75px] sm:max-w-[120px] truncate font-serif">
+            <span className="max-w-[80px] xs:max-w-[105px] sm:max-w-[130px] truncate font-serif">
               {currentVisitor.fullName}
             </span>
             <ChevronDown className="w-3 h-3 opacity-70 shrink-0" />

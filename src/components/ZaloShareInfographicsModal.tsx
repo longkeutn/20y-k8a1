@@ -352,13 +352,10 @@ export default function ZaloShareInfographicsModal({
         const neededH = 388 + gridH + 20 + 76 + 24 + 165 + 30;
         height = Math.max(1350, Math.round(neededH));
       } else if (selectedTemplate === 'shirts') {
-        const pendingCount = confirmedPendingShirt.length;
-        if (pendingCount > 15) {
-          const pRows = Math.ceil(pendingCount / 3);
-          const pBoxH = 65 + pRows * 42 + 20;
-          const neededH = 295 + 60 + 240 + 20 + pBoxH + 25 + 40 + 165 + 30;
-          height = Math.max(1350, Math.round(neededH));
-        }
+        const pRows = Math.max(1, Math.ceil(confirmedPendingShirt.length / 3));
+        const pBoxH = confirmedPendingShirt.length > 0 ? (70 + pRows * 42 + 20) : 220;
+        const neededH = 360 + 60 + 240 + 20 + pBoxH + 30 + 40 + 165 + 40;
+        height = Math.max(1350, Math.round(neededH));
       }
 
       canvas.width = width;
@@ -786,7 +783,7 @@ export default function ZaloShareInfographicsModal({
         const warnY = boxY + 260;
         const pCols = 3;
         const pRows = Math.max(1, Math.ceil(confirmedPendingShirt.length / pCols));
-        const warnH = confirmedPendingShirt.length > 0 ? (65 + pRows * 42 + 20) : 220;
+        const warnH = confirmedPendingShirt.length > 0 ? (70 + pRows * 42 + 20) : 220;
 
         ctx.fillStyle = '#FFFBEB';
         drawRoundRect(ctx, 80, warnY, width - 160, warnH, 20);
@@ -814,16 +811,28 @@ export default function ZaloShareInfographicsModal({
             ctx.fillStyle = '#FEF3C7';
             drawRoundRect(ctx, pX, pY - 16, pColW - 14, 34, 8);
             ctx.fill();
+            ctx.strokeStyle = '#FDE68A';
+            ctx.lineWidth = 1;
+            drawRoundRect(ctx, pX, pY - 16, pColW - 14, 34, 8);
+            ctx.stroke();
 
             ctx.fillStyle = '#92400E';
-            ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = 'bold 12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             ctx.textAlign = 'left';
             const cleanName = att.fullName.trim();
             const cleanNick = (att.nickname || '').trim().replace(/^["'(]+|[)"']+$/g, '').trim();
             const isDistinct = cleanNick && cleanNick.toLowerCase() !== cleanName.toLowerCase();
             const displayName = isDistinct ? `${cleanName} (${cleanNick})` : cleanName;
-            const shortName = displayName.length > 19 ? displayName.substring(0, 18) + '..' : displayName;
-            ctx.fillText(`• ${shortName}`, pX + 8, pY + 6);
+
+            let shortName = displayName;
+            const maxW = pColW - 36;
+            while (ctx.measureText(`• ${shortName}`).width > maxW && shortName.length > 8) {
+              shortName = shortName.slice(0, -1);
+            }
+            if (shortName.length < displayName.length) {
+              shortName = shortName.trim() + '..';
+            }
+            ctx.fillText(`• ${shortName}`, pX + 10, pY + 5);
           });
         } else {
           ctx.fillStyle = '#15803D';
@@ -833,7 +842,7 @@ export default function ZaloShareInfographicsModal({
         }
 
         // Lời nhắn nhắc gấp
-        const noteY = warnY + warnH + 25;
+        const noteY = warnY + warnH + 30;
         ctx.fillStyle = '#991B1B';
         ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.textAlign = 'center';
@@ -1028,7 +1037,7 @@ export default function ZaloShareInfographicsModal({
         // 3. KHỐI 3 BƯỚC ĐIỂM DANH DƯỚI 10 GIÂY
         const stepCardY = qrCardY + qrCardH + 30;
         const stepCardW = width - 180;
-        const stepCardH = 145;
+        const stepCardH = 165;
         const stepCardX = 90;
 
         ctx.fillStyle = '#FAF5E8';
@@ -1054,7 +1063,7 @@ export default function ZaloShareInfographicsModal({
 
         stepItems.forEach((step, idx) => {
           const sX = stepCardX + 30 + idx * colW + colW / 2;
-          const sY = stepCardY + 68;
+          const sY = stepCardY + 60;
 
           // Vòng tròn số
           ctx.fillStyle = '#8D5B28';
@@ -1069,18 +1078,18 @@ export default function ZaloShareInfographicsModal({
           // Tiêu đề bước
           ctx.fillStyle = '#0F172A';
           ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          ctx.fillText(step.title, sX, sY + 30);
+          ctx.fillText(step.title, sX, sY + 28);
 
-          // Mô tả bước
+          // Mô tả bước (tự động co dòng và nằm gọn trong thẻ)
           ctx.fillStyle = '#475569';
           ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          wrapAndCenterText(ctx, step.desc, sX, sY + 48, colW - 16, 17);
+          wrapAndCenterText(ctx, step.desc, sX, sY + 46, colW - 20, 16);
         });
 
         // 4. KHỐI THÔNG TIN LỊCH TRÌNH BUỔI SÁNG & TRƯỜNG THPT THÁI NGUYÊN
         const infoCardY = stepCardY + stepCardH + 20;
         const infoCardW = width - 180;
-        const infoCardH = 115;
+        const infoCardH = 125;
         const infoCardX = 90;
 
         ctx.fillStyle = '#FFFFFF';
@@ -1097,11 +1106,11 @@ export default function ZaloShareInfographicsModal({
         ctx.fillStyle = '#B45309';
         ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🏫 08:30 — TẬP TRUNG TẠI TRƯỜNG CŨ', leftCenterX, infoCardY + 36);
+        ctx.fillText('🏫 08:30 — TẬP TRUNG TẠI TRƯỜNG CŨ', leftCenterX, infoCardY + 34);
 
         ctx.fillStyle = '#475569';
-        ctx.font = '13.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillText('Trường THPT Thái Nguyên • Cổng chính & Sân trường', leftCenterX, infoCardY + 62);
+        ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('Trường THPT Thái Nguyên • Cổng chính & Sân trường', leftCenterX, infoCardY + 60);
         ctx.fillStyle = '#64748B';
         ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.fillText('Chụp ảnh lưu niệm tập thể lớp & thăm thầy cô giáo', leftCenterX, infoCardY + 84);
@@ -1110,8 +1119,8 @@ export default function ZaloShareInfographicsModal({
         ctx.strokeStyle = '#E2D3BE';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(infoCardX + halfW, infoCardY + 20);
-        ctx.lineTo(infoCardX + halfW, infoCardY + infoCardH - 20);
+        ctx.moveTo(infoCardX + halfW, infoCardY + 16);
+        ctx.lineTo(infoCardX + halfW, infoCardY + infoCardH - 16);
         ctx.stroke();
 
         // Cột phải: Nhà hàng
@@ -1119,14 +1128,15 @@ export default function ZaloShareInfographicsModal({
         ctx.fillStyle = '#15803D';
         ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🍽️ 11:00 — TIỆC LIÊN HOAN & HỘI NGỘ', rightCenterX, infoCardY + 36);
+        ctx.fillText('🍽️ 11:00 — TIỆC LIÊN HOAN & HỘI NGỘ', rightCenterX, infoCardY + 34);
 
         ctx.fillStyle = '#475569';
-        ctx.font = '13.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillText(eventConfig?.eventLocation || 'Trung tâm Sự kiện The Prime • TP Thái Nguyên', rightCenterX, infoCardY + 62);
+        ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        const locText = eventConfig?.eventLocation || 'Trung tâm Sự kiện The Prime • TP Thái Nguyên';
+        wrapAndCenterText(ctx, locText, rightCenterX, infoCardY + 60, halfW - 32, 18);
         ctx.fillStyle = '#64748B';
         ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillText('Màn hình LED chiếu Tấm Vé Vàng & Vinh danh thành viên', rightCenterX, infoCardY + 84);
+        ctx.fillText('Màn hình LED chiếu Tấm Vé Vàng & Vinh danh thành viên', rightCenterX, infoCardY + 96);
       }
 
       // ==========================================
@@ -1441,7 +1451,7 @@ export default function ZaloShareInfographicsModal({
             <button
               type="button"
               onClick={() => setSelectedTemplate('standee_qr')}
-              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between col-span-2 sm:col-span-1 ${
                 selectedTemplate === 'standee_qr'
                   ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white border-amber-600 shadow-md scale-[1.01]'
                   : 'bg-white hover:bg-amber-50/50 text-slate-700 border-slate-200'
@@ -1465,7 +1475,7 @@ export default function ZaloShareInfographicsModal({
             
             {/* CỘT TRÁI: PREVIEW THẺ ẢNH */}
             <div className="md:col-span-6 flex flex-col items-center">
-              <div className={`relative w-full max-w-[340px] ${selectedTemplate === 'standee_qr' ? 'aspect-[1/1.414]' : 'aspect-[4/5]'} rounded-xl overflow-hidden shadow-xl border-2 border-amber-300/80 bg-[#FFFDF9] flex items-center justify-center`}>
+              <div className={`relative w-full max-w-[340px] max-h-[36vh] sm:max-h-none ${selectedTemplate === 'standee_qr' ? 'aspect-[1/1.414]' : 'aspect-[4/5]'} rounded-xl overflow-hidden shadow-xl border-2 border-amber-300/80 bg-[#FFFDF9] flex items-center justify-center`}>
                 {previewDataUrl ? (
                   <img
                     ref={previewImgRef}

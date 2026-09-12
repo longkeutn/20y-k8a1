@@ -1880,10 +1880,10 @@ export default function App() {
       
       {/* 📌 THANH TIÊU ĐỀ CỐ ĐỊNH & TINH GỌN (PREMIUM FIXED NAVBAR) */}
       <header className="fixed top-0 inset-x-0 z-50 w-full backdrop-blur-md bg-[#161B26]/90 border-b border-amber-500/25 text-white shadow-md transition-all">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-2 sm:gap-3">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-1.5 sm:gap-3">
           
           {/* Brand Logo & Class Name */}
-          <a href="#hero" className="flex items-center space-x-2 sm:space-x-2.5 group shrink-0">
+          <a href="#hero" className="flex items-center space-x-1.5 sm:space-x-2.5 group shrink-0">
             <div className="relative shrink-0">
               <img 
                 src={eventConfig.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
@@ -1901,14 +1901,14 @@ export default function App() {
               <span className="font-serif font-bold text-sm sm:text-base tracking-wide text-amber-200 group-hover:text-amber-300 transition whitespace-nowrap">
                 K8A1
               </span>
-              <span className="text-[10px] block text-slate-300 -mt-1 font-mono whitespace-nowrap">
+              <span className="hidden xs:block text-[10px] text-slate-300 -mt-1 font-mono whitespace-nowrap">
                 THPT Thái Nguyên
               </span>
             </div>
           </a>
 
           {/* Navigation Links & Action Buttons */}
-          <nav className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium">
+          <nav className="flex items-center gap-1 sm:gap-2 text-xs font-medium">
             {/* Secondary Nav Links: Chỉ hiện trên màn hình lớn xl+ để không bao giờ chèn ép các nút chính */}
             <div className="hidden xl:flex items-center gap-1 text-xs">
               {/* Bạn Bè (Danh sách đã xác nhận) */}
@@ -1978,7 +1978,7 @@ export default function App() {
               type="button"
               onClick={handleRefreshData}
               disabled={isRefreshing}
-              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap ${
+              className={`flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap ${
                 syncStatus === 'live'
                   ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/80 hover:border-emerald-400'
                   : syncStatus === 'syncing'
@@ -2019,7 +2019,7 @@ export default function App() {
                 e.preventDefault();
                 scrollToBlock('diem-danh');
               }}
-              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-3 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center gap-1 text-xs cursor-pointer shrink-0 whitespace-nowrap"
+              className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-red-600 hover:to-rose-600 text-white px-2.5 sm:px-3.5 py-1.5 rounded-full font-bold shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 flex items-center gap-1 text-xs cursor-pointer shrink-0 whitespace-nowrap"
               title="Xác nhận tham dự họp lớp"
             >
               <CheckCircle className="w-3.5 h-3.5 text-amber-200 shrink-0" />

@@ -769,11 +769,11 @@ export default function AudioPlayer({
   if (variant === 'navbar') {
     return (
       <>
-        <div className="flex items-center gap-1 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full p-0.5 transition-all">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full p-0.5 transition-all shrink-0">
           {/* Nút Play / Pause */}
           <button
             onClick={togglePlay}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-sans font-medium transition-all duration-300 cursor-pointer select-none ${
+            className={`flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-full text-xs font-sans font-medium transition-all duration-300 cursor-pointer select-none ${
               isPlaying 
                 ? 'bg-amber-500/25 text-amber-300 border border-amber-400/50 shadow-inner' 
                 : 'text-slate-300 hover:text-white'
@@ -791,7 +791,7 @@ export default function AudioPlayer({
             ) : (
               <Music className="w-3.5 h-3.5 text-amber-400" />
             )}
-            <span className="text-[11px] font-sans font-semibold max-w-[110px] md:max-w-[140px] truncate">
+            <span className="hidden sm:inline text-[11px] font-sans font-semibold max-w-[110px] md:max-w-[140px] truncate">
               {isBuffering ? "Đang kết nối..." : currentTrack.title}
             </span>
           </button>
