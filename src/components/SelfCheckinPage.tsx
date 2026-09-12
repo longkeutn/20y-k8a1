@@ -32,7 +32,8 @@ import {
   normalizeShirtSize,
   isVietnameseNameMatch,
   maskPhone,
-  uploadMemberAvatarViaBackend
+  uploadMemberAvatarViaBackend,
+  formatCheckInTimeShort
 } from '../data';
 import { parseMemberNote } from '../utils/memberUtils';
 import { saveOrDownloadJpg } from '../utils/imageUtils';
@@ -169,7 +170,7 @@ export default function SelfCheckinPage({
 
     const isAlreadyCheckedIn = Boolean(rsvp?.checkedIn);
     setCheckInDone(isAlreadyCheckedIn);
-    setCheckInTime(rsvp?.checkedInAt || '');
+    setCheckInTime(formatCheckInTimeShort(rsvp?.checkedInAt) || rsvp?.checkedInAt || '');
 
     // Cuộn nhẹ xuống khung vé
     setTimeout(() => {

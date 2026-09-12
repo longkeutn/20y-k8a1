@@ -123,6 +123,7 @@ import {
   normalizeShirtSize,
   formatDateTimeVi,
   formatDateOnlyVi,
+  formatCheckInTimeShort,
   parseDate,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
@@ -1641,10 +1642,13 @@ export default function AdminManagementHub({
     const updated = rsvpList.map(item => {
       if ((item.id && item.id === attendee.id) || item.phone === attendee.phone) {
         const nextState = !item.checkedIn;
+        const now = new Date();
+        const pad = (n: number) => (n < 10 ? '0' + n : n);
+        const timeFormatted = `${pad(now.getHours())}:${pad(now.getMinutes())} • ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
         return {
           ...item,
           checkedIn: nextState,
-          checkedInAt: nextState ? new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : undefined
+          checkedInAt: nextState ? timeFormatted : undefined
         };
       }
       return item;
@@ -4664,6 +4668,7 @@ export default function AdminManagementHub({
                               {item.status === 'yes' ? (
                                 <button
                                   onClick={() => handleToggleCheckIn(item)}
+                                  title={item.checkedInAt ? `Thời gian điểm danh: ${formatDateTimeVi(item.checkedInAt) || item.checkedInAt}` : undefined}
                                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
                                     item.checkedIn
                                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs'
@@ -4672,12 +4677,12 @@ export default function AdminManagementHub({
                                 >
                                   {item.checkedIn ? (
                                     <>
-                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                      <span>Đã Đến ({item.checkedInAt || 'OK'})</span>
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                      <span>Đã Đến {formatCheckInTimeShort(item.checkedInAt) ? `(${formatCheckInTimeShort(item.checkedInAt)})` : ''}</span>
                                     </>
                                   ) : (
                                     <>
-                                      <UserX className="w-3.5 h-3.5 text-slate-400" />
+                                      <UserX className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                       <span>Chưa Đến</span>
                                     </>
                                   )}

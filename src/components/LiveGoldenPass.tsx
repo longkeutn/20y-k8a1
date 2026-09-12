@@ -1,6 +1,6 @@
 import React from 'react';
 import { Award, QrCode, Sparkles, Check, CheckCircle2, Heart, Star, Calendar, MapPin, Shirt, Eye } from 'lucide-react';
-import { normalizeShirtSize } from '../data';
+import { normalizeShirtSize, formatCheckInTimeShort } from '../data';
 
 interface LiveGoldenPassProps {
   fullName?: string;
@@ -137,7 +137,7 @@ export default function LiveGoldenPass({
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>
                     {checkedIn 
-                      ? `Đã check-in có mặt ${checkedInAt ? `(${checkedInAt})` : 'tại sảnh trường'}` 
+                      ? `Đã check-in có mặt ${checkedInAt ? `(${formatCheckInTimeShort(checkedInAt) || checkedInAt})` : 'tại sảnh trường'}` 
                       : isConfirmed 
                       ? 'Đã xác nhận có mặt chính thức' 
                       : 'Xác nhận tham dự hội ngộ'}

@@ -385,6 +385,7 @@ export default function App() {
     message: item.message ? String(item.message) : '',
     submittedAt: item.submittedAt ? String(item.submittedAt) : '',
     checkedIn: Boolean(item.checkedIn),
+    checkedInAt: item.checkedInAt ? (formatDateTimeVi(item.checkedInAt) || String(item.checkedInAt).trim()) : undefined,
     fundStatus: item.fundStatus || 'unpaid',
     fundAmount: Number(item.fundAmount) || 0,
     fundReceiptUrl: item.fundReceiptUrl ? String(item.fundReceiptUrl) : '',
@@ -1515,6 +1516,7 @@ export default function App() {
           ...uniqueRsvp[existingIdx],
           ...item,
           checkedIn: uniqueRsvp[existingIdx].checkedIn || item.checkedIn,
+          checkedInAt: item.checkedInAt || uniqueRsvp[existingIdx].checkedInAt,
           fundStatus: (uniqueRsvp[existingIdx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[existingIdx].fundStatus),
           fundAmount: Math.max(uniqueRsvp[existingIdx].fundAmount || 0, item.fundAmount || 0),
           fundReceiptUrl: finalReceiptUrl || uniqueRsvp[existingIdx].fundReceiptUrl

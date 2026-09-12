@@ -1582,6 +1582,51 @@ export function formatDateTimeVi(rawDate?: any): string {
 }
 
 /**
+ * Định dạng thời gian điểm danh ngắn gọn, tinh tế cho bảng quản trị & danh sách:
+ * - "Sat Sep 12 2026 13:06:00 GMT+0700 (Indochina Time)" -> "13:06 • 12/09"
+ * - "12/09/2026 13:06" -> "13:06 • 12/09"
+ * - "13:06" -> "13:06"
+ */
+export function formatCheckInTimeShort(rawDate?: any): string {
+  if (!rawDate) return '';
+  const str = String(rawDate).trim();
+  if (
+    !str || 
+    str.toLowerCase() === 'invalid date' || 
+    str.toLowerCase() === 'null' || 
+    str.toLowerCase() === 'undefined' || 
+    str.toLowerCase() === 'ok' ||
+    str.toLowerCase() === 'đã đến'
+  ) {
+    return '';
+  }
+
+  // Nếu chỉ là HH:mm (ví dụ "13:06")
+  if (/^\d{1,2}:\d{2}$/.test(str)) {
+    return str;
+  }
+
+  // Nếu đã là HH:mm • DD/MM (ví dụ "13:06 • 12/09")
+  if (/^\d{1,2}:\d{2}\s*•\s*\d{1,2}\/\d{1,2}$/.test(str)) {
+    return str;
+  }
+
+  const d = parseDate(rawDate);
+  if (!d) {
+    const timeMatch = str.match(/(\d{1,2}:\d{2})/);
+    return timeMatch ? timeMatch[1] : '';
+  }
+
+  const pad = (n: number) => (n < 10 ? '0' + n : String(n));
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  const day = pad(d.getDate());
+  const month = pad(d.getMonth() + 1);
+
+  return `${hours}:${minutes} • ${day}/${month}`;
+}
+
+/**
  * Định dạng ngày chuẩn tiếng Việt (DD/MM/YYYY):
  * - Xử lý triệt để các chuỗi Date từ Google Sheets như "Sat Aug 15 2026 00:00:00 GMT+0700 (Indochina Time)",
  *   "09:30 • 01/09/2026", ISO "2026-08-15" thành "15/08/2026"

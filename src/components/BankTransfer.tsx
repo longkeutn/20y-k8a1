@@ -30,7 +30,9 @@ import {
 } from 'lucide-react';
 import { RsvpData, ClassMember, ExpenseItem, IncomeItem, UserRole } from '../types';
 import { generateVietQrUrl, EXPENSE_CATEGORIES, INCOME_CATEGORIES, formatDateOnlyVi, parseDate, removeVietnameseAccents } from '../data';
+import { isMobileDevice } from '../utils/imageUtils';
 import ReceiptUploadModal from './ReceiptUploadModal';
+import MobilePhotoSaveModal from './MobilePhotoSaveModal';
 
 interface BankTransferProps {
   fundTitle?: string;

@@ -982,7 +982,7 @@ function getRSVPList(isAdmin) {
       message: String(row[5] || ''),
       submittedAt: formatDate(row[6] || new Date()),
       checkedIn: row[7] === 'ĐÃ ĐẾN' || row[7] === true,
-      checkedInAt: String(row[8] || ''),
+      checkedInAt: row[8] ? formatDate(row[8]) : '',
       fundStatus: row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 'paid' : (row[9] === 'CHỜ ĐỐI SOÁT' || row[9] === 'pending' ? 'pending' : (row[9] === 'MIỄN' || row[9] === 'exempt' ? 'exempt' : 'unpaid')),
       fundAmount: Number(row[10]) || (row[9] === 'ĐÃ ĐÓNG' || row[9] === 'paid' ? 700000 : 0),
       fundNote: String(row[11] || ''),

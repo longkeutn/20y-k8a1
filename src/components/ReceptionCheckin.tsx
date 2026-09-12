@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, UserCheck, UserX, CheckCircle, Clock, Shirt, Sparkles, Phone, Users, Filter, Download } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData } from '../types';
-import { maskPhone } from '../data';
+import { maskPhone, formatCheckInTimeShort } from '../data';
 
 interface ReceptionCheckinProps {
   attendees: RsvpData[];
@@ -193,7 +193,7 @@ export default function ReceptionCheckin({
                       </div>
                       {attendee.checkedInAt && (
                         <span className="text-[10px] text-emerald-700 font-sans flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" /> Có mặt lúc {attendee.checkedInAt}
+                          <Clock className="w-2.5 h-2.5" /> Có mặt lúc {formatCheckInTimeShort(attendee.checkedInAt) || attendee.checkedInAt}
                         </span>
                       )}
                     </td>
