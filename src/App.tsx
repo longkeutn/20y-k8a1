@@ -58,6 +58,7 @@ import QuickNavigation from './components/QuickNavigation';
 import TeachersHonorRoll from './components/TeachersHonorRoll';
 import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
+import MobileCheckinQrModal from './components/MobileCheckinQrModal';
 import { SectionTransitionNav, QuickJumpRibbon, scrollToBlock } from './components/BlockNavigator';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
@@ -596,6 +597,7 @@ export default function App() {
   // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
   const [isZaloShareModalOpen, setIsZaloShareModalOpen] = useState(false);
+  const [isMobileQrModalOpen, setIsMobileQrModalOpen] = useState(false);
 
   useEffect(() => {
     const handleOpenIdentity = () => setIsIdentityModalOpen(true);
@@ -604,8 +606,14 @@ export default function App() {
         setIsZaloShareModalOpen(true);
       }
     };
+    const handleOpenMobileQr = () => {
+      if (isBLLOrAdmin) {
+        setIsMobileQrModalOpen(true);
+      }
+    };
     window.addEventListener('open-identity-modal', handleOpenIdentity);
     window.addEventListener('open-zalo-share-modal', handleOpenZaloShare);
+    window.addEventListener('open-mobile-qr-modal', handleOpenMobileQr);
 
     // Mặc định khi mới vào web (không bấm link nhảy hash), luôn hiển thị từ đầu trang (Hero Banner)
     if (!window.location.hash) {
@@ -615,6 +623,7 @@ export default function App() {
     return () => {
       window.removeEventListener('open-identity-modal', handleOpenIdentity);
       window.removeEventListener('open-zalo-share-modal', handleOpenZaloShare);
+      window.removeEventListener('open-mobile-qr-modal', handleOpenMobileQr);
     };
   }, [isBLLOrAdmin]);
 
@@ -2884,6 +2893,7 @@ export default function App() {
         activeMember={activeMember}
         onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
         onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
+        onOpenMobileQrModal={isBLLOrAdmin ? () => setIsMobileQrModalOpen(true) : undefined}
       />
 
       {/* 🎓 BẢNG DANH BẠ 65 BẠN HỌC K8A1 (CHỌN TÊN ĐỂ NHẬN DIỆN & CÁ NHÂN HÓA) */}
@@ -2910,8 +2920,29 @@ export default function App() {
           activeMember={activeMember}
           appsScriptUrl={activeAppsScriptUrl}
           onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
+          onOpenMobileQr={() => {
+            setIsZaloShareModalOpen(false);
+            setIsMobileQrModalOpen(true);
+          }}
         />
       )}
+
+      {/* 📱 MODAL MÃ QR DI ĐỘNG ĐÓN TIẾP & ĐIỂM DANH DÀNH CHO BLL */}
+      <MobileCheckinQrModal
+        isOpen={isMobileQrModalOpen}
+        onClose={() => setIsMobileQrModalOpen(false)}
+        eventConfig={eventConfig}
+        totalAttendees={classRoster?.length || 65}
+        checkedInAttendees={(rsvpList || []).filter(r => r.checkedIn).length}
+        onOpenSelfCheckin={() => {
+          setIsMobileQrModalOpen(false);
+          setIsCheckinMode(true);
+        }}
+        onOpenPosterModal={isBLLOrAdmin ? () => {
+          setIsMobileQrModalOpen(false);
+          setIsZaloShareModalOpen(true);
+        } : undefined}
+      />
 
       {/* Toast thông báo realtime */}
       <ActivityToastManager

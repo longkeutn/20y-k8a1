@@ -12,7 +12,8 @@ import {
   Sparkles,
   GraduationCap,
   BookOpen,
-  Share2
+  Share2,
+  QrCode
 } from 'lucide-react';
 
 import { ClassMember } from '../types';
@@ -23,6 +24,7 @@ interface QuickNavigationProps {
   activeMember?: ClassMember | null;
   onOpenIdentityModal?: () => void;
   onOpenZaloShareModal?: () => void;
+  onOpenMobileQrModal?: () => void;
 }
 
 interface NavItem {
@@ -39,7 +41,8 @@ export default function QuickNavigation({
   hasTeachers = false,
   activeMember,
   onOpenIdentityModal,
-  onOpenZaloShareModal
+  onOpenZaloShareModal,
+  onOpenMobileQrModal
 }: QuickNavigationProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -317,6 +320,22 @@ export default function QuickNavigation({
               <Share2 className="w-3.5 h-3.5 text-amber-300" />
               <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
                 Poster Lớp
+              </span>
+            </button>
+          )}
+
+          {/* Nút QR Điểm Danh Di Động trên điện thoại (dành cho BLL đón tiếp ở trường) */}
+          {onOpenMobileQrModal && (
+            <button
+              type="button"
+              onClick={onOpenMobileQrModal}
+              className="relative flex items-center gap-1 p-2 sm:px-2.5 sm:py-2 rounded-full font-sans transition-all duration-200 cursor-pointer shrink-0 bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-600/50 hover:to-teal-600/50 text-emerald-300 hover:text-white border border-emerald-400/50 shadow-2xs"
+              title="Mở mã QR trên điện thoại để bạn bè quét điểm danh tại trường"
+              aria-label="Mở mã QR trên điện thoại để bạn bè quét điểm danh tại trường"
+            >
+              <QrCode className="w-3.5 h-3.5 text-emerald-300" />
+              <span className="hidden sm:inline text-xs font-semibold whitespace-nowrap">
+                QR Đón Tiếp
               </span>
             </button>
           )}

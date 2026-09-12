@@ -15,7 +15,10 @@ import {
   RefreshCw,
   ExternalLink,
   MessageCircle,
-  HelpCircle
+  HelpCircle,
+  QrCode,
+  Smartphone,
+  Printer
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, ClassMember, EventConfig } from '../types';
@@ -32,9 +35,10 @@ interface ZaloShareInfographicsModalProps {
   onUpdateRsvpList?: (list: RsvpData[]) => void;
   onUpdateClassRoster?: (list: ClassMember[]) => void;
   onRefreshData?: () => void;
+  onOpenMobileQr?: () => void;
 }
 
-type TemplateId = 'milestone' | 'attendees' | 'shirts' | 'finances';
+type TemplateId = 'milestone' | 'attendees' | 'shirts' | 'finances' | 'standee_qr';
 
 export default function ZaloShareInfographicsModal({
   isOpen,
@@ -46,7 +50,8 @@ export default function ZaloShareInfographicsModal({
   appsScriptUrl,
   onUpdateRsvpList,
   onUpdateClassRoster,
-  onRefreshData
+  onRefreshData,
+  onOpenMobileQr
 }: ZaloShareInfographicsModalProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('milestone');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -323,7 +328,10 @@ export default function ZaloShareInfographicsModal({
       const width = 1080;
       let height = 1350;
 
-      if (selectedTemplate === 'attendees') {
+      if (selectedTemplate === 'standee_qr') {
+        // Tỷ lệ chuẩn khổ A4 dọc 1:1.414 -> 1080 x 1528px (sắc nét 300DPI khi in ấn hoặc làm standee)
+        height = 1528;
+      } else if (selectedTemplate === 'attendees') {
         const totalItems = confirmedAttendees.length;
         const rows = Math.max(1, Math.ceil(totalItems / 3));
         const gridH = rows * 46 + 28;
@@ -893,6 +901,219 @@ export default function ZaloShareInfographicsModal({
         ctx.fillStyle = '#15803D';
         ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.fillText('✓ Toàn bộ hóa đơn & sao kê đều lưu trữ công khai', width / 2, tCardY + 155);
+      } else if (selectedTemplate === 'standee_qr') {
+        // --- TEMPLATE 5: MAKET STANDEE & BẢNG ĐÓN TIẾP QR A4 ---
+        // 1. Thẻ chủ đề Bàn Đón Tiếp
+        ctx.fillStyle = '#8D5B28';
+        drawRoundRect(ctx, width / 2 - 240, bodyY, 480, 44, 22);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🎫 BÀN ĐÓN TIẾP & TỰ ĐIỂM DANH THÀNH VIÊN 🎫', width / 2, bodyY + 28);
+
+        // Tiêu đề phụ
+        ctx.fillStyle = '#1E293B';
+        ctx.font = 'bold 28px Georgia, serif';
+        ctx.fillText('QUÉT MÃ QR ĐỂ NHẬN "TẤM VÉ VÀNG" & ĐIỂM DANH', width / 2, bodyY + 76);
+
+        ctx.fillStyle = '#64748B';
+        ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('Hệ thống tự động cập nhật sĩ số thời gian thực lên màn hình sân khấu', width / 2, bodyY + 104);
+
+        // 2. KHUNG CARD CHỨA MÃ QR TO ĐỘ NÉT CAO (HIGH-RES QR BOX)
+        const qrCardW = 500;
+        const qrCardH = 490;
+        const qrCardX = (width - qrCardW) / 2;
+        const qrCardY = bodyY + 125;
+
+        // Đổ bóng mềm
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(141, 91, 40, 0.15)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 8;
+        drawRoundRect(ctx, qrCardX, qrCardY, qrCardW, qrCardH, 24);
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+
+        // Viền vàng hoàng gia
+        ctx.strokeStyle = '#D4AF37';
+        ctx.lineWidth = 2.5;
+        drawRoundRect(ctx, qrCardX, qrCardY, qrCardW, qrCardH, 24);
+        ctx.stroke();
+
+        // 4 góc trang trí nhỏ
+        const drawMiniCorner = (cx: number, cy: number, rot: number) => {
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(rot);
+          ctx.strokeStyle = '#8D5B28';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(16, 0);
+          ctx.moveTo(0, 0);
+          ctx.lineTo(0, 16);
+          ctx.stroke();
+          ctx.restore();
+        };
+        drawMiniCorner(qrCardX + 16, qrCardY + 16, 0);
+        drawMiniCorner(qrCardX + qrCardW - 16, qrCardY + 16, Math.PI / 2);
+        drawMiniCorner(qrCardX + qrCardW - 16, qrCardY + qrCardH - 16, Math.PI);
+        drawMiniCorner(qrCardX + 16, qrCardY + qrCardH - 16, -Math.PI / 2);
+
+        // Tải & Vẽ hình ảnh QR Code
+        const checkinUrl = typeof window !== 'undefined'
+          ? (window.location.origin + window.location.pathname + '?mode=checkin')
+          : 'https://k8a1.vercel.app?mode=checkin';
+
+        const qrImgSize = 380;
+        const qrImgX = (width - qrImgSize) / 2;
+        const qrImgY = qrCardY + 30;
+
+        try {
+          const qrCodeApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=' + encodeURIComponent(checkinUrl) + '&color=0b1329&bgcolor=ffffff&margin=1';
+          const qrImg = new Image();
+          qrImg.crossOrigin = 'anonymous';
+          qrImg.src = qrCodeApiUrl;
+
+          await new Promise((resolve) => {
+            qrImg.onload = resolve;
+            qrImg.onerror = resolve;
+          });
+
+          if (qrImg.complete && qrImg.naturalWidth > 0) {
+            ctx.drawImage(qrImg, qrImgX, qrImgY, qrImgSize, qrImgSize);
+          } else {
+            // Fallback vẽ khung QR
+            ctx.fillStyle = '#0F172A';
+            ctx.fillRect(qrImgX, qrImgY, qrImgSize, qrImgSize);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.fillText('QUÉT MÃ QR TẠI ĐÂY', width / 2, qrImgY + qrImgSize / 2);
+          }
+        } catch (e) {
+          console.warn('QR draw error:', e);
+        }
+
+        // Dải link web dưới mã QR
+        const linkBadgeY = qrCardY + qrCardH - 48;
+        ctx.fillStyle = '#FAF5E8';
+        drawRoundRect(ctx, qrCardX + 24, linkBadgeY, qrCardW - 48, 34, 17);
+        ctx.fill();
+        ctx.strokeStyle = '#E2D3BE';
+        ctx.lineWidth = 1;
+        drawRoundRect(ctx, qrCardX + 24, linkBadgeY, qrCardW - 48, 34, 17);
+        ctx.stroke();
+
+        ctx.fillStyle = '#8D5B28';
+        ctx.font = 'bold 13px font-mono, monospace';
+        ctx.textAlign = 'center';
+        const displayUrl = checkinUrl.length > 52 ? checkinUrl.substring(0, 50) + '...' : checkinUrl;
+        ctx.fillText('🔗 ' + displayUrl, width / 2, linkBadgeY + 22);
+
+        // 3. KHỐI 3 BƯỚC ĐIỂM DANH DƯỚI 10 GIÂY
+        const stepCardY = qrCardY + qrCardH + 30;
+        const stepCardW = width - 180;
+        const stepCardH = 145;
+        const stepCardX = 90;
+
+        ctx.fillStyle = '#FAF5E8';
+        drawRoundRect(ctx, stepCardX, stepCardY, stepCardW, stepCardH, 20);
+        ctx.fill();
+        ctx.strokeStyle = '#D4AF37';
+        ctx.lineWidth = 1.5;
+        drawRoundRect(ctx, stepCardX, stepCardY, stepCardW, stepCardH, 20);
+        ctx.stroke();
+
+        ctx.fillStyle = '#784A1E';
+        ctx.font = 'bold 18px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('3 BƯỚC TỰ ĐIỂM DANH DÀNH CHO CẢ LỚP (DƯỚI 10 GIÂY)', width / 2, stepCardY + 34);
+
+        // 3 cột hướng dẫn
+        const colW = (stepCardW - 60) / 3;
+        const stepItems = [
+          { num: '1', title: 'Mở Camera / Zalo', desc: 'Dùng camera điện thoại hoặc nút quét QR trên Zalo' },
+          { num: '2', title: 'Chọn Tên Bạn', desc: 'Tìm tên hoặc biệt danh trong danh sách 65 bạn K8A1' },
+          { num: '3', title: 'Nhận Thẻ Vé Vàng', desc: 'Bấm Xác Nhận Có Mặt để lưu thẻ & xuất hiện trên màn LED' }
+        ];
+
+        stepItems.forEach((step, idx) => {
+          const sX = stepCardX + 30 + idx * colW + colW / 2;
+          const sY = stepCardY + 68;
+
+          // Vòng tròn số
+          ctx.fillStyle = '#8D5B28';
+          ctx.beginPath();
+          ctx.arc(sX, sY, 15, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(step.num, sX, sY + 5);
+
+          // Tiêu đề bước
+          ctx.fillStyle = '#0F172A';
+          ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.fillText(step.title, sX, sY + 30);
+
+          // Mô tả bước
+          ctx.fillStyle = '#475569';
+          ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          wrapAndCenterText(ctx, step.desc, sX, sY + 48, colW - 16, 17);
+        });
+
+        // 4. KHỐI THÔNG TIN LỊCH TRÌNH BUỔI SÁNG & TRƯỜNG THPT THÁI NGUYÊN
+        const infoCardY = stepCardY + stepCardH + 20;
+        const infoCardW = width - 180;
+        const infoCardH = 115;
+        const infoCardX = 90;
+
+        ctx.fillStyle = '#FFFFFF';
+        drawRoundRect(ctx, infoCardX, infoCardY, infoCardW, infoCardH, 18);
+        ctx.fill();
+        ctx.strokeStyle = '#E2D3BE';
+        ctx.lineWidth = 1.5;
+        drawRoundRect(ctx, infoCardX, infoCardY, infoCardW, infoCardH, 18);
+        ctx.stroke();
+
+        const halfW = infoCardW / 2;
+        // Cột trái: Trường
+        const leftCenterX = infoCardX + halfW / 2;
+        ctx.fillStyle = '#B45309';
+        ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏫 08:30 — TẬP TRUNG TẠI TRƯỜNG CŨ', leftCenterX, infoCardY + 36);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = '13.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('Trường THPT Thái Nguyên • Cổng chính & Sân trường', leftCenterX, infoCardY + 62);
+        ctx.fillStyle = '#64748B';
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('Chụp ảnh lưu niệm tập thể lớp & thăm thầy cô giáo', leftCenterX, infoCardY + 84);
+
+        // Vạch ngăn giữa
+        ctx.strokeStyle = '#E2D3BE';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(infoCardX + halfW, infoCardY + 20);
+        ctx.lineTo(infoCardX + halfW, infoCardY + infoCardH - 20);
+        ctx.stroke();
+
+        // Cột phải: Nhà hàng
+        const rightCenterX = infoCardX + halfW + halfW / 2;
+        ctx.fillStyle = '#15803D';
+        ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🍽️ 11:00 — TIỆC LIÊN HOAN & HỘI NGỘ', rightCenterX, infoCardY + 36);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = '13.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText(eventConfig?.eventLocation || 'Trung tâm Sự kiện The Prime • TP Thái Nguyên', rightCenterX, infoCardY + 62);
+        ctx.fillStyle = '#64748B';
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText('Màn hình LED chiếu Tấm Vé Vàng & Vinh danh thành viên', rightCenterX, infoCardY + 84);
       }
 
       // ==========================================
@@ -922,7 +1143,7 @@ export default function ZaloShareInfographicsModal({
       ctx.fill();
       ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 14px font-mono, monospace';
-      ctx.fillText('🌐 Bấm vào link web lớp để điểm danh', width / 2, footerY + 102);
+      ctx.fillText(selectedTemplate === 'standee_qr' ? '🎫 BAN LIÊN LẠC K8A1 HÂN HẠNH ĐÓN TIẾP' : '🌐 Bấm vào link web lớp để điểm danh', width / 2, footerY + 102);
 
       // Cập nhật ảnh xem trước
       try {
@@ -954,6 +1175,10 @@ export default function ZaloShareInfographicsModal({
       const pendingNames = confirmedPendingShirt.slice(0, 10).map(a => a.nickname ? `${a.fullName} (${a.nickname})` : a.fullName).join(', ');
       return `👕 THÔNG BÁO GẤP VỀ SIZE ÁO POLO ĐỒNG PHỤC K8A1 👕\n✂️ Ban Liên Lạc chuẩn bị chốt số lượng gửi sang xưởng may áo.\n⚠️ Hiện tại vẫn còn ${confirmedPendingShirt.length} bạn đã đăng ký nhưng CHƯA CHỌN SIZE ÁO: ${pendingNames}...\n👉 Các bạn có tên tranh thủ bấm vào link chọn cỡ áo (S, M, L, XL, 2XL, 3XL) gấp hôm nay nhé:\n🔗 ${webUrl}#diem-danh`;
     }
+    if (selectedTemplate === 'standee_qr') {
+      const checkinUrl = `${webUrl}?mode=checkin`;
+      return `🎫 MAKET BẢNG ĐÓN TIẾP & QR ĐIỂM DANH K8A1 (KHỔ A4 / STANDEE) 🎫\n📌 Mẫu thiết kế chuẩn khổ in A4 (hoặc in Standee đứng) đặt tại Bàn Đón Tiếp ở cổng trường THPT Thái Nguyên (sáng Chủ Nhật 27/09/2026).\n📱 Các bạn đến trường chỉ cần mở Camera hoặc Zalo quét mã QR để Tự Điểm Danh & Nhận Thẻ "Tấm Vé Vàng" kỷ niệm 20 năm!\n🔗 Link điểm danh trực tiếp: ${checkinUrl}\n✨ Kính mời cả lớp lưu về hoặc in màu kẹp mica để bàn đón tiếp!`;
+    }
     return `💰 BÁO CÁO MINH BẠCH TÀI CHÍNH HỘI NGỘ 20 NĂM K8A1 💰\n✅ Tổng quỹ đóng góp đã thu: ${totalFundCollected.toLocaleString('vi-VN')} đ (${paidAttendees.length} bạn đã hoàn thành).\n🙏 Ban Liên Lạc xin trân trọng cảm ơn sự chung tay và ủng hộ nhiệt tình của cả lớp!\n🔍 Toàn bộ sao kê và danh sách đóng quỹ được công khai minh bạch tại:\n🔗 ${webUrl}#tai-chinh`;
   };
 
@@ -963,7 +1188,7 @@ export default function ZaloShareInfographicsModal({
     if (!canvas) return;
     try {
       const link = document.createElement('a');
-      link.download = `K8A1-ThongKeZalo-${selectedTemplate}-${Date.now()}.png`;
+      link.download = `K8A1-${selectedTemplate === 'standee_qr' ? 'Maket-QR-Standee-A4' : 'ThongKeZalo-' + selectedTemplate}-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       setDownloadSuccess(true);
@@ -1092,7 +1317,7 @@ export default function ZaloShareInfographicsModal({
         <div className="p-3 sm:p-5 overflow-y-auto space-y-4">
           
           {/* THANH CHỌN 4 MẪU THẺ INFOGRAPHIC */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             <button
               type="button"
               onClick={() => setSelectedTemplate('milestone')}
@@ -1176,6 +1401,27 @@ export default function ZaloShareInfographicsModal({
                 </span>
               </div>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedTemplate('standee_qr')}
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                selectedTemplate === 'standee_qr'
+                  ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white border-amber-600 shadow-md scale-[1.01]'
+                  : 'bg-white hover:bg-amber-50/50 text-slate-700 border-slate-200'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-base">🎫</span>
+                {selectedTemplate === 'standee_qr' && <Check className="w-3.5 h-3.5 text-amber-200" />}
+              </div>
+              <div className="mt-1">
+                <span className="text-xs font-bold font-sans block leading-tight">5. Maket Standee A4</span>
+                <span className={`text-[10px] block mt-0.5 ${selectedTemplate === 'standee_qr' ? 'text-amber-100' : 'text-slate-500'}`}>
+                  QR Bàn đón tiếp
+                </span>
+              </div>
+            </button>
           </div>
 
           {/* KHUNG HIỂN THỊ PREVIEW VÀ CÔNG CỤ */}
@@ -1183,7 +1429,7 @@ export default function ZaloShareInfographicsModal({
             
             {/* CỘT TRÁI: PREVIEW THẺ ẢNH */}
             <div className="md:col-span-6 flex flex-col items-center">
-              <div className="relative w-full max-w-[340px] aspect-[4/5] rounded-xl overflow-hidden shadow-xl border-2 border-amber-300/80 bg-[#FFFDF9] flex items-center justify-center">
+              <div className={`relative w-full max-w-[340px] ${selectedTemplate === 'standee_qr' ? 'aspect-[1/1.414]' : 'aspect-[4/5]'} rounded-xl overflow-hidden shadow-xl border-2 border-amber-300/80 bg-[#FFFDF9] flex items-center justify-center`}>
                 {previewDataUrl ? (
                   <img
                     ref={previewImgRef}
@@ -1200,7 +1446,7 @@ export default function ZaloShareInfographicsModal({
 
                 {/* Watermark preview */}
                 <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white text-[9.5px] rounded font-mono pointer-events-none">
-                  1080 x 1350 HD
+                  {selectedTemplate === 'standee_qr' ? 'A4 Dọc • 1080 x 1528' : '1080 x 1350 HD'}
                 </div>
               </div>
 
@@ -1215,6 +1461,32 @@ export default function ZaloShareInfographicsModal({
             {/* CỘT PHẢI: BỘ NÚT HÀNH ĐỘNG & NỘI DUNG ZALO */}
             <div className="md:col-span-6 space-y-3">
               
+              {/* NÚT TIỆN ÍCH DÀNH RIÊNG CHO BAN LIÊN LẠC: MỞ QR TRỰC TIẾP TRÊN ĐIỆN THOẠI */}
+              {selectedTemplate === 'standee_qr' && onOpenMobileQr && (
+                <div className="p-3 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/40 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                      <Smartphone className="w-4 h-4 text-emerald-600" />
+                      <span>Đang ở sân trường chưa có máy in?</span>
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 font-semibold rounded-full">
+                      Chống lóa nắng
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    BLL có thể mở trực tiếp màn hình mã QR siêu to chống chói trên điện thoại để các bạn quét điểm danh ngay tại cổng trường.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onOpenMobileQr}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    <span>Mở QR Trên Điện Thoại Đón Tiếp</span>
+                  </button>
+                </div>
+              )}
+
               {/* KHỐI NÚT CHIA SẺ 1-CHẠM */}
               <div className="p-3.5 bg-white rounded-xl border border-amber-200/80 shadow-xs space-y-2.5">
                 <span className="text-xs font-bold text-amber-950 font-serif flex items-center gap-1.5">
@@ -1240,7 +1512,7 @@ export default function ZaloShareInfographicsModal({
                     className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Download className="w-4 h-4" />
-                    <span>{downloadSuccess ? '✓ Đã tải xong' : 'Tải ảnh về máy (PNG)'}</span>
+                    <span>{downloadSuccess ? '✓ Đã tải xong' : selectedTemplate === 'standee_qr' ? 'Tải Maket In A4 (PNG)' : 'Tải ảnh về máy (PNG)'}</span>
                   </button>
                 </div>
 
