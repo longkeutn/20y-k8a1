@@ -288,7 +288,6 @@ export default function ConfirmedAttendees({
             body: JSON.stringify({
               action: 'upload_polo_sample',
               pin,
-              isBllMember: Boolean(isBLLOrAdmin),
               fileData: base64Data
             })
           });

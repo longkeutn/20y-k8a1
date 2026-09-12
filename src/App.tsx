@@ -240,10 +240,14 @@ export default function App() {
   };
 
   // User Role (RBAC): 'guest' | 'bll' | 'treasurer' | 'admin'
+  // Yêu cầu bảo mật: Phải có admin_pin_token đã xác thực trong phiên sessionStorage mới công nhận quyền
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>(() => {
     try {
       const saved = sessionStorage.getItem('user_role');
-      if (saved === 'admin' || saved === 'treasurer' || saved === 'bll') return saved as UserRole;
+      const pinToken = sessionStorage.getItem('admin_pin_token');
+      if ((saved === 'admin' || saved === 'treasurer' || saved === 'bll') && pinToken) {
+        return saved as UserRole;
+      }
       return 'guest';
     } catch {
       return 'guest';
@@ -564,8 +568,8 @@ export default function App() {
     }
   }, [classRoster]);
 
-  // Xác thực quyền Ban Liên Lạc / Admin (BLL / Thủ quỹ / Admin hoặc Thành viên BLL chính thức)
-  const isBLLOrAdmin = currentUserRole === 'admin' || currentUserRole === 'bll' || currentUserRole === 'treasurer' || isOfficialBLLMember(activeMember);
+  // Xác thực quyền Ban Liên Lạc / Admin (Chỉ BLL / Thủ quỹ / Admin đã đăng nhập bằng mã PIN hợp lệ trong phiên này)
+  const isBLLOrAdmin = currentUserRole === 'admin' || currentUserRole === 'bll' || currentUserRole === 'treasurer';
 
   // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
@@ -2574,7 +2578,7 @@ export default function App() {
           isOpen={isAdminHubOpen}
           onClose={() => setIsAdminHubOpen(false)}
           currentUserRole={currentUserRole}
-          activeMember={isOfficialBLLMember(activeMember) ? activeMember : null}
+          activeMember={activeMember}
           initialTab={adminHubInitialTab}
           initialMediaSubTab={adminHubInitialMediaSubTab}
           onLoginSuccess={(role) => {
