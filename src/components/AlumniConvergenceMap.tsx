@@ -62,7 +62,7 @@ export const VENUE_1_FALLBACK = {
   time: '08:30 — 11:00 (Sáng)',
   activity: 'Đón tiếp & nhận áo đồng phục polo K8A1 • Thẻ học sinh tri kỷ • Thăm lớp học xưa & chụp ảnh kỷ niệm sân trường • Tri ân Thầy Cô giáo cũ',
   directionsUrl: 'https://www.google.com/maps/search/?api=1&query=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn',
-  embedMapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.2798642279267!2d105.8285514!3d21.5740443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135272a24921915%3A0xe543df5e9e03fa54!2zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbg!5e0!3m2!1svi!2svn!4v1710000000000!5m2!1svi!2svn'
+  embedMapUrl: 'https://www.google.com/maps/embed?pb=!1m4!2m1!1zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbiwgMTI3IEzGsMahbmcgVGjhur8gVmluaCwgVGjDoWkgTmd1ecOqbg!5e0!6i17!3m1!1svi!5m1!1svi'
 };
 
 export const VENUE_2_FALLBACK = {
@@ -132,6 +132,21 @@ export function parseVenueMedia(url: string): {
   return { type: 'image', embedUrl: cleanUrl, rawUrl: cleanUrl, canonicalUrl: cleanUrl, label: 'Hình ảnh' };
 }
 
+/**
+ * Chuyển chuỗi tiếng Việt UTF-8 sang Base64 chuẩn cho protobuf Google Maps
+ */
+export function utf8ToBase64(str: string): string {
+  try {
+    return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16)))).replace(/=+$/, '');
+  } catch (e) {
+    try {
+      return window.btoa(unescape(encodeURIComponent(str))).replace(/=+$/, '');
+    } catch {
+      return '';
+    }
+  }
+}
+
 // ============================================================================
 // COMPONENT: ALUMNI CONVERGENCE MAP (TINH TẾ, SANG TRỌNG, KHÔNG LỖI LAYOUT)
 // ============================================================================
@@ -169,22 +184,58 @@ export default function AlumniConvergenceMap({
   const stage1ShortAddress = cleanVietnameseText(eventConfig?.shortAddress) || VENUE_1_FALLBACK.shortAddress;
   const stage1Time = cleanVietnameseText(eventConfig?.venueTime) || VENUE_1_FALLBACK.time;
   const stage1Activity = cleanVietnameseText(eventConfig?.venueActivity) || VENUE_1_FALLBACK.activity;
-  const stage1DirectionsUrl = eventConfig?.mapDirectUrl || VENUE_1_FALLBACK.directionsUrl;
+  const stage1DirectionsUrl = useMemo(() => {
+    if (eventConfig?.mapDirectUrl && eventConfig.mapDirectUrl.trim()) {
+      return eventConfig.mapDirectUrl.trim();
+    }
+    const query = [stage1Name, stage1Address].filter(Boolean).join(', ') || stage1Address || stage1Name;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }, [eventConfig?.mapDirectUrl, stage1Name, stage1Address]);
+
   const stage1RawEmbedUrl = eventConfig?.mapEmbedUrl || VENUE_1_FALLBACK.embedMapUrl;
 
-  // Dynamic values cho Chặng 2 (Nhà Hàng Prime Thái Nguyên)
+  // Dynamic values cho Chặng 2 (Địa điểm thứ 2 tùy chọn cấu hình linh hoạt từ Google Sheet)
   const stage2Name = cleanVietnameseText(eventConfig?.venue2Name) || VENUE_2_FALLBACK.name;
   const stage2Subtitle = cleanVietnameseText(eventConfig?.venue2Subtitle) || VENUE_2_FALLBACK.subtitle;
   const stage2Address = cleanVietnameseText(eventConfig?.venue2Address) || VENUE_2_FALLBACK.address;
   const stage2ShortAddress = cleanVietnameseText(eventConfig?.venue2ShortAddress) || VENUE_2_FALLBACK.shortAddress;
   const stage2Time = cleanVietnameseText(eventConfig?.venue2Time) || VENUE_2_FALLBACK.time;
   const stage2Activity = cleanVietnameseText(eventConfig?.venue2Activity) || VENUE_2_FALLBACK.activity;
-  const stage2DirectionsUrl = eventConfig?.venue2MapDirectUrl || VENUE_2_FALLBACK.directionsUrl;
-  const stage2RawEmbedUrl = eventConfig?.venue2MapEmbedUrl || VENUE_2_FALLBACK.embedMapUrl;
 
-  // Dynamic values lộ trình di chuyển
+  // Link chỉ đường Chặng 2: Ưu tiên cấu hình Sheet; nếu không có hoặc link mẫu Prime không khớp với tên địa điểm mới thì tự động tạo link tìm kiếm Google Maps động
+  const stage2DirectionsUrl = useMemo(() => {
+    const rawDirect = eventConfig?.venue2MapDirectUrl?.trim();
+    const isPrimeVenue = stage2Name.toLowerCase().includes('prime');
+    if (rawDirect && (isPrimeVenue || (!rawDirect.includes('a3utiYosZqGHKDjYA') && !rawDirect.includes('Prime')))) {
+      return rawDirect;
+    }
+    const query = [stage2Name, stage2Address].filter(Boolean).join(', ') || stage2Address || stage2Name;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }, [eventConfig?.venue2MapDirectUrl, stage2Name, stage2Address]);
+
+  // Link embed Chặng 2: Chỉ dùng link mẫu Prime nếu tên địa điểm thực sự là Prime
+  const stage2RawEmbedUrl = useMemo(() => {
+    const rawEmbed = eventConfig?.venue2MapEmbedUrl?.trim();
+    const isPrimeVenue = stage2Name.toLowerCase().includes('prime');
+    if (rawEmbed && (isPrimeVenue || (!rawEmbed.includes('Prime') && !rawEmbed.includes('0x6de9f091b88c49ab')))) {
+      return rawEmbed;
+    }
+    return isPrimeVenue ? (rawEmbed || VENUE_2_FALLBACK.embedMapUrl) : '';
+  }, [eventConfig?.venue2MapEmbedUrl, stage2Name]);
+
+  // Lộ trình di chuyển giữa 2 điểm (tự động tạo link dẫn đường Google Maps từ Chặng 1 sang Chặng 2)
   const routeDistanceText = cleanVietnameseText(eventConfig?.routeDistanceText) || ROUTE_FALLBACK.distanceText;
-  const routeDirectUrl = eventConfig?.routeDirectUrl || ROUTE_FALLBACK.routeDirectUrl;
+  const routeDirectUrl = useMemo(() => {
+    const rawRoute = eventConfig?.routeDirectUrl?.trim();
+    const isPrimeVenue = stage2Name.toLowerCase().includes('prime');
+    if (rawRoute && (isPrimeVenue || !rawRoute.includes('Prime'))) {
+      return rawRoute;
+    }
+    const origin = [stage1Name, stage1Address].filter(Boolean).join(', ') || stage1Address || stage1Name;
+    const destination = [stage2Name, stage2Address].filter(Boolean).join(', ') || stage2Address || stage2Name;
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+  }, [eventConfig?.routeDirectUrl, stage1Name, stage1Address, stage2Name, stage2Address]);
+
   const eventDateText = cleanVietnameseText(eventConfig?.eventDateText) || "Chủ Nhật, 27/09/2026 (08:30 — 15:30)";
 
   // Thông tin chặng đang chọn hiển thị trên bản đồ
@@ -193,27 +244,55 @@ export default function AlumniConvergenceMap({
   const currentStageDirectionsUrl = activeStage === 1 ? stage1DirectionsUrl : stage2DirectionsUrl;
   const currentStageRawEmbedUrl = activeStage === 1 ? stage1RawEmbedUrl : stage2RawEmbedUrl;
 
-  // Tinh chỉnh URL Google Maps theo chế độ Vệ tinh và Mức Zoom
+  // Tinh chỉnh URL Google Maps embed theo chế độ Vệ tinh, Mức Zoom và Tọa độ chính xác
   const activeMapUrl = useMemo(() => {
-    let url = currentStageRawEmbedUrl;
-    if (!url) return '';
+    const isStage1 = activeStage === 1;
+    const currentName = isStage1 ? stage1Name : stage2Name;
+    const currentAddress = isStage1 ? stage1Address : stage2Address;
+    let url = isStage1 ? stage1RawEmbedUrl : stage2RawEmbedUrl;
 
+    // Phát hiện và loại bỏ URL embed cũ bị sai vị trí Trường THPT Thái Nguyên (nhầm sang CĐ 478 Thống Nhất)
+    if (isStage1 && url && (url.includes('21.5740443') || url.includes('105.8285514') || url.includes('0xe543df5e9e03fa54'))) {
+      url = '';
+    }
+
+    // Nếu là Chặng 2 và địa điểm đã đổi sang nơi khác không phải Prime mà URL vẫn mang mã Prime
+    if (!isStage1 && url && !stage2Name.toLowerCase().includes('prime') && (url.includes('Prime') || url.includes('0x6de9f091b88c49ab'))) {
+      url = '';
+    }
+
+    // Nếu không có URL embed riêng, tự động tạo Google Maps embed chuẩn theo Tên & Địa chỉ động
+    if (!url || !url.trim()) {
+      const searchQuery = [currentName, currentAddress].filter(Boolean).join(', ') || currentAddress || currentName;
+      const b64 = utf8ToBase64(searchQuery);
+      const satVal = mapViewMode === 'satellite' ? 1 : 0;
+      const zoomVal = mapZoomLevel === 'close' ? 18 : 16;
+      return `https://www.google.com/maps/embed?pb=!1m4!2m1!1z${b64}!5e${satVal}!6i${zoomVal}!3m1!1svi!5m1!1svi`;
+    }
+
+    // Bóc tách nếu là thẻ iframe dán nhầm
+    const iframeMatch = url.match(/src=["']([^"']+)["']/i);
+    if (iframeMatch && iframeMatch[1]) {
+      url = iframeMatch[1];
+    }
+
+    // Xử lý protobuf embed Google Maps
     if (url.includes('!5e')) {
       url = mapViewMode === 'satellite'
         ? url.replace(/!5e[0-9]/, '!5e1')
         : url.replace(/!5e[0-9]/, '!5e0');
 
-      if (mapZoomLevel === 'close') {
-        url = url.replace(/!1d[0-9.]+/g, '!1d600');
-      } else {
-        url = url.replace(/!1d[0-9.]+/g, '!1d3710');
+      if (url.includes('!6i')) {
+        const zNum = mapZoomLevel === 'close' ? 18 : 16;
+        url = url.replace(/!6i[0-9]+/g, `!6i${zNum}`);
       }
       return url;
     }
 
+    // Xử lý query embed thông thường
     if (url.includes('google.com/maps')) {
-      const tVal = mapViewMode === 'satellite' ? 'h' : 'm';
-      const zVal = mapZoomLevel === 'close' ? '18' : '15';
+      const tVal = mapViewMode === 'satellite' ? 'k' : 'm';
+      const zVal = mapZoomLevel === 'close' ? '18' : '16';
 
       if (/[?&]t=[^&]*/.test(url)) {
         url = url.replace(/([?&]t=)[^&]*/, '$1' + tVal);
@@ -230,7 +309,7 @@ export default function AlumniConvergenceMap({
     }
 
     return url;
-  }, [currentStageRawEmbedUrl, mapViewMode, mapZoomLevel]);
+  }, [activeStage, stage1Name, stage1Address, stage1RawEmbedUrl, stage2Name, stage2Address, stage2RawEmbedUrl, mapViewMode, mapZoomLevel]);
 
   // Sao chép địa chỉ
   const handleCopy = (stage: 1 | 2, text: string) => {
@@ -283,7 +362,7 @@ export default function AlumniConvergenceMap({
 
           <p className="text-xs text-slate-600 font-sans leading-relaxed">
             {isTwoVenues
-              ? 'Chương trình diễn ra liên hoàn: Sáng đón tiếp & thăm trường xưa (THPT Thái Nguyên), trưa di chuyển sang nhà hàng (Prime) khai tiệc liên hoan.'
+              ? `Chương trình diễn ra liên hoàn: Sáng đón tiếp & thăm trường xưa (${stage1ShortAddress || stage1Name}), trưa di chuyển sang ${stage2ShortAddress || stage2Name} khai tiệc liên hoan.`
               : stage1Subtitle || stage1Address}
           </p>
         </div>
@@ -504,7 +583,7 @@ export default function AlumniConvergenceMap({
                   }`}
                 >
                   <School className="w-3.5 h-3.5" />
-                  <span>Chặng 1: Trường THPT Thái Nguyên</span>
+                  <span>Chặng 1: {stage1ShortAddress || stage1Name}</span>
                 </button>
                 <button
                   type="button"
@@ -516,7 +595,7 @@ export default function AlumniConvergenceMap({
                   }`}
                 >
                   <UtensilsCrossed className="w-3.5 h-3.5" />
-                  <span>Chặng 2: Nhà Hàng Prime</span>
+                  <span>Chặng 2: {stage2ShortAddress || stage2Name}</span>
                 </button>
               </div>
             ) : (
@@ -615,7 +694,7 @@ export default function AlumniConvergenceMap({
                 className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 py-2 px-3.5 bg-[#8D5B28] hover:bg-[#784A1E] text-white rounded-xl font-sans font-semibold shadow-2xs transition-all cursor-pointer"
               >
                 <Navigation className="w-3.5 h-3.5" />
-                <span>Chỉ Đường ({activeStage === 1 ? 'Trường Cũ' : 'Nhà Hàng'})</span>
+                <span>Chỉ Đường ({activeStage === 1 ? (stage1ShortAddress || 'Chặng 1') : (stage2ShortAddress || 'Chặng 2')})</span>
               </a>
 
               <button

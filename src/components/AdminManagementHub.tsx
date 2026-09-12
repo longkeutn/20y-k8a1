@@ -7006,7 +7006,7 @@ export default function AdminManagementHub({
                               shortAddress: "127 Lương Thế Vinh, TP. Thái Nguyên",
                               venueTime: "08:30 — 11:00 (Sáng)",
                               venueActivity: "Đón tiếp nhận áo polo • Thẻ học sinh tri kỷ • Thăm lớp học xưa • Chụp ảnh lưu niệm sân trường • Tri ân Thầy Cô",
-                              mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3710.2798642279267!2d105.8285514!3d21.5740443!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135272a24921915%3A0xe543df5e9e03fa54!2zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbg!5e0!3m2!1svi!2svn!4v1710000000000!5m2!1svi!2svn",
+                              mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m4!2m1!1zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbiwgMTI3IEzGsMahbmcgVGjhur8gVmluaCwgVGjDoWkgTmd1ecOqbg!5e0!6i17!3m1!1svi!5m1!1svi",
                               mapDirectUrl: "https://www.google.com/maps/search/?api=1&query=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn",
                               venue2Name: "Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên",
                               venue2Subtitle: "Chặng 2: Khai tiệc liên hoan, nâng ly chúc mừng 20 năm, giao lưu văn nghệ & trao kỷ vật",
@@ -7062,7 +7062,7 @@ export default function AdminManagementHub({
                           <span>Bật chế độ Hành Trình Hội Ngộ 2 Chặng (Trường Cũ + Nhà Hàng Liên Hoan)</span>
                         </label>
                         <p className="text-[11px] text-slate-500 pl-6">
-                          Hiển thị lộ trình liên hoàn: Sáng đón tiếp & thăm trường cũ (THPT Thái Nguyên), trưa di chuyển sang nhà hàng (Prime) khai tiệc.
+                          Hiển thị lộ trình liên hoàn: Sáng đón tiếp & thăm trường cũ ({eventConfigForm.shortAddress || eventConfigForm.venueName || 'THPT Thái Nguyên'}), trưa di chuyển sang {eventConfigForm.venue2ShortAddress || eventConfigForm.venue2Name || 'địa điểm thứ 2'} khai tiệc.
                         </p>
                       </div>
 
@@ -7435,7 +7435,7 @@ export default function AdminManagementHub({
                     {Boolean(eventConfigForm.enableTwoVenues) && venueSettingsTab === 'route' && (
                       <div className="space-y-4 pt-1">
                         <div className="p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-800 flex items-center justify-between">
-                          <span className="font-semibold">🚗 Hướng dẫn di chuyển từ Trường THPT Thái Nguyên sang Nhà Hàng Prime</span>
+                          <span className="font-semibold">🚗 Hướng dẫn di chuyển từ {eventConfigForm.shortAddress || eventConfigForm.venueName || 'Trường THPT Thái Nguyên'} sang {eventConfigForm.venue2ShortAddress || eventConfigForm.venue2Name || 'Chặng 2'}</span>
                           <span className="font-mono text-[11px] text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
                             {eventConfigForm.routeDistanceText || '~1.5km (5 - 10 phút)'}
                           </span>

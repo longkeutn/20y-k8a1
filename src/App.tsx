@@ -140,7 +140,13 @@ export default function App() {
     shortAddress: String(cfg?.shortAddress || DEFAULT_EVENT_CONFIG.shortAddress),
     venueTime: cfg?.venueTime !== undefined ? String(cfg.venueTime) : DEFAULT_EVENT_CONFIG.venueTime,
     venueActivity: cfg?.venueActivity !== undefined ? String(cfg.venueActivity) : DEFAULT_EVENT_CONFIG.venueActivity,
-    mapEmbedUrl: String(cfg?.mapEmbedUrl || DEFAULT_EVENT_CONFIG.mapEmbedUrl),
+    mapEmbedUrl: (() => {
+      const raw = String(cfg?.mapEmbedUrl || '');
+      if (!raw || raw.includes('21.5740443') || raw.includes('105.8285514') || raw.includes('0xe543df5e9e03fa54')) {
+        return DEFAULT_EVENT_CONFIG.mapEmbedUrl;
+      }
+      return raw;
+    })(),
     mapDirectUrl: String(cfg?.mapDirectUrl || DEFAULT_EVENT_CONFIG.mapDirectUrl),
     enableTwoVenues: parseBooleanSafe(cfg?.enableTwoVenues, DEFAULT_EVENT_CONFIG.enableTwoVenues),
     venue2Name: cfg?.venue2Name !== undefined ? String(cfg.venue2Name) : DEFAULT_EVENT_CONFIG.venue2Name,
@@ -149,8 +155,22 @@ export default function App() {
     venue2ShortAddress: cfg?.venue2ShortAddress !== undefined ? String(cfg.venue2ShortAddress) : DEFAULT_EVENT_CONFIG.venue2ShortAddress,
     venue2Time: cfg?.venue2Time !== undefined ? String(cfg.venue2Time) : DEFAULT_EVENT_CONFIG.venue2Time,
     venue2Activity: cfg?.venue2Activity !== undefined ? String(cfg.venue2Activity) : DEFAULT_EVENT_CONFIG.venue2Activity,
-    venue2MapEmbedUrl: cfg?.venue2MapEmbedUrl !== undefined ? String(cfg.venue2MapEmbedUrl) : DEFAULT_EVENT_CONFIG.venue2MapEmbedUrl,
-    venue2MapDirectUrl: cfg?.venue2MapDirectUrl !== undefined ? String(cfg.venue2MapDirectUrl) : DEFAULT_EVENT_CONFIG.venue2MapDirectUrl,
+    venue2MapEmbedUrl: (() => {
+      const v2Name = String(cfg?.venue2Name || '').toLowerCase();
+      const rawV2Embed = cfg?.venue2MapEmbedUrl !== undefined ? String(cfg.venue2MapEmbedUrl) : '';
+      if (v2Name && !v2Name.includes('prime') && (rawV2Embed.includes('Prime') || rawV2Embed.includes('0x6de9f091b88c49ab'))) {
+        return '';
+      }
+      return rawV2Embed || (v2Name && !v2Name.includes('prime') ? '' : DEFAULT_EVENT_CONFIG.venue2MapEmbedUrl);
+    })(),
+    venue2MapDirectUrl: (() => {
+      const v2Name = String(cfg?.venue2Name || '').toLowerCase();
+      const rawV2Direct = cfg?.venue2MapDirectUrl !== undefined ? String(cfg.venue2MapDirectUrl) : '';
+      if (v2Name && !v2Name.includes('prime') && (rawV2Direct.includes('a3utiYosZqGHKDjYA') || rawV2Direct.includes('Prime'))) {
+        return '';
+      }
+      return rawV2Direct || (v2Name && !v2Name.includes('prime') ? '' : DEFAULT_EVENT_CONFIG.venue2MapDirectUrl);
+    })(),
     routeDistanceText: cfg?.routeDistanceText !== undefined ? String(cfg.routeDistanceText) : DEFAULT_EVENT_CONFIG.routeDistanceText,
     routeDirectUrl: cfg?.routeDirectUrl !== undefined ? String(cfg.routeDirectUrl) : DEFAULT_EVENT_CONFIG.routeDirectUrl,
     eventDateText: String(cfg?.eventDateText || DEFAULT_EVENT_CONFIG.eventDateText),
@@ -2056,7 +2076,7 @@ export default function App() {
                 <p className="font-serif font-bold text-white text-xs sm:text-sm">
                   {eventConfig.enableTwoVenues ? (
                     <span>
-                      Chặng 1: {eventConfig.shortAddress || eventConfig.venueName} <span className="text-amber-300 mx-1">➔</span> Chặng 2: {eventConfig.venue2ShortAddress || eventConfig.venue2Name || 'Prime'}
+                      Chặng 1: {eventConfig.shortAddress || eventConfig.venueName} <span className="text-amber-300 mx-1">➔</span> Chặng 2: {eventConfig.venue2ShortAddress || eventConfig.venue2Name || 'Chặng 2'}
                     </span>
                   ) : (
                     <span>{eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}</span>
