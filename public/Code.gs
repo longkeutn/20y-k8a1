@@ -845,6 +845,10 @@ function doPost(e) {
       return handleResponse(uploadPoloSampleToDrive(postData));
     }
 
+    if (action === 'checkin') {
+      return handleResponse(handleCheckIn(postData));
+    }
+
     if (action === 'update_fund' || action === 'update_rsvp') {
       return handleResponse(updateRSVP(postData));
     }
@@ -1418,6 +1422,46 @@ function updateRSVP(data) {
   }
 
   return { status: updated ? 'success' : 'not_found', message: updated ? 'Cập nhật thành công' : 'Không tìm thấy dòng tương ứng' };
+}
+
+/**
+ * Tự điểm danh tham dự sự kiện (Self Check-in)
+ * Cập nhật trạng thái 'ĐÃ ĐẾN' và thời gian có mặt. Nếu chưa có trong sheet điểm danh, tự động tạo mới.
+ */
+function handleCheckIn(data) {
+  if (!data || !data.fullName) {
+    return { status: 'error', message: 'Thiếu họ và tên người điểm danh' };
+  }
+
+  data.checkedIn = true;
+  if (!data.checkedInAt) {
+    var now = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : n; };
+    data.checkedInAt = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  }
+
+  // 1. Thử cập nhật dòng RSVP đã có
+  var updateResult = updateRSVP(data);
+  if (updateResult && updateResult.status === 'success') {
+    return {
+      status: 'success',
+      message: 'Điểm danh thành công! Chào mừng bạn đã về lại trường xưa.',
+      checkedIn: true,
+      checkedInAt: data.checkedInAt,
+      fullName: data.fullName
+    };
+  }
+
+  // 2. Nếu chưa từng điền form RSVP, tự động tạo mới với trạng thái xác nhận tham dự
+  data.status = 'yes';
+  var saveResult = saveRSVP(data);
+  return {
+    status: saveResult.status || 'success',
+    message: 'Điểm danh và ghi nhận tham dự thành công!',
+    checkedIn: true,
+    checkedInAt: data.checkedInAt,
+    fullName: data.fullName
+  };
 }
 
 /**

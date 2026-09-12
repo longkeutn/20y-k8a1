@@ -3,7 +3,7 @@ import {
   X, Maximize2, Minimize2, Play, Pause, SkipForward, SkipBack, 
   Image as ImageIcon, Sparkles, Music, Volume2, VolumeX, Settings, 
   ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff,
-  WifiOff, Palette, Frame
+  WifiOff, Palette, Frame, QrCode, CheckCircle2
 } from 'lucide-react';
 import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings } from '../types';
 import { getNostalgicPhotoCaption } from '../data';
@@ -153,6 +153,8 @@ interface StagePresentationHubProps {
   eventSubtitle?: string;
   onUpdateSettings?: (settings: StageSettings) => void;
   isAdmin?: boolean;
+  totalAttendees?: number;
+  checkedInAttendees?: number;
 }
 
 export default function StagePresentationHub({
@@ -165,13 +167,16 @@ export default function StagePresentationHub({
   eventTitle = "KỶ NIỆM 20 NĂM NGÀY TRỞ VỀ — K8A1",
   eventSubtitle = "Trường THPT Thái Nguyên (2003 — 2006)",
   onUpdateSettings,
-  isAdmin = false
+  isAdmin = false,
+  totalAttendees,
+  checkedInAttendees
 }: StagePresentationHubProps) {
   // Cài đặt hiện tại
   const [currentScene, setCurrentScene] = useState<StagePresentationScene>(stageSettings.defaultScene || 'backdrop');
   const [slideshowSpeed, setSlideshowSpeed] = useState<number>(stageSettings.slideshowSpeed || 6000);
   const [enableSparkles, setEnableSparkles] = useState<boolean>(stageSettings.enableSparkles !== false);
   const [showCaption, setShowCaption] = useState<boolean>(stageSettings.showCaption !== false);
+  const [showCheckinQr, setShowCheckinQr] = useState<boolean>(false);
 
   // Hiệu ứng hoài niệm & Khung ảnh kỷ niệm
   const [photoFrameStyle, setPhotoFrameStyle] = useState<'gold' | 'polaroid' | 'none'>(stageSettings.photoFrameStyle || 'gold');
@@ -395,6 +400,9 @@ export default function StagePresentationHub({
           break;
         case 'm':
           setShowMusicModal(prev => !prev);
+          break;
+        case 'q':
+          setShowCheckinQr(prev => !prev);
           break;
         case ' ':
           e.preventDefault();
@@ -712,6 +720,88 @@ export default function StagePresentationHub({
       )}
 
       {/* ========================================================================= */}
+      {/* 4. FLOATING CHECK-IN QR CODE OVERLAY (BẬT / TẮT BẰNG NÚT HOẶC PHÍM Q)     */}
+      {/* ========================================================================= */}
+      {showCheckinQr && (
+        <div className="absolute top-20 right-6 md:right-10 z-40 max-w-sm w-full bg-slate-950/92 backdrop-blur-xl border-2 border-amber-400/90 rounded-3xl p-5 shadow-[0_0_50px_rgba(0,0,0,0.9),0_0_30px_rgba(245,158,11,0.35)] animate-fadeIn text-white pointer-events-auto">
+          {/* Ornate Corner Ornaments */}
+          <div className="absolute top-2 left-2 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-400/80" />
+          <div className="absolute top-2 right-2 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-400/80" />
+          <div className="absolute bottom-2 left-2 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-400/80" />
+          <div className="absolute bottom-2 right-2 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-400/80" />
+
+          {/* Close button */}
+          <button
+            onClick={() => setShowCheckinQr(false)}
+            className="absolute top-3 right-3 p-1.5 rounded-full bg-white/10 hover:bg-rose-900/80 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title="Đóng bảng QR (Phím Q)"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          {/* Header */}
+          <div className="text-center space-y-1 mb-3.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-sans font-black uppercase tracking-widest">
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              <span>Quét Mã Tự Điểm Danh</span>
+            </div>
+            <h3 className="text-base md:text-lg font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 uppercase tracking-wide">
+              Nhận Vé Vàng Hội Ngộ
+            </h3>
+            <p className="text-[11px] text-amber-200/80 font-serif italic">
+              Dùng Camera điện thoại hoặc Zalo để quét mã
+            </p>
+          </div>
+
+          {/* QR Code Container */}
+          <div className="bg-white p-3 rounded-2xl border-2 border-amber-400/60 flex flex-col items-center justify-center shadow-inner mx-auto max-w-[210px]">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+                typeof window !== 'undefined'
+                  ? `${window.location.origin}${window.location.pathname}?mode=checkin`
+                  : ''
+              )}&color=0b1329&bgcolor=ffffff&margin=1`}
+              alt="QR Code Điểm Danh K8A1"
+              className="w-44 h-44 object-contain"
+            />
+            <span className="text-[9px] font-mono font-bold text-slate-800 mt-1 uppercase tracking-wider">
+              Scan to Self Check-in
+            </span>
+          </div>
+
+          {/* Live attendance count */}
+          {typeof totalAttendees === 'number' && (
+            <div className="mt-3.5 pt-3 border-t border-slate-800 text-center space-y-1">
+              <div className="flex items-center justify-between text-xs px-2 text-slate-300">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Đã có mặt:</span>
+                </span>
+                <span className="font-bold text-amber-300 font-mono text-sm">
+                  {checkedInAttendees || 0} / {totalAttendees} bạn
+                </span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-amber-500 to-emerald-400 h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${totalAttendees > 0 ? Math.min(100, Math.round(((checkedInAttendees || 0) / totalAttendees) * 100)) : 0}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Hint */}
+          <div className="mt-2.5 text-center">
+            <span className="text-[10px] text-slate-400 font-sans">
+              Bấm phím <kbd className="px-1 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-[9px]">Q</kbd> trên bàn phím để ẩn/hiện
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* TOP STATUS BAR (Huy hiệu sự kiện & đồng hồ trực tiếp)                     */}
       {/* ========================================================================= */}
       <div 
@@ -883,6 +973,22 @@ export default function StagePresentationHub({
 
           <div className="h-6 w-px bg-slate-700" />
 
+          {/* Bật / Tắt QR Tự Điểm Danh trên sân khấu */}
+          <button
+            onClick={() => setShowCheckinQr(prev => !prev)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              showCheckinQr
+                ? 'bg-amber-400 text-slate-950 shadow-md font-bold'
+                : 'text-amber-300 hover:text-white bg-slate-800/80 hover:bg-slate-700'
+            }`}
+            title="Bật / Tắt Mã QR Tự Điểm Danh (Phím Q)"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">QR Điểm Danh</span>
+          </button>
+
+          <div className="h-6 w-px bg-slate-700" />
+
           {/* Cài đặt tốc độ & hiệu ứng */}
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -899,6 +1005,7 @@ export default function StagePresentationHub({
           <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">F</kbd> Toàn màn hình
           <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">B</kbd> Backdrop
           <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">P</kbd> Kỷ niệm
+          <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">Q</kbd> QR Điểm danh
           <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono">M</kbd> Playlist
         </div>
       </div>

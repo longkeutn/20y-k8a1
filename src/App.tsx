@@ -47,6 +47,7 @@ import ActivityToastManager from './components/ActivityToastManager';
 import QuickShare from './components/QuickShare';
 import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
+import SelfCheckinPage from './components/SelfCheckinPage';
 import AdminManagementHub from './components/AdminManagementHub';
 import StagePresentationHub from './components/StagePresentationHub';
 import PinAuthModal from './components/PinAuthModal';
@@ -643,6 +644,24 @@ export default function App() {
     return (rsvpList || []).filter(r => r.status === 'yes').length;
   }, [rsvpList]);
 
+  // Chế độ trang Tự Điểm Danh riêng biệt khi quét mã QR (?mode=checkin hoặc #checkin)
+  const [isCheckinMode, setIsCheckinMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.search.includes('mode=checkin') || window.location.hash === '#checkin';
+  });
+
+  useEffect(() => {
+    const handleUrlChange = () => {
+      setIsCheckinMode(window.location.search.includes('mode=checkin') || window.location.hash === '#checkin');
+    };
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, []);
+
   // Wishes list state
   const [wishesList, setWishesList] = useState<WishData[]>(() => {
     try {
@@ -975,6 +994,126 @@ export default function App() {
       timeAgo: 'Vừa xong',
       isNew: true
     });
+  };
+
+  // Xử lý tự điểm danh (Self Check-in) khi quét mã QR
+  const handleMemberSelfCheckIn = async (data: {
+    fullName: string;
+    phone?: string;
+    memberId?: string;
+    className?: string;
+    shirtSize?: string;
+    avatarUrl?: string;
+    nickname?: string;
+  }): Promise<{ success: boolean; message?: string; checkedInAt?: string }> => {
+    try {
+      const now = new Date();
+      const pad = (n: number) => (n < 10 ? '0' + n : n);
+      const timestamp = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      // 1. Cập nhật local state rsvpList
+      setRsvpList((prev) => {
+        const normName = normalizeNameForMatch(data.fullName);
+        const existingIndex = prev.findIndex(
+          (r) =>
+            (data.memberId && r.memberId === data.memberId) ||
+            normalizeNameForMatch(r.fullName) === normName
+        );
+
+        let updated: RsvpData[];
+        if (existingIndex >= 0) {
+          updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            status: 'yes',
+            checkedIn: true,
+            checkedInAt: timestamp,
+            shirtSize: data.shirtSize || updated[existingIndex].shirtSize,
+            avatarUrl: data.avatarUrl || updated[existingIndex].avatarUrl,
+            phone: data.phone || updated[existingIndex].phone,
+            memberId: data.memberId || updated[existingIndex].memberId
+          };
+        } else {
+          const newRsvp: RsvpData = {
+            id: `rsvp-checkin-${Date.now()}`,
+            fullName: data.fullName,
+            phone: data.phone || '',
+            memberId: data.memberId,
+            className: data.className || 'K8A1',
+            status: 'yes',
+            checkedIn: true,
+            checkedInAt: timestamp,
+            shirtSize: data.shirtSize || '',
+            avatarUrl: data.avatarUrl,
+            nickname: data.nickname,
+            submittedAt: timestamp,
+            fundStatus: 'unpaid'
+          };
+          updated = [newRsvp, ...prev];
+        }
+
+        try {
+          localStorage.setItem('rsvp_list', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+
+      // 2. Cập nhật size áo vào classRoster nếu có
+      if (data.shirtSize) {
+        setClassRoster((prev) => {
+          const normName = normalizeNameForMatch(data.fullName);
+          let rosterUpdated = false;
+          const nextRoster = prev.map((m) => {
+            if (
+              (data.memberId && m.id === data.memberId) ||
+              normalizeNameForMatch(m.fullName) === normName
+            ) {
+              rosterUpdated = true;
+              return {
+                ...m,
+                shirtSize: normalizeShirtSize(data.shirtSize)
+              };
+            }
+            return m;
+          });
+          if (rosterUpdated) {
+            try {
+              localStorage.setItem('k8a1_class_roster', JSON.stringify(nextRoster));
+            } catch (e) {}
+            syncToBackend('save_roster', { roster: nextRoster });
+          }
+          return nextRoster;
+        });
+      }
+
+      // 3. Đồng bộ lên Google Sheet backend
+      syncToBackend('checkin', {
+        fullName: data.fullName,
+        phone: data.phone,
+        memberId: data.memberId,
+        className: data.className || 'K8A1',
+        shirtSize: data.shirtSize,
+        checkedIn: true,
+        checkedInAt: timestamp,
+        status: 'yes'
+      });
+
+      // 4. Bắn Toast notification
+      setLatestAction({
+        id: `toast-checkin-${Date.now()}`,
+        type: 'rsvp',
+        author: data.fullName,
+        className: data.className || 'K8A1',
+        text: 'vừa tự quét mã check-in có mặt tại hội trường sự kiện 20 Năm K8A1!',
+        timeAgo: 'Vừa xong',
+        timestamp: Date.now()
+      });
+
+      return { success: true, checkedInAt: timestamp };
+    } catch (err: any) {
+      console.error('Self check-in error:', err);
+      return { success: false, message: err?.message || 'Có lỗi xảy ra khi điểm danh' };
+    }
   };
 
   // Cập nhật danh sách RSVP và tự động đồng bộ ngược Size áo về Danh Sách Lớp
@@ -1704,6 +1843,26 @@ export default function App() {
       if (twDesc) twDesc.setAttribute('content', pageDesc);
     }
   }, [eventConfig]);
+
+  // Render trang riêng Tự Điểm Danh khi quét mã QR (?mode=checkin hoặc #checkin)
+  if (isCheckinMode) {
+    return (
+      <SelfCheckinPage
+        classRoster={classRoster}
+        rsvpList={rsvpList}
+        eventConfig={eventConfig}
+        appsScriptUrl={activeAppsScriptUrl}
+        onCheckIn={handleMemberSelfCheckIn}
+        onExitCheckin={() => {
+          setIsCheckinMode(false);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('mode');
+          url.hash = '';
+          window.history.pushState({}, '', url.toString());
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#334155] flex flex-col items-center pb-20 selection:bg-amber-200 selection:text-amber-900 relative overflow-x-hidden font-sans">
@@ -2706,6 +2865,8 @@ export default function App() {
           eventTitle={eventConfig.eventTitle || "KỶ NIỆM 20 NĂM NGÀY TRỞ VỀ — K8A1"}
           eventSubtitle={eventConfig.eventSubtitle || "Trường THPT Thái Nguyên (2003 — 2006)"}
           isAdmin={isBLLOrAdmin}
+          totalAttendees={confirmedCount}
+          checkedInAttendees={(rsvpList || []).filter(r => r.checkedIn).length}
           onUpdateSettings={(newSettings) => {
             const updatedConfig: EventConfig = {
               ...eventConfig,

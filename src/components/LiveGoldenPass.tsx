@@ -13,6 +13,7 @@ interface LiveGoldenPassProps {
   isConfirmed?: boolean;
   checkedIn?: boolean;
   checkedInAt?: string;
+  schoolLogoUrl?: string;
   onOpenPassModal?: () => void;
 }
 
@@ -27,6 +28,7 @@ export default function LiveGoldenPass({
   isConfirmed = false,
   checkedIn = false,
   checkedInAt,
+  schoolLogoUrl,
   onOpenPassModal
 }: LiveGoldenPassProps) {
   const displayName = fullName && fullName.trim() ? fullName.trim() : 'Bạn Cũ K8A1';
@@ -63,10 +65,22 @@ export default function LiveGoldenPass({
           
           {/* HEADER THẺ: VÉ VÀNG THANH XUÂN */}
           <div className="flex items-center justify-between border-b border-amber-200/80 pb-2.5 gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="p-1 rounded-md bg-amber-500/20 text-amber-900 shrink-0">
-                <Award className="w-4 h-4 text-amber-700" />
-              </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-400/80 bg-white flex items-center justify-center shrink-0 shadow-2xs">
+                <img
+                  src={schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
+                  alt="THPT Thái Nguyên"
+                  className="w-full h-full object-cover p-0.5"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                    const p = (e.target as HTMLElement).parentElement;
+                    if (p) {
+                      p.className = "p-1 rounded-md bg-amber-500/20 text-amber-900 shrink-0";
+                      p.innerHTML = '<span class="font-serif font-bold text-xs">K8A1</span>';
+                    }
+                  }}
+                />
+              </div>
               <div className="min-w-0">
                 <span className="text-[10px] sm:text-[11px] font-sans font-black uppercase tracking-wider text-amber-950 block">
                   Vé Vàng Thanh Xuân • Hội Ngộ 20 Năm

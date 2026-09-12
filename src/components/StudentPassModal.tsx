@@ -447,23 +447,59 @@ export default function StudentPassModal({
       ctx.fill();
 
       // 5. Header Section
-      // K8A1 Seal Logo Circle
+      // School Logo Image / K8A1 Seal Circle
       const logoX = 75;
       const logoY = 95;
       const logoRadius = 38;
       ctx.beginPath();
       ctx.arc(logoX, logoY, logoRadius, 0, Math.PI * 2);
-      ctx.fillStyle = '#FAF0DE';
+      ctx.fillStyle = '#FFFFFF';
       ctx.fill();
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = '#B8860B';
       ctx.stroke();
 
-      ctx.fillStyle = '#8B5A2B';
-      ctx.font = 'bold 22px Georgia, serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('K8A1', logoX, logoY);
+      const schoolLogoSrc = eventConfig?.schoolLogoUrl || 'https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg';
+      let logoDrawn = false;
+      if (schoolLogoSrc) {
+        try {
+          const logoImg = new Image();
+          logoImg.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve) => {
+            const t = setTimeout(() => resolve(), 1500); // 1.5s timeout safety
+            logoImg.onload = () => {
+              clearTimeout(t);
+              try {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(logoX, logoY, logoRadius - 2, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(logoImg, logoX - logoRadius + 2, logoY - logoRadius + 2, (logoRadius - 2) * 2, (logoRadius - 2) * 2);
+                ctx.restore();
+                logoDrawn = true;
+              } catch (e) {}
+              resolve();
+            };
+            logoImg.onerror = () => {
+              clearTimeout(t);
+              resolve();
+            };
+            logoImg.src = schoolLogoSrc;
+          });
+        } catch (e) {}
+      }
+
+      if (!logoDrawn) {
+        ctx.fillStyle = '#FAF0DE';
+        ctx.beginPath();
+        ctx.arc(logoX, logoY, logoRadius - 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#8B5A2B';
+        ctx.font = 'bold 22px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('K8A1', logoX, logoY);
+      }
 
       // School & Event Subtitle
       ctx.textAlign = 'left';
@@ -891,9 +927,21 @@ export default function StudentPassModal({
 
           {/* Header of Card (No Truncation) */}
           <div className="flex items-center justify-between border-b border-brand-gold/30 pb-2.5 mb-3 gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-600/50 flex items-center justify-center text-amber-900 font-serif font-bold text-xs shrink-0 shadow-2xs">
-                K8A1
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-500/80 bg-white flex items-center justify-center shrink-0 shadow-xs">
+                <img
+                  src={eventConfig?.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
+                  alt="Logo Trường THPT Thái Nguyên"
+                  className="w-full h-full object-cover p-0.5"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                    const parent = (e.target as HTMLElement).parentElement;
+                    if (parent) {
+                      parent.className = "w-9 h-9 rounded-full bg-amber-500/20 border border-amber-600/50 flex items-center justify-center text-amber-900 font-serif font-bold text-xs shrink-0 shadow-2xs";
+                      parent.innerText = "K8A1";
+                    }
+                  }}
+                />
               </div>
               <div className="min-w-0">
                 <p className="text-[9px] font-sans font-bold uppercase tracking-widest text-amber-800 leading-tight">
