@@ -23,6 +23,8 @@ import {
 import confetti from 'canvas-confetti';
 import { RsvpData, ClassMember, EventConfig } from '../types';
 import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize } from '../data';
+import { saveOrDownloadJpg } from '../utils/imageUtils';
+import MobilePhotoSaveModal from './MobilePhotoSaveModal';
 
 interface ZaloShareInfographicsModalProps {
   isOpen: boolean;
@@ -59,6 +61,17 @@ export default function ZaloShareInfographicsModal({
   const [copiedText, setCopiedText] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [photoSaveModal, setPhotoSaveModal] = useState<{
+    isOpen: boolean;
+    imageUrl: string;
+    filename: string;
+    title: string;
+  }>({
+    isOpen: false,
+    imageUrl: '',
+    filename: '',
+    title: ''
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Bộ nhớ đệm dữ liệu trực tiếp lấy từ Google Sheet
@@ -1147,7 +1160,7 @@ export default function ZaloShareInfographicsModal({
 
       // Cập nhật ảnh xem trước
       try {
-        const url = canvas.toDataURL('image/png');
+        const url = canvas.toDataURL('image/jpeg', 0.92);
         setPreviewDataUrl(url);
       } catch (err) {
         console.warn('Canvas toDataURL warning:', err);
@@ -1182,26 +1195,49 @@ export default function ZaloShareInfographicsModal({
     return `💰 BÁO CÁO MINH BẠCH TÀI CHÍNH HỘI NGỘ 20 NĂM K8A1 💰\n✅ Tổng quỹ đóng góp đã thu: ${totalFundCollected.toLocaleString('vi-VN')} đ (${paidAttendees.length} bạn đã hoàn thành).\n🙏 Ban Liên Lạc xin trân trọng cảm ơn sự chung tay và ủng hộ nhiệt tình của cả lớp!\n🔍 Toàn bộ sao kê và danh sách đóng quỹ được công khai minh bạch tại:\n🔗 ${webUrl}#tai-chinh`;
   };
 
-  // Tải ảnh PNG về máy
-  const handleDownloadPng = () => {
+  // Tải ảnh JPG về máy và hỗ trợ lưu vào Thư viện ảnh điện thoại
+  const handleDownloadJpg = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
-      const link = document.createElement('a');
-      link.download = `K8A1-${selectedTemplate === 'standee_qr' ? 'Maket-QR-Standee-A4' : 'ThongKeZalo-' + selectedTemplate}-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      setDownloadSuccess(true);
-      setFeedbackMsg('✓ Đã tải ảnh PNG độ nét cao về máy thành công!');
-      setTimeout(() => setDownloadSuccess(false), 3000);
-      try {
-        confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
-      } catch {}
+      const filename = `K8A1-${selectedTemplate === 'standee_qr' ? 'Maket-QR-Standee-A4' : 'Poster-' + selectedTemplate}-${Date.now()}.jpg`;
+      const title = selectedTemplate === 'standee_qr'
+        ? 'Maket QR Standee Bàn Đón Tiếp K8A1 (A4)'
+        : 'Poster Bản Tin Hội Ngộ 20 Năm K8A1';
+
+      const res = await saveOrDownloadJpg(canvas, filename, title, 0.92);
+      if (res.success) {
+        setDownloadSuccess(true);
+        setFeedbackMsg('✓ Đã lưu ảnh JPG độ nét cao thành công!');
+        setTimeout(() => setDownloadSuccess(false), 3000);
+        try {
+          confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+        } catch {}
+
+        if (res.method === 'preview_fallback' && res.dataUrl) {
+          setPhotoSaveModal({
+            isOpen: true,
+            imageUrl: res.dataUrl,
+            filename,
+            title
+          });
+        }
+      } else if (res.dataUrl) {
+        setPhotoSaveModal({
+          isOpen: true,
+          imageUrl: res.dataUrl,
+          filename,
+          title
+        });
+      }
     } catch (err) {
       console.error('Lỗi tải ảnh:', err);
-      setFeedbackMsg('Không thể tải ảnh trực tiếp. Vui lòng thử nút Sao Chép Ảnh.');
+      setFeedbackMsg('Không thể tải ảnh trực tiếp. Bạn có thể nhấn giữ vào ảnh xem trước để lưu.');
     }
   };
+
+  // Alias để tương thích
+  const handleDownloadPng = handleDownloadJpg;
 
   // Sao chép ảnh vào Clipboard để dán thẳng (Ctrl+V) vào Zalo
   const handleCopyImageToClipboard = async () => {
@@ -1435,7 +1471,8 @@ export default function ZaloShareInfographicsModal({
                     ref={previewImgRef}
                     src={previewDataUrl}
                     alt="Infographic Preview"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain select-auto"
+                    style={{ WebkitTouchCallout: 'default', userSelect: 'auto', touchAction: 'pan-y' }}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-2 text-amber-800">
@@ -1454,7 +1491,7 @@ export default function ZaloShareInfographicsModal({
               <canvas ref={canvasRef} className="hidden" />
               
               <span className="text-[10.5px] text-slate-500 italic mt-2 text-center">
-                * Ảnh xuất ra đạt chuẩn tỉ lệ 4:5, sắc nét tuyệt đối trên cả điện thoại và máy tính.
+                * Ảnh chuẩn JPG độ nét cao. Trên điện thoại, bạn có thể <strong>chạm và nhấn giữ vào ảnh</strong> để chọn "Lưu hình ảnh" vào Thư viện ảnh.
               </span>
             </div>
 
@@ -1508,14 +1545,20 @@ export default function ZaloShareInfographicsModal({
                   {/* NÚT 2: TẢI ẢNH PNG */}
                   <button
                     type="button"
-                    onClick={handleDownloadPng}
+                    onClick={handleDownloadJpg}
                     className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Download className="w-4 h-4" />
-                    <span>{downloadSuccess ? '✓ Đã tải xong' : selectedTemplate === 'standee_qr' ? 'Tải Maket In A4 (PNG)' : 'Tải ảnh về máy (PNG)'}</span>
+                    <span>{downloadSuccess ? '✓ Đã tải xong' : selectedTemplate === 'standee_qr' ? 'Lưu Maket In A4 (.JPG)' : 'Lưu Ảnh Về Thư Viện (.JPG)'}</span>
                   </button>
                 </div>
 
+                <div className="p-2 bg-amber-50/80 border border-amber-200/90 rounded-lg text-[11px] text-amber-950 flex items-start gap-1.5">
+                  <span className="text-sm shrink-0">📱</span>
+                  <span>
+                    <strong>Lưu vào Thư viện ảnh điện thoại:</strong> Bấm nút <em>"Lưu Ảnh Về Thư Viện (.JPG)"</em> để lưu thẳng vào Cuộn Camera, hoặc <strong>chạm giữ vào ảnh bên trái (1 giây)</strong> rồi chọn <em>"Lưu hình ảnh"</em>!
+                  </span>
+                </div>
                 <div className="p-2 bg-blue-50/70 border border-blue-200/80 rounded-lg text-[11px] text-blue-900 flex items-start gap-1.5">
                   <span className="text-sm shrink-0">💡</span>
                   <span>
@@ -1564,6 +1607,15 @@ export default function ZaloShareInfographicsModal({
           </div>
 
         </div>
+
+        {/* MODAL LƯU ẢNH VÀO THƯ VIỆN ĐIỆN THOẠI */}
+        <MobilePhotoSaveModal
+          isOpen={photoSaveModal.isOpen}
+          onClose={() => setPhotoSaveModal(prev => ({ ...prev, isOpen: false }))}
+          imageUrl={photoSaveModal.imageUrl}
+          filename={photoSaveModal.filename}
+          title={photoSaveModal.title}
+        />
 
         {/* FOOTER MODAL */}
         <div className="px-4 py-3 bg-[#F4EFE6] border-t border-amber-200 flex items-center justify-between shrink-0">

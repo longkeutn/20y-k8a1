@@ -20,6 +20,8 @@ import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig, ClassMember } from '../types';
 import { SHIRT_SIZE_OPTIONS, normalizeShirtSize, isVietnameseNameMatch, uploadMemberAvatarViaBackend } from '../data';
 import { parseMemberNote } from '../utils/memberUtils';
+import { saveOrDownloadJpg } from '../utils/imageUtils';
+import MobilePhotoSaveModal from './MobilePhotoSaveModal';
 
 interface StudentPassModalProps {
   isOpen: boolean;
@@ -81,6 +83,17 @@ export default function StudentPassModal({
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [photoSaveModal, setPhotoSaveModal] = useState<{
+    isOpen: boolean;
+    imageUrl: string;
+    filename: string;
+    title: string;
+  }>({
+    isOpen: false,
+    imageUrl: '',
+    filename: '',
+    title: ''
+  });
 
   const cardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -717,27 +730,40 @@ export default function StudentPassModal({
       ctx.textAlign = 'center';
       ctx.fillText('CHECK-IN GATE • K8A1-20Y', gateX + gateW / 2, gateY + 22);
 
-      // 9. Export to PNG Blob
-      canvas.toBlob((blob) => {
-        if (!blob) throw new Error('Blob creation failed');
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const safeName = (name || 'K8A1').replace(/[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
-        a.href = url;
-        a.download = `Ve_Vang_20Nam_K8A1_${safeName}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      // 9. Xuất sang JPG độ nét cao và hỗ trợ lưu vào Thư viện ảnh điện thoại
+      const safeName = (name || 'K8A1').replace(/[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+      const filename = `Ve_Vang_20Nam_K8A1_${safeName}.jpg`;
+      const cardTitle = `Tấm Vé Vàng 20 Năm K8A1 — ${name || 'Thành Viên'}`;
 
+      const res = await saveOrDownloadJpg(canvas, filename, cardTitle, 0.92);
+
+      if (res.success) {
         setDownloadSuccess(true);
         setTimeout(() => setDownloadSuccess(false), 3000);
-        confetti({
-          particleCount: 70,
-          spread: 80,
-          origin: { y: 0.7 }
+        try {
+          confetti({
+            particleCount: 60,
+            spread: 70,
+            origin: { y: 0.7 }
+          });
+        } catch {}
+
+        if (res.method === 'preview_fallback' && res.dataUrl) {
+          setPhotoSaveModal({
+            isOpen: true,
+            imageUrl: res.dataUrl,
+            filename,
+            title: cardTitle
+          });
+        }
+      } else if (res.dataUrl) {
+        setPhotoSaveModal({
+          isOpen: true,
+          imageUrl: res.dataUrl,
+          filename,
+          title: cardTitle
         });
-      }, 'image/png');
+      }
     } catch (err) {
       console.error('Download card error:', err);
       alert('Không thể tạo ảnh thẻ tự động. Bạn có thể dùng nút In thẻ / Lưu PDF hoặc chụp màn hình.');
@@ -1083,10 +1109,10 @@ export default function StudentPassModal({
               onClick={handleDownloadCardPng}
               disabled={isDownloading}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold uppercase tracking-wider rounded shadow-xs cursor-pointer transition-all disabled:opacity-50"
-              title="Tải ảnh thẻ độ phân giải cao định dạng PNG về máy"
+              title="Lưu ảnh thẻ định dạng JPG sắc nét vào thư viện ảnh điện thoại hoặc máy tính"
             >
               <Download className="w-3.5 h-3.5 text-amber-200" />
-              <span>{isDownloading ? 'Đang xuất ảnh...' : (downloadSuccess ? 'Đã tải ảnh HD!' : 'Tải Ảnh Thẻ HD')}</span>
+              <span>{isDownloading ? 'Đang xuất JPG...' : (downloadSuccess ? 'Đã tải ảnh JPG!' : 'Lưu Thẻ Vào Thư Viện (.JPG)')}</span>
             </button>
 
             <button
@@ -1106,6 +1132,11 @@ export default function StudentPassModal({
             </button>
           </div>
 
+          {/* Mẹo lưu ảnh cho điện thoại */}
+          <div className="w-full text-[11px] text-amber-900/90 bg-amber-500/10 border border-amber-300/70 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2 mt-0.5">
+            <span>💡 <strong>Trên điện thoại:</strong> Bấm <em>"Lưu Thẻ Vào Thư Viện"</em> để lưu trực tiếp vào Thư viện ảnh (Cuộn camera).</span>
+          </div>
+
           <button
             onClick={handleNativeShare}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-text hover:bg-brand-gold text-white text-xs font-sans font-bold uppercase tracking-wider rounded cursor-pointer transition-colors"
@@ -1114,6 +1145,14 @@ export default function StudentPassModal({
             <span>Chia sẻ Story / Zalo</span>
           </button>
         </div>
+        {/* MODAL LƯU ẢNH VÀO THƯ VIỆN ĐIỆN THOẠI */}
+        <MobilePhotoSaveModal
+          isOpen={photoSaveModal.isOpen}
+          onClose={() => setPhotoSaveModal(prev => ({ ...prev, isOpen: false }))}
+          imageUrl={photoSaveModal.imageUrl}
+          filename={photoSaveModal.filename}
+          title={photoSaveModal.title}
+        />
       </div>
     </div>
   );

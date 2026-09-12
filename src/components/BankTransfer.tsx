@@ -86,6 +86,17 @@ export default function BankTransfer({
   const [copiedSyntax, setCopiedSyntax] = useState(false);
   const [isLocalModalOpen, setIsLocalModalOpen] = useState(false);
   const [isZoomQrOpen, setIsZoomQrOpen] = useState(false);
+  const [photoSaveModal, setPhotoSaveModal] = useState<{
+    isOpen: boolean;
+    imageUrl: string;
+    filename: string;
+    title: string;
+  }>({
+    isOpen: false,
+    imageUrl: '',
+    filename: '',
+    title: ''
+  });
   const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
   const [ledgerTab, setLedgerTab] = useState<'expense' | 'income'>('expense');
   const [ledgerTimeFilter, setLedgerTimeFilter] = useState<'all' | 'this_month' | 'year_2026'>('all');
@@ -232,14 +243,31 @@ export default function BankTransfer({
   };
 
   const handleDownloadQr = () => {
-    const link = document.createElement('a');
-    link.href = qrUrl;
-    link.download = `VietQR_DongQuy_K8A1_${accountStr}.png`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `VietQR_DongQuy_K8A1_${accountStr}.jpg`;
+    const title = 'Mã QR Đóng Quỹ K8A1 (2003 — 2006)';
+
+    if (isMobileDevice()) {
+      setPhotoSaveModal({
+        isOpen: true,
+        imageUrl: qrUrl,
+        filename,
+        title
+      });
+      return;
+    }
+
+    try {
+      const link = document.createElement('a');
+      link.href = qrUrl;
+      link.download = filename;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      window.open(qrUrl, '_blank');
+    }
   };
 
   return (
@@ -410,7 +438,7 @@ export default function BankTransfer({
               className="inline-flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-900 font-semibold bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 cursor-pointer transition-colors"
             >
               <Download className="w-3 h-3" />
-              <span>Tải ảnh</span>
+              <span>Lưu QR (.JPG)</span>
             </button>
           </div>
 
@@ -638,7 +666,7 @@ export default function BankTransfer({
                 className="flex-1 py-2.5 px-4 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Tải Ảnh QR</span>
+                <span>Lưu Mã QR (.JPG)</span>
               </button>
               <button
                 type="button"
@@ -1203,6 +1231,14 @@ export default function BankTransfer({
       )}
 
 
+      {/* MODAL LƯU QR VÀO THƯ VIỆN ĐIỆN THOẠI */}
+      <MobilePhotoSaveModal
+        isOpen={photoSaveModal.isOpen}
+        onClose={() => setPhotoSaveModal(prev => ({ ...prev, isOpen: false }))}
+        imageUrl={photoSaveModal.imageUrl}
+        filename={photoSaveModal.filename}
+        title={photoSaveModal.title}
+      />
     </div>
   );
 }

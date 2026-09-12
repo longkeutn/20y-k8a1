@@ -35,6 +35,8 @@ import {
   uploadMemberAvatarViaBackend
 } from '../data';
 import { parseMemberNote } from '../utils/memberUtils';
+import { saveOrDownloadJpg } from '../utils/imageUtils';
+import MobilePhotoSaveModal from './MobilePhotoSaveModal';
 
 interface SelfCheckinPageProps {
   classRoster: ClassMember[];
@@ -87,6 +89,17 @@ export default function SelfCheckinPage({
   const [checkInTime, setCheckInTime] = useState<string>('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [photoSaveModal, setPhotoSaveModal] = useState<{
+    isOpen: boolean;
+    imageUrl: string;
+    filename: string;
+    title: string;
+  }>({
+    isOpen: false,
+    imageUrl: '',
+    filename: '',
+    title: ''
+  });
   const [copiedLink, setCopiedLink] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -611,27 +624,40 @@ export default function SelfCheckinPage({
       ctx.textAlign = 'center';
       ctx.fillText('CHECK-IN GATE • K8A1-20Y', gateX + gateW / 2, gateY + 22);
 
-      // Export file PNG
-      canvas.toBlob((blob) => {
-        if (!blob) throw new Error('Blob creation failed');
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const safeName = (selectedMember.fullName || 'K8A1').replace(/[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
-        a.href = url;
-        a.download = `Ve_Vang_20Nam_K8A1_${safeName}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      // Xuất sang JPG độ nét cao và hỗ trợ lưu vào Thư viện ảnh điện thoại
+      const safeName = (selectedMember.fullName || 'K8A1').replace(/[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+      const filename = `Ve_Vang_20Nam_K8A1_${safeName}.jpg`;
+      const cardTitle = `Tấm Vé Vàng 20 Năm K8A1 — ${selectedMember.fullName || 'Thành Viên'}`;
 
+      const res = await saveOrDownloadJpg(canvas, filename, cardTitle, 0.92);
+
+      if (res.success) {
         setDownloadSuccess(true);
         setTimeout(() => setDownloadSuccess(false), 3000);
-        confetti({
-          particleCount: 50,
-          spread: 70,
-          origin: { y: 0.7 }
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 70,
+            origin: { y: 0.7 }
+          });
+        } catch {}
+
+        if (res.method === 'preview_fallback' && res.dataUrl) {
+          setPhotoSaveModal({
+            isOpen: true,
+            imageUrl: res.dataUrl,
+            filename,
+            title: cardTitle
+          });
+        }
+      } else if (res.dataUrl) {
+        setPhotoSaveModal({
+          isOpen: true,
+          imageUrl: res.dataUrl,
+          filename,
+          title: cardTitle
         });
-      }, 'image/png');
+      }
     } catch (err: any) {
       console.error('Download card error:', err);
       alert('Không thể tạo ảnh thẻ tự động. Bạn có thể chụp màn hình.');
@@ -1049,6 +1075,11 @@ export default function SelfCheckinPage({
               )}
 
               {/* SUB BUTTONS: DOWNLOAD PASS & RETURN */}
+              <div className="p-2.5 bg-amber-500/10 border border-amber-300/70 rounded-xl text-xs text-amber-950 flex items-center gap-2">
+                <span className="text-base shrink-0">💡</span>
+                <span><strong>Mẹo lưu trên điện thoại:</strong> Bấm <em>"Lưu Vé Vàng Vào Thư Viện"</em> để chọn lưu vào Thư viện ảnh (Cuộn Camera) hoặc chia sẻ nhanh!</span>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button
                   onClick={handleDownloadCardPng}
@@ -1058,17 +1089,17 @@ export default function SelfCheckinPage({
                   {isDownloading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-brand-gold" />
-                      <span>Đang tạo ảnh HD...</span>
+                      <span>Đang xuất JPG...</span>
                     </>
                   ) : downloadSuccess ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>Đã tải ảnh vé vàng!</span>
+                      <span>Đã tải ảnh JPG!</span>
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4 text-brand-gold" />
-                      <span>Tải Tấm Vé Vàng HD (PNG)</span>
+                      <span>Lưu Vé Vàng Vào Thư Viện (.JPG)</span>
                     </>
                   )}
                 </button>
