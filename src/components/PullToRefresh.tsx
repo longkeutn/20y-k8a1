@@ -19,6 +19,28 @@ export default function PullToRefresh({ onRefresh, disabled = false }: PullToRef
     if (disabled) return;
 
     const handleTouchStart = (e: TouchEvent) => {
+      if (disabled) {
+        isPullingRef.current = false;
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      // Bỏ qua tuyệt đối nếu thao tác bắt đầu trên các trường nhập liệu, nút bấm hoặc bên trong modal
+      if (target && target.closest('input, textarea, select, button, [contenteditable="true"], [role="dialog"], .modal-container, [data-no-pull-refresh]')) {
+        isPullingRef.current = false;
+        return;
+      }
+
+      // Bỏ qua nếu có bất kỳ phần tử cha nào đang cuộn dở (scrollTop > 0)
+      let parent = target;
+      while (parent && parent !== document.body) {
+        if (parent.scrollTop > 0) {
+          isPullingRef.current = false;
+          return;
+        }
+        parent = parent.parentElement;
+      }
+
       // Chỉ kích hoạt khi đang ở đỉnh trang
       if (window.scrollY <= 3) {
         startYRef.current = e.touches[0].clientY;

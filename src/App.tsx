@@ -216,7 +216,7 @@ export default function App() {
           return DEFAULT_EVENT_CONFIG;
         }
         // Tự động làm mới nếu thiết bị trước đó lưu Prime đơn lẻ ở venueName mà chưa có 2 chặng
-        if (parsed.venueName && parsed.venueName.includes('Prime') && !parsed.venue2Name) {
+        if (!parsed.enableTwoVenues && parsed.venueName && parsed.venueName.includes('Prime') && !parsed.venue2Name) {
           localStorage.removeItem('k8a1_event_config');
           return DEFAULT_EVENT_CONFIG;
         }
@@ -1929,23 +1929,25 @@ export default function App() {
   // Tự động kiểm tra và đồng bộ lại dữ liệu khi người dùng chuyển từ Zalo chat quay lại tab WebApp
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      // Chỉ đồng bộ ngầm khi Admin Hub KHÔNG mở để tránh ghi đè dữ liệu quản trị viên đang nhập dở
+      if (document.visibilityState === 'visible' && !isAdminHubOpen) {
         hydrateAllData(activeAppsScriptUrl);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [activeAppsScriptUrl]);
+  }, [activeAppsScriptUrl, isAdminHubOpen]);
 
   // Tự động làm mới ngầm mỗi 60 giây khi trang đang mở để số liệu điểm danh luôn tươi mới 100%
   useEffect(() => {
     const pollTimer = setInterval(() => {
-      if (document.visibilityState === 'visible' && !isRefreshing) {
+      // Tạm dừng timer khi Admin Hub đang mở để bảo vệ dữ liệu form
+      if (document.visibilityState === 'visible' && !isRefreshing && !isAdminHubOpen) {
         hydrateAllData(activeAppsScriptUrl);
       }
     }, 60000);
     return () => clearInterval(pollTimer);
-  }, [activeAppsScriptUrl, isRefreshing]);
+  }, [activeAppsScriptUrl, isRefreshing, isAdminHubOpen]);
 
   // Đồng bộ động tiêu đề trang và thẻ meta mô tả khi chia sẻ link theo cấu hình sự kiện
   useEffect(() => {
@@ -3139,7 +3141,20 @@ export default function App() {
       />
 
       {/* 📲 Cử chỉ kéo xuống để tải lại trang / làm mới dữ liệu cho PWA di động */}
-      <PullToRefresh onRefresh={() => handleSoftRefresh(false)} />
+      <PullToRefresh 
+        onRefresh={() => handleSoftRefresh(false)} 
+        disabled={Boolean(
+          isAdminHubOpen ||
+          isPassModalOpen ||
+          isReceiptModalOpen ||
+          isCharterModalOpen ||
+          isGuideModalOpen ||
+          isIdentityModalOpen ||
+          isZaloShareModalOpen ||
+          isMobileQrModalOpen ||
+          isCheckinMode
+        )} 
+      />
 
       {/* 📲 Banner cài đặt ứng dụng WebApp PWA ra màn hình chính điện thoại */}
       <PwaInstallPrompt />

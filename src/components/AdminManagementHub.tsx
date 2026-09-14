@@ -439,13 +439,37 @@ export default function AdminManagementHub({
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState('');
 
   // Event & Venue Configuration State (Full CRUD for BLL & Admin)
-  const [eventConfigForm, setEventConfigForm] = useState<EventConfig>(() => {
+  const [eventConfigFormState, setEventConfigFormState] = useState<EventConfig>(() => {
+    try {
+      const draft = sessionStorage.getItem('k8a1_admin_event_config_draft');
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed && typeof parsed === 'object') {
+          return { ...(eventConfig || DEFAULT_EVENT_CONFIG), ...parsed };
+        }
+      }
+    } catch {}
     return eventConfig || DEFAULT_EVENT_CONFIG;
   });
 
+  const isConfigDirtyRef = useRef(false);
+
+  const eventConfigForm = eventConfigFormState;
+  const setEventConfigForm = useCallback((updater: React.SetStateAction<EventConfig>) => {
+    isConfigDirtyRef.current = true;
+    setEventConfigFormState((prev) => {
+      const next = typeof updater === 'function' ? (updater as (p: EventConfig) => EventConfig)(prev) : updater;
+      try {
+        sessionStorage.setItem('k8a1_admin_event_config_draft', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  // Chỉ nạp dữ liệu từ bên ngoài khi người dùng CHƯA chỉnh sửa form (chưa dirty)
   useEffect(() => {
-    if (eventConfig) {
-      setEventConfigForm(eventConfig);
+    if (eventConfig && !isConfigDirtyRef.current) {
+      setEventConfigFormState(eventConfig);
     }
   }, [eventConfig]);
 
@@ -3209,6 +3233,12 @@ export default function AdminManagementHub({
       console.error('Lỗi lưu event config:', err);
     }
 
+    // Xóa cờ dirty và dọn sạch bản nháp tạm thời sau khi lưu thành công
+    isConfigDirtyRef.current = false;
+    try {
+      sessionStorage.removeItem('k8a1_admin_event_config_draft');
+    } catch {}
+
     let msg = 'Đã lưu cấu hình sự kiện thành công! ';
 
     // 2. Lưu URL Google Apps Script nếu là Admin
@@ -3458,6 +3488,10 @@ export default function AdminManagementHub({
 
   const handleResetEventConfigDefault = () => {
     if (confirm('Bạn có chắc muốn khôi phục toàn bộ thông tin sự kiện về mặc định ban đầu?')) {
+      isConfigDirtyRef.current = false;
+      try {
+        sessionStorage.removeItem('k8a1_admin_event_config_draft');
+      } catch {}
       setEventConfigForm(DEFAULT_EVENT_CONFIG);
       if (onUpdateEventConfig) {
         onUpdateEventConfig(DEFAULT_EVENT_CONFIG);
@@ -7010,7 +7044,16 @@ export default function AdminManagementHub({
                 )}
               </div>
 
-              <form onSubmit={handleSaveSettings} className="space-y-6">
+              <form 
+                onSubmit={handleSaveSettings} 
+                onKeyDown={(e) => {
+                  // Chặn việc nhấn Enter trên bàn phím ảo hoặc bàn phím máy tính gây submit & tải lại form khi đang gõ
+                  if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                  }
+                }}
+                className="space-y-6"
+              >
 
                 {/* ============================================================= */}
                 {/* 📢 ĐIỀU KHIỂN HIỂN THỊ: BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 */}
@@ -7137,7 +7180,13 @@ export default function AdminManagementHub({
                           <input
                             type="checkbox"
                             checked={Boolean(eventConfigForm.enableTwoVenues)}
-                            onChange={(e) => setEventConfigForm({ ...eventConfigForm, enableTwoVenues: e.target.checked })}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              setEventConfigForm({ ...eventConfigForm, enableTwoVenues: isChecked });
+                              if (isChecked && venueSettingsTab === 'stage1') {
+                                setVenueSettingsTab('stage2');
+                              }
+                            }}
                             className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
                           />
                           <span>Bật chế độ Hành Trình Hội Ngộ 2 Chặng (Trường Cũ + Nhà Hàng Liên Hoan)</span>
@@ -7339,7 +7388,7 @@ export default function AdminManagementHub({
                           </div>
 
                           {/* Live Preview Chặng 1 */}
-                          {eventConfigForm.mapEmbedUrl && (
+                          {Boolean(eventConfigForm.mapEmbedUrl && eventConfigForm.mapEmbedUrl.startsWith('https://') && eventConfigForm.mapEmbedUrl.length > 25) && (
                             <div className="sm:col-span-2 space-y-1.5">
                               <label className="font-bold text-slate-600 text-[11px]">Xem trước bản đồ Chặng 1:</label>
                               <div className="rounded-xl overflow-hidden border border-amber-300/60 aspect-video max-h-52 bg-slate-100">
@@ -7493,7 +7542,7 @@ export default function AdminManagementHub({
                           </div>
 
                           {/* Live Preview Chặng 2 */}
-                          {eventConfigForm.venue2MapEmbedUrl && (
+                          {Boolean(eventConfigForm.venue2MapEmbedUrl && eventConfigForm.venue2MapEmbedUrl.startsWith('https://') && eventConfigForm.venue2MapEmbedUrl.length > 25) && (
                             <div className="sm:col-span-2 space-y-1.5">
                               <label className="font-bold text-slate-600 text-[11px]">Xem trước bản đồ Chặng 2:</label>
                               <div className="rounded-xl overflow-hidden border border-rose-300/60 aspect-video max-h-52 bg-slate-100">
