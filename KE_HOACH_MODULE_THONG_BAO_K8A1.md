@@ -65,12 +65,20 @@ Hệ thống hỗ trợ 5 danh mục bài viết rõ ràng, giúp người đọ
   - Bài về kinh phí -> Nút `[💰 Mở Sổ Quỹ & Cổng Chuyển Khoản]`.
 - **Nút "Chia Sẻ Lên Nhóm Zalo"**: Tự động sao chép tiêu đề, trích đoạn và link trực tiếp của bài viết để dán vào Zalo.
 
+### 3.5. Tùy Chọn Bật / Tắt Hiển Thị Lên Web (`showAnnouncements`)
+- **Đơn giản & Tiện lợi**: Chỉ cần một nút gạt duy nhất trong phần Quản trị của BLL:
+  - **BẬT (Mặc định)**: Hiển thị khối Bản tin thông báo lên Web (kèm quả chuông trên Header) để các bạn theo dõi tin tức.
+  - **TẮT**: Ẩn hoàn toàn khối Bản tin thông báo khỏi giao diện Web. Trang chủ sẽ gọn gàng, chỉ tập trung vào Đếm ngược, Điểm danh và Quỹ lớp.
+
 ---
 
 ## 4. Công Cụ Quản Trị Dành Cho Ban Liên Lạc (Admin CMS)
 
 Tích hợp trực tiếp vào module quản trị `AdminManagementHub` (yêu cầu mã PIN BLL/Admin):
 
+- **Nút gạt Bật / Tắt Hiển Thị Lên Web**:
+  - Đặt công tắc trực quan: **`[x] Hiển thị khối Thông báo / Bản tin lên Web`**.
+  - BLL chỉ cần 1 click để bật hoặc tắt bất kỳ lúc nào, lưu trực tiếp vào cấu hình Google Sheet.
 - **Biểu mẫu đăng bài trực quan**:
   - Nhập Tiêu đề bài viết.
   - Chọn Danh mục phân loại.
