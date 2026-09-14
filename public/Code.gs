@@ -3569,6 +3569,64 @@ function getAllData(isAdmin) {
 // =============================================================================
 // 📢 MODULE QUẢN LÝ THÔNG BÁO & BẢN TIN K8A1 (Sheet: "Thong_Bao")
 // =============================================================================
+
+/**
+ * HÀM CẬP NHẬT THỦ CÔNG (TÙY CHỌN):
+ * Quản trị viên có thể chọn hàm 'setupAnnouncementsSheet' trên thanh menu dropdown của Apps Script và bấm 'Chạy' (Run).
+ * Hàm này sẽ:
+ * 1. Đảm bảo cấu trúc đủ 14 cột (thêm Cột 14: 'Dữ Liệu Bình Chọn (JSON)').
+ * 2. Tự động bổ sung bản tin khảo sát mẫu TB-05 nếu chưa có trong Sheet.
+ */
+function setupAnnouncementsSheet() {
+  var sheet = getAnnouncementsSheet();
+  var lastRow = sheet.getLastRow();
+  var hasTB05 = false;
+
+  if (lastRow >= 2) {
+    var idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < idValues.length; i++) {
+      if (String(idValues[i][0]).trim() === 'TB-05') {
+        hasTB05 = true;
+        break;
+      }
+    }
+  }
+
+  if (!hasTB05) {
+    var tb05Row = [
+      'TB-05',
+      '🗳️ Khảo Sát Ý Kiến: Bạn mong chờ hoạt động hoài niệm nào nhất tại Gala 20 Năm?',
+      'poll',
+      'Bình chọn trực tiếp ngay trên WebApp để Ban Tổ Chức chuẩn bị kịch bản giao lưu ý nghĩa nhất cho ngày hội ngộ 27/09/2026.',
+      'Thân gửi các bạn học K8A1 thân mến,\n\nĐể chương trình Hội khóa 20 Năm Ngày Trở Về diễn ra thật đầm ấm, giàu cảm xúc và gắn kết tất cả các thành viên, Ban Liên Lạc phát động cuộc bình chọn trực tiếp 100% ngay trên WebApp lớp mình (không cần dùng link Google Form bên ngoài).\n\nCác bạn hãy bình chọn các hoạt động hoài niệm và giao lưu mà bạn mong muốn được trải nghiệm nhất trong buổi tiệc tại The Prime (hỗ trợ chọn nhiều phương án cùng lúc).\n\nKết quả bình chọn theo thời gian thực sẽ là căn cứ để Ban Tổ Chức chốt kịch bản sân khấu, chuẩn bị quà tặng và đạo cụ hoài niệm tương ứng!',
+      '',
+      '#ban-tin',
+      '🗳️ Bình Chọn Ngay',
+      'TRUE',
+      '14/09/2026 15:30',
+      'Ban Liên Lạc K8A1',
+      'published',
+      58,
+      JSON.stringify({
+        question: "Bạn hào hứng nhất với hoạt động giao lưu nào tại buổi tiệc hội ngộ K8A1?",
+        allowMultiple: true,
+        isClosed: false,
+        options: [
+          { id: "opt-1", text: "🎬 Chiếu phóng sự ảnh độc quyền 'K8A1 — 20 Năm Ngày Ấy & Bây Giờ' trên màn LED lớn", votes: ["Đào Thị Hồng Nhung", "Trần Đăng Tuấn", "Vũ Phương Thảo"] },
+          { id: "opt-2", text: "🎸 Hát live ca khúc tuổi học trò (Xe đạp, Phượng hồng, Kỷ niệm mái trường...) & Ban nhạc acoustic", votes: ["Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Đỗ Mai Hương", "Phạm Quốc Hùng"] },
+          { id: "opt-3", text: "🏆 Minigame ôn lại kỷ niệm 'Ai thông minh hơn học sinh K8A1' & Bốc thăm kỷ vật mạ vàng", votes: ["Vũ Phương Thảo", "Nguyễn Thị Thu Hà", "Bùi Tiến Dũng"] },
+          { id: "opt-4", text: "🥂 Thời khắc Nâng Ly Tri Ân Thầy Cô giáo & Trao gửi tâm thư 20 năm xúc động", votes: ["Đào Thị Hồng Nhung", "Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Vũ Phương Thảo", "Lê Văn Hoàng"] },
+          { id: "opt-5", text: "📸 Check-in Photobooth kỷ yếu 2003-2006 phong cách Retro & Quay clip kỷ niệm TikTok/Reels", votes: ["Đỗ Mai Hương", "Nguyễn Thị Thu Hà"] }
+        ]
+      })
+    ];
+    sheet.appendRow(tb05Row);
+  }
+
+  Logger.log('✅ Đã kiểm tra và cập nhật cấu trúc Sheet Thong_Bao thành công (14 cột). TB-05: ' + (hasTB05 ? 'Đã có sẵn' : 'Đã chèn mới'));
+  return '✅ Đã kiểm tra và cập nhật cấu trúc Sheet Thong_Bao thành công (14 cột).';
+}
+
 function getAnnouncementsSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(CONFIG.ANNOUNCEMENTS_SHEET_NAME);
