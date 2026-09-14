@@ -1,18 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Newspaper, 
   Calendar, 
   User, 
-  ArrowRight, 
   Pin, 
   Heart, 
-  Filter, 
-  Sparkles, 
-  Megaphone,
-  ChevronRight
+  Megaphone, 
+  ChevronLeft, 
+  ChevronRight,
+  Flame,
+  ArrowRight,
+  Radio
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, EventConfig } from '../types';
-import AnnouncementDetailModal, { CATEGORY_STYLES } from './AnnouncementDetailModal';
+import AnnouncementDetailModal from './AnnouncementDetailModal';
 
 interface ClassNewsFeedProps {
   announcements: Announcement[];
@@ -20,6 +21,15 @@ interface ClassNewsFeedProps {
   onNavigateAction?: (targetId: string) => void;
   onSelectAnnouncement?: (item: Announcement) => void;
 }
+
+const DARK_CATEGORY_STYLES: Record<AnnouncementCategory, { label: string; badgeClass: string; icon: string }> = {
+  urgent: { label: 'Khẩn Cấp', badgeClass: 'bg-rose-500/25 text-rose-300 border-rose-500/50', icon: '🔥' },
+  schedule: { label: 'Lịch Trình', badgeClass: 'bg-amber-500/25 text-amber-300 border-amber-500/50', icon: '📋' },
+  shirts: { label: 'Áo Lớp', badgeClass: 'bg-sky-500/25 text-sky-300 border-sky-500/50', icon: '👕' },
+  fund: { label: 'Quỹ Lớp', badgeClass: 'bg-emerald-500/25 text-emerald-300 border-emerald-500/50', icon: '💰' },
+  activity: { label: 'Hoạt Động', badgeClass: 'bg-purple-500/25 text-purple-300 border-purple-500/50', icon: '📸' },
+  poll: { label: 'Khảo Sát', badgeClass: 'bg-indigo-500/25 text-indigo-300 border-indigo-500/50', icon: '🗳️' }
+};
 
 export default function ClassNewsFeed({
   announcements,
@@ -29,6 +39,12 @@ export default function ClassNewsFeed({
 }: ClassNewsFeedProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [internalSelectedAnnouncement, setInternalSelectedAnnouncement] = useState<Announcement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Kiểm tra cờ bật/tắt toàn cục
+  if (eventConfig && eventConfig.showAnnouncements === false) {
+    return null;
+  }
 
   const handleCardClick = (item: Announcement) => {
     if (onSelectAnnouncement) {
@@ -38,16 +54,20 @@ export default function ClassNewsFeed({
     }
   };
 
-  // Kiểm tra cờ bật/tắt toàn cục
-  if (eventConfig && eventConfig.showAnnouncements === false) {
-    return null;
-  }
+  const handleScroll = (dir: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 320;
+      scrollContainerRef.current.scrollBy({
+        left: dir === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
-  // Lọc bài viết theo danh mục
+  // Lọc bài viết theo danh mục và sắp xếp tin ghim lên đầu
   const filteredList = useMemo(() => {
     if (!announcements || announcements.length === 0) return [];
     
-    // Sắp xếp: Tin ghim lên đầu, sau đó đến ngày tạo mới nhất
     const sorted = [...announcements].sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
@@ -58,162 +78,209 @@ export default function ClassNewsFeed({
     return sorted.filter(a => a.category === selectedCategory);
   }, [announcements, selectedCategory]);
 
+  // Tin tiêu điểm ghim mới nhất (để hiển thị trên dải ticker)
+  const pinnedItem = useMemo(() => {
+    return (announcements || []).find(a => a.isPinned);
+  }, [announcements]);
+
   const categories: { id: string; label: string; icon: string }[] = [
     { id: 'all', label: 'Tất Cả', icon: '✨' },
     { id: 'urgent', label: 'Khẩn Cấp', icon: '🔥' },
     { id: 'schedule', label: 'Lịch Trình', icon: '📋' },
     { id: 'shirts', label: 'Áo Lớp', icon: '👕' },
     { id: 'fund', label: 'Quỹ Lớp', icon: '💰' },
-    { id: 'activity', label: 'Ký Sự Ảnh', icon: '📸' }
+    { id: 'activity', label: 'Ký Sự', icon: '📸' }
   ];
 
   return (
-    <section id="ban-tin" className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-8 sm:py-12 scroll-mt-20">
+    <section id="ban-tin" className="w-full max-w-5xl mx-auto px-2.5 sm:px-4 py-1.5 sm:py-2 scroll-mt-20">
       
-      {/* HEADER KHỐI BẢN TIN VINTAGE GOLD */}
-      <div className="text-center space-y-2.5 mb-6 sm:mb-8">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-900 text-xs font-sans font-bold shadow-xs">
-          <Megaphone className="w-3.5 h-3.5 text-amber-700 animate-bounce" />
-          <span>KÊNH THÔNG TIN CHÍNH THỨC K8A1</span>
-        </div>
-
-        <h2 className="text-2xl sm:text-4xl font-serif font-black text-[#1E293B] tracking-tight">
-          Bản Tin & Thông Báo Hoạt Động
-        </h2>
+      {/* KHUNG THẺ CHÍNH PHONG CÁCH TÒA SOẠN BLL (DEEP SLATE NAVY & GOLD ACCENTS) */}
+      <div className="bg-[#0B132B]/95 text-white rounded-2xl border-2 border-amber-500/40 shadow-xl overflow-hidden backdrop-blur-md relative">
         
-        <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto font-sans">
-          Cập nhật thông cáo chính thức, lịch trình di chuyển, tiến độ đặt áo và tình hình đóng góp quỹ lớp — Chống trôi tin 100%.
-        </p>
+        {/* DẢI VIỀN TRANG TRÍ VÀNG KIM ĐỈNH KHỐI */}
+        <div className="h-1 w-full bg-gradient-to-r from-amber-600 via-amber-300 to-amber-600 opacity-90" />
 
-        {/* ĐƯỜNG PHÂN CÁCH TRANG TRÍ VÀNG KIM */}
-        <div className="flex items-center justify-center gap-2 pt-1 opacity-70">
-          <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-r from-transparent to-amber-500" />
-          <span className="text-amber-600 text-xs">★ ★ ★</span>
-          <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-l from-transparent to-amber-500" />
-        </div>
-      </div>
+        <div className="p-3 sm:p-4 space-y-2.5">
+          
+          {/* HÀNG 1: HEADER ĐIỀU KHIỂN & BỘ LỌC MINI TÍCH HỢP HÀNG NGANG */}
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+            
+            {/* TIÊU ĐỀ & HUY HIỆU PHÁT SÓNG TIN TỨC */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 shadow-md text-slate-950">
+                <Megaphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950 shrink-0" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#0B132B] animate-pulse" />
+              </div>
 
-      {/* THANH TAB LỌC DANH MỤC */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2.5 mb-6 scrollbar-none justify-start sm:justify-center">
-        {categories.map((cat) => {
-          const isActive = selectedCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`inline-flex items-center gap-1 px-3 sm:px-4 py-1.5 rounded-full text-xs font-sans font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
-                isActive
-                  ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white border-amber-600 shadow-md scale-102'
-                  : 'bg-white text-slate-700 hover:text-amber-900 hover:bg-amber-50 border-amber-200/80 shadow-xs'
-              }`}
-            >
-              <span>{cat.icon}</span>
-              <span>{cat.label}</span>
-            </button>
-          );
-        })}
-      </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="font-serif font-bold text-amber-200 text-xs sm:text-sm tracking-wide uppercase">
+                    Bản Tin K8A1
+                  </h2>
+                  <span className="hidden xs:inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                    BLL Official
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-sans hidden sm:block">
+                  Kênh phát ngôn chính thức • Chống trôi bài
+                </p>
+              </div>
+            </div>
 
-      {/* LƯỚI DANH SÁCH BÀI VIẾT BẢN TIN */}
-      {filteredList.length === 0 ? (
-        <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-amber-200 bg-white/60">
-          <Newspaper className="w-10 h-10 text-amber-400 mx-auto mb-2 opacity-60" />
-          <p className="text-sm font-sans font-semibold text-slate-600">Chưa có bài viết nào trong danh mục này</p>
-          <button 
-            type="button" 
-            onClick={() => setSelectedCategory('all')} 
-            className="mt-3 text-xs text-amber-700 font-bold hover:underline cursor-pointer"
-          >
-            Quay lại xem tất cả bài viết
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {filteredList.map((item) => {
-            const catInfo = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.schedule;
-            return (
-              <article
-                key={item.id}
-                onClick={() => handleCardClick(item)}
-                className={`group relative bg-[#FFFDF9] rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 ${
-                  item.isPinned 
-                    ? 'border-amber-400/90 shadow-md ring-1 ring-amber-400/30' 
-                    : 'border-amber-200/70 shadow-xs hover:border-amber-300'
-                }`}
+            {/* CÁC CHIP LỌC DANH MỤC THU GỌN THEO CHIỀU NGANG */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-[55%] sm:max-w-none">
+              {categories.map((cat) => {
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold transition cursor-pointer whitespace-nowrap shrink-0 border ${
+                      isActive
+                        ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-xs scale-102'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
+                    }`}
+                  >
+                    <span className="text-[10px]">{cat.icon}</span>
+                    <span className="hidden md:inline">{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* BỘ NÚT MŨI TÊN ĐIỀU HƯỚNG TRƯỢT NGANG */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleScroll('left')}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/5 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 flex items-center justify-center transition cursor-pointer"
+                title="Xem tin trước"
               >
-                {/* ẢNH BÌA THUMBNAIL NẾU CÓ */}
-                {item.imageUrl && (
-                  <div className="relative w-full h-44 sm:h-48 overflow-hidden bg-slate-900/10">
-                    <img 
-                      src={item.imageUrl} 
-                      alt={item.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                      onError={(e: any) => { e.target.style.display = 'none'; }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
-                  </div>
-                )}
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScroll('right')}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/5 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-white/10 hover:border-amber-400/50 flex items-center justify-center transition cursor-pointer"
+                title="Xem tin tiếp theo"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
 
-                {/* NỘI DUNG CHÍNH CỦA CARD */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
-                  
-                  {/* DÒNG NHÃN DANH MỤC & BADGE GHIM */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-sans font-bold border ${catInfo.badgeClass}`}>
-                      <span>{catInfo.icon}</span>
-                      <span>{catInfo.label}</span>
-                    </span>
+          {/* HÀNG 2: DẢI TICKER TIN GHIM NÓNG (NẾU CÓ TIN GHIM) */}
+          {pinnedItem && selectedCategory === 'all' && (
+            <div 
+              onClick={() => handleCardClick(pinnedItem)}
+              className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-950/60 via-amber-950/40 to-slate-900 border border-amber-500/30 flex items-center justify-between gap-2 cursor-pointer hover:border-amber-400/70 transition group"
+            >
+              <div className="flex items-center gap-2 truncate text-xs">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-600/80 text-white font-sans font-bold text-[10px] shrink-0 uppercase tracking-wider animate-pulse">
+                  <Flame className="w-3 h-3 text-amber-200" />
+                  <span>Tiêu Điểm</span>
+                </span>
+                <span className="text-amber-100/90 font-sans truncate font-medium group-hover:text-amber-300 transition">
+                  {pinnedItem.title}
+                </span>
+              </div>
 
-                    {item.isPinned && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                        <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
-                        <span>Ghim</span>
-                      </span>
-                    )}
-                  </div>
+              <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 font-bold shrink-0 group-hover:translate-x-0.5 transition font-sans">
+                <span className="hidden sm:inline">Chi tiết</span>
+                <ArrowRight className="w-3.5 h-3.5 text-amber-300" />
+              </span>
+            </div>
+          )}
 
-                  {/* TIÊU ĐỀ */}
-                  <h3 className="text-base sm:text-lg font-serif font-bold text-[#1E293B] group-hover:text-amber-800 transition line-clamp-2 leading-snug">
-                    {item.title}
-                  </h3>
-
-                  {/* TÓM TẮT */}
-                  <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed font-sans">
-                    {item.summary}
-                  </p>
-
-                  {/* THÔNG TIN NGƯỜI ĐĂNG & THỜI GIAN */}
-                  <div className="pt-3 border-t border-amber-100 flex items-center justify-between text-[11px] text-slate-500 font-sans mt-auto">
-                    <div className="flex items-center gap-1 truncate max-w-[150px]">
-                      <User className="w-3 h-3 text-amber-600 shrink-0" />
-                      <span className="truncate">{item.author || 'Ban Liên Lạc'}</span>
+          {/* HÀNG 3: BĂNG CHUYỀN THẺ TIN NẰM NGANG (HORIZONTAL COMPACT STRIP) */}
+          {filteredList.length === 0 ? (
+            <div className="text-center py-6 px-3 rounded-xl border border-dashed border-white/15 bg-white/5">
+              <Newspaper className="w-6 h-6 text-amber-400 mx-auto mb-1 opacity-60" />
+              <p className="text-xs text-slate-300">Không có bản tin nào trong danh mục này</p>
+              <button 
+                type="button" 
+                onClick={() => setSelectedCategory('all')} 
+                className="mt-1.5 text-[11px] text-amber-400 font-bold hover:underline cursor-pointer"
+              >
+                Quay lại xem tất cả
+              </button>
+            </div>
+          ) : (
+            <div 
+              ref={scrollContainerRef}
+              className="flex gap-2.5 sm:gap-3 overflow-x-auto pb-1 scrollbar-none snap-x scroll-smooth"
+            >
+              {filteredList.map((item) => {
+                const catInfo = DARK_CATEGORY_STYLES[item.category] || DARK_CATEGORY_STYLES.schedule;
+                return (
+                  <article
+                    key={item.id}
+                    onClick={() => handleCardClick(item)}
+                    className="w-[270px] sm:w-[310px] h-[100px] sm:h-[108px] shrink-0 snap-start bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 hover:border-amber-400/60 rounded-xl p-2.5 transition-all duration-200 cursor-pointer flex gap-2.5 group relative overflow-hidden select-none hover:shadow-lg hover:-translate-y-0.5"
+                  >
+                    {/* CỘT TRÁI: ẢNH THUMBNAIL HOẶC BIỂU TƯỢNG DANH MỤC */}
+                    <div className="w-20 sm:w-22 h-full rounded-lg overflow-hidden shrink-0 border border-white/10 bg-slate-900/60 relative flex items-center justify-center">
+                      {item.imageUrl ? (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          onError={(e: any) => { e.target.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-amber-950/40 to-slate-900 flex flex-col items-center justify-center text-amber-300">
+                          <span className="text-xl">{catInfo.icon}</span>
+                          <span className="text-[9px] font-bold text-amber-200/70 mt-0.5 uppercase tracking-wider">{catInfo.label.slice(0, 8)}</span>
+                        </div>
+                      )}
+                      {item.isPinned && (
+                        <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-xs">
+                          <Pin className="w-2.5 h-2.5 fill-slate-950" />
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-1 font-mono">
-                      <Calendar className="w-3 h-3 text-amber-600 shrink-0" />
-                      <span>{item.createdAt}</span>
+                    {/* CỘT PHẢI: CHI TIẾT BẢN TIN */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                      
+                      {/* DANH MỤC & NGÀY ĐĂNG */}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-sans font-bold border ${catInfo.badgeClass}`}>
+                          <span>{catInfo.icon}</span>
+                          <span className="truncate max-w-[80px]">{catInfo.label}</span>
+                        </span>
+
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                          {item.createdAt.split(' ')[0]}
+                        </span>
+                      </div>
+
+                      {/* TIÊU ĐỀ BÀI VIẾT (2 DÒNG) */}
+                      <h3 className="text-xs sm:text-[13px] font-semibold text-slate-100 group-hover:text-amber-300 transition line-clamp-2 leading-snug">
+                        {item.title}
+                      </h3>
+
+                      {/* TÁC GIẢ & LƯỢT THÍCH */}
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5 font-sans">
+                        <span className="truncate max-w-[120px] text-slate-300">
+                          {item.author || 'Ban Liên Lạc'}
+                        </span>
+
+                        <span className="inline-flex items-center gap-0.5 text-rose-400 font-mono shrink-0">
+                          <Heart className="w-2.5 h-2.5 fill-rose-400" />
+                          <span>{item.likesCount || 0}</span>
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* DẢI HÀNH ĐỘNG CUỐI CARD */}
-                <div className="px-4 py-2.5 bg-amber-50/50 border-t border-amber-100 flex items-center justify-between text-xs font-sans font-semibold text-amber-900 group-hover:bg-amber-100/50 transition">
-                  <span className="inline-flex items-center gap-1">
-                    <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
-                    <span>{item.likesCount || 0} lượt thích</span>
-                  </span>
-
-                  <span className="inline-flex items-center gap-1 text-amber-700 group-hover:translate-x-1 transition font-bold">
-                    <span>Đọc tiếp</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </article>
-            );
-          })}
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* MODAL ĐỌC BÀI VIẾT CHI TIẾT (Fallback nếu không có modal toàn cục) */}
       {!onSelectAnnouncement && (
