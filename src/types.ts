@@ -292,6 +292,21 @@ export interface EventConfig {
   musicPlaylist?: MusicTrack[];
   stageSettings?: StageSettings;
   showAnnouncements?: boolean; // Bật / Tắt hiển thị khối Thông báo & Bản tin lên Web
+  blockVisibility?: BlockVisibilityConfig; // Cấu hình Ẩn/Hiện linh hoạt 10 khối nội dung
+}
+
+// Cấu hình Bật / Tắt (Ẩn / Hiện) linh hoạt từng khối nội dung trên trang chủ
+export interface BlockVisibilityConfig {
+  countdown?: boolean;             // Module Đếm ngược thời gian (mặc định: true)
+  gatheringCounter?: boolean;      // Tình hình bạn bè điểm danh (mặc định: true)
+  announcements?: boolean;         // Bản tin, Thông báo & Bình chọn (mặc định: true)
+  invitationLetter?: boolean;      // Bức thư ngỏ & Thiệp mời dạ tiệc (mặc định: true)
+  venueMap?: boolean;              // Địa điểm & Bản đồ hội tụ (mặc định: true)
+  rsvpForm?: boolean;              // Phiếu báo danh & Điểm danh (mặc định: true)
+  confirmedAttendees?: boolean;    // Bảng vàng bạn bè & Áo Polo (mặc định: true)
+  fundBankTransfer?: boolean;      // Sổ quỹ lớp & Cổng chuyển khoản (mặc định: true)
+  teachers?: boolean;              // Tri ân Quý Thầy Cô (mặc định: true)
+  memories?: boolean;              // Kho ký ức, Ảnh & Video (mặc định: true)
 }
 
 // =============================================================================

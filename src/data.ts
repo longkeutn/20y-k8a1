@@ -2060,7 +2060,19 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   backdrops: DEFAULT_BACKDROPS,
   musicPlaylist: DEFAULT_PLAYLIST,
   stageSettings: DEFAULT_STAGE_SETTINGS,
-  showAnnouncements: true
+  showAnnouncements: true,
+  blockVisibility: {
+    countdown: true,
+    gatheringCounter: true,
+    announcements: true,
+    invitationLetter: true,
+    venueMap: true,
+    rsvpForm: true,
+    confirmedAttendees: true,
+    fundBankTransfer: true,
+    teachers: true,
+    memories: true,
+  }
 };
 
 // =============================================================================

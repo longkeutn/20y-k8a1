@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
   Heart, 
@@ -10,6 +10,7 @@ import {
   Clock,
   Compass,
   CheckCircle,
+  CheckCircle2,
   MailOpen,
   Quote,
   Users,
@@ -27,7 +28,11 @@ import {
   AlertCircle,
   X,
   Tv,
-  Bell
+  Bell,
+  Megaphone,
+  Shirt,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement } from './types';
@@ -66,6 +71,7 @@ import AnnouncementDetailModal from './components/AnnouncementDetailModal';
 import NotificationBell from './components/NotificationBell';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import PullToRefresh from './components/PullToRefresh';
+import CollapsibleSection from './components/CollapsibleSection';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -201,7 +207,30 @@ export default function App() {
     backdrops: Array.isArray(cfg?.backdrops) && cfg.backdrops.length > 0 ? cfg.backdrops : (DEFAULT_EVENT_CONFIG.backdrops || DEFAULT_BACKDROPS),
     musicPlaylist: Array.isArray(cfg?.musicPlaylist) && cfg.musicPlaylist.length > 0 ? cfg.musicPlaylist : (DEFAULT_EVENT_CONFIG.musicPlaylist || DEFAULT_PLAYLIST),
     stageSettings: cfg?.stageSettings ? cfg.stageSettings : (DEFAULT_EVENT_CONFIG.stageSettings || DEFAULT_STAGE_SETTINGS),
-    showAnnouncements: parseBooleanSafe(cfg?.showAnnouncements, DEFAULT_EVENT_CONFIG.showAnnouncements !== false)
+    showAnnouncements: parseBooleanSafe(cfg?.showAnnouncements, DEFAULT_EVENT_CONFIG.showAnnouncements !== false),
+    blockVisibility: cfg?.blockVisibility ? {
+      countdown: cfg.blockVisibility.countdown !== false,
+      gatheringCounter: cfg.blockVisibility.gatheringCounter !== false,
+      announcements: cfg.blockVisibility.announcements !== false,
+      invitationLetter: cfg.blockVisibility.invitationLetter !== false,
+      venueMap: cfg.blockVisibility.venueMap !== false,
+      rsvpForm: cfg.blockVisibility.rsvpForm !== false,
+      confirmedAttendees: cfg.blockVisibility.confirmedAttendees !== false,
+      fundBankTransfer: cfg.blockVisibility.fundBankTransfer !== false,
+      teachers: cfg.blockVisibility.teachers !== false,
+      memories: cfg.blockVisibility.memories !== false,
+    } : (DEFAULT_EVENT_CONFIG.blockVisibility || {
+      countdown: true,
+      gatheringCounter: true,
+      announcements: true,
+      invitationLetter: true,
+      venueMap: true,
+      rsvpForm: true,
+      confirmedAttendees: true,
+      fundBankTransfer: true,
+      teachers: true,
+      memories: true
+    })
   });
 
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
@@ -268,6 +297,77 @@ export default function App() {
     // Ghi trực tiếp và vĩnh viễn vào Google Sheet tab "Cau_Hinh"
     syncToBackend('save_config', { config: cleanConfig });
   };
+
+  // ---------------------------------------------------------------------------
+  // COLLAPSIBLE SECTIONS STATE (ĐÓNG / MỞ TỪNG KHỐI NỘI DUNG)
+  // ---------------------------------------------------------------------------
+  const [collapsedBlocks, setCollapsedBlocks] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_collapsed_blocks');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {};
+  });
+
+  const toggleBlockCollapse = useCallback((blockId: string) => {
+    setCollapsedBlocks((prev) => {
+      const next = { ...prev, [blockId]: !prev[blockId] };
+      try {
+        localStorage.setItem('k8a1_collapsed_blocks', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const setAllBlocksCollapsed = useCallback((collapsed: boolean) => {
+    const allKeys = [
+      'countdown',
+      'gathering-counter',
+      'ban-tin',
+      'invitation-letter-card',
+      'dia-diem',
+      'diem-danh',
+      'danh-sach-diem-danh',
+      'bank-transfer-card',
+      'thay-co',
+      'ky-uc'
+    ];
+    const next: Record<string, boolean> = {};
+    allKeys.forEach((k) => {
+      next[k] = collapsed;
+    });
+    setCollapsedBlocks(next);
+    try {
+      localStorage.setItem('k8a1_collapsed_blocks', JSON.stringify(next));
+    } catch {}
+  }, []);
+
+  // Tự động mở rộng khối (expand) khi người dùng bấm vào các nút điều hướng chuyển nhanh (Jump Ribbon, SectionNav...)
+  useEffect(() => {
+    const handleExpandBlock = (e: Event) => {
+      const customEv = e as CustomEvent<{ blockId: string }>;
+      const targetId = customEv.detail?.blockId;
+      if (targetId) {
+        setCollapsedBlocks((prev) => {
+          if (!prev[targetId]) return prev;
+          const next = { ...prev, [targetId]: false };
+          try {
+            localStorage.setItem('k8a1_collapsed_blocks', JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener('expand-block', handleExpandBlock);
+    return () => window.removeEventListener('expand-block', handleExpandBlock);
+  }, []);
+
+  const allBlocksAreCollapsed = useMemo(() => {
+    const mainKeys = ['ban-tin', 'invitation-letter-card', 'dia-diem', 'diem-danh', 'danh-sach-diem-danh', 'bank-transfer-card', 'thay-co', 'ky-uc'];
+    const count = mainKeys.filter(k => Boolean(collapsedBlocks[k])).length;
+    return count >= Math.floor(mainKeys.length / 2);
+  }, [collapsedBlocks]);
 
   // User Role (RBAC): 'guest' | 'bll' | 'treasurer' | 'admin'
   // Yêu cầu bảo mật: Phải có admin_pin_token đã xác thực trong phiên sessionStorage mới công nhận quyền
@@ -2586,7 +2686,11 @@ export default function App() {
             <QuickJumpRibbon 
               confirmedCount={confirmedCount}
               teachersCount={teachersList.length}
+              blockVisibility={eventConfig.blockVisibility}
               onOpenGuideModal={handleOpenGuideModal}
+              onExpandAll={() => setAllBlocksCollapsed(false)}
+              onCollapseAll={() => setAllBlocksCollapsed(true)}
+              allCollapsed={allBlocksAreCollapsed}
               className="pt-2"
             />
           </div>
@@ -2623,202 +2727,375 @@ export default function App() {
             />
           </motion.div>
         ) : (
-          <div className="space-y-8 sm:space-y-9">
+          <div className="space-y-6 sm:space-y-8">
 
-            {/* MODULE ĐẾM NGƯỢC THỜI GIAN */}
-            <div className="pt-0.5">
-              <CountdownTimer 
-                targetDate={eventConfig.countdownTarget} 
-                eventDateText={eventConfig.eventDateText}
-                venueName={eventConfig.venueName}
-                eventTimeText={eventConfig.eventTimeText}
-                eventTitle={eventConfig.eventTitle}
-              />
+            {/* 🗂️ THANH ĐIỀU KHIỂN TỔNG: THU GỌN / MỞ RỘNG TẤT CẢ CÁC KHỐI */}
+            <div className="flex items-center justify-between px-2 pt-1 pb-1 text-xs select-none">
+              <span className="flex items-center gap-1.5 font-medium text-[11px] text-slate-400">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Bấm tiêu đề từng khối để Đóng / Mở gọn gàng</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAllBlocksCollapsed(true)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition cursor-pointer text-[11px] font-medium active:scale-95 shadow-xs"
+                  title="Thu gọn tất cả các khối để lướt mục lục nhanh"
+                >
+                  📂 Thu Gọn Hết
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAllBlocksCollapsed(false)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 hover:text-white border border-amber-500/40 transition cursor-pointer text-[11px] font-medium active:scale-95 shadow-xs"
+                  title="Mở rộng tất cả các khối để xem đầy đủ chi tiết"
+                >
+                  📖 Mở Rộng Hết
+                </button>
+              </div>
             </div>
 
-            {/* KHỐI TÌNH HÌNH BẠN BÈ ĐIỂM DANH HỌP LỚP (GẦN GŨI, ĐỜI THƯỜNG) */}
-            <ClassGatheringCounter
-              rsvpList={rsvpList}
-              classRoster={classRoster}
-              activeMember={activeMember}
-              isSyncing={isRefreshing}
-              onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
-            />
+            {/* ======================================================== */}
+            {/* 1. ⏰ KHỐI ĐẾM NGƯỢC THỜI GIAN HỘI KHÓA                 */}
+            {/* ======================================================== */}
+            {eventConfig.blockVisibility?.countdown !== false && (
+              <CollapsibleSection
+                id="countdown"
+                title="Đồng Hồ Đếm Ngược Ngày Hội Ngộ"
+                shortTitle="Đếm ngược"
+                subtitle="Hẹn ngày trở về: 20 Năm THPT Thái Nguyên"
+                icon={Clock}
+                badge="Đếm ngược"
+                isCollapsed={Boolean(collapsedBlocks['countdown'])}
+                onToggleCollapse={() => toggleBlockCollapse('countdown')}
+                variant="slate"
+                previewSnippet={
+                  <span className="text-amber-300 font-medium">
+                    ⏰ {eventConfig.eventDateText} • {eventConfig.venueName}
+                  </span>
+                }
+              >
+                <div className="pt-0.5">
+                  <CountdownTimer 
+                    targetDate={eventConfig.countdownTarget} 
+                    eventDateText={eventConfig.eventDateText}
+                    venueName={eventConfig.venueName}
+                    eventTimeText={eventConfig.eventTimeText}
+                    eventTitle={eventConfig.eventTitle}
+                  />
+                </div>
+              </CollapsibleSection>
+            )}
 
-            {/* 📰 BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 (KÊNH PHÁT NGÔN CHÍNH THỐNG) */}
-            {eventConfig.showAnnouncements !== false && (
-              <ClassNewsFeed
-                announcements={announcements}
-                eventConfig={eventConfig}
-                onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
-                onNavigateAction={(targetId) => scrollToBlock(targetId)}
-                onVote={handleVoteAnnouncement}
-                activeMember={activeMember}
-                classRoster={classRoster}
-              />
+            {/* ======================================================== */}
+            {/* 2. 👥 KHỐI TÌNH HÌNH BẠN BÈ ĐIỂM DANH HỌP LỚP (GẦN GŨI)   */}
+            {/* ======================================================== */}
+            {eventConfig.blockVisibility?.gatheringCounter !== false && (
+              <CollapsibleSection
+                id="gathering-counter"
+                title="Tình Hình Điểm Danh Họp Lớp K8A1"
+                shortTitle="Điểm danh bạn bè"
+                subtitle="Cập nhật sỹ số bạn bè đã báo danh & chưa báo danh"
+                icon={Users}
+                badge={`${confirmedCount}/${classRoster.length || 45} Bạn`}
+                isCollapsed={Boolean(collapsedBlocks['gathering-counter'])}
+                onToggleCollapse={() => toggleBlockCollapse('gathering-counter')}
+                variant="slate"
+                previewSnippet={
+                  <span className="text-sky-300 font-medium">
+                    👥 Đã có <strong className="text-white font-bold">{confirmedCount}</strong> bạn xác nhận tham gia hội khóa 20 năm!
+                  </span>
+                }
+              >
+                <ClassGatheringCounter
+                  rsvpList={rsvpList}
+                  classRoster={classRoster}
+                  activeMember={activeMember}
+                  isSyncing={isRefreshing}
+                  onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
+                />
+              </CollapsibleSection>
+            )}
+
+            {/* ======================================================== */}
+            {/* 3. 📰 BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1                */}
+            {/* ======================================================== */}
+            {eventConfig.showAnnouncements !== false && (eventConfig.blockVisibility?.announcements !== false) && (
+              <CollapsibleSection
+                id="ban-tin"
+                title="Bản Tin & Khảo Sát Ý Kiến K8A1"
+                shortTitle="Bản tin & Bình chọn"
+                subtitle="Kênh phát ngôn chính thống của BLL & Thăm dò ý kiến trực tiếp"
+                icon={Megaphone}
+                badge={`${announcements.length} Tin`}
+                isCollapsed={Boolean(collapsedBlocks['ban-tin'])}
+                onToggleCollapse={() => toggleBlockCollapse('ban-tin')}
+                variant="slate"
+                previewSnippet={
+                  <span className="text-amber-200/90 font-medium truncate max-w-xs sm:max-w-md">
+                    📢 {announcements[0]?.title || 'Xem bản tin thông báo & bình chọn mới nhất'}
+                  </span>
+                }
+              >
+                <ClassNewsFeed
+                  announcements={announcements}
+                  eventConfig={eventConfig}
+                  onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
+                  onNavigateAction={(targetId) => scrollToBlock(targetId)}
+                  onVote={handleVoteAnnouncement}
+                  activeMember={activeMember}
+                  classRoster={classRoster}
+                />
+              </CollapsibleSection>
             )}
 
             {/* Mũi tên điều hướng chuyển tiếp */}
-            <SectionTransitionNav currentBlockId={eventConfig.showAnnouncements !== false ? 'ban-tin' : 'invitation-letter-card'} />
-
-            {/* 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}
-            <div 
-              id="invitation-letter-card" 
-              className="bg-[#FFFEFA] border-[3px] border-double border-amber-500/60 rounded-xl p-5 sm:p-7 md:p-9 shadow-xl relative overflow-hidden text-left space-y-5 scroll-mt-20"
-            >
-              {/* Classical Ornate Corner Accents */}
-              <div className="absolute top-2.5 left-2.5 w-6 h-6 border-t-2 border-l-2 border-amber-600/80 pointer-events-none" />
-              <div className="absolute top-2.5 right-2.5 w-6 h-6 border-t-2 border-r-2 border-amber-600/80 pointer-events-none" />
-              <div className="absolute bottom-2.5 left-2.5 w-6 h-6 border-b-2 border-l-2 border-amber-600/80 pointer-events-none" />
-              <div className="absolute bottom-2.5 right-2.5 w-6 h-6 border-b-2 border-r-2 border-amber-600/80 pointer-events-none" />
-
-              {/* Red Wax Seal Badge in Top Right (Con Dấu Sáp Đỏ K8A1 20 Năm) */}
-              <div className="absolute -top-3 right-6 sm:right-10 z-20 pointer-events-none">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#8B1E2D] via-[#701524] to-[#4A0D17] shadow-2xl border-2 border-amber-400/80 flex flex-col items-center justify-center text-white text-center select-none transform rotate-6">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300 mb-0.5" />
-                  <span className="text-[10px] sm:text-xs font-serif font-black tracking-widest text-amber-200 uppercase">K8A1</span>
-                  <span className="text-[7px] sm:text-[8px] font-sans font-bold tracking-wider text-amber-300/90 uppercase">20 NĂM</span>
-                </div>
-              </div>
-
-              {/* Decorative background watermark */}
-              <div className="absolute -right-6 -bottom-8 text-amber-600/5 pointer-events-none select-none">
-                <Quote className="w-48 h-48" />
-              </div>
-
-              {/* Letter Header */}
-              <div className="space-y-1.5 border-b border-amber-300/60 pb-4 relative z-10">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
-                    Thư Ngỏ Họp Lớp 20 Năm (2003 — 2006)
-                  </span>
-
-                  {isBLLOrAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAdminHub('settings')}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-100/70 hover:bg-amber-200/80 text-amber-900 text-[10px] font-sans font-bold rounded-full border border-amber-300 transition cursor-pointer shrink-0"
-                      title="Dành cho Ban Liên Lạc & Admin: Chỉnh sửa lời ngỏ thiệp mời"
-                    >
-                      <Edit3 className="w-3 h-3 text-amber-700" />
-                      <span>Sửa Lời Ngỏ & Địa Điểm</span>
-                    </button>
-                  )}
-                </div>
-                
-                <h2 className="text-xl sm:text-2xl font-serif text-[#1E293B] font-bold tracking-tight">
-                  {eventConfig.letterTitle || "Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1"}
-                </h2>
-                <p className="text-xs text-slate-500 font-serif italic">
-                  {eventConfig.letterSubtitle || "Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên"}
-                </p>
-              </div>
-
-              {/* Letter Body */}
-              <div className="text-sm sm:text-base md:text-lg text-slate-700 leading-relaxed space-y-4 font-serif relative z-10">
-                <p className="italic text-slate-800 first-letter:text-4xl sm:first-letter:text-5xl first-letter:font-bold first-letter:text-amber-600 first-letter:mr-2.5 first-letter:float-left first-letter:leading-none whitespace-pre-line">
-                  {eventConfig.letterParagraph1}
-                </p>
-
-                {/* Golden Ticket Style Callout */}
-                <div className="my-4 p-4 sm:p-6 bg-gradient-to-r from-[#FAF3E0] via-[#FFFDF5] to-[#FAF3E0] border-2 border-dashed border-amber-500/70 rounded-xl shadow-xs font-sans relative">
-                  <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider mb-2">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
-                    <span>Hẹn Ngày Trở Về: {eventConfig.eventDateText}</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs text-slate-800">
-                    <div className="flex items-start gap-2">
-                      <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="font-bold text-slate-900">Thời gian đón tiếp:</p>
-                        <p className="text-slate-600">{eventConfig.eventTimeText || 'Từ 08:30 sáng đến 15:30 chiều'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-900">Địa điểm họp mặt:</p>
-                        {eventConfig.enableTwoVenues ? (
-                          <div className="text-slate-600 text-xs space-y-1 mt-0.5">
-                            <div>
-                              <span className="font-semibold text-amber-900 bg-amber-100/80 px-1.5 py-0.5 rounded text-[11px] mr-1">Chặng 1 ({eventConfig.venueTime || '08:30 — 11:00'})</span>
-                              <span>{eventConfig.venueName} — {eventConfig.shortAddress || eventConfig.venueAddress}</span>
-                            </div>
-                            <div>
-                              <span className="font-semibold text-rose-900 bg-rose-100/80 px-1.5 py-0.5 rounded text-[11px] mr-1">Chặng 2 ({eventConfig.venue2Time || '11:30 — 15:30'})</span>
-                              <span>{eventConfig.venue2Name} — {eventConfig.venue2ShortAddress || eventConfig.venue2Address}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-slate-600">
-                            {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="italic text-slate-800 whitespace-pre-line">
-                  {eventConfig.letterParagraph2}
-                </p>
-              </div>
-
-              {/* Primary CTA & Signature */}
-              <div className="pt-4 border-t border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('focus-diem-danh'));
-                    }}
-                    className="inline-flex items-center gap-2 px-5 py-3 bg-[#1E293B] hover:bg-amber-600 text-white text-xs sm:text-sm font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition-all duration-300 hover:scale-105 cursor-pointer"
-                  >
-                    <CheckCircle className="w-4 h-4 text-amber-400" />
-                    <span>Xác Nhận Tham Dự Ngay</span>
-                  </button>
-                </div>
-
-                <div className="text-left sm:text-right space-y-0.5">
-                  <p className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-800">
-                    {eventConfig.letterSignatureTitle || "Ban Liên Lạc Lớp K8A1 (Khóa 8)"}
-                  </p>
-                  <p className="text-xs font-serif italic text-slate-500">
-                    {eventConfig.letterSignatureSubtitle || "Trường THPT Thái Nguyên (2003 — 2006)"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ======================================================== */}
-            {/* 📍 PHÂN VÙNG 2: ĐỊA ĐIỂM TỔ CHỨC HỌP LỚP K8A1 */}
-            {/* ======================================================== */}
-            <SectionTransitionNav currentBlockId="dia-diem" />
-            <AlumniConvergenceMap
-              eventConfig={eventConfig}
+            <SectionTransitionNav 
+              currentBlockId="ban-tin" 
+              blockVisibility={eventConfig.blockVisibility} 
             />
 
             {/* ======================================================== */}
-            {/* 🎟️ PHÂN VÙNG 3: ĐIỂM DANH & THÀNH VIÊN VÀ QUỸ LỚP */}
+            {/* 4. 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC                   */}
             {/* ======================================================== */}
-            <SectionTransitionNav currentBlockId="diem-danh" />
-            <section id="diem-danh" className="space-y-6 scroll-mt-20">
-              {/* Form Điểm Danh */}
-              <RsvpForm 
-                appsScriptUrl={activeAppsScriptUrl} 
-                rsvpList={rsvpList} 
-                eventConfig={eventConfig}
-                classRoster={classRoster}
-                activeMember={activeMember}
-                currentUserRole={currentUserRole}
-                onSelectActiveMember={handleSelectActiveMember}
-                onAddRsvp={handleAddRsvp} 
-                onOpenPassModal={handleOpenPass}
-                onOpenReceiptModal={handleOpenReceiptModal}
-              />
+            {eventConfig.blockVisibility?.invitationLetter !== false && (
+              <CollapsibleSection
+                id="invitation-letter-card"
+                title="Bức Thư Ngỏ & Thiệp Mời Dạ Tiệc"
+                shortTitle="Bức Thư Ngỏ"
+                subtitle={eventConfig.letterTitle || "Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1"}
+                icon={MailOpen}
+                badge="Trang trọng"
+                isCollapsed={Boolean(collapsedBlocks['invitation-letter-card'])}
+                onToggleCollapse={() => toggleBlockCollapse('invitation-letter-card')}
+                variant="paper"
+                previewSnippet={
+                  <span className="italic text-amber-900 font-serif line-clamp-1">
+                    "{eventConfig.letterSubtitle || "Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên"}..."
+                  </span>
+                }
+              >
+                <div 
+                  className="bg-[#FFFEFA] border-[3px] border-double border-amber-500/60 rounded-xl p-5 sm:p-7 md:p-9 shadow-xl relative overflow-hidden text-left space-y-5"
+                >
+                  {/* Classical Ornate Corner Accents */}
+                  <div className="absolute top-2.5 left-2.5 w-6 h-6 border-t-2 border-l-2 border-amber-600/80 pointer-events-none" />
+                  <div className="absolute top-2.5 right-2.5 w-6 h-6 border-t-2 border-r-2 border-amber-600/80 pointer-events-none" />
+                  <div className="absolute bottom-2.5 left-2.5 w-6 h-6 border-b-2 border-l-2 border-amber-600/80 pointer-events-none" />
+                  <div className="absolute bottom-2.5 right-2.5 w-6 h-6 border-b-2 border-r-2 border-amber-600/80 pointer-events-none" />
 
-              {/* Danh Sách Thành Viên Đã Xác Nhận */}
-              <SectionTransitionNav currentBlockId="danh-sach-diem-danh" />
-              <div id="danh-sach-diem-danh" className="scroll-mt-20">
+                  {/* Red Wax Seal Badge in Top Right (Con Dấu Sáp Đỏ K8A1 20 Năm) */}
+                  <div className="absolute -top-3 right-6 sm:right-10 z-20 pointer-events-none">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#8B1E2D] via-[#701524] to-[#4A0D17] shadow-2xl border-2 border-amber-400/80 flex flex-col items-center justify-center text-white text-center select-none transform rotate-6">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300 mb-0.5" />
+                      <span className="text-[10px] sm:text-xs font-serif font-black tracking-widest text-amber-200 uppercase">K8A1</span>
+                      <span className="text-[7px] sm:text-[8px] font-sans font-bold tracking-wider text-amber-300/90 uppercase">20 NĂM</span>
+                    </div>
+                  </div>
+
+                  {/* Decorative background watermark */}
+                  <div className="absolute -right-6 -bottom-8 text-amber-600/5 pointer-events-none select-none">
+                    <Quote className="w-48 h-48" />
+                  </div>
+
+                  {/* Letter Header */}
+                  <div className="space-y-1.5 border-b border-amber-300/60 pb-4 relative z-10">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] uppercase tracking-widest font-sans font-bold text-amber-800 block">
+                        Thư Ngỏ Họp Lớp 20 Năm (2003 — 2006)
+                      </span>
+
+                      {isBLLOrAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAdminHub('settings')}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-100/70 hover:bg-amber-200/80 text-amber-900 text-[10px] font-sans font-bold rounded-full border border-amber-300 transition cursor-pointer shrink-0"
+                          title="Dành cho Ban Liên Lạc & Admin: Chỉnh sửa lời ngỏ thiệp mời"
+                        >
+                          <Edit3 className="w-3 h-3 text-amber-700" />
+                          <span>Sửa Lời Ngỏ & Địa Điểm</span>
+                        </button>
+                      )}
+                    </div>
+                    
+                    <h2 className="text-xl sm:text-2xl font-serif text-[#1E293B] font-bold tracking-tight">
+                      {eventConfig.letterTitle || "Lời Ngỏ Thân Tình Gửi Bạn Tôi — Lớp K8A1"}
+                    </h2>
+                    <p className="text-xs text-slate-500 font-serif italic">
+                      {eventConfig.letterSubtitle || "Hai mươi năm một chặng đường — Nơi ký ức thanh xuân THPT Thái Nguyên mãi vẹn nguyên"}
+                    </p>
+                  </div>
+
+                  {/* Letter Body */}
+                  <div className="text-sm sm:text-base md:text-lg text-slate-700 leading-relaxed space-y-4 font-serif relative z-10">
+                    <p className="italic text-slate-800 first-letter:text-4xl sm:first-letter:text-5xl first-letter:font-bold first-letter:text-amber-600 first-letter:mr-2.5 first-letter:float-left first-letter:leading-none whitespace-pre-line">
+                      {eventConfig.letterParagraph1}
+                    </p>
+
+                    {/* Golden Ticket Style Callout */}
+                    <div className="my-4 p-4 sm:p-6 bg-gradient-to-r from-[#FAF3E0] via-[#FFFDF5] to-[#FAF3E0] border-2 border-dashed border-amber-500/70 rounded-xl shadow-xs font-sans relative">
+                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider mb-2">
+                        <Sparkles className="w-4 h-4 text-amber-600" />
+                        <span>Hẹn Ngày Trở Về: {eventConfig.eventDateText}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs text-slate-800">
+                        <div className="flex items-start gap-2">
+                          <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="font-bold text-slate-900">Thời gian đón tiếp:</p>
+                            <p className="text-slate-600">{eventConfig.eventTimeText || 'Từ 08:30 sáng đến 15:30 chiều'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900">Địa điểm họp mặt:</p>
+                            {eventConfig.enableTwoVenues ? (
+                              <div className="text-slate-600 text-xs space-y-1 mt-0.5">
+                                <div>
+                                  <span className="font-semibold text-amber-900 bg-amber-100/80 px-1.5 py-0.5 rounded text-[11px] mr-1">Chặng 1 ({eventConfig.venueTime || '08:30 — 11:00'})</span>
+                                  <span>{eventConfig.venueName} — {eventConfig.shortAddress || eventConfig.venueAddress}</span>
+                                </div>
+                                <div>
+                                  <span className="font-semibold text-rose-900 bg-rose-100/80 px-1.5 py-0.5 rounded text-[11px] mr-1">Chặng 2 ({eventConfig.venue2Time || '11:30 — 15:30'})</span>
+                                  <span>{eventConfig.venue2Name} — {eventConfig.venue2ShortAddress || eventConfig.venue2Address}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-slate-600">
+                                {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="italic text-slate-800 whitespace-pre-line">
+                      {eventConfig.letterParagraph2}
+                    </p>
+                  </div>
+
+                  {/* Primary CTA & Signature */}
+                  <div className="pt-4 border-t border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          scrollToBlock('diem-danh');
+                        }}
+                        className="inline-flex items-center gap-2 px-5 py-3 bg-[#1E293B] hover:bg-amber-600 text-white text-xs sm:text-sm font-sans font-bold uppercase tracking-wider rounded-lg shadow-md transition-all duration-300 hover:scale-105 cursor-pointer"
+                      >
+                        <CheckCircle className="w-4 h-4 text-amber-400" />
+                        <span>Xác Nhận Tham Dự Ngay</span>
+                      </button>
+                    </div>
+
+                    <div className="text-left sm:text-right space-y-0.5">
+                      <p className="text-[11px] font-sans font-bold uppercase tracking-wider text-amber-800">
+                        {eventConfig.letterSignatureTitle || "Ban Liên Lạc Lớp K8A1 (Khóa 8)"}
+                      </p>
+                      <p className="text-xs font-serif italic text-slate-500">
+                        {eventConfig.letterSignatureSubtitle || "Trường THPT Thái Nguyên (2003 — 2006)"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleSection>
+            )}
+
+            {/* ======================================================== */}
+            {/* 5. 📍 ĐỊA ĐIỂM TỔ CHỨC HỌP LỚP K8A1                     */}
+            {/* ======================================================== */}
+            {eventConfig.blockVisibility?.venueMap !== false && (
+              <CollapsibleSection
+                id="dia-diem"
+                title="Thời Gian & Địa Điểm Tổ Chức"
+                shortTitle="Địa Điểm"
+                subtitle={eventConfig.enableTwoVenues ? "Hành trình hội ngộ 2 chặng liên hoàn: Trường cũ & Nhà hàng" : `${eventConfig.eventDateText} • ${eventConfig.venueName}`}
+                icon={MapPin}
+                badge={eventConfig.enableTwoVenues ? "2 Chặng" : "1 Điểm"}
+                isCollapsed={Boolean(collapsedBlocks['dia-diem'])}
+                onToggleCollapse={() => toggleBlockCollapse('dia-diem')}
+                variant="amber"
+                previewSnippet={
+                  <span className="text-amber-900 font-medium">
+                    📍 {eventConfig.venueName} {eventConfig.shortAddress ? `(${eventConfig.shortAddress})` : ''}
+                  </span>
+                }
+              >
+                <AlumniConvergenceMap
+                  eventConfig={eventConfig}
+                />
+              </CollapsibleSection>
+            )}
+
+            {/* Mũi tên điều hướng chuyển tiếp */}
+            <SectionTransitionNav 
+              currentBlockId="dia-diem" 
+              blockVisibility={eventConfig.blockVisibility} 
+            />
+
+            {/* ======================================================== */}
+            {/* 6. 🎟️ ĐIỂM DANH TRỰC TUYẾN                             */}
+            {/* ======================================================== */}
+            {eventConfig.blockVisibility?.rsvpForm !== false && (
+              <CollapsibleSection
+                id="diem-danh"
+                title="Báo Danh & Điểm Danh Trực Tuyến"
+                shortTitle="Điểm Danh"
+                subtitle="Xác nhận tham dự họp lớp, chọn size áo polo và gửi lời nhắn tới tập thể"
+                icon={CheckCircle2}
+                badge="Đăng ký tham dự"
+                isCollapsed={Boolean(collapsedBlocks['diem-danh'])}
+                onToggleCollapse={() => toggleBlockCollapse('diem-danh')}
+                variant="default"
+                previewSnippet={
+                  <span className="text-emerald-700 font-medium">
+                    ✨ Nhấn để điền phiếu báo danh hoặc kiểm tra thông tin tham dự của bạn
+                  </span>
+                }
+              >
+                <RsvpForm 
+                  appsScriptUrl={activeAppsScriptUrl} 
+                  rsvpList={rsvpList} 
+                  eventConfig={eventConfig}
+                  classRoster={classRoster}
+                  activeMember={activeMember}
+                  currentUserRole={currentUserRole}
+                  onSelectActiveMember={handleSelectActiveMember}
+                  onAddRsvp={handleAddRsvp} 
+                  onOpenPassModal={handleOpenPass}
+                  onOpenReceiptModal={handleOpenReceiptModal}
+                />
+              </CollapsibleSection>
+            )}
+
+            {/* Mũi tên điều hướng chuyển tiếp */}
+            <SectionTransitionNav 
+              currentBlockId="diem-danh" 
+              blockVisibility={eventConfig.blockVisibility} 
+            />
+
+            {/* ======================================================== */}
+            {/* 7. 👥 BẢNG VÀNG ĐIỂM DANH & ÁO POLO                      */}
+            {/* ======================================================== */}
+            {eventConfig.blockVisibility?.confirmedAttendees !== false && (
+              <CollapsibleSection
+                id="danh-sach-diem-danh"
+                title="Bảng Vàng Điểm Danh & Danh Sách Áo Polo"
+                shortTitle="Bạn Bè & Áo"
+                subtitle="Danh sách các bạn đã đăng ký trở về & thông tin đăng ký size áo"
+                icon={Users}
+                badge={`${confirmedCount} Bạn đã báo danh`}
+                isCollapsed={Boolean(collapsedBlocks['danh-sach-diem-danh'])}
+                onToggleCollapse={() => toggleBlockCollapse('danh-sach-diem-danh')}
+                variant="default"
+                previewSnippet={
+                  <span className="text-indigo-700 font-medium">
+                    👥 {confirmedCount > 0 ? `Đã có ${confirmedCount} bạn xác nhận tham dự hội khóa!` : 'Chưa có bạn nào đăng ký.'}
+                  </span>
+                }
+              >
                 <ConfirmedAttendees
                   appsScriptUrl={activeAppsScriptUrl}
                   rsvpList={rsvpList}
@@ -2830,58 +3107,135 @@ export default function App() {
                   onUpdateEventConfig={handleUpdateEventConfig}
                   isBLLOrAdmin={isBLLOrAdmin}
                 />
-              </div>
+              </CollapsibleSection>
+            )}
 
-              {/* Thông Tin Quỹ Lớp Minh Bạch */}
-              <SectionTransitionNav currentBlockId="bank-transfer-card" />
-              <BankTransfer 
-                fundTitle={eventConfig.fundTitle}
-                fundDescription={eventConfig.fundDescription}
-                bankName={eventConfig.bankName}
-                bankAccount={eventConfig.bankAccount}
-                bankHolder={eventConfig.bankHolder}
-                transferSyntax={eventConfig.transferSyntax}
-                fundAmount={eventConfig.fundAmountPerPerson}
-                customQrUrl={eventConfig.customQrUrl}
-                bankCode={eventConfig.bankCode}
-                qrTemplate={eventConfig.qrTemplate}
-                appsScriptUrl={activeAppsScriptUrl}
-                rsvpList={rsvpList}
-                expenses={expenses}
-                incomes={incomes}
-                activeMember={activeMember}
-                currentUserRole={currentUserRole}
-                onDeleteIncome={handleDeleteIncome}
-                onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
-                onOpenReceiptModal={handleOpenReceiptModal}
-                onOpenCharterModal={() => setIsCharterModalOpen(true)}
-                onUpdateRsvpList={handleUpdateRsvpList}
-              />
-            </section>
-
-            {/* ======================================================== */}
-            {/* 🎓 PHÂN VÙNG 4: TRI ÂN QUÝ THẦY CÔ GIÁO K8A1 */}
-            {/* ======================================================== */}
-            <SectionTransitionNav currentBlockId="thay-co" />
-            <TeachersHonorRoll
-              teachers={teachersList}
+            {/* Mũi tên điều hướng chuyển tiếp */}
+            <SectionTransitionNav 
+              currentBlockId="danh-sach-diem-danh" 
+              blockVisibility={eventConfig.blockVisibility} 
             />
 
             {/* ======================================================== */}
-            {/* 🎞️ PHÂN VÙNG 5: KHO KÝ ỨC THANH XUÂN K8A1 */}
+            {/* 8. 💳 SỔ QUỸ KỶ NIỆM & CỔNG NỘP QUỸ VIETQR               */}
             {/* ======================================================== */}
-            <SectionTransitionNav currentBlockId="ky-uc" />
-            <section id="ky-uc" className="space-y-6 scroll-mt-20">
-              <MemoryCorner 
-                appsScriptUrl={activeAppsScriptUrl} 
-                images={images} 
-                videos={videos} 
-                onAddImage={handleAddImage}
-                onOpenStagePresentation={isBLLOrAdmin ? () => setIsStagePresentationOpen(true) : undefined}
-              />
-            </section>
+            {eventConfig.blockVisibility?.fundBankTransfer !== false && (
+              <CollapsibleSection
+                id="bank-transfer-card"
+                title="Sổ Quỹ Kỷ Niệm & Cổng Nộp Quỹ VietQR"
+                shortTitle="Sổ Quỹ"
+                subtitle="Thu chi minh bạch & chuyển khoản trực tiếp vào tài khoản thủ quỹ"
+                icon={Coins}
+                badge="Quỹ lớp minh bạch"
+                isCollapsed={Boolean(collapsedBlocks['bank-transfer-card'])}
+                onToggleCollapse={() => toggleBlockCollapse('bank-transfer-card')}
+                variant="default"
+                previewSnippet={
+                  <span className="text-amber-800 font-medium">
+                    💳 Ngân hàng: {eventConfig.bankName || 'MBBank'} • {eventConfig.bankAccount || 'STK Thủ Quỹ'} ({Number(eventConfig.fundAmountPerPerson || 700000).toLocaleString('vi-VN')}đ/bạn)
+                  </span>
+                }
+              >
+                <BankTransfer 
+                  fundTitle={eventConfig.fundTitle}
+                  fundDescription={eventConfig.fundDescription}
+                  bankName={eventConfig.bankName}
+                  bankAccount={eventConfig.bankAccount}
+                  bankHolder={eventConfig.bankHolder}
+                  transferSyntax={eventConfig.transferSyntax}
+                  fundAmount={eventConfig.fundAmountPerPerson}
+                  customQrUrl={eventConfig.customQrUrl}
+                  bankCode={eventConfig.bankCode}
+                  qrTemplate={eventConfig.qrTemplate}
+                  appsScriptUrl={activeAppsScriptUrl}
+                  rsvpList={rsvpList}
+                  expenses={expenses}
+                  incomes={incomes}
+                  activeMember={activeMember}
+                  currentUserRole={currentUserRole}
+                  onDeleteIncome={handleDeleteIncome}
+                  onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
+                  onOpenReceiptModal={handleOpenReceiptModal}
+                  onOpenCharterModal={() => setIsCharterModalOpen(true)}
+                  onUpdateRsvpList={handleUpdateRsvpList}
+                />
+              </CollapsibleSection>
+            )}
+
+            {/* Mũi tên điều hướng chuyển tiếp */}
+            <SectionTransitionNav 
+              currentBlockId="bank-transfer-card" 
+              blockVisibility={eventConfig.blockVisibility} 
+            />
 
             {/* ======================================================== */}
+            {/* 9. 🎓 TRI ÂN QUÝ THẦY CÔ GIÁO K8A1                      */}
+            {/* ======================================================== */}
+            {eventConfig.blockVisibility?.teachers !== false && (
+              <CollapsibleSection
+                id="thay-co"
+                title="Tri Ân Quý Thầy Cô Giáo"
+                shortTitle="Thầy Cô"
+                subtitle="Bảng vàng tôn vinh những người lái đò thầm lặng niên khóa 2003 - 2006"
+                icon={GraduationCap}
+                badge={`${teachersList.length} Thầy Cô`}
+                isCollapsed={Boolean(collapsedBlocks['thay-co'])}
+                onToggleCollapse={() => toggleBlockCollapse('thay-co')}
+                variant="paper"
+                previewSnippet={
+                  <span className="text-blue-900 font-serif italic">
+                    🌹 Kính chúc Quý Thầy Cô luôn dồi dào sức khỏe, hạnh phúc và bình an! ({teachersList.length} Thầy Cô)
+                  </span>
+                }
+              >
+                <TeachersHonorRoll
+                  teachers={teachersList}
+                />
+              </CollapsibleSection>
+            )}
+
+            {/* Mũi tên điều hướng chuyển tiếp */}
+            <SectionTransitionNav 
+              currentBlockId="thay-co" 
+              blockVisibility={eventConfig.blockVisibility} 
+            />
+
+            {/* ======================================================== */}
+            {/* 10. 🎞️ KHO KÝ ỨC THANH XUÂN K8A1                         */}
+            {/* ======================================================== */}
+            {eventConfig.blockVisibility?.memories !== false && (
+              <CollapsibleSection
+                id="ky-uc"
+                title="Kho Kỷ Niệm Thanh Xuân K8A1"
+                shortTitle="Kho Kỷ Niệm"
+                subtitle="Nơi lưu giữ từng khoảnh khắc thanh xuân tươi đẹp nhất"
+                icon={Camera}
+                badge={`${images.length} Ảnh`}
+                isCollapsed={Boolean(collapsedBlocks['ky-uc'])}
+                onToggleCollapse={() => toggleBlockCollapse('ky-uc')}
+                variant="slate"
+                previewSnippet={
+                  <span className="text-pink-300 font-medium">
+                    📸 {images.length} hình ảnh & khoảnh khắc thanh xuân không thể nào quên
+                  </span>
+                }
+              >
+                <MemoryCorner 
+                  appsScriptUrl={activeAppsScriptUrl} 
+                  images={images} 
+                  videos={videos} 
+                  onAddImage={handleAddImage}
+                  onOpenStagePresentation={isBLLOrAdmin ? () => setIsStagePresentationOpen(true) : undefined}
+                />
+              </CollapsibleSection>
+            )}
+
+            {/* Mũi tên điều hướng chuyển tiếp */}
+            <SectionTransitionNav 
+              currentBlockId="ky-uc" 
+              blockVisibility={eventConfig.blockVisibility} 
+            />
+
             {/* ☕ FOOTER: LỜI KẾT ẤM ÁP & THÔNG TIN HỌP LỚP K8A1 */}
             {/* ======================================================== */}
             <footer className="mt-14 pt-8 pb-8 border border-amber-200/80 bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 shadow-xs text-xs text-slate-600">

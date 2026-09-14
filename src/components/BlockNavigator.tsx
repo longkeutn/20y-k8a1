@@ -11,8 +11,11 @@ import {
   Sparkles,
   ArrowUp,
   ArrowDown,
-  Megaphone
+  Megaphone,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
+import { BlockVisibilityConfig } from '../types';
 
 export interface BlockMeta {
   id: string;
@@ -33,8 +36,29 @@ export const PAGE_BLOCKS: BlockMeta[] = [
   { id: 'ky-uc', title: 'Kho Kỷ Niệm Thanh Xuân', shortTitle: 'Kỷ niệm', icon: Camera },
 ];
 
+export const BLOCK_ID_TO_VISIBILITY_KEY: Record<string, keyof BlockVisibilityConfig> = {
+  'countdown': 'countdown',
+  'gathering-counter': 'gatheringCounter',
+  'ban-tin': 'announcements',
+  'invitation-letter-card': 'invitationLetter',
+  'dia-diem': 'venueMap',
+  'diem-danh': 'rsvpForm',
+  'danh-sach-diem-danh': 'confirmedAttendees',
+  'bank-transfer-card': 'fundBankTransfer',
+  'thay-co': 'teachers',
+  'ky-uc': 'memories',
+};
+
+export const isBlockVisible = (blockId: string, visibility?: BlockVisibilityConfig): boolean => {
+  if (!visibility) return true;
+  const key = BLOCK_ID_TO_VISIBILITY_KEY[blockId];
+  if (!key) return true;
+  return visibility[key] !== false;
+};
+
 /**
- * Cuộn mượt mà đến đúng đầu khối, tự động trừ hao chiều cao thanh Header cố định (70px)
+ * Cuộn mượt mà đến đúng đầu khối, tự động mở rộng nếu khối đang bị thu gọn,
+ * và trừ hao chiều cao thanh Header cố định (70px).
  */
 export const scrollToBlock = (blockId: string, headerOffset = 70) => {
   if (blockId === 'hero') {
@@ -42,24 +66,31 @@ export const scrollToBlock = (blockId: string, headerOffset = 70) => {
     return;
   }
 
-  const el = document.getElementById(blockId);
-  if (el) {
-    const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
-    const offsetPosition = Math.max(0, elementPosition - headerOffset);
+  // Phát tín hiệu mở rộng khối nếu khối đang bị thu gọn (Accordion)
+  window.dispatchEvent(new CustomEvent('expand-block', { detail: { blockId } }));
 
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth'
-    });
+  // Đợi một khoảng ngắn (60ms) để DOM mở rộng hoàn tất trước khi tính tọa độ cuộn
+  setTimeout(() => {
+    const el = document.getElementById(blockId);
+    if (el) {
+      const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = Math.max(0, elementPosition - headerOffset);
 
-    if (blockId === 'diem-danh') {
-      window.dispatchEvent(new CustomEvent('focus-diem-danh'));
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+
+      if (blockId === 'diem-danh') {
+        window.dispatchEvent(new CustomEvent('focus-diem-danh'));
+      }
     }
-  }
+  }, 60);
 };
 
 interface SectionTransitionNavProps {
   currentBlockId: string;
+  blockVisibility?: BlockVisibilityConfig;
   className?: string;
 }
 
@@ -67,13 +98,14 @@ interface SectionTransitionNavProps {
  * Cụm nút mũi tên điều hướng chuyển tiếp giữa 2 khối liền kề
  * Hiển thị tinh tế ở ranh giới giữa các khối, cho phép người dùng lật khối lên/xuống 1 chạm
  */
-export function SectionTransitionNav({ currentBlockId, className = '' }: SectionTransitionNavProps) {
-  const currentIndex = PAGE_BLOCKS.findIndex((b) => b.id === currentBlockId);
+export function SectionTransitionNav({ currentBlockId, blockVisibility, className = '' }: SectionTransitionNavProps) {
+  const visibleBlocks = PAGE_BLOCKS.filter((b) => isBlockVisible(b.id, blockVisibility));
+  const currentIndex = visibleBlocks.findIndex((b) => b.id === currentBlockId);
   if (currentIndex === -1) return null;
 
-  const currentBlock = PAGE_BLOCKS[currentIndex];
-  const prevBlock = currentIndex > 0 ? PAGE_BLOCKS[currentIndex - 1] : null;
-  const nextBlock = currentIndex < PAGE_BLOCKS.length - 1 ? PAGE_BLOCKS[currentIndex + 1] : null;
+  const currentBlock = visibleBlocks[currentIndex];
+  const prevBlock = currentIndex > 0 ? visibleBlocks[currentIndex - 1] : null;
+  const nextBlock = currentIndex < visibleBlocks.length - 1 ? visibleBlocks[currentIndex + 1] : null;
 
   return (
     <div className={`w-full flex items-center justify-center py-2.5 my-1 select-none ${className}`}>
@@ -97,7 +129,7 @@ export function SectionTransitionNav({ currentBlockId, className = '' }: Section
         {/* Chỉ báo khối hiện tại */}
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[11px] font-semibold border border-amber-400/30">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-          <span>{currentIndex + 1}/{PAGE_BLOCKS.length}</span>
+          <span>{currentIndex + 1}/{visibleBlocks.length}</span>
           <span className="hidden md:inline font-sans text-amber-200/90 font-normal">
             • {currentBlock.shortTitle}
           </span>
@@ -125,7 +157,11 @@ export function SectionTransitionNav({ currentBlockId, className = '' }: Section
 interface QuickJumpRibbonProps {
   confirmedCount?: number;
   teachersCount?: number;
+  blockVisibility?: BlockVisibilityConfig;
   onOpenGuideModal?: () => void;
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
+  allCollapsed?: boolean;
   className?: string;
 }
 
@@ -136,7 +172,11 @@ interface QuickJumpRibbonProps {
 export function QuickJumpRibbon({
   confirmedCount = 0,
   teachersCount = 0,
+  blockVisibility,
   onOpenGuideModal,
+  onExpandAll,
+  onCollapseAll,
+  allCollapsed = false,
   className = ''
 }: QuickJumpRibbonProps) {
   const jumpItems = [
@@ -153,6 +193,8 @@ export function QuickJumpRibbon({
     { id: 'invitation-letter-card', label: 'Thư Ngỏ', icon: MailOpen },
   ];
 
+  const visibleJumpItems = jumpItems.filter((item) => isBlockVisible(item.id, blockVisibility));
+
   return (
     <nav 
       aria-label="Điều hướng nhanh các khối chính"
@@ -164,7 +206,33 @@ export function QuickJumpRibbon({
       </span>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        {jumpItems.map((item) => {
+        {/* Nút Thu gọn / Mở rộng tất cả */}
+        {(onExpandAll || onCollapseAll) && (
+          <button
+            type="button"
+            onClick={allCollapsed ? onExpandAll : onCollapseAll}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all duration-200 cursor-pointer whitespace-nowrap active:scale-95 text-xs font-bold shadow-xs ${
+              allCollapsed
+                ? 'bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border-amber-400/50'
+                : 'bg-blue-900/30 hover:bg-blue-800/40 text-blue-200 border-blue-400/40'
+            }`}
+            title={allCollapsed ? "Mở rộng tất cả các khối để xem đầy đủ" : "Thu gọn tất cả các khối để lướt mục lục nhanh"}
+          >
+            {allCollapsed ? (
+              <>
+                <Maximize2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span>Mở Rộng Hết</span>
+              </>
+            ) : (
+              <>
+                <Minimize2 className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                <span>Thu Gọn Hết</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {visibleJumpItems.map((item) => {
           const Icon = item.icon;
           return (
             <button

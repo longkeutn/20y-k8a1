@@ -90,7 +90,7 @@ import {
   Layers,
   PlaySquare
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene, Announcement } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, BlockVisibilityConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene, Announcement } from '../types';
 import { 
   parseMemberNote, 
   serializeMemberNote, 
@@ -476,7 +476,7 @@ export default function AdminManagementHub({
   // Chuẩn hóa số tiền đóng quỹ sự kiện K8A1 động theo cấu hình (mặc định 700.000đ)
   const standardFundAmount = Number(eventConfigForm?.fundAmountPerPerson) || 700000;
 
-  const [settingsSection, setSettingsSection] = useState<'all' | 'venue' | 'date' | 'letter' | 'bank' | 'security'>('all');
+  const [settingsSection, setSettingsSection] = useState<'all' | 'layout' | 'venue' | 'date' | 'letter' | 'bank' | 'security'>('all');
   const [venueSettingsTab, setVenueSettingsTab] = useState<'stage1' | 'stage2' | 'route'>('stage1');
 
   // Search & Filters for Member Tab
@@ -3208,6 +3208,53 @@ export default function AdminManagementHub({
   };
 
   // ---------------------------------------------------------------------------
+  // BLOCK VISIBILITY HANDLERS (QUẢN LÝ ẨN/HIỆN 10 KHỐI TRANG CHỦ)
+  // ---------------------------------------------------------------------------
+  const handleToggleBlockVisibility = (key: keyof BlockVisibilityConfig, checked: boolean) => {
+    const currentVis: BlockVisibilityConfig = eventConfigForm.blockVisibility || {
+      countdown: true,
+      gatheringCounter: true,
+      announcements: true,
+      invitationLetter: true,
+      venueMap: true,
+      rsvpForm: true,
+      confirmedAttendees: true,
+      fundBankTransfer: true,
+      teachers: true,
+      memories: true
+    };
+    const updatedVis: BlockVisibilityConfig = {
+      ...currentVis,
+      [key]: checked
+    };
+    setEventConfigForm({
+      ...eventConfigForm,
+      blockVisibility: updatedVis,
+      ...(key === 'announcements' ? { showAnnouncements: checked } : {})
+    });
+  };
+
+  const handleSetAllBlocksVisibility = (allVisible: boolean) => {
+    const updatedVis: BlockVisibilityConfig = {
+      countdown: allVisible,
+      gatheringCounter: allVisible,
+      announcements: allVisible,
+      invitationLetter: allVisible,
+      venueMap: allVisible,
+      rsvpForm: allVisible,
+      confirmedAttendees: allVisible,
+      fundBankTransfer: allVisible,
+      teachers: allVisible,
+      memories: allVisible
+    };
+    setEventConfigForm({
+      ...eventConfigForm,
+      blockVisibility: updatedVis,
+      showAnnouncements: allVisible
+    });
+  };
+
+  // ---------------------------------------------------------------------------
   // SETTINGS & EVENT CONFIGURATION SAVE (BLL & ADMIN FULL CRUD)
   // ---------------------------------------------------------------------------
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -3217,11 +3264,12 @@ export default function AdminManagementHub({
       return;
     }
 
-    // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Thời gian, Thư ngỏ, Quỹ) cho BLL & Admin
+    // 1. Lưu Cấu Hình Sự Kiện (Địa điểm, Thời gian, Thư ngỏ, Quỹ, Bố cục ẩn/hiện) cho BLL & Admin
     const mergedConfig: EventConfig = {
       ...eventConfigForm,
       heroBannerUrl: normalizeImageUrl(bannerInput.trim() || eventConfigForm.heroBannerUrl || heroBannerUrl || DEFAULT_EVENT_CONFIG.heroBannerUrl),
-      heroBannerPosition: bannerPositionY !== undefined ? bannerPositionY : (eventConfigForm.heroBannerPosition ?? 50)
+      heroBannerPosition: bannerPositionY !== undefined ? bannerPositionY : (eventConfigForm.heroBannerPosition ?? 50),
+      blockVisibility: eventConfigForm.blockVisibility || DEFAULT_EVENT_CONFIG.blockVisibility
     };
 
     if (onUpdateEventConfig) {
@@ -7042,6 +7090,17 @@ export default function AdminManagementHub({
                     🔒 5. Mã PIN & Apps Script
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setSettingsSection('layout')}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition ${
+                    settingsSection === 'layout'
+                      ? 'bg-slate-900 text-amber-300 shadow-xs'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  🗂️ 6. Bố Cục & Ẩn/Hiện Khối
+                </button>
               </div>
 
               <form 
@@ -7068,7 +7127,7 @@ export default function AdminManagementHub({
                         <input
                           type="checkbox"
                           checked={eventConfigForm.showAnnouncements !== false}
-                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, showAnnouncements: e.target.checked })}
+                          onChange={(e) => handleToggleBlockVisibility('announcements', e.target.checked)}
                           className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
                         />
                         <span>Hiển thị khối Thông báo & Bản tin lên Web</span>
@@ -8534,6 +8593,183 @@ export default function AdminManagementHub({
                         <span>Chỉ Quản trị viên (Admin 👑) mới có quyền đổi mã PIN và cấu hình URL Google Apps Script.</span>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* ============================================================= */}
+                {/* SECTION 6: 🗂️ QUẢN LÝ BỐ CỤC & TÙY CHỌN ẨN / HIỆN TỪNG KHỐI   */}
+                {/* ============================================================= */}
+                {(settingsSection === 'all' || settingsSection === 'layout') && (
+                  <div className="bg-white rounded-2xl border border-amber-300/80 shadow-sm p-5 sm:p-6 space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200 pb-3.5 gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="p-2 bg-amber-100 text-amber-800 rounded-xl">
+                          <Layers className="w-5 h-5" />
+                        </span>
+                        <div>
+                          <h4 className="font-serif font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                            <span>6. Quản Lý Bố Cục & Tùy Chọn Ẩn / Hiện Từng Khối</span>
+                          </h4>
+                          <p className="text-[11px] text-slate-500 font-sans">
+                            Bật/Tắt linh hoạt từng khối trên trang chủ WebApp để trang web luôn gọn gàng, phù hợp theo từng giai đoạn chuẩn bị và ngày diễn ra sự kiện.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleSetAllBlocksVisibility(true)}
+                          className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition cursor-pointer"
+                        >
+                          ✓ Hiện Tất Cả (10 Khối)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const coreVis: BlockVisibilityConfig = {
+                              countdown: true,
+                              gatheringCounter: false,
+                              announcements: true,
+                              invitationLetter: true,
+                              venueMap: true,
+                              rsvpForm: true,
+                              confirmedAttendees: true,
+                              fundBankTransfer: true,
+                              teachers: false,
+                              memories: false
+                            };
+                            setEventConfigForm({
+                              ...eventConfigForm,
+                              blockVisibility: coreVis,
+                              showAnnouncements: true
+                            });
+                          }}
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium transition cursor-pointer"
+                          title="Chỉ hiển thị các khối cốt lõi: Đếm ngược, Bản tin, Thư ngỏ, Địa điểm, Điểm danh, Bảng vàng, Sổ quỹ"
+                        >
+                          Gọn Gàng (Cốt Lõi)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {[
+                        {
+                          key: 'countdown' as const,
+                          name: '1. Đồng Hồ Đếm Ngược Ngày Hội Ngộ',
+                          badge: 'Đầu trang',
+                          description: 'Đếm ngược ngày, giờ, phút đến thời điểm họp lớp. Hiển thị ngày giờ và tên địa điểm chính.',
+                          icon: <Clock className="w-4 h-4 text-amber-600" />
+                        },
+                        {
+                          key: 'gatheringCounter' as const,
+                          name: '2. Tình Hình Điểm Danh Bạn Bè (Gần Gũi)',
+                          badge: 'Tương tác',
+                          description: 'Thống kê bạn bè đã báo danh, tạo không khí hào hứng và chia sẻ Zalo điểm danh.',
+                          icon: <Users className="w-4 h-4 text-sky-600" />
+                        },
+                        {
+                          key: 'announcements' as const,
+                          name: '3. Bản Tin & Khảo Sát Ý Kiến',
+                          badge: 'Kênh chính thức',
+                          description: 'Bản tin thông báo chính thức của BLL, cuộc thăm dò ý kiến và bình chọn trực tiếp trên web.',
+                          icon: <Bell className="w-4 h-4 text-indigo-600" />
+                        },
+                        {
+                          key: 'invitationLetter' as const,
+                          name: '4. Bức Thư Ngỏ & Thiệp Mời Dạ Tiệc',
+                          badge: 'Trang trọng',
+                          description: 'Bức thư ngỏ thân tình gửi bạn tôi, con dấu sáp K8A1 20 năm và thông điệp dạ tiệc.',
+                          icon: <MailOpen className="w-4 h-4 text-rose-600" />
+                        },
+                        {
+                          key: 'venueMap' as const,
+                          name: '5. Địa Điểm & Bản Đồ Hội Tụ',
+                          badge: 'Chỉ đường & Không gian',
+                          description: 'Bản đồ Google Maps, chỉ đường thông minh và không gian tổ chức (hỗ trợ 1 hoặc 2 chặng).',
+                          icon: <MapPin className="w-4 h-4 text-emerald-600" />
+                        },
+                        {
+                          key: 'rsvpForm' as const,
+                          name: '6. Phiếu Báo Danh & Điểm Danh Trực Tuyến',
+                          badge: 'Đăng ký',
+                          description: 'Form xác nhận tham dự, chọn size áo polo, người đi kèm và gửi tâm tình gửi lớp.',
+                          icon: <CheckCircle className="w-4 h-4 text-teal-600" />
+                        },
+                        {
+                          key: 'confirmedAttendees' as const,
+                          name: '7. Bảng Vàng Điểm Danh & Danh Sách Áo Polo',
+                          badge: 'Danh sách thành viên',
+                          description: 'Danh sách các bạn đã đăng ký, tra cứu size áo, xuất danh sách và xem thẻ học sinh tri kỷ.',
+                          icon: <Shirt className="w-4 h-4 text-purple-600" />
+                        },
+                        {
+                          key: 'fundBankTransfer' as const,
+                          name: '8. Sổ Quỹ Kỷ Niệm & Cổng VietQR Nộp Quỹ',
+                          badge: 'Tài chính minh bạch',
+                          description: 'Minh bạch thu chi, sao kê quỹ lớp và tạo mã VietQR tự động theo tên từng bạn.',
+                          icon: <Coins className="w-4 h-4 text-amber-600" />
+                        },
+                        {
+                          key: 'teachers' as const,
+                          name: '9. Tri Ân Quý Thầy Cô Giáo',
+                          badge: 'Tri ân người lái đò',
+                          description: 'Danh sách Thầy Cô giáo chủ nhiệm và bộ môn THPT Thái Nguyên niên khóa 2003 - 2006.',
+                          icon: <GraduationCap className="w-4 h-4 text-blue-600" />
+                        },
+                        {
+                          key: 'memories' as const,
+                          name: '10. Kho Kỷ Niệm Thanh Xuân (Ảnh & Video)',
+                          badge: 'Ký ức thanh xuân',
+                          description: 'Album ảnh lưu niệm xưa và nay, video hội khóa và trình chiếu kỷ niệm sân khấu.',
+                          icon: <ImageIcon className="w-4 h-4 text-pink-600" />
+                        },
+                      ].map((item) => {
+                        const isVisible = eventConfigForm.blockVisibility?.[item.key] !== false;
+                        return (
+                          <div
+                            key={item.key}
+                            className={`p-3.5 rounded-xl border transition-all ${
+                              isVisible 
+                                ? 'bg-[#FAFDF9] border-emerald-200 shadow-xs' 
+                                : 'bg-slate-50 border-slate-200 opacity-75'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-2.5 min-w-0">
+                                <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${isVisible ? 'bg-emerald-100/80 text-emerald-900' : 'bg-slate-200 text-slate-500'}`}>
+                                  {item.icon}
+                                </div>
+                                <div className="min-w-0 space-y-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                                      {item.name}
+                                    </span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200/70 text-slate-600 font-sans">
+                                      {item.badge}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2">
+                                    {item.description}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isVisible}
+                                  onChange={(e) => handleToggleBlockVisibility(item.key, e.target.checked)}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
