@@ -48,6 +48,7 @@ import {
   ExternalLink,
   Save,
   Link,
+  Bell,
   Building2,
   Play,
   MoveVertical,
@@ -6970,6 +6971,41 @@ export default function AdminManagementHub({
               </div>
 
               <form onSubmit={handleSaveSettings} className="space-y-6">
+
+                {/* ============================================================= */}
+                {/* 📢 ĐIỀU KHIỂN HIỂN THỊ: BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 */}
+                {/* ============================================================= */}
+                <div className="bg-gradient-to-r from-amber-50/90 via-[#FFFDF8] to-amber-50/90 rounded-2xl border-2 border-amber-300 shadow-xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <span className="p-2.5 bg-amber-200/80 text-amber-900 rounded-xl shrink-0 mt-0.5 shadow-xs">
+                      <Bell className="w-5 h-5" />
+                    </span>
+                    <div className="space-y-1">
+                      <label className="font-serif font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={eventConfigForm.showAnnouncements !== false}
+                          onChange={(e) => setEventConfigForm({ ...eventConfigForm, showAnnouncements: e.target.checked })}
+                          className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        />
+                        <span>Hiển thị khối Thông báo & Bản tin lên Web</span>
+                      </label>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Bật/Tắt quả chuông báo tin mới trên thanh Menu và khối Bản Tin chính thức K8A1 trên trang chủ (kênh phát ngôn chính thống, chống trôi bài Zalo).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-sans font-bold uppercase tracking-wider ${
+                      eventConfigForm.showAnnouncements !== false
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs'
+                        : 'bg-slate-100 text-slate-600 border border-slate-300'
+                    }`}>
+                      {eventConfigForm.showAnnouncements !== false ? '✓ Đang Hiển Thị' : 'Đang Tắt (Ẩn)'}
+                    </span>
+                  </div>
+                </div>
 
                 {/* ============================================================= */}
                 {/* SECTION 1: 📍 ĐỊA ĐIỂM TỔ CHỨC & BẢN ĐỒ GOOGLE MAPS */}

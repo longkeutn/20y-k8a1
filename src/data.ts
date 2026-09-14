@@ -2059,8 +2059,72 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   poloDescription: "Thun cá sấu 4 chiều cao cấp • Cổ áo & tay áo bo viền hổ phách • Thêu logo vàng kim ngực trái",
   backdrops: DEFAULT_BACKDROPS,
   musicPlaylist: DEFAULT_PLAYLIST,
-  stageSettings: DEFAULT_STAGE_SETTINGS
+  stageSettings: DEFAULT_STAGE_SETTINGS,
+  showAnnouncements: true
 };
+
+// =============================================================================
+// DANH SÁCH BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 MẶC ĐỊNH
+// =============================================================================
+export const DEFAULT_ANNOUNCEMENTS: import('./types').Announcement[] = [
+  {
+    id: "TB-01",
+    title: "📢 KHẨN: Chốt danh sách đặt may áo Polo đồng phục kỷ niệm trước 23:59 ngày 18/09",
+    category: "urgent",
+    summary: "Xưởng may chuẩn bị cắt vải và dệt bo viền cổ áo. Hiện còn một số bạn đã điểm danh nhưng chưa chọn kích cỡ áo, đề nghị các bạn vào chọn gấp.",
+    content: "Kính gửi toàn thể các thành viên tập thể K8A1 — Niên khóa 2003 - 2006,\n\nĐể chuẩn bị chu đáo nhất cho ngày Hội khóa 20 Năm Ngày Trở Về (Chủ Nhật, 27/09/2026), Ban Liên Lạc đã làm việc và thống nhất hợp đồng sản xuất với xưởng may đồng phục cao cấp tại Hà Nội.\n\nÁo Polo K8A1 kỷ niệm 20 năm được may bằng chất liệu thun cá sấu 4 chiều co giãn cao cấp, cổ áo bo viền màu hổ phách sang trọng, thêu nổi logo trường THPT Thái Nguyên và số hiệu 20 Năm mạ vàng tinh tế bên ngực trái.\n\n⚠️ LƯU Ý ĐẶC BIỆT TỪ XƯỞNG MAY:\n• Hạn chốt chốt số lượng và size áo cắt vải: 23:59 Thứ Sáu, ngày 18/09/2026.\n• Các bạn đã điểm danh nhưng chưa chọn size áo vui lòng bấm nút bên dưới để chọn ngay kích cỡ (từ size S đến 3XL) để xưởng kịp sản xuất.\n• Trường hợp bạn muốn đăng ký thêm áo cho người thân hoặc các cháu F1, xin vui lòng nhắn trực tiếp cho bạn Đào Hồng Nhung (Thủ quỹ) hoặc ghi chú trong biểu mẫu điểm danh.\n\nRất mong các bạn phối hợp khẩn trương để ngày hội khóa lớp mình rực rỡ và đồng điệu nhất!",
+    imageUrl: "/sample-polo-k8a1.jpg",
+    actionUrl: "#diem-danh",
+    actionLabel: "👕 Chọn Size Áo Của Bạn Ngay",
+    isPinned: true,
+    createdAt: "14/09/2026 08:30",
+    author: "Ban Liên Lạc K8A1",
+    status: "published",
+    likesCount: 42
+  },
+  {
+    id: "TB-02",
+    title: "📋 Kế hoạch chi tiết & Lịch trình Ngày Hội Khóa 20 Năm (Chủ Nhật, 27/09/2026)",
+    category: "schedule",
+    summary: "Lịch trình tập trung tại Cổng trường THPT Thái Nguyên từ 08:30 sáng, chụp ảnh lưu niệm sân trường và di chuyển tiệc trưa tại The Prime lúc 11:00.",
+    content: "Thân gửi các bạn học K8A1 thân mến,\n\nBan Liên Lạc xin trân trọng thông báo chi tiết kịch bản và khung giờ hoạt động của Ngày Hội Khóa 20 Năm K8A1 — Ngày Trở Về:\n\n🏛️ BUỔI SÁNG — TẬP TRUNG TẠI TRƯỜNG CŨ (08:30 — 10:45)\n• Địa điểm: Trường THPT Thái Nguyên (Số 127 đường Lương Thế Vinh, TP Thái Nguyên).\n• 08:30 - 09:15: Đón tiếp thành viên tại Cổng chính trường. Check-in nhận \"Tấm Vé Vàng Tri Kỷ\", phát áo đồng phục Polo K8A1.\n• 09:15 - 10:00: Thăm lại lớp học xưa, hành lang kỷ niệm, gặp gỡ và tri ân các Thầy Cô giáo chủ nhiệm và bộ môn.\n• 10:00 - 10:45: Chụp ảnh tập thể lớp trước tượng đài và sân trường lưu giữ khoảnh khắc 20 năm.\n\n🍽️ BUỔI TRƯA & CHIỀU — LIÊN HOAN HỘI NGỘ (11:00 — 15:30)\n• Địa điểm: Trung tâm Sự kiện & Nhà hàng The Prime Thái Nguyên (Số 1 đường Hoàng Văn Thụ, TP Thái Nguyên).\n• 11:00 - 11:30: Khai mạc tiệc mừng 20 năm, chiếu phóng sự hình ảnh tuổi học trò K8A1 trên màn hình LED sân khấu.\n• 11:30 - 13:30: Khai tiệc liên hoan, nâng ly chúc mừng sức khỏe và thành công của từng thành viên.\n• 13:30 - 15:30: Giao lưu âm nhạc, kể chuyện thời đi học, bốc thăm kỷ vật tri ân và trao quà lưu niệm.\n\nBan Tổ Chức đề nghị các bạn chủ động sắp xếp thời gian, có mặt đúng giờ để buổi lễ diễn ra trọn vẹn và ý nghĩa nhất!",
+    actionUrl: "#hero",
+    actionLabel: "📅 Xem Sơ Đồ & Đếm Ngược",
+    isPinned: true,
+    createdAt: "13/09/2026 14:00",
+    author: "Ban Liên Lạc K8A1",
+    status: "published",
+    likesCount: 56
+  },
+  {
+    id: "TB-03",
+    title: "💰 Báo cáo tiến độ Quỹ Lớp K8A1 & Tri ân các bạn đã hoàn thành đóng góp sớm",
+    category: "fund",
+    summary: "Tính đến nay đã có đông đảo thành viên hoàn tất đóng góp kinh phí và ủng hộ thêm cho quỹ lớp. Mọi khoản thu chi đều được đối soát công khai minh bạch 100%.",
+    content: "Kính gửi tập thể lớp K8A1,\n\nThay mặt Ban Liên Lạc và Ban Tài Chính, Thủ quỹ Đào Thị Hồng Nhung xin gửi lời cảm ơn chân thành và sâu sắc nhất tới toàn thể các bạn học đã tích cực hưởng ứng đóng góp kinh phí tổ chức Hội khóa 20 Năm.\n\nMức kinh phí thống nhất: 700.000 đ / thành viên (đã bao gồm toàn bộ chi phí áo polo cao cấp, kỷ niệm chương, hoa quà tri ân Thầy Cô, tiệc liên hoan trọn gói tại The Prime và truyền thông sân khấu).\n\nToàn bộ các khoản đóng góp được hệ thống tự động đối soát qua tài khoản VietinBank và cập nhật liên tục thời gian thực lên Sổ Quỹ Lớp trên WebApp.\n\nCác bạn chưa hoàn tất đóng góp có thể chuyển khoản trực tiếp qua mã QR VietQR thông minh tích hợp trên Web để được cấp mã biên lai tức thì.",
+    actionUrl: "#bank-transfer-card",
+    actionLabel: "💰 Mở Sổ Quỹ & Cổng Đóng Góp",
+    isPinned: false,
+    createdAt: "12/09/2026 18:30",
+    author: "Thủ Quỹ Đào Hồng Nhung",
+    status: "published",
+    likesCount: 38
+  },
+  {
+    id: "TB-04",
+    title: "📸 Ký sự BLL tiền trạm nhà hàng The Prime & Thăm hỏi trường THPT Thái Nguyên",
+    category: "activity",
+    summary: "Đại diện Ban Liên Lạc đã làm việc trực tiếp với Ban Giám Hiệu nhà trường và nhà hàng The Prime để rà soát cơ sở vật chất, sảnh tiệc và âm thanh ánh sáng.",
+    content: "Ngày 10/09 vừa qua, đại diện Ban Liên Lạc Lớp K8A1 đã có buổi gặp gỡ, làm việc tiền trạm tại cả hai điểm dừng chân của ngày hội khóa:\n\n1. Tại Trường THPT Thái Nguyên:\nBLL đã báo cáo kế hoạch hoạt động với Ban Giám Hiệu nhà trường và nhận được sự đồng thuận, tạo điều kiện tối đa cho cựu học sinh K8A1 trở về thăm trường. Khu vực sân trường và phòng học kỷ niệm sẽ được mở cửa đón tiếp lớp vào sáng Chủ Nhật 27/09.\n\n2. Tại Trung tâm Sự kiện The Prime:\nSảnh tiệc riêng biệt, hệ thống màn hình LED cỡ lớn độ nét cao, dàn âm thanh ánh sáng chuyên nghiệp đã được chốt hợp đồng và test kỹ thuật, đảm bảo không gian ấm cúng, sang trọng và trọn vẹn cảm xúc cho buổi gặp mặt của chúng ta.\n\nHẹn gặp lại tất cả 65 người bạn tri kỷ của K8A1 trong ngày 27/09/2026!",
+    actionUrl: "#diem-danh",
+    actionLabel: "🎫 Nhận Vé Vàng Có Mặt Cùng Lớp",
+    isPinned: false,
+    createdAt: "11/09/2026 10:15",
+    author: "Ban Liên Lạc K8A1",
+    status: "published",
+    likesCount: 49
+  }
+];
 
 // Logo chính thức Trường THPT Thái Nguyên (thuộc ĐH Sư Phạm - ĐH Thái Nguyên)
 export const SCHOOL_LOGO_URL = "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg";

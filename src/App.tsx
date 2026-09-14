@@ -26,11 +26,12 @@ import {
   RefreshCw,
   AlertCircle,
   X,
-  Tv
+  Tv,
+  Bell
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated } from './data';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement } from './types';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 import { parseMemberNote, serializeMemberNote } from './utils/memberUtils';
 
@@ -60,6 +61,9 @@ import { IdentitySelectorModal, NavbarIdentityBadge } from './components/Visitor
 import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
 import MobileCheckinQrModal from './components/MobileCheckinQrModal';
 import { SectionTransitionNav, QuickJumpRibbon, scrollToBlock } from './components/BlockNavigator';
+import ClassNewsFeed from './components/ClassNewsFeed';
+import AnnouncementDetailModal from './components/AnnouncementDetailModal';
+import NotificationBell from './components/NotificationBell';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -194,7 +198,8 @@ export default function App() {
     poloDescription: cfg?.poloDescription ? String(cfg.poloDescription).trim() : (DEFAULT_EVENT_CONFIG.poloDescription || 'Thun cá sấu 4 chiều cao cấp • Cổ áo & tay áo bo viền hổ phách • Thêu logo vàng kim ngực trái'),
     backdrops: Array.isArray(cfg?.backdrops) && cfg.backdrops.length > 0 ? cfg.backdrops : (DEFAULT_EVENT_CONFIG.backdrops || DEFAULT_BACKDROPS),
     musicPlaylist: Array.isArray(cfg?.musicPlaylist) && cfg.musicPlaylist.length > 0 ? cfg.musicPlaylist : (DEFAULT_EVENT_CONFIG.musicPlaylist || DEFAULT_PLAYLIST),
-    stageSettings: cfg?.stageSettings ? cfg.stageSettings : (DEFAULT_EVENT_CONFIG.stageSettings || DEFAULT_STAGE_SETTINGS)
+    stageSettings: cfg?.stageSettings ? cfg.stageSettings : (DEFAULT_EVENT_CONFIG.stageSettings || DEFAULT_STAGE_SETTINGS),
+    showAnnouncements: parseBooleanSafe(cfg?.showAnnouncements, DEFAULT_EVENT_CONFIG.showAnnouncements !== false)
   });
 
   // Dynamic Event Configuration State (Venue, Date, Letter, Bank Account)
@@ -317,6 +322,31 @@ export default function App() {
   const handleOpenGuideModal = (tab: 'member' | 'bll' | 'treasurer' | 'admin' | 'matrix' = 'member') => {
     setGuideInitialTab(tab);
     setIsGuideModalOpen(true);
+  };
+
+  // Danh sách Thông báo & Bản tin chính thức K8A1 (Giai đoạn 1)
+  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_announcements');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_ANNOUNCEMENTS;
+  });
+
+  // Modal xem chi tiết bài viết thông báo
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+
+  const handleLikeAnnouncement = (id: string) => {
+    setAnnouncements(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, likesCount: (a.likesCount || 0) + 1 } : a);
+      try {
+        localStorage.setItem('k8a1_announcements', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
@@ -1938,6 +1968,19 @@ export default function App() {
                 <span>Quỹ Lớp</span>
               </button>
 
+              {/* Bản Tin & Thông Báo K8A1 */}
+              {eventConfig.showAnnouncements !== false && (
+                <button
+                  type="button"
+                  onClick={() => scrollToBlock('ban-tin')}
+                  className="flex items-center gap-1 text-slate-300 hover:text-amber-300 transition px-2.5 py-1.5 rounded-full hover:bg-white/10 cursor-pointer whitespace-nowrap"
+                  title="Bản tin & Thông báo chính thức K8A1"
+                >
+                  <Bell className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Bản Tin</span>
+                </button>
+              )}
+
               {/* Cẩm Nang Hoạt Động & Vận Hành K8A1 */}
               <button
                 type="button"
@@ -1962,6 +2005,14 @@ export default function App() {
                 <span className="text-cyan-200 font-medium">Màn LED</span>
               </button>
             )}
+
+            {/* Quả Chuông Thông Báo (Chấm đỏ tin mới) */}
+            <NotificationBell
+              announcements={announcements}
+              eventConfig={eventConfig}
+              onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
+              onScrollToNewsFeed={() => scrollToBlock('ban-tin')}
+            />
 
             {/* Background Audio Player & Trình Phát Playlist */}
             <div className="shrink-0">
@@ -2362,8 +2413,16 @@ export default function App() {
               onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
             />
 
+            {/* 📰 BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 (KÊNH PHÁT NGÔN CHÍNH THỐNG) */}
+            <ClassNewsFeed
+              announcements={announcements}
+              eventConfig={eventConfig}
+              onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
+              onNavigateAction={(targetId) => scrollToBlock(targetId)}
+            />
+
             {/* Mũi tên điều hướng chuyển tiếp */}
-            <SectionTransitionNav currentBlockId="invitation-letter-card" />
+            <SectionTransitionNav currentBlockId={eventConfig.showAnnouncements !== false ? 'ban-tin' : 'invitation-letter-card'} />
 
             {/* 📜 BỨC THƯ NGỎ & THIỆP MỜI DẠ TIỆC (DOUBLE GOLD FOIL & WAX SEAL) */}
             <div 
@@ -2944,6 +3003,18 @@ export default function App() {
           setIsMobileQrModalOpen(false);
           setIsZaloShareModalOpen(true);
         } : undefined}
+      />
+
+      {/* 📰 MODAL XEM CHI TIẾT BÀI VIẾT BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 */}
+      <AnnouncementDetailModal
+        isOpen={!!selectedAnnouncement}
+        onClose={() => setSelectedAnnouncement(null)}
+        announcement={selectedAnnouncement}
+        onNavigateAction={(targetId) => {
+          setSelectedAnnouncement(null);
+          scrollToBlock(targetId);
+        }}
+        onLike={(id) => handleLikeAnnouncement(id)}
       />
 
       {/* Toast thông báo realtime */}

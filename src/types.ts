@@ -291,6 +291,28 @@ export interface EventConfig {
   backdrops?: BackdropItem[];
   musicPlaylist?: MusicTrack[];
   stageSettings?: StageSettings;
+  showAnnouncements?: boolean; // Bật / Tắt hiển thị khối Thông báo & Bản tin lên Web
+}
+
+// =============================================================================
+// MODULE THÔNG BÁO & BẢN TIN HOẠT ĐỘNG CHÍNH THỨC K8A1
+// =============================================================================
+export type AnnouncementCategory = 'urgent' | 'schedule' | 'shirts' | 'fund' | 'activity' | 'poll';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  category: AnnouncementCategory;
+  summary: string;
+  content: string;
+  imageUrl?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  isPinned?: boolean;
+  createdAt: string;
+  author?: string;
+  status?: 'published' | 'draft' | 'archived';
+  likesCount?: number;
 }
 
 export type ExpenseCategory = 

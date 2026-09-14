@@ -10,7 +10,8 @@ import {
   GraduationCap, 
   Sparkles,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Megaphone
 } from 'lucide-react';
 
 export interface BlockMeta {
@@ -22,6 +23,7 @@ export interface BlockMeta {
 
 export const PAGE_BLOCKS: BlockMeta[] = [
   { id: 'hero', title: 'Hội Ngộ 20 Năm', shortTitle: 'Trang đầu', icon: Sparkles },
+  { id: 'ban-tin', title: 'Bản Tin & Thông Báo', shortTitle: 'Bản tin', icon: Megaphone },
   { id: 'invitation-letter-card', title: 'Bức Thư Ngỏ', shortTitle: 'Thư ngỏ', icon: MailOpen },
   { id: 'dia-diem', title: 'Thời Gian & Địa Điểm', shortTitle: 'Địa điểm', icon: MapPin },
   { id: 'diem-danh', title: 'Báo Danh & Điểm Danh', shortTitle: 'Điểm danh', icon: CheckCircle2 },
