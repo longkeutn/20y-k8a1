@@ -25,6 +25,7 @@ interface QuickNavigationProps {
   onOpenIdentityModal?: () => void;
   onOpenZaloShareModal?: () => void;
   onOpenMobileQrModal?: () => void;
+  onRefreshData?: () => void;
 }
 
 interface NavItem {
@@ -42,7 +43,8 @@ export default function QuickNavigation({
   activeMember,
   onOpenIdentityModal,
   onOpenZaloShareModal,
-  onOpenMobileQrModal
+  onOpenMobileQrModal,
+  onRefreshData
 }: QuickNavigationProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -130,9 +132,14 @@ export default function QuickNavigation({
 
   const handlePrevBlock = useCallback(() => {
     const currentIdx = orderedBlockIds.findIndex((id) => id === activeSection);
+    if (currentIdx <= 0 && window.scrollY < 60) {
+      // Đang ở đầu trang mà bấm mũi tên Lên -> Làm mới dữ liệu
+      onRefreshData?.();
+      return;
+    }
     const prevIdx = currentIdx > 0 ? currentIdx - 1 : 0;
     scrollToTarget(orderedBlockIds[prevIdx]);
-  }, [activeSection, hasTeachers, scrollToTarget]);
+  }, [activeSection, hasTeachers, scrollToTarget, onRefreshData]);
 
   const handleNextBlock = useCallback(() => {
     const currentIdx = orderedBlockIds.findIndex((id) => id === activeSection);

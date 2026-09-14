@@ -65,6 +65,7 @@ import ClassNewsFeed from './components/ClassNewsFeed';
 import AnnouncementDetailModal from './components/AnnouncementDetailModal';
 import NotificationBell from './components/NotificationBell';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import PullToRefresh from './components/PullToRefresh';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -1871,8 +1872,53 @@ export default function App() {
       localStorage.removeItem('k8a1_video_list');
       localStorage.removeItem('custom_videos');
       localStorage.removeItem('uploaded_images');
+      localStorage.removeItem('k8a1_announcements');
     } catch (e) {}
     hydrateAllData(activeAppsScriptUrl);
+  };
+
+  // Tải lại toàn bộ ứng dụng PWA (Hard Reload: xóa sạch cache và nạp lại từ đầu)
+  const handleHardReload = () => {
+    try {
+      if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+      localStorage.removeItem('rsvp_list');
+      localStorage.removeItem('k8a1_class_roster');
+      localStorage.removeItem('k8a1_event_config');
+      localStorage.removeItem('wishes_list');
+      localStorage.removeItem('k8a1_expenses_list');
+      localStorage.removeItem('k8a1_incomes_list');
+      localStorage.removeItem('k8a1_teachers_list');
+      localStorage.removeItem('k8a1_video_list');
+      localStorage.removeItem('custom_videos');
+      localStorage.removeItem('uploaded_images');
+      localStorage.removeItem('k8a1_announcements');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          for (const reg of regs) {
+            reg.update();
+          }
+        });
+      }
+    } catch {}
+    window.location.reload();
+  };
+
+  // Làm mới dữ liệu ngầm mượt mà từ Google Sheets (Soft Refresh có rung haptic & toast thông báo)
+  const handleSoftRefresh = async (showToast: boolean = true) => {
+    try {
+      if (navigator.vibrate) navigator.vibrate(20);
+    } catch {}
+    handleRefreshData();
+    if (showToast) {
+      setLatestAction({
+        id: `toast-refresh-${Date.now()}`,
+        type: 'rsvp',
+        author: 'Hệ Thống K8A1',
+        text: 'vừa làm mới dữ liệu từ Google Sheets thành công! (Nhấp đúp nút để tải lại toàn bộ trang)',
+        timeAgo: 'Vừa xong',
+        isNew: true
+      });
+    }
   };
 
   // Tự động đồng bộ toàn bộ dữ liệu ngay khi tải trang và khi URL thay đổi
@@ -1957,8 +2003,20 @@ export default function App() {
       <header className="fixed top-0 inset-x-0 z-50 w-full backdrop-blur-md bg-[#161B26]/95 border-b border-amber-500/25 text-white shadow-md transition-all pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-1.5 sm:gap-3">
           
-          {/* Brand Logo & Class Name */}
-          <a href="#hero" className="flex items-center space-x-1.5 sm:space-x-2.5 group shrink-0">
+          {/* Brand Logo & Class Name (Chạm khi ở đầu trang để làm mới dữ liệu) */}
+          <a 
+            href="#hero" 
+            onClick={(e) => {
+              e.preventDefault();
+              if (window.scrollY < 40) {
+                handleSoftRefresh(true);
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="flex items-center space-x-1.5 sm:space-x-2.5 group shrink-0 cursor-pointer"
+            title="Về đầu trang • Chạm khi ở đầu trang để làm mới dữ liệu"
+          >
             <div className="relative shrink-0">
               <img 
                 src={eventConfig.schoolLogoUrl || "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"}
@@ -2071,19 +2129,29 @@ export default function App() {
               />
             </div>
 
-            {/* Live Realtime Sync Status Badge (Siêu gọn gàng) */}
+            {/* Live Realtime Sync Status Badge (1-chạm làm mới dữ liệu, nhấp đúp tải lại toàn bộ trang) */}
             <button
               type="button"
-              onClick={handleRefreshData}
+              onClick={() => {
+                const now = Date.now();
+                if (now - ((window as any).__k8a1_last_sync_click || 0) < 450) {
+                  // Nhấp đúp: Tải lại toàn bộ ứng dụng (Hard reload)
+                  handleHardReload();
+                } else {
+                  // 1-Chạm: Làm mới dữ liệu từ Google Sheets
+                  handleSoftRefresh(true);
+                }
+                (window as any).__k8a1_last_sync_click = now;
+              }}
               disabled={isRefreshing}
-              className={`flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap ${
+              className={`flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer shadow-xs shrink-0 whitespace-nowrap active:scale-95 ${
                 syncStatus === 'live'
                   ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/80 hover:border-emerald-400'
                   : syncStatus === 'syncing'
                   ? 'bg-amber-950/70 text-amber-300 border-amber-500/40 animate-pulse'
                   : 'bg-rose-950/70 text-rose-300 border-rose-500/40 hover:bg-rose-900/80'
               }`}
-              title={`Dữ liệu Google Sheets. Bấm để làm mới! ${lastSyncedTime ? `(Lúc ${lastSyncedTime})` : ''}`}
+              title={`Dữ liệu Google Sheets. Bấm 1 lần: Làm mới số liệu • Nhấp đúp: Tải lại toàn trang (Reload) ${lastSyncedTime ? `(Lúc ${lastSyncedTime})` : ''}`}
             >
               {syncStatus === 'error' ? (
                 <AlertCircle className="w-3 h-3 text-rose-400 shrink-0" />
@@ -3007,6 +3075,7 @@ export default function App() {
         onOpenIdentityModal={() => setIsIdentityModalOpen(true)}
         onOpenZaloShareModal={isBLLOrAdmin ? () => setIsZaloShareModalOpen(true) : undefined}
         onOpenMobileQrModal={isBLLOrAdmin ? () => setIsMobileQrModalOpen(true) : undefined}
+        onRefreshData={() => handleSoftRefresh(true)}
       />
 
       {/* 🎓 BẢNG DANH BẠ 65 BẠN HỌC K8A1 (CHỌN TÊN ĐỂ NHẬN DIỆN & CÁ NHÂN HÓA) */}
@@ -3068,6 +3137,9 @@ export default function App() {
         }}
         onLike={(id) => handleLikeAnnouncement(id)}
       />
+
+      {/* 📲 Cử chỉ kéo xuống để tải lại trang / làm mới dữ liệu cho PWA di động */}
+      <PullToRefresh onRefresh={() => handleSoftRefresh(false)} />
 
       {/* 📲 Banner cài đặt ứng dụng WebApp PWA ra màn hình chính điện thoại */}
       <PwaInstallPrompt />
