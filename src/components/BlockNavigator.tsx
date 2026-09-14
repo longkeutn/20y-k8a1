@@ -159,24 +159,18 @@ interface QuickJumpRibbonProps {
   teachersCount?: number;
   blockVisibility?: BlockVisibilityConfig;
   onOpenGuideModal?: () => void;
-  onExpandAll?: () => void;
-  onCollapseAll?: () => void;
-  allCollapsed?: boolean;
   className?: string;
 }
 
 /**
  * Cụm nút điều hướng nhanh tinh gọn trong Hero (Quick Jump Ribbon)
- * Nhãn ngắn gọn, icon rõ ràng, cuộn ngang mượt mà, loại bỏ chữ dài lê thê
+ * Màu sắc tương phản cao, chữ đậm rõ nét, nền sáng dễ đọc, không lặp lại nút Thu gọn
  */
 export function QuickJumpRibbon({
   confirmedCount = 0,
   teachersCount = 0,
   blockVisibility,
   onOpenGuideModal,
-  onExpandAll,
-  onCollapseAll,
-  allCollapsed = false,
   className = ''
 }: QuickJumpRibbonProps) {
   const jumpItems = [
@@ -198,40 +192,14 @@ export function QuickJumpRibbon({
   return (
     <nav 
       aria-label="Điều hướng nhanh các khối chính"
-      className={`w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-1 text-xs font-sans select-none ${className}`}
+      className={`w-full flex items-center gap-2 overflow-x-auto no-scrollbar py-1.5 text-xs font-sans select-none ${className}`}
     >
-      <span className="text-slate-300/80 font-medium shrink-0 flex items-center gap-1 pl-0.5 text-[11px]">
-        <Sparkles className="w-3 h-3 text-amber-400" />
+      <span className="text-slate-900 font-bold shrink-0 flex items-center gap-1.5 pl-0.5 text-xs">
+        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
         <span>Chuyển tới:</span>
       </span>
 
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* Nút Thu gọn / Mở rộng tất cả */}
-        {(onExpandAll || onCollapseAll) && (
-          <button
-            type="button"
-            onClick={allCollapsed ? onExpandAll : onCollapseAll}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all duration-200 cursor-pointer whitespace-nowrap active:scale-95 text-xs font-bold shadow-xs ${
-              allCollapsed
-                ? 'bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border-amber-400/50'
-                : 'bg-blue-900/30 hover:bg-blue-800/40 text-blue-200 border-blue-400/40'
-            }`}
-            title={allCollapsed ? "Mở rộng tất cả các khối để xem đầy đủ" : "Thu gọn tất cả các khối để lướt mục lục nhanh"}
-          >
-            {allCollapsed ? (
-              <>
-                <Maximize2 className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <span>Mở Rộng Hết</span>
-              </>
-            ) : (
-              <>
-                <Minimize2 className="w-3.5 h-3.5 text-sky-300 shrink-0" />
-                <span>Thu Gọn Hết</span>
-              </>
-            )}
-          </button>
-        )}
-
+      <div className="flex items-center gap-2 shrink-0">
         {visibleJumpItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -239,13 +207,13 @@ export function QuickJumpRibbon({
               key={item.id}
               type="button"
               onClick={() => scrollToBlock(item.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all duration-200 cursor-pointer whitespace-nowrap active:scale-95 shadow-xs ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-150 cursor-pointer whitespace-nowrap active:scale-95 shadow-xs ${
                 item.highlight
-                  ? 'bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 hover:text-white border-rose-400/50 font-bold'
-                  : 'bg-black/35 hover:bg-black/60 text-slate-200 hover:text-amber-200 border-white/10 hover:border-amber-400/50 font-medium'
+                  ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white border-rose-500 font-bold shadow-sm'
+                  : 'bg-white hover:bg-amber-50 text-slate-800 hover:text-amber-950 border-slate-300 hover:border-amber-400 font-bold shadow-xs'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 shrink-0 ${item.highlight ? 'text-rose-300' : 'text-amber-300'}`} />
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${item.highlight ? 'text-white' : 'text-amber-600'}`} />
               <span>{item.label}</span>
             </button>
           );
@@ -255,10 +223,10 @@ export function QuickJumpRibbon({
           <button
             type="button"
             onClick={onOpenGuideModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 hover:text-white border border-amber-400/50 backdrop-blur-md transition-all duration-200 cursor-pointer whitespace-nowrap active:scale-95 font-medium shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white border border-amber-500 transition-all duration-150 cursor-pointer whitespace-nowrap active:scale-95 font-bold shadow-xs"
             title="Mở cẩm nang hướng dẫn K8A1"
           >
-            <BookOpen className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <BookOpen className="w-3.5 h-3.5 text-amber-100 shrink-0" />
             <span>Cẩm Nang</span>
           </button>
         )}

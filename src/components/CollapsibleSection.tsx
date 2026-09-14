@@ -36,8 +36,12 @@ export default function CollapsibleSection({
   children,
   className = '',
 }: CollapsibleSectionProps) {
+  // Tránh lặp badge nếu badge trùng với shortTitle hoặc title (ví dụ "Đếm ngược Đếm ngược")
+  const isDuplicateBadge = typeof badge === 'string' && (badge === shortTitle || badge === title);
+  const shouldRenderBadge = badge && !isDuplicateBadge;
+
   // =========================================================================
-  // 1. KHI KHỐI ĐANG THU GỌN: THANH TỐI GIẢN, TINH TẾ, KHÔNG CỒNG KỀNH
+  // 1. KHI KHỐI ĐANG THU GỌN: THANH TỐI GIẢN, TƯƠNG PHẢN CAO, DỄ ĐỌC
   // =========================================================================
   if (isCollapsed) {
     return (
@@ -52,32 +56,32 @@ export default function CollapsibleSection({
               onToggleCollapse();
             }
           }}
-          className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/95 hover:bg-white border border-amber-200/80 hover:border-amber-400/80 shadow-xs flex items-center justify-between gap-2.5 cursor-pointer transition-all duration-150 select-none group"
+          className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-white hover:bg-amber-50/50 border border-slate-200 hover:border-amber-400 shadow-xs flex items-center justify-between gap-2.5 cursor-pointer transition-all duration-150 select-none group"
           title={`Nhấn để mở rộng: ${title}`}
         >
           {/* Nhóm thông tin tóm tắt bên trái */}
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
             {Icon && (
-              <span className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-700 shrink-0">
-                <Icon className="w-3.5 h-3.5" />
+              <span className="w-7 h-7 rounded-lg bg-amber-100/70 border border-amber-300/60 flex items-center justify-center text-amber-800 shrink-0">
+                <Icon className="w-4 h-4" />
               </span>
             )}
-            <span className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-amber-900 transition truncate">
+            <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-amber-900 transition truncate">
               {shortTitle || title}
             </span>
-            {badge && (
-              <span className="hidden sm:inline-block text-[10px] font-sans font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+            {shouldRenderBadge && (
+              <span className="hidden sm:inline-block text-[11px] font-sans font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300 shrink-0">
                 {badge}
               </span>
             )}
             {previewSnippet && (
-              <span className="hidden md:inline-block text-xs text-slate-500 font-sans truncate max-w-sm pl-2 border-l border-slate-200">
+              <span className="hidden md:inline-block text-xs text-slate-700 font-sans truncate max-w-sm pl-2.5 border-l border-slate-300">
                 {previewSnippet}
               </span>
             )}
           </div>
 
-          {/* Nút bấm Mở Rộng bên phải */}
+          {/* Nút bấm Mở Rộng bên phải: Rõ ràng, nổi bật, dễ nhìn */}
           <div className="flex items-center gap-2 shrink-0">
             {headerRight}
             <button
@@ -86,10 +90,10 @@ export default function CollapsibleSection({
                 e.stopPropagation();
                 onToggleCollapse();
               }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100/70 hover:bg-amber-200/90 text-amber-900 text-[11px] font-sans font-bold border border-amber-300/70 transition cursor-pointer active:scale-95 shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-sans font-bold shadow-xs transition active:scale-95 cursor-pointer"
             >
               <span>Mở rộng</span>
-              <ChevronDown className="w-3.5 h-3.5 text-amber-700" />
+              <ChevronDown className="w-3.5 h-3.5 text-amber-100" />
             </button>
           </div>
         </div>
@@ -98,20 +102,20 @@ export default function CollapsibleSection({
   }
 
   // =========================================================================
-  // 2. KHI KHỐI ĐANG MỞ RỘNG: HIỂN THỊ NGUYÊN BẢN, KHÔNG DẢI ĐEN CỒNG KỀNH
+  // 2. KHI KHỐI ĐANG MỞ RỘNG: NÚT THU GỌN RÕ RÀNG, ĐẦY ĐỦ TƯƠNG PHẢN
   // =========================================================================
   return (
     <section id={id} className={`scroll-mt-20 relative group ${className}`}>
-      {/* Nút thu gọn tinh tế, nhỏ gọn ở góc phải phía trên */}
-      <div className="flex items-center justify-end mb-1 select-none pr-0.5">
+      {/* Nút thu gọn tinh tế, rõ ràng ở góc phải phía trên */}
+      <div className="flex items-center justify-end mb-1.5 select-none pr-0.5">
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 border border-slate-200/90 shadow-2xs text-[11px] font-sans font-medium transition-all duration-150 cursor-pointer active:scale-95 hover:border-amber-300"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-amber-400 shadow-xs text-xs font-sans font-bold transition-all duration-150 cursor-pointer active:scale-95"
           title={`Thu gọn khối: ${title}`}
         >
           <span>Thu gọn</span>
-          <ChevronUp className="w-3 h-3 text-slate-400" />
+          <ChevronUp className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-600" />
         </button>
       </div>
 
