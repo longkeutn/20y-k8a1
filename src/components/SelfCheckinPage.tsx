@@ -692,7 +692,7 @@ export default function SelfCheckinPage({
       />
 
       {/* TOP HEADER */}
-      <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-brand-border/80 shadow-2xs">
+      <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-brand-border/80 shadow-2xs pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <button
             onClick={onExitCheckin}

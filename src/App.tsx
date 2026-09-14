@@ -1954,7 +1954,7 @@ export default function App() {
     <div className="min-h-screen bg-[#FDFBF7] text-[#334155] flex flex-col items-center pb-20 selection:bg-amber-200 selection:text-amber-900 relative overflow-x-hidden font-sans">
       
       {/* 📌 THANH TIÊU ĐỀ CỐ ĐỊNH & TINH GỌN (PREMIUM FIXED NAVBAR) */}
-      <header className="fixed top-0 inset-x-0 z-50 w-full backdrop-blur-md bg-[#161B26]/90 border-b border-amber-500/25 text-white shadow-md transition-all">
+      <header className="fixed top-0 inset-x-0 z-50 w-full backdrop-blur-md bg-[#161B26]/95 border-b border-amber-500/25 text-white shadow-md transition-all pt-[env(safe-area-inset-top,0px)]">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6 h-14 sm:h-15 flex items-center justify-between gap-1.5 sm:gap-3">
           
           {/* Brand Logo & Class Name */}
@@ -2198,7 +2198,7 @@ export default function App() {
       {/* ======================================================== */}
       {/* 🌟 PHÂN VÙNG 1: CINEMATIC FULL-WIDTH HERO COVER BANNER */}
       {/* ======================================================== */}
-      <section id="hero" className="w-full relative overflow-hidden bg-[#161B26] scroll-mt-14">
+      <section id="hero" className="w-full relative overflow-hidden bg-[#161B26] scroll-mt-[calc(3.5rem+env(safe-area-inset-top,0px))]">
         
         {/* 1. Full-Width Background Panoramic Photo or Branded Dynamic Theme */}
         <div className="absolute inset-0 z-0 overflow-hidden bg-[#161B26]">
@@ -2243,7 +2243,7 @@ export default function App() {
         </div>
 
         {/* 2. Overlaid Hero Content (Đè nội dung lên ảnh, căn giữa trong max-w-4xl, tối ưu khung hình) */}
-        <div className="max-w-4xl mx-auto px-4 pt-16 pb-8 sm:pt-18 sm:pb-10 md:pt-20 md:pb-12 relative z-10 space-y-4 sm:space-y-5 text-left">
+        <div className="max-w-4xl mx-auto px-4 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-8 sm:pt-[calc(4.75rem+env(safe-area-inset-top,0px))] sm:pb-10 md:pt-[calc(5rem+env(safe-area-inset-top,0px))] md:pb-12 relative z-10 space-y-4 sm:space-y-5 text-left">
           
           {/* Gợi ý thông minh khi truy cập bằng trình duyệt Zalo WebView */}
           {isZaloBrowser && !isZaloTipDismissed && (

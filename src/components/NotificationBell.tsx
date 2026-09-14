@@ -40,18 +40,23 @@ export default function NotificationBell({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Lọc chỉ các bản tin đã công khai
+  const publishedAnnouncements = useMemo(() => {
+    return (announcements || []).filter(a => a.status === 'published' || !a.status);
+  }, [announcements]);
+
   // Tính số lượng tin chưa đọc
   const unreadCount = useMemo(() => {
-    if (!announcements || announcements.length === 0) return 0;
-    if (lastReadTimestamp === 0) return Math.min(3, announcements.length); // Lần đầu vào web coi như có tin mới
+    if (publishedAnnouncements.length === 0) return 0;
+    if (lastReadTimestamp === 0) return Math.min(3, publishedAnnouncements.length); // Lần đầu vào web coi như có tin mới
     
     // Đếm các bài viết có timestamp mới hơn lastReadTimestamp
-    return announcements.filter(item => {
+    return publishedAnnouncements.filter(item => {
       // Giả lập thời gian từ createdAt
       const ts = new Date().getTime(); // mặc định
       return ts > lastReadTimestamp;
     }).length;
-  }, [announcements, lastReadTimestamp]);
+  }, [publishedAnnouncements, lastReadTimestamp]);
 
   const handleToggle = () => {
     const nextState = !isOpen;
@@ -67,13 +72,13 @@ export default function NotificationBell({
   };
 
   const sortedList = useMemo(() => {
-    if (!announcements) return [];
-    return [...announcements].sort((a, b) => {
+    if (publishedAnnouncements.length === 0) return [];
+    return [...publishedAnnouncements].sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
       return (b.createdAt || '').localeCompare(a.createdAt || '');
     }).slice(0, 5); // Hiển thị 5 tin mới nhất
-  }, [announcements]);
+  }, [publishedAnnouncements]);
 
   // Kiểm tra cờ Bật/Tắt hiển thị sau khi toàn bộ hooks đã chạy đầy đủ
   if (eventConfig && eventConfig.showAnnouncements === false) {
@@ -108,7 +113,14 @@ export default function NotificationBell({
 
       {/* DROPDOWN POPUP DANH SÁCH BẢN TIN NHANH */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-[#FFFDF9] border-2 border-amber-300/90 rounded-2xl shadow-2xl overflow-hidden z-[100] text-slate-800 animate-in fade-in zoom-in-95 duration-200">
+        <>
+          {/* Lớp nền mờ trên Mobile để bấm ra ngoài đóng nhanh */}
+          <div 
+            className="fixed inset-0 bg-black/40 z-[95] sm:hidden backdrop-blur-xs" 
+            onClick={() => setIsOpen(false)} 
+          />
+
+          <div className="fixed inset-x-3 top-[calc(3.5rem+env(safe-area-inset-top,0px)+8px)] max-w-sm sm:max-w-md mx-auto sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 bg-[#FFFDF9] border-2 border-amber-300/90 rounded-2xl shadow-2xl overflow-hidden z-[100] text-slate-800 animate-in fade-in zoom-in-95 duration-200">
           
           {/* HEADER DROPDOWN */}
           <div className="px-4 py-3 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-white flex items-center justify-between shadow-xs">
@@ -191,7 +203,8 @@ export default function NotificationBell({
             </button>
           </div>
         </div>
-      )}
+      </>
+    )}
     </div>
   );
 }

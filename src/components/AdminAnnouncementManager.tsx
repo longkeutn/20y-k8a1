@@ -11,6 +11,9 @@ import {
   Check,
   Copy,
   Eye,
+  EyeOff,
+  Archive,
+  CheckCircle,
   X,
   Upload,
   Image as ImageIcon,
@@ -95,6 +98,7 @@ export default function AdminAnnouncementManager({
   // Bộ lọc & Tìm kiếm
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [filterPinnedOnly, setFilterPinnedOnly] = useState(false);
 
   // Modal Soạn thảo / Chỉnh sửa
@@ -151,6 +155,12 @@ export default function AdminAnnouncementManager({
         return false;
       }
 
+      // Lọc theo trạng thái xuất bản
+      if (selectedStatus !== 'all') {
+        const itemStatus = item.status || 'published';
+        if (itemStatus !== selectedStatus) return false;
+      }
+
       // Lọc ghim
       if (filterPinnedOnly && !item.isPinned) {
         return false;
@@ -158,14 +168,16 @@ export default function AdminAnnouncementManager({
 
       return true;
     });
-  }, [announcements, searchTerm, selectedCategory, filterPinnedOnly]);
+  }, [announcements, searchTerm, selectedCategory, selectedStatus, filterPinnedOnly]);
 
   // Đếm thống kê
   const stats = useMemo(() => {
     const total = announcements.length;
+    const published = announcements.filter((a) => a.status === 'published' || !a.status).length;
+    const drafts = announcements.filter((a) => a.status === 'draft').length;
     const pinned = announcements.filter((a) => a.isPinned).length;
     const totalLikes = announcements.reduce((sum, a) => sum + (a.likesCount || 0), 0);
-    return { total, pinned, totalLikes };
+    return { total, published, drafts, pinned, totalLikes };
   }, [announcements]);
 
   // Mở form tạo mới
@@ -260,6 +272,15 @@ export default function AdminAnnouncementManager({
     });
   };
 
+  // Chuyển đổi nhanh giữa Công khai và Bản nháp (Ẩn)
+  const handleToggleStatus = (item: Announcement) => {
+    const nextStatus = (item.status === 'draft' || item.status === 'archived') ? 'published' : 'draft';
+    onSaveAnnouncement({
+      ...item,
+      status: nextStatus,
+    });
+  };
+
   // 1-Chạm Bắn Zalo (sao chép văn bản đã format đẹp vào clipboard)
   const handleCopyZalo = async (item: Announcement) => {
     const catInfo = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.schedule;
@@ -339,24 +360,31 @@ ${webUrl}
         </div>
 
         {/* THẺ CHỈ SỐ NHANH */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4 pt-3 border-t border-slate-700/60 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 pt-3 border-t border-slate-700/60 text-center">
           <div className="bg-slate-800/60 backdrop-blur rounded-xl p-2 border border-slate-700/40">
             <div className="text-base sm:text-lg font-bold font-mono text-amber-300">{stats.total}</div>
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans">Tổng bản tin</div>
           </div>
           <div className="bg-slate-800/60 backdrop-blur rounded-xl p-2 border border-slate-700/40">
+            <div className="text-base sm:text-lg font-bold font-mono text-emerald-400 flex items-center justify-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" />
+              {stats.published}
+            </div>
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans">Công khai</div>
+          </div>
+          <div className="bg-slate-800/60 backdrop-blur rounded-xl p-2 border border-slate-700/40">
             <div className="text-base sm:text-lg font-bold font-mono text-amber-400 flex items-center justify-center gap-1">
+              <EyeOff className="w-3.5 h-3.5" />
+              {stats.drafts}
+            </div>
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans">Bản nháp (Đang ẩn)</div>
+          </div>
+          <div className="bg-slate-800/60 backdrop-blur rounded-xl p-2 border border-slate-700/40">
+            <div className="text-base sm:text-lg font-bold font-mono text-cyan-400 flex items-center justify-center gap-1">
               <Pin className="w-3.5 h-3.5" />
               {stats.pinned}
             </div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans">Đang ghim ưu tiên</div>
-          </div>
-          <div className="bg-slate-800/60 backdrop-blur rounded-xl p-2 border border-slate-700/40">
-            <div className="text-base sm:text-lg font-bold font-mono text-rose-400 flex items-center justify-center gap-1">
-              <Heart className="w-3.5 h-3.5 fill-rose-500/20" />
-              {stats.totalLikes}
-            </div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans">Lượt yêu thích</div>
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans">Đang ghim</div>
           </div>
         </div>
       </div>
@@ -385,8 +413,21 @@ ${webUrl}
           )}
         </div>
 
-        {/* Lọc danh mục & nút Ghim */}
+        {/* Lọc danh mục, trạng thái & nút Ghim */}
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+          {/* Lọc Trạng Thái */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500 font-sans cursor-pointer shrink-0 font-medium"
+            title="Lọc bài viết theo trạng thái hiển thị"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="published">✓ Đang Công Khai</option>
+            <option value="draft">📝 Bản Nháp (Đang Ẩn)</option>
+            <option value="archived">📦 Lưu Trữ</option>
+          </select>
+
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -459,8 +500,26 @@ ${webUrl}
                 <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
                   {/* CỘT NỘI DUNG CHÍNH */}
                   <div className="flex-1 min-w-0 space-y-1.5">
-                    {/* HÀNG BADGE: DANH MỤC, GHIM, NGÀY ĐĂNG */}
+                    {/* HÀNG BADGE: DANH MỤC, GHIM, TRẠNG THÁI, NGÀY ĐĂNG */}
                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      {/* TRẠNG THÁI HIỂN THỊ */}
+                      {item.status === 'draft' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs">
+                          <EyeOff className="w-3 h-3 text-amber-700" />
+                          <span>BẢN NHÁP (ĐANG ẨN)</span>
+                        </span>
+                      ) : item.status === 'archived' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700 border border-slate-300">
+                          <Archive className="w-3 h-3 text-slate-600" />
+                          <span>LƯU TRỮ</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <CheckCircle className="w-3 h-3 text-emerald-600" />
+                          <span>CÔNG KHAI</span>
+                        </span>
+                      )}
+
                       {item.isPinned && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500 text-slate-950 shadow-xs">
                           <Pin className="w-3 h-3" />
@@ -562,8 +621,35 @@ ${webUrl}
                     )}
                   </div>
 
-                  {/* NHÓM BÊN PHẢI: GHIM, SỬA, XÓA */}
-                  <div className="flex items-center gap-1">
+                  {/* NHÓM BÊN PHẢI: BẬT/TẮT CÔNG KHAI, GHIM, SỬA, XÓA */}
+                  <div className="flex items-center gap-1.5">
+                    {/* NÚT BẬT/TẮT CÔNG KHAI / ẨN NHANH (1-CHẠM) */}
+                    <button
+                      onClick={() => handleToggleStatus(item)}
+                      className={`px-2 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                        item.status === 'draft' || item.status === 'archived'
+                          ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300'
+                          : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300'
+                      }`}
+                      title={
+                        item.status === 'draft' || item.status === 'archived'
+                          ? 'Đang ẩn — Bấm để ĐĂNG CÔNG KHAI lên trang chủ ngay'
+                          : 'Đang công khai — Bấm để ẨN (chuyển về Bản nháp)'
+                      }
+                    >
+                      {item.status === 'draft' || item.status === 'archived' ? (
+                        <>
+                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-[11px]">Đăng Công Khai</span>
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="w-3.5 h-3.5 text-amber-700" />
+                          <span className="text-[11px]">Ẩn Bài Viết</span>
+                        </>
+                      )}
+                    </button>
+
                     {/* NÚT GHIM / BỎ GHIM NHANH */}
                     <button
                       onClick={() => handleTogglePin(item)}

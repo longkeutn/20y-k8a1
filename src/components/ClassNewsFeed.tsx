@@ -58,11 +58,16 @@ export default function ClassNewsFeed({
     }
   };
 
+  // Lọc bài viết công khai (chỉ lấy status === 'published' hoặc không có status để tương thích ngược)
+  const publishedAnnouncements = useMemo(() => {
+    return (announcements || []).filter(a => a.status === 'published' || !a.status);
+  }, [announcements]);
+
   // Lọc bài viết theo danh mục và sắp xếp tin ghim lên đầu
   const filteredList = useMemo(() => {
-    if (!announcements || announcements.length === 0) return [];
+    if (publishedAnnouncements.length === 0) return [];
     
-    const sorted = [...announcements].sort((a, b) => {
+    const sorted = [...publishedAnnouncements].sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
       return (b.createdAt || '').localeCompare(a.createdAt || '');
@@ -70,12 +75,12 @@ export default function ClassNewsFeed({
 
     if (selectedCategory === 'all') return sorted;
     return sorted.filter(a => a.category === selectedCategory);
-  }, [announcements, selectedCategory]);
+  }, [publishedAnnouncements, selectedCategory]);
 
   // Tin tiêu điểm ghim mới nhất (để hiển thị trên dải ticker)
   const pinnedItem = useMemo(() => {
-    return (announcements || []).find(a => a.isPinned);
-  }, [announcements]);
+    return publishedAnnouncements.find(a => a.isPinned);
+  }, [publishedAnnouncements]);
 
   const categories: { id: string; label: string; icon: string }[] = [
     { id: 'all', label: 'Tất Cả', icon: '✨' },
@@ -86,8 +91,8 @@ export default function ClassNewsFeed({
     { id: 'activity', label: 'Ký Sự', icon: '📸' }
   ];
 
-  // Kiểm tra cờ bật/tắt toàn cục sau khi tất cả hooks đã thực thi
-  if (eventConfig && eventConfig.showAnnouncements === false) {
+  // Kiểm tra cờ bật/tắt toàn cục hoặc nếu không có bài viết công khai nào
+  if ((eventConfig && eventConfig.showAnnouncements === false) || publishedAnnouncements.length === 0) {
     return null;
   }
 

@@ -3760,7 +3760,7 @@ export default function AdminManagementHub({
         {/* =================================================================== */}
         {/* TOP HEADER BAR */}
         {/* =================================================================== */}
-        <header className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white px-3 sm:px-5 py-1.5 sm:py-2.5 border-b border-amber-500/30 flex items-center justify-between shrink-0 shadow-sm">
+        <header className="bg-gradient-to-r from-[#1E293B] via-[#0F172A] to-[#1E293B] text-white px-3 sm:px-5 py-1.5 sm:py-2.5 pt-[calc(0.375rem+env(safe-area-inset-top,0px))] sm:pt-2.5 border-b border-amber-500/30 flex items-center justify-between shrink-0 shadow-sm">
           <div className="flex items-center gap-2 sm:gap-2.5">
             <img 
               src="https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg"
