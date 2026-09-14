@@ -1,11 +1,13 @@
-import React from 'react';
-import { Clock, Calendar, MapPin, Sparkles, CheckCircle, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, Calendar, MapPin, Sparkles, CheckCircle, ExternalLink, Download, CheckCircle2 } from 'lucide-react';
 import { EVENT_SCHEDULE } from '../data';
 import { ScheduleItem } from '../types';
 import InteractiveMap from './InteractiveMap';
+import { downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
 
 export default function EventSchedule() {
   const schedule: ScheduleItem[] = EVENT_SCHEDULE;
+  const [downloadedIcs, setDownloadedIcs] = useState(false);
 
   const handleAddToCalendar = (item: ScheduleItem) => {
     const title = encodeURIComponent(`[Hội Ngộ 20 Năm Lớp K8A1] ${item.title}`);
@@ -14,6 +16,12 @@ export default function EventSchedule() {
     // 2026-09-27T08:30:00 to 2026-09-27T15:30:00 in UTC (01:30 to 08:30)
     const dates = "20260927T013000Z/20260927T083000Z";
     window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`, '_blank');
+  };
+
+  const handleDownloadIcs = () => {
+    downloadIcsFile(OFFICIAL_K8A1_REUNION_EVENT, 'Hoi_Khoa_20_Nam_K8A1_27_09_2026.ics');
+    setDownloadedIcs(true);
+    setTimeout(() => setDownloadedIcs(false), 3000);
   };
 
   return (
@@ -49,13 +57,31 @@ export default function EventSchedule() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleAddToCalendar(schedule[0])}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-text hover:bg-brand-gold text-white text-xs font-sans font-bold uppercase tracking-wider rounded-xs cursor-pointer transition-colors"
             >
               <Calendar className="w-3.5 h-3.5 text-brand-gold" />
               <span>Thêm vào Google Calendar</span>
+            </button>
+
+            <button
+              onClick={handleDownloadIcs}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-800 border border-brand-border hover:border-brand-gold text-xs font-sans font-bold uppercase tracking-wider rounded-xs cursor-pointer transition-colors"
+              title="Tải lịch hẹn tự động cho iPhone (Apple Calendar) hoặc Outlook"
+            >
+              {downloadedIcs ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-700">Đã Tải Lịch!</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5 text-brand-gold" />
+                  <span>Tải .ICS (Apple / Outlook)</span>
+                </>
+              )}
             </button>
           </div>
         </div>

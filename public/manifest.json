@@ -1,0 +1,27 @@
+{
+  "name": "Kỷ Niệm 20 Năm Lớp K8A1 THPT Thái Nguyên (2003 - 2006)",
+  "short_name": "K8A1 20 Năm",
+  "description": "Cổng thông tin chính thức, bảng tin BLL, điểm danh và lưu bút kỷ niệm 20 năm Lớp K8A1 THPT Thái Nguyên.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B132B",
+  "theme_color": "#0B132B",
+  "lang": "vi",
+  "categories": ["education", "social", "events"],
+  "icons": [
+    {
+      "src": "/logo-thpt-thai-nguyen.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ]
+}

@@ -11,9 +11,11 @@ import {
   ArrowRight, 
   ExternalLink,
   Sparkles,
-  Copy
+  Copy,
+  Download
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory } from '../types';
+import { getGoogleCalendarUrl, downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
 
 interface AnnouncementDetailModalProps {
   isOpen: boolean;
@@ -71,10 +73,39 @@ export default function AnnouncementDetailModal({
     }
   });
   const [likeCount, setLikeCount] = useState(() => announcement?.likesCount || 0);
+  const [showCalendarMenu, setShowCalendarMenu] = useState(false);
+  const [savedCalendar, setSavedCalendar] = useState(false);
 
   if (!isOpen || !announcement) return null;
 
   const catInfo = CATEGORY_STYLES[announcement.category] || CATEGORY_STYLES.schedule;
+
+  const isScheduleRelated = announcement.category === 'schedule' ||
+    announcement.actionUrl === '#schedule-section' ||
+    announcement.actionUrl === '#diem-danh' ||
+    announcement.title.toLowerCase().includes('lịch trình') ||
+    announcement.title.toLowerCase().includes('kế hoạch') ||
+    announcement.title.toLowerCase().includes('27/09') ||
+    announcement.content.toLowerCase().includes('27/09');
+
+  const handleAddToGoogleCalendar = () => {
+    const url = getGoogleCalendarUrl({
+      ...OFFICIAL_K8A1_REUNION_EVENT,
+      title: announcement.title ? `[K8A1 20 Năm] ${announcement.title}` : OFFICIAL_K8A1_REUNION_EVENT.title
+    });
+    window.open(url, '_blank');
+    setSavedCalendar(true);
+    setTimeout(() => setSavedCalendar(false), 3000);
+  };
+
+  const handleDownloadIcs = () => {
+    downloadIcsFile({
+      ...OFFICIAL_K8A1_REUNION_EVENT,
+      title: announcement.title ? `[K8A1 20 Năm] ${announcement.title}` : OFFICIAL_K8A1_REUNION_EVENT.title
+    }, `Lich_K8A1_${announcement.id || '20_nam'}.ics`);
+    setSavedCalendar(true);
+    setTimeout(() => setSavedCalendar(false), 3000);
+  };
 
   const handleToggleLike = () => {
     const next = !hasLiked;
@@ -208,6 +239,63 @@ ${webUrl}#ban-tin
             </div>
           )}
 
+          {/* KHỐI NHẮC LỊCH THÔNG MINH CHO BẢN TIN LỊCH TRÌNH */}
+          {isScheduleRelated && (
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/20 border-2 border-amber-400/60 shadow-xs space-y-2.5 my-2 text-slate-800">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-800 shrink-0">
+                    <Calendar className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold font-serif text-amber-950">
+                      Lịch Hẹn: Chủ Nhật, 27/09/2026 (Từ 08:30 Sáng)
+                    </h4>
+                    <p className="text-[11px] text-amber-800/90 font-sans">
+                      Thăm trường THPT Thái Nguyên & Tiệc Hội Ngộ The Prime
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-[10px] font-mono font-bold bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full shrink-0">
+                  Hội Khóa 20 Năm
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-700 italic">
+                💡 Cài đặt lời nhắc tự động vào lịch điện thoại (báo trước 1 ngày & 2 giờ) để cùng bạn bè K8A1 tề tựu đông đủ nhất!
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleAddToGoogleCalendar}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-sans font-bold shadow-xs transition cursor-pointer active:scale-95"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-amber-200" />
+                  <span>Google Calendar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadIcs}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-sans font-bold shadow-xs transition cursor-pointer active:scale-95"
+                  title="Tải lịch tự động thêm vào Apple Calendar (iPhone/iPad) hoặc Outlook"
+                >
+                  <Download className="w-3.5 h-3.5 text-amber-700" />
+                  <span>iPhone / Apple / Outlook (.ICS)</span>
+                </button>
+
+                {savedCalendar && (
+                  <span className="text-xs text-emerald-700 font-bold flex items-center gap-1 animate-in fade-in">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Đã lưu lịch!</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TOÀN VĂN NỘI DUNG CHI TIẾT */}
           <div className="space-y-3 pt-1 text-slate-800">
             {paragraphs.map((p, idx) => {
@@ -282,6 +370,51 @@ ${webUrl}#ban-tin
                 </>
               )}
             </button>
+
+            {/* Nút Thêm vào Lịch Điện thoại (Google & Apple/Outlook) */}
+            {isScheduleRelated && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowCalendarMenu(prev => !prev)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-bold transition-all cursor-pointer border bg-amber-100/90 text-amber-950 hover:bg-amber-200 border-amber-300 shadow-xs"
+                  title="Thêm lịch hẹn vào điện thoại"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                  <span>📅 Nhắc Lịch</span>
+                </button>
+
+                {showCalendarMenu && (
+                  <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-2xl border-2 border-amber-300 shadow-xl p-2 z-50 text-xs font-sans space-y-1 animate-in fade-in zoom-in-95">
+                    <div className="px-2 py-1 text-[10px] font-bold text-amber-900 border-b border-amber-100 uppercase tracking-wider">
+                      Chọn ứng dụng lịch:
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleAddToGoogleCalendar();
+                        setShowCalendarMenu(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 hover:bg-amber-50 rounded-lg transition flex items-center gap-2 text-slate-800 font-medium cursor-pointer"
+                    >
+                      <Calendar className="w-4 h-4 text-amber-600" />
+                      <span>Google Calendar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleDownloadIcs();
+                        setShowCalendarMenu(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 hover:bg-amber-50 rounded-lg transition flex items-center gap-2 text-slate-800 font-medium cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 text-amber-600" />
+                      <span>iPhone / Apple / Outlook (.ICS)</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Nút Hành Động Trực Tiếp (Call to Action - CTA) nếu có */}

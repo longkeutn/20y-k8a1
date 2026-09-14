@@ -64,6 +64,7 @@ import { SectionTransitionNav, QuickJumpRibbon, scrollToBlock } from './componen
 import ClassNewsFeed from './components/ClassNewsFeed';
 import AnnouncementDetailModal from './components/AnnouncementDetailModal';
 import NotificationBell from './components/NotificationBell';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -3067,6 +3068,9 @@ export default function App() {
         }}
         onLike={(id) => handleLikeAnnouncement(id)}
       />
+
+      {/* 📲 Banner cài đặt ứng dụng WebApp PWA ra màn hình chính điện thoại */}
+      <PwaInstallPrompt />
 
       {/* Toast thông báo realtime */}
       <ActivityToastManager
