@@ -2007,12 +2007,14 @@ export default function App() {
             )}
 
             {/* Quả Chuông Thông Báo (Chấm đỏ tin mới) */}
-            <NotificationBell
-              announcements={announcements}
-              eventConfig={eventConfig}
-              onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
-              onScrollToNewsFeed={() => scrollToBlock('ban-tin')}
-            />
+            {eventConfig.showAnnouncements !== false && (
+              <NotificationBell
+                announcements={announcements}
+                eventConfig={eventConfig}
+                onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
+                onScrollToNewsFeed={() => scrollToBlock('ban-tin')}
+              />
+            )}
 
             {/* Background Audio Player & Trình Phát Playlist */}
             <div className="shrink-0">
@@ -2414,12 +2416,14 @@ export default function App() {
             />
 
             {/* 📰 BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 (KÊNH PHÁT NGÔN CHÍNH THỐNG) */}
-            <ClassNewsFeed
-              announcements={announcements}
-              eventConfig={eventConfig}
-              onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
-              onNavigateAction={(targetId) => scrollToBlock(targetId)}
-            />
+            {eventConfig.showAnnouncements !== false && (
+              <ClassNewsFeed
+                announcements={announcements}
+                eventConfig={eventConfig}
+                onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
+                onNavigateAction={(targetId) => scrollToBlock(targetId)}
+              />
+            )}
 
             {/* Mũi tên điều hướng chuyển tiếp */}
             <SectionTransitionNav currentBlockId={eventConfig.showAnnouncements !== false ? 'ban-tin' : 'invitation-letter-card'} />

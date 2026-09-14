@@ -19,11 +19,6 @@ export default function NotificationBell({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Kiểm tra cờ Bật/Tắt hiển thị lên Web
-  if (eventConfig && eventConfig.showAnnouncements === false) {
-    return null;
-  }
-
   // Đọc mốc thời gian lần cuối người dùng xem thông báo
   const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
     try {
@@ -79,6 +74,11 @@ export default function NotificationBell({
       return (b.createdAt || '').localeCompare(a.createdAt || '');
     }).slice(0, 5); // Hiển thị 5 tin mới nhất
   }, [announcements]);
+
+  // Kiểm tra cờ Bật/Tắt hiển thị sau khi toàn bộ hooks đã chạy đầy đủ
+  if (eventConfig && eventConfig.showAnnouncements === false) {
+    return null;
+  }
 
   return (
     <div ref={dropdownRef} className="relative shrink-0">

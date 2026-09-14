@@ -41,11 +41,6 @@ export default function ClassNewsFeed({
   const [internalSelectedAnnouncement, setInternalSelectedAnnouncement] = useState<Announcement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Kiểm tra cờ bật/tắt toàn cục
-  if (eventConfig && eventConfig.showAnnouncements === false) {
-    return null;
-  }
-
   const handleCardClick = (item: Announcement) => {
     if (onSelectAnnouncement) {
       onSelectAnnouncement(item);
@@ -91,6 +86,11 @@ export default function ClassNewsFeed({
     { id: 'fund', label: 'Quỹ Lớp', icon: '💰' },
     { id: 'activity', label: 'Ký Sự', icon: '📸' }
   ];
+
+  // Kiểm tra cờ bật/tắt toàn cục sau khi tất cả hooks đã thực thi
+  if (eventConfig && eventConfig.showAnnouncements === false) {
+    return null;
+  }
 
   return (
     <section id="ban-tin" className="w-full max-w-5xl mx-auto px-2.5 sm:px-4 py-1.5 sm:py-2 scroll-mt-20">
