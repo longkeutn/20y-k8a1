@@ -25,9 +25,10 @@ import {
   ExternalLink,
   AlertCircle,
   CheckCircle2,
-  MessageSquare
+  MessageSquare,
+  Vote
 } from 'lucide-react';
-import { Announcement, AnnouncementCategory } from '../types';
+import { Announcement, AnnouncementCategory, PollData, PollOption } from '../types';
 import { CATEGORY_STYLES } from './AnnouncementDetailModal';
 
 // Các đích đến phổ biến trong webapp để gợi ý cho Ban Liên Lạc
@@ -117,6 +118,11 @@ export default function AdminAnnouncementManager({
     isPinned: boolean;
     author: string;
     status: 'published' | 'draft' | 'archived';
+    pollEnabled: boolean;
+    pollQuestion: string;
+    pollOptions: { id: string; text: string; votes: string[] }[];
+    pollAllowMultiple: boolean;
+    pollIsClosed: boolean;
   }>({
     title: '',
     category: 'schedule',
@@ -128,6 +134,14 @@ export default function AdminAnnouncementManager({
     isPinned: false,
     author: currentAuthorName || 'Ban Liên Lạc K8A1',
     status: 'published',
+    pollEnabled: false,
+    pollQuestion: '',
+    pollOptions: [
+      { id: 'opt-1', text: '', votes: [] },
+      { id: 'opt-2', text: '', votes: [] }
+    ],
+    pollAllowMultiple: false,
+    pollIsClosed: false,
   });
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -194,6 +208,14 @@ export default function AdminAnnouncementManager({
       isPinned: announcements.length === 0, // Ghim mặc định nếu là tin đầu
       author: currentAuthorName || 'Ban Liên Lạc K8A1',
       status: 'published',
+      pollEnabled: false,
+      pollQuestion: '',
+      pollOptions: [
+        { id: 'opt-1', text: '', votes: [] },
+        { id: 'opt-2', text: '', votes: [] }
+      ],
+      pollAllowMultiple: false,
+      pollIsClosed: false,
     });
     setIsFormOpen(true);
   };
@@ -212,6 +234,16 @@ export default function AdminAnnouncementManager({
       isPinned: !!item.isPinned,
       author: item.author || currentAuthorName || 'Ban Liên Lạc K8A1',
       status: item.status || 'published',
+      pollEnabled: !!item.poll || item.category === 'poll',
+      pollQuestion: item.poll?.question || '',
+      pollOptions: item.poll?.options && item.poll.options.length > 0
+        ? item.poll.options.map((o) => ({ ...o, votes: o.votes || [] }))
+        : [
+            { id: 'opt-1', text: '', votes: [] },
+            { id: 'opt-2', text: '', votes: [] }
+          ],
+      pollAllowMultiple: !!item.poll?.allowMultiple,
+      pollIsClosed: !!item.poll?.isClosed,
     });
     setIsFormOpen(true);
   };
@@ -243,6 +275,22 @@ export default function AdminAnnouncementManager({
 
     const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
+    let pollData: PollData | undefined = undefined;
+    if (formData.pollEnabled || formData.category === 'poll') {
+      const validOptions = formData.pollOptions
+        .map((o) => ({ ...o, text: o.text.trim() }))
+        .filter((o) => o.text.length > 0);
+
+      if (validOptions.length >= 2) {
+        pollData = {
+          question: formData.pollQuestion.trim() || formData.title.trim(),
+          options: validOptions,
+          allowMultiple: formData.pollAllowMultiple,
+          isClosed: formData.pollIsClosed,
+        };
+      }
+    }
+
     const updatedAnnouncement: Announcement = {
       id: editingId || `TB-${Date.now()}`,
       title: formData.title.trim(),
@@ -257,6 +305,7 @@ export default function AdminAnnouncementManager({
       author: formData.author.trim() || 'Ban Liên Lạc K8A1',
       status: formData.status,
       likesCount: editingId ? (announcements.find((a) => a.id === editingId)?.likesCount || 0) : 0,
+      poll: pollData,
     };
 
     onSaveAnnouncement(updatedAnnouncement);
@@ -572,6 +621,19 @@ ${webUrl}
                         <span>{item.likesCount || 0} thích</span>
                       </span>
                     </div>
+
+                    {/* KHỐI BÌNH CHỌN THỐNG KÊ NHANH NẾU CÓ */}
+                    {item.poll && (
+                      <div className="mt-2 p-2 bg-indigo-50/80 border border-indigo-200/80 rounded-lg flex items-center justify-between text-xs text-indigo-950 font-sans">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Vote className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                          <span className="font-bold truncate text-[11px]">{item.poll.question}</span>
+                        </div>
+                        <span className="shrink-0 bg-indigo-200/80 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">
+                          {(item.poll.options || []).reduce((s, o) => s + (o.votes?.length || 0), 0)} phiếu ({item.poll.options?.length || 0} mục)
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* ẢNH THUMBNAIL (NẾU CÓ) */}
@@ -918,6 +980,156 @@ ${webUrl}
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* =============================================================== */}
+              {/* KHỐI CẤU HÌNH BÌNH CHỌN / KHẢO SÁT Ý KIẾN TRỰC TIẾP (IN-APP POLL) */}
+              {/* =============================================================== */}
+              <div className="p-3.5 bg-indigo-50/70 rounded-xl border border-indigo-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={formData.pollEnabled || formData.category === 'poll'}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setFormData((prev) => ({
+                          ...prev,
+                          pollEnabled: checked,
+                          category: checked && prev.category !== 'poll' ? 'poll' : prev.category
+                        }));
+                      }}
+                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                      <Vote className="w-4 h-4 text-indigo-600" />
+                      <span>Kèm Khảo Sát & Bình Chọn Trực Tiếp (In-App Poll)</span>
+                    </span>
+                  </label>
+
+                  <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                    Không qua Google Form
+                  </span>
+                </div>
+
+                {(formData.pollEnabled || formData.category === 'poll') && (
+                  <div className="space-y-3 pt-2 border-t border-indigo-200/60 animate-in fade-in duration-200">
+                    {/* CÂU HỎI BÌNH CHỌN */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                        Câu hỏi bình chọn / khảo sát <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ví dụ: Bạn mong muốn hoạt động giao lưu nào nhất tại Gala?"
+                        value={formData.pollQuestion}
+                        onChange={(e) => setFormData({ ...formData, pollQuestion: e.target.value })}
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-indigo-300 bg-white focus:outline-none focus:border-indigo-600 font-medium"
+                      />
+                    </div>
+
+                    {/* DANH SÁCH PHƯƠNG ÁN LỰA CHỌN */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-800">
+                          Các phương án lựa chọn (Tối thiểu 2 phương án)
+                        </label>
+                        <span className="text-[10px] text-slate-500">
+                          {formData.pollOptions.length} phương án
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {formData.pollOptions.map((opt, optIdx) => (
+                          <div key={opt.id || optIdx} className="flex items-center gap-1.5">
+                            <span className="w-5 h-5 rounded-full bg-indigo-200/80 text-indigo-800 text-[10px] font-bold flex items-center justify-center shrink-0">
+                              {optIdx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              placeholder={`Phương án ${optIdx + 1}...`}
+                              value={opt.text}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  pollOptions: prev.pollOptions.map((o, idx) =>
+                                    idx === optIdx ? { ...o, text: val } : o
+                                  )
+                                }));
+                              }}
+                              className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-indigo-500"
+                            />
+                            {opt.votes && opt.votes.length > 0 && (
+                              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded shrink-0">
+                                {opt.votes.length} vote
+                              </span>
+                            )}
+                            {formData.pollOptions.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    pollOptions: prev.pollOptions.filter((_, idx) => idx !== optIdx)
+                                  }));
+                                }}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition cursor-pointer"
+                                title="Xóa phương án này"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            pollOptions: [
+                              ...prev.pollOptions,
+                              { id: `opt-${Date.now()}`, text: '', votes: [] }
+                            ]
+                          }));
+                        }}
+                        className="mt-1 px-3 py-1 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Thêm phương án lựa chọn</span>
+                      </button>
+                    </div>
+
+                    {/* CÀI ĐẶT BÌNH CHỌN: MULTI-CHOICE & ĐÓNG POLL */}
+                    <div className="pt-2 border-t border-indigo-200/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={formData.pollAllowMultiple}
+                          onChange={(e) => setFormData({ ...formData, pollAllowMultiple: e.target.checked })}
+                          className="w-3.5 h-3.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span className="text-[11px] font-medium text-slate-700">
+                          Cho phép chọn nhiều phương án (Multi-choice)
+                        </span>
+                      </label>
+
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={formData.pollIsClosed}
+                          onChange={(e) => setFormData({ ...formData, pollIsClosed: e.target.checked })}
+                          className="w-3.5 h-3.5 text-rose-600 rounded border-slate-300 focus:ring-rose-500 cursor-pointer"
+                        />
+                        <span className="text-[11px] font-medium text-rose-700">
+                          Khóa / Kết thúc bình chọn (Chỉ xem kết quả)
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* TÙY CHỌN GHIM & TRẠNG THÁI */}

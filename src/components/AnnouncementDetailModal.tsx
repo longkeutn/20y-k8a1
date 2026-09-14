@@ -14,14 +14,18 @@ import {
   Copy,
   Download
 } from 'lucide-react';
-import { Announcement, AnnouncementCategory } from '../types';
+import { Announcement, AnnouncementCategory, ClassMember } from '../types';
 import { getGoogleCalendarUrl, downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
+import InteractivePollWidget from './InteractivePollWidget';
 
 interface AnnouncementDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   announcement: Announcement | null;
   onNavigateAction?: (targetId: string) => void;
+  onVote?: (announcementId: string, optionId: string, voterName: string) => void;
+  activeMember?: ClassMember | null;
+  classRoster?: ClassMember[];
 }
 
 export const CATEGORY_STYLES: Record<AnnouncementCategory, { label: string; badgeClass: string; icon: string }> = {
@@ -61,7 +65,10 @@ export default function AnnouncementDetailModal({
   isOpen,
   onClose,
   announcement,
-  onNavigateAction
+  onNavigateAction,
+  onVote,
+  activeMember,
+  classRoster = []
 }: AnnouncementDetailModalProps) {
   const [copiedZalo, setCopiedZalo] = useState(false);
   const [hasLiked, setHasLiked] = useState(() => {
@@ -294,6 +301,18 @@ ${webUrl}#ban-tin
                 )}
               </div>
             </div>
+          )}
+
+          {/* KHỐI BÌNH CHỌN & KHẢO SÁT Ý KIẾN TRỰC TIẾP */}
+          {announcement.poll && onVote && (
+            <InteractivePollWidget
+              announcementId={announcement.id}
+              poll={announcement.poll}
+              onVote={onVote}
+              activeMember={activeMember}
+              classRoster={classRoster}
+              isCompact={false}
+            />
           )}
 
           {/* TOÀN VĂN NỘI DUNG CHI TIẾT */}

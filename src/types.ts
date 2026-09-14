@@ -299,6 +299,22 @@ export interface EventConfig {
 // =============================================================================
 export type AnnouncementCategory = 'urgent' | 'schedule' | 'shirts' | 'fund' | 'activity' | 'poll';
 
+// Phương án trong cuộc bình chọn / khảo sát ý kiến
+export interface PollOption {
+  id: string;                      // Mã phương án: 'opt-1', 'opt-2'...
+  text: string;                    // Nội dung phương án lựa chọn
+  votes: string[];                 // Danh sách họ tên hoặc định danh các bạn học đã bình chọn
+}
+
+// Cấu trúc dữ liệu Bình Chọn / Khảo Sát trực tiếp trên WebApp K8A1
+export interface PollData {
+  question: string;                // Câu hỏi bình chọn / khảo sát
+  options: PollOption[];           // Danh sách các phương án bình chọn
+  allowMultiple?: boolean;         // Cho phép chọn nhiều phương án (Multi-choice)
+  isClosed?: boolean;              // Khóa / Kết thúc nhận bình chọn
+  closedAt?: string;               // Thời hạn chốt kết quả (nếu có)
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -313,6 +329,7 @@ export interface Announcement {
   author?: string;
   status?: 'published' | 'draft' | 'archived';
   likesCount?: number;
+  poll?: PollData;                 // Khảo sát & Bình chọn tương tác trực tiếp
 }
 
 export type ExpenseCategory = 

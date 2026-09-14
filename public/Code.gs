@@ -793,6 +793,10 @@ function doPost(e) {
       return handleResponse(likeAnnouncement(postData));
     }
 
+    if (action === 'vote_announcement') {
+      return handleResponse(voteAnnouncement(postData));
+    }
+
     // Cập nhật mã PIN bảo mật
     if (action === 'update_pins' || action === 'save_pins') {
       if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để đổi mã PIN hệ thống!' });
@@ -3583,13 +3587,14 @@ function getAnnouncementsSheet() {
       'Ngày Giờ Đăng',
       'Người Đăng / Tác Giả',
       'Trạng Thái Bài Viết',
-      'Lượt Thích (Likes)'
+      'Lượt Thích (Likes)',
+      'Dữ Liệu Bình Chọn (JSON)'
     ];
     sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, 13).setFontWeight('bold').setBackground('#FAF3E0');
+    sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#FAF3E0');
     sheet.setFrozenRows(1);
 
-    // Chèn sẵn 4 thông báo mẫu chuẩn K8A1 ban đầu
+    // Chèn sẵn 5 thông báo mẫu chuẩn K8A1 ban đầu (kèm TB-05 poll trực tiếp)
     var defaultAnnouncements = [
       [
         'TB-01',
@@ -3604,7 +3609,8 @@ function getAnnouncementsSheet() {
         '14/09/2026 08:30',
         'Ban Liên Lạc K8A1',
         'published',
-        42
+        42,
+        ''
       ],
       [
         'TB-02',
@@ -3619,7 +3625,8 @@ function getAnnouncementsSheet() {
         '13/09/2026 14:00',
         'Ban Liên Lạc K8A1',
         'published',
-        56
+        56,
+        ''
       ],
       [
         'TB-03',
@@ -3634,7 +3641,8 @@ function getAnnouncementsSheet() {
         '12/09/2026 18:30',
         'Thủ Quỹ Đào Hồng Nhung',
         'published',
-        38
+        38,
+        ''
       ],
       [
         'TB-04',
@@ -3649,10 +3657,45 @@ function getAnnouncementsSheet() {
         '11/09/2026 10:15',
         'Ban Liên Lạc K8A1',
         'published',
-        49
+        49,
+        ''
+      ],
+      [
+        'TB-05',
+        '🗳️ Khảo Sát Ý Kiến: Bạn mong chờ hoạt động hoài niệm nào nhất tại Gala 20 Năm?',
+        'poll',
+        'Bình chọn trực tiếp ngay trên WebApp để Ban Tổ Chức chuẩn bị kịch bản giao lưu ý nghĩa nhất cho ngày hội ngộ 27/09/2026.',
+        'Thân gửi các bạn học K8A1 thân mến,\n\nĐể chương trình Hội khóa 20 Năm Ngày Trở Về diễn ra thật đầm ấm, giàu cảm xúc và gắn kết tất cả các thành viên, Ban Liên Lạc phát động cuộc bình chọn trực tiếp 100% ngay trên WebApp lớp mình (không cần dùng link Google Form bên ngoài).\n\nCác bạn hãy bình chọn các hoạt động hoài niệm và giao lưu mà bạn mong muốn được trải nghiệm nhất trong buổi tiệc tại The Prime (hỗ trợ chọn nhiều phương án cùng lúc).\n\nKết quả bình chọn theo thời gian thực sẽ là căn cứ để Ban Tổ Chức chốt kịch bản sân khấu, chuẩn bị quà tặng và đạo cụ hoài niệm tương ứng!',
+        '',
+        '#ban-tin',
+        '🗳️ Bình Chọn Ngay',
+        'TRUE',
+        '14/09/2026 15:30',
+        'Ban Liên Lạc K8A1',
+        'published',
+        58,
+        JSON.stringify({
+          question: "Bạn hào hứng nhất với hoạt động giao lưu nào tại buổi tiệc hội ngộ K8A1?",
+          allowMultiple: true,
+          isClosed: false,
+          options: [
+            { id: "opt-1", text: "🎬 Chiếu phóng sự ảnh độc quyền 'K8A1 — 20 Năm Ngày Ấy & Bây Giờ' trên màn LED lớn", votes: ["Đào Thị Hồng Nhung", "Trần Đăng Tuấn", "Vũ Phương Thảo"] },
+            { id: "opt-2", text: "🎸 Hát live ca khúc tuổi học trò (Xe đạp, Phượng hồng, Kỷ niệm mái trường...) & Ban nhạc acoustic", votes: ["Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Đỗ Mai Hương", "Phạm Quốc Hùng"] },
+            { id: "opt-3", text: "🏆 Minigame ôn lại kỷ niệm 'Ai thông minh hơn học sinh K8A1' & Bốc thăm kỷ vật mạ vàng", votes: ["Vũ Phương Thảo", "Nguyễn Thị Thu Hà", "Bùi Tiến Dũng"] },
+            { id: "opt-4", text: "🥂 Thời khắc Nâng Ly Tri Ân Thầy Cô giáo & Trao gửi tâm thư 20 năm xúc động", votes: ["Đào Thị Hồng Nhung", "Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Vũ Phương Thảo", "Lê Văn Hoàng"] },
+            { id: "opt-5", text: "📸 Check-in Photobooth kỷ yếu 2003-2006 phong cách Retro & Quay clip kỷ niệm TikTok/Reels", votes: ["Đỗ Mai Hương", "Nguyễn Thị Thu Hà"] }
+          ]
+        })
       ]
     ];
-    sheet.getRange(2, 1, defaultAnnouncements.length, 13).setValues(defaultAnnouncements);
+    sheet.getRange(2, 1, defaultAnnouncements.length, 14).setValues(defaultAnnouncements);
+  } else {
+    // Đảm bảo cấu trúc cột 14 đã tồn tại cho các sheet hiện hữu
+    var maxCols = Math.max(14, sheet.getLastColumn());
+    var currentHeaders = sheet.getRange(1, 1, 1, maxCols).getValues()[0];
+    if (!currentHeaders[13] || String(currentHeaders[13]).trim() === '') {
+      sheet.getRange(1, 14).setValue('Dữ Liệu Bình Chọn (JSON)').setFontWeight('bold').setBackground('#FAF3E0');
+    }
   }
   return sheet;
 }
@@ -3663,7 +3706,8 @@ function getAnnouncementsList() {
     var lastRow = sheet.getLastRow();
     if (lastRow < 2) return { status: 'success', data: [], count: 0 };
 
-    var data = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
+    var maxCols = Math.max(14, sheet.getLastColumn());
+    var data = sheet.getRange(2, 1, lastRow - 1, maxCols).getValues();
     var announcements = [];
 
     for (var i = 0; i < data.length; i++) {
@@ -3674,6 +3718,18 @@ function getAnnouncementsList() {
 
       var isPinnedRaw = row[8];
       var isPinned = (isPinnedRaw === true || String(isPinnedRaw).toUpperCase() === 'TRUE' || isPinnedRaw === 1);
+
+      var pollRaw = row[13];
+      var pollData = undefined;
+      if (pollRaw) {
+        try {
+          if (typeof pollRaw === 'object') {
+            pollData = pollRaw;
+          } else if (typeof pollRaw === 'string' && pollRaw.trim().startsWith('{')) {
+            pollData = JSON.parse(pollRaw.trim());
+          }
+        } catch (ePoll) {}
+      }
 
       announcements.push({
         id: id,
@@ -3688,7 +3744,8 @@ function getAnnouncementsList() {
         createdAt: String(row[9] || '').trim(),
         author: String(row[10] || 'Ban Liên Lạc K8A1').trim(),
         status: String(row[11] || 'published').trim().toLowerCase(),
-        likesCount: Number(row[12]) || 0
+        likesCount: Number(row[12]) || 0,
+        poll: pollData
       });
     }
 
@@ -3715,6 +3772,7 @@ function saveAnnouncement(postData) {
     var id = a.id ? String(a.id).trim() : ('TB-' + Date.now());
     var createdAt = a.createdAt ? String(a.createdAt).trim() : nowStr;
     var isPinned = Boolean(a.isPinned);
+    var pollJsonStr = a.poll ? JSON.stringify(a.poll) : '';
 
     var rowValues = [
       id,
@@ -3729,7 +3787,8 @@ function saveAnnouncement(postData) {
       createdAt,
       String(a.author || 'Ban Liên Lạc K8A1').trim(),
       String(a.status || 'published').trim().toLowerCase(),
-      Number(a.likesCount) || 0
+      Number(a.likesCount) || 0,
+      pollJsonStr
     ];
 
     var lastRow = sheet.getLastRow();
@@ -3747,7 +3806,7 @@ function saveAnnouncement(postData) {
 
     if (existingRowIndex > 0) {
       // Cập nhật dòng hiện có
-      sheet.getRange(existingRowIndex, 1, 1, 13).setValues([rowValues]);
+      sheet.getRange(existingRowIndex, 1, 1, 14).setValues([rowValues]);
       return { status: 'success', message: 'Đã cập nhật thông báo thành công!', data: a, actionType: 'update' };
     } else {
       // Thêm dòng mới
@@ -3800,6 +3859,92 @@ function likeAnnouncement(postData) {
       }
     }
     return { status: 'error', message: 'Không tìm thấy thông báo có mã: ' + id };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function voteAnnouncement(postData) {
+  try {
+    var sheet = getAnnouncementsSheet();
+    var announcementId = String(postData.announcementId || postData.id || '').trim();
+    var optionId = String(postData.optionId || '').trim();
+    var voterName = String(postData.voterName || '').trim();
+
+    if (!announcementId || !optionId || !voterName) {
+      return { status: 'error', message: 'Thiếu thông tin bình chọn (Mã thông báo, Phương án hoặc Tên người bình chọn)!' };
+    }
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { status: 'error', message: 'Không tìm thấy thông báo!' };
+
+    var idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    var targetRow = -1;
+    for (var i = 0; i < idValues.length; i++) {
+      if (String(idValues[i][0]).trim() === announcementId) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+
+    if (targetRow < 0) return { status: 'error', message: 'Không tìm thấy thông báo có mã: ' + announcementId };
+
+    var maxCols = Math.max(14, sheet.getLastColumn());
+    var pollRaw = sheet.getRange(targetRow, 14).getValue();
+    var poll = null;
+    if (pollRaw) {
+      try {
+        if (typeof pollRaw === 'object') {
+          poll = pollRaw;
+        } else if (typeof pollRaw === 'string' && pollRaw.trim().startsWith('{')) {
+          poll = JSON.parse(pollRaw.trim());
+        }
+      } catch (eParse) {}
+    }
+
+    if (!poll || !Array.isArray(poll.options)) {
+      return { status: 'error', message: 'Bản tin này không có bảng bình chọn khảo sát!' };
+    }
+
+    if (poll.isClosed) {
+      return { status: 'error', message: 'Cuộc bình chọn này đã được ban tổ chức kết thúc!' };
+    }
+
+    var isMulti = Boolean(poll.allowMultiple);
+    var cleanVoter = voterName.trim();
+
+    for (var o = 0; o < poll.options.length; o++) {
+      var opt = poll.options[o];
+      if (!Array.isArray(opt.votes)) opt.votes = [];
+      var hasVotedThis = false;
+      for (var v = 0; v < opt.votes.length; v++) {
+        if (String(opt.votes[v]).trim().toLowerCase() === cleanVoter.toLowerCase()) {
+          hasVotedThis = true;
+          break;
+        }
+      }
+
+      if (opt.id === optionId) {
+        if (hasVotedThis) {
+          // Bỏ bình chọn (unvote)
+          opt.votes = opt.votes.filter(function(name) {
+            return String(name).trim().toLowerCase() !== cleanVoter.toLowerCase();
+          });
+        } else {
+          // Thêm bình chọn
+          opt.votes.push(cleanVoter);
+        }
+      } else {
+        if (!isMulti && hasVotedThis) {
+          opt.votes = opt.votes.filter(function(name) {
+            return String(name).trim().toLowerCase() !== cleanVoter.toLowerCase();
+          });
+        }
+      }
+    }
+
+    sheet.getRange(targetRow, 14).setValue(JSON.stringify(poll));
+    return { status: 'success', message: 'Ghi nhận bình chọn thành công!', announcementId: announcementId, poll: poll };
   } catch (err) {
     return { status: 'error', message: err.toString() };
   }

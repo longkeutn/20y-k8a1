@@ -332,7 +332,17 @@ export default function App() {
       const saved = localStorage.getItem('k8a1_announcements');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Đảm bảo nếu chưa có bản tin bình chọn TB-05 thì bổ sung vào để trải nghiệm ngay
+          const hasPoll = parsed.some((a: Announcement) => a.id === 'TB-05' || a.poll);
+          if (!hasPoll) {
+            const tb05 = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-05');
+            if (tb05) {
+              return [tb05, ...parsed];
+            }
+          }
+          return parsed;
+        }
       }
     } catch {}
     return DEFAULT_ANNOUNCEMENTS;
@@ -351,6 +361,111 @@ export default function App() {
     });
     // Đồng bộ lượt like lên Google Sheets
     syncToBackend('like_announcement', { id });
+  };
+
+  // Xử lý Bình chọn / Khảo sát ý kiến trực tiếp trên WebApp (In-App Poll)
+  const handleVoteAnnouncement = (announcementId: string, optionId: string, voterName: string) => {
+    if (!voterName || !voterName.trim()) return;
+    const cleanVoter = voterName.trim();
+
+    let targetAnnouncement: Announcement | null = null;
+
+    setAnnouncements(prev => {
+      const updated = prev.map(item => {
+        if (item.id !== announcementId || !item.poll) return item;
+
+        const isMulti = !!item.poll.allowMultiple;
+        const currentOptions = item.poll.options || [];
+
+        const updatedOptions = currentOptions.map(opt => {
+          const votes = Array.isArray(opt.votes) ? [...opt.votes] : [];
+          const hasVotedThis = votes.some(v => v.toLowerCase().trim() === cleanVoter.toLowerCase());
+
+          if (opt.id === optionId) {
+            if (hasVotedThis) {
+              // Bỏ bình chọn (unvote)
+              return {
+                ...opt,
+                votes: votes.filter(v => v.toLowerCase().trim() !== cleanVoter.toLowerCase())
+              };
+            } else {
+              // Thêm bình chọn
+              return {
+                ...opt,
+                votes: [...votes, cleanVoter]
+              };
+            }
+          } else {
+            // Nếu là đa chọn (multi), giữ nguyên các phương án khác
+            if (isMulti) {
+              return opt;
+            } else {
+              // Đơn chọn (single choice): loại bỏ khỏi các option khác nếu đã từng chọn
+              return {
+                ...opt,
+                votes: votes.filter(v => v.toLowerCase().trim() !== cleanVoter.toLowerCase())
+              };
+            }
+          }
+        });
+
+        const updatedItem: Announcement = {
+          ...item,
+          poll: {
+            ...item.poll,
+            options: updatedOptions
+          }
+        };
+
+        targetAnnouncement = updatedItem;
+        return updatedItem;
+      });
+
+      try {
+        localStorage.setItem('k8a1_announcements', JSON.stringify(updated));
+      } catch (e) {}
+
+      return updated;
+    });
+
+    // Đồng bộ cập nhật bản tin đang mở chi tiết (nếu có)
+    setSelectedAnnouncement(prev => {
+      if (!prev || prev.id !== announcementId || !prev.poll) return prev;
+      const isMulti = !!prev.poll.allowMultiple;
+      const currentOptions = prev.poll.options || [];
+      const updatedOptions = currentOptions.map(opt => {
+        const votes = Array.isArray(opt.votes) ? [...opt.votes] : [];
+        const hasVotedThis = votes.some(v => v.toLowerCase().trim() === cleanVoter.toLowerCase());
+        if (opt.id === optionId) {
+          return {
+            ...opt,
+            votes: hasVotedThis
+              ? votes.filter(v => v.toLowerCase().trim() !== cleanVoter.toLowerCase())
+              : [...votes, cleanVoter]
+          };
+        } else {
+          return isMulti ? opt : {
+            ...opt,
+            votes: votes.filter(v => v.toLowerCase().trim() !== cleanVoter.toLowerCase())
+          };
+        }
+      });
+
+      return {
+        ...prev,
+        poll: {
+          ...prev.poll,
+          options: updatedOptions
+        }
+      };
+    });
+
+    // Đồng bộ lên Google Sheets backend
+    syncToBackend('vote_announcement', {
+      announcementId,
+      optionId,
+      voterName: cleanVoter
+    });
   };
 
   const handleSaveAnnouncement = (announcement: Announcement) => {
@@ -2537,6 +2652,9 @@ export default function App() {
                 eventConfig={eventConfig}
                 onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
                 onNavigateAction={(targetId) => scrollToBlock(targetId)}
+                onVote={handleVoteAnnouncement}
+                activeMember={activeMember}
+                classRoster={classRoster}
               />
             )}
 
@@ -3138,6 +3256,9 @@ export default function App() {
           scrollToBlock(targetId);
         }}
         onLike={(id) => handleLikeAnnouncement(id)}
+        onVote={handleVoteAnnouncement}
+        activeMember={activeMember}
+        classRoster={classRoster}
       />
 
       {/* 📲 Cử chỉ kéo xuống để tải lại trang / làm mới dữ liệu cho PWA di động */}

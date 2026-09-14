@@ -9,9 +9,10 @@ import {
   ChevronLeft, 
   ChevronRight,
   Flame,
-  ArrowRight
+  ArrowRight,
+  Vote
 } from 'lucide-react';
-import { Announcement, AnnouncementCategory, EventConfig } from '../types';
+import { Announcement, AnnouncementCategory, EventConfig, ClassMember } from '../types';
 import AnnouncementDetailModal from './AnnouncementDetailModal';
 
 interface ClassNewsFeedProps {
@@ -19,6 +20,9 @@ interface ClassNewsFeedProps {
   eventConfig?: EventConfig;
   onNavigateAction?: (targetId: string) => void;
   onSelectAnnouncement?: (item: Announcement) => void;
+  onVote?: (announcementId: string, optionId: string, voterName: string) => void;
+  activeMember?: ClassMember | null;
+  classRoster?: ClassMember[];
 }
 
 const DARK_CATEGORY_STYLES: Record<AnnouncementCategory, { label: string; badgeClass: string; icon: string }> = {
@@ -27,14 +31,17 @@ const DARK_CATEGORY_STYLES: Record<AnnouncementCategory, { label: string; badgeC
   shirts: { label: 'Áo Lớp', badgeClass: 'bg-sky-500/25 text-sky-300 border-sky-500/50', icon: '👕' },
   fund: { label: 'Quỹ Lớp', badgeClass: 'bg-emerald-500/25 text-emerald-300 border-emerald-500/50', icon: '💰' },
   activity: { label: 'Hoạt Động', badgeClass: 'bg-purple-500/25 text-purple-300 border-purple-500/50', icon: '📸' },
-  poll: { label: 'Khảo Sát', badgeClass: 'bg-indigo-500/25 text-indigo-300 border-indigo-500/50', icon: '🗳️' }
+  poll: { label: 'Bình Chọn', badgeClass: 'bg-indigo-500/25 text-indigo-300 border-indigo-500/50', icon: '🗳️' }
 };
 
 export default function ClassNewsFeed({
   announcements,
   eventConfig,
   onNavigateAction,
-  onSelectAnnouncement
+  onSelectAnnouncement,
+  onVote,
+  activeMember,
+  classRoster = []
 }: ClassNewsFeedProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [internalSelectedAnnouncement, setInternalSelectedAnnouncement] = useState<Announcement | null>(null);
@@ -85,6 +92,7 @@ export default function ClassNewsFeed({
   const categories: { id: string; label: string; icon: string }[] = [
     { id: 'all', label: 'Tất Cả', icon: '✨' },
     { id: 'urgent', label: 'Khẩn Cấp', icon: '🔥' },
+    { id: 'poll', label: 'Bình Chọn', icon: '🗳️' },
     { id: 'schedule', label: 'Lịch Trình', icon: '📋' },
     { id: 'shirts', label: 'Áo Lớp', icon: '👕' },
     { id: 'fund', label: 'Quỹ Lớp', icon: '💰' },
@@ -267,16 +275,23 @@ export default function ClassNewsFeed({
                       {item.title}
                     </h3>
 
-                    {/* TÁC GIẢ & LƯỢT THÍCH */}
+                    {/* TÁC GIẢ & LƯỢT THÍCH / BÌNH CHỌN */}
                     <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5 font-sans">
-                      <span className="truncate max-w-[120px] text-slate-300">
+                      <span className="truncate max-w-[110px] text-slate-300">
                         {item.author || 'Ban Liên Lạc'}
                       </span>
 
-                      <span className="inline-flex items-center gap-0.5 text-rose-400 font-mono shrink-0">
-                        <Heart className="w-2.5 h-2.5 fill-rose-400" />
-                        <span>{item.likesCount || 0}</span>
-                      </span>
+                      {item.poll ? (
+                        <span className="inline-flex items-center gap-1 text-amber-300 font-bold bg-amber-400/20 px-1.5 py-0.5 rounded border border-amber-400/30">
+                          <Vote className="w-2.5 h-2.5 text-amber-300" />
+                          <span>{(item.poll.options || []).reduce((s, o) => s + (o.votes?.length || 0), 0)} phiếu</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 text-rose-400 font-mono shrink-0">
+                          <Heart className="w-2.5 h-2.5 fill-rose-400" />
+                          <span>{item.likesCount || 0}</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </article>
@@ -296,6 +311,9 @@ export default function ClassNewsFeed({
           onClose={() => setInternalSelectedAnnouncement(null)}
           announcement={internalSelectedAnnouncement}
           onNavigateAction={onNavigateAction}
+          onVote={onVote}
+          activeMember={activeMember}
+          classRoster={classRoster}
         />
       )}
     </section>

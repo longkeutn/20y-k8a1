@@ -2123,6 +2123,52 @@ export const DEFAULT_ANNOUNCEMENTS: import('./types').Announcement[] = [
     author: "Ban Liên Lạc K8A1",
     status: "published",
     likesCount: 49
+  },
+  {
+    id: "TB-05",
+    title: "🗳️ Khảo Sát Ý Kiến: Bạn mong chờ hoạt động hoài niệm nào nhất tại Gala 20 Năm?",
+    category: "poll",
+    summary: "Bình chọn trực tiếp ngay trên WebApp để Ban Tổ Chức chuẩn bị kịch bản giao lưu ý nghĩa nhất cho ngày hội ngộ 27/09/2026.",
+    content: "Thân gửi các bạn học K8A1 thân mến,\n\nĐể chương trình Hội khóa 20 Năm Ngày Trở Về diễn ra thật đầm ấm, giàu cảm xúc và gắn kết tất cả các thành viên, Ban Liên Lạc phát động cuộc bình chọn trực tiếp 100% ngay trên WebApp lớp mình (không cần dùng link Google Form bên ngoài).\n\nCác bạn hãy bình chọn các hoạt động hoài niệm và giao lưu mà bạn mong muốn được trải nghiệm nhất trong buổi tiệc tại The Prime (hỗ trợ chọn nhiều phương án cùng lúc).\n\nKết quả bình chọn theo thời gian thực sẽ là căn cứ để Ban Tổ Chức chốt kịch bản sân khấu, chuẩn bị quà tặng và đạo cụ hoài niệm tương ứng!",
+    actionUrl: "#ban-tin",
+    actionLabel: "🗳️ Bình Chọn Ngay",
+    isPinned: true,
+    createdAt: "14/09/2026 15:30",
+    author: "Ban Liên Lạc K8A1",
+    status: "published",
+    likesCount: 58,
+    poll: {
+      question: "Bạn hào hứng nhất với hoạt động giao lưu nào tại buổi tiệc hội ngộ K8A1?",
+      allowMultiple: true,
+      isClosed: false,
+      options: [
+        {
+          id: "opt-1",
+          text: "🎬 Chiếu phóng sự ảnh độc quyền 'K8A1 — 20 Năm Ngày Ấy & Bây Giờ' trên màn LED lớn",
+          votes: ["Đào Thị Hồng Nhung", "Trần Đăng Tuấn", "Vũ Phương Thảo"]
+        },
+        {
+          id: "opt-2",
+          text: "🎸 Hát live ca khúc tuổi học trò (Xe đạp, Phượng hồng, Kỷ niệm mái trường...) & Ban nhạc acoustic",
+          votes: ["Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Đỗ Mai Hương", "Phạm Quốc Hùng"]
+        },
+        {
+          id: "opt-3",
+          text: "🏆 Minigame ôn lại kỷ niệm 'Ai thông minh hơn học sinh K8A1' & Bốc thăm kỷ vật mạ vàng",
+          votes: ["Vũ Phương Thảo", "Nguyễn Thị Thu Hà", "Bùi Tiến Dũng"]
+        },
+        {
+          id: "opt-4",
+          text: "🥂 Thời khắc Nâng Ly Tri Ân Thầy Cô giáo & Trao gửi tâm thư 20 năm xúc động",
+          votes: ["Đào Thị Hồng Nhung", "Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Vũ Phương Thảo", "Lê Văn Hoàng"]
+        },
+        {
+          id: "opt-5",
+          text: "📸 Check-in Photobooth kỷ yếu 2003-2006 phong cách Retro & Quay clip kỷ niệm TikTok/Reels",
+          votes: ["Đỗ Mai Hương", "Nguyễn Thị Thu Hà"]
+        }
+      ]
+    }
   }
 ];
 
