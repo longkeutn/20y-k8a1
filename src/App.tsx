@@ -284,11 +284,11 @@ export default function App() {
 
   // Admin / BLL Management Hub Modal
   const [isAdminHubOpen, setIsAdminHubOpen] = useState(false);
-  const [adminHubInitialTab, setAdminHubInitialTab] = useState<'members' | 'fund' | 'wishes' | 'media' | 'settings'>('members');
+  const [adminHubInitialTab, setAdminHubInitialTab] = useState<'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation'>('members');
   const [adminHubInitialMediaSubTab, setAdminHubInitialMediaSubTab] = useState<'venue' | 'banner' | 'videos' | 'photos'>('venue');
 
   const handleOpenAdminHub = (
-    tab: 'members' | 'fund' | 'wishes' | 'media' | 'settings' = 'members',
+    tab: 'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation' = 'members',
     subTab: 'venue' | 'banner' | 'videos' | 'photos' = 'venue'
   ) => {
     setAdminHubInitialTab(tab);
@@ -347,6 +347,44 @@ export default function App() {
       } catch (e) {}
       return updated;
     });
+    // Đồng bộ lượt like lên Google Sheets
+    syncToBackend('like_announcement', { id });
+  };
+
+  const handleSaveAnnouncement = (announcement: Announcement) => {
+    setAnnouncements(prev => {
+      const exists = prev.some(a => a.id === announcement.id);
+      let updated: Announcement[];
+      if (exists) {
+        updated = prev.map(a => a.id === announcement.id ? announcement : a);
+      } else {
+        updated = [announcement, ...prev];
+      }
+      // Sắp xếp: Tin ghim lên đầu, sau đó theo thời gian tạo mới nhất
+      updated.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+      try {
+        localStorage.setItem('k8a1_announcements', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    // Đồng bộ bản tin lên Google Sheets
+    syncToBackend('save_announcement', { announcement });
+  };
+
+  const handleDeleteAnnouncement = (id: string) => {
+    setAnnouncements(prev => {
+      const updated = prev.filter(a => a.id !== id);
+      try {
+        localStorage.setItem('k8a1_announcements', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    // Đồng bộ xóa bản tin lên Google Sheets
+    syncToBackend('delete_announcement', { id });
   };
 
   // Hero Banner Cover Image URL & Vertical Position State (0% - 100%)
@@ -1735,16 +1773,17 @@ export default function App() {
       }
 
       // ============================================================================
-      // GIAI ĐOẠN 3: TẢI NỀN LƯU BÚT, SỔ THU CHI & QUÝ THẦY CÔ (4 REQUESTS ~1s)
+      // GIAI ĐOẠN 3: TẢI NỀN LƯU BÚT, SỔ THU CHI, QUÝ THẦY CÔ & BẢN TIN (5 REQUESTS ~1s)
       // ============================================================================
       // Giãn cách 200ms để nhường đường truyền và CPU
       await new Promise(r => setTimeout(r, 200));
 
-      const [wishesRes, incRes, expRes, teachRes] = await Promise.allSettled([
+      const [wishesRes, incRes, expRes, teachRes, announceRes] = await Promise.allSettled([
         fetchSafeAppsScript(targetUrl, 'get_wishes'),
         fetchSafeAppsScript(targetUrl, 'get_incomes'),
         fetchSafeAppsScript(targetUrl, 'get_expenses'),
-        fetchSafeAppsScript(targetUrl, 'get_teachers')
+        fetchSafeAppsScript(targetUrl, 'get_teachers'),
+        fetchSafeAppsScript(targetUrl, 'get_announcements')
       ]);
 
       if (wishesRes.status === 'fulfilled' && wishesRes.value?.status === 'success' && Array.isArray(wishesRes.value.data)) {
@@ -1768,6 +1807,11 @@ export default function App() {
         const cleanTeachers = teachRes.value.data.map((item: any, idx: number) => sanitizeTeacher(item, idx));
         setTeachersList(cleanTeachers);
         try { localStorage.setItem('k8a1_teachers_list', JSON.stringify(cleanTeachers)); } catch (e) {}
+      }
+
+      if (announceRes.status === 'fulfilled' && announceRes.value?.status === 'success' && Array.isArray(announceRes.value.data) && announceRes.value.data.length > 0) {
+        setAnnouncements(announceRes.value.data);
+        try { localStorage.setItem('k8a1_announcements', JSON.stringify(announceRes.value.data)); } catch (e) {}
       }
 
       setSyncStatus('live');
@@ -2848,6 +2892,9 @@ export default function App() {
           onUpdateTeacher={handleUpdateTeacher}
           onDeleteTeacher={handleDeleteTeacher}
           onSaveAllTeachers={handleSaveAllTeachers}
+          announcements={announcements}
+          onSaveAnnouncement={handleSaveAnnouncement}
+          onDeleteAnnouncement={handleDeleteAnnouncement}
           onSaveAppsScriptUrl={(url) => {
             setAppsScriptUrl(url);
             if (url) {

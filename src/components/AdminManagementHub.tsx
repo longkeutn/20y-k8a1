@@ -90,7 +90,7 @@ import {
   Layers,
   PlaySquare
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene, Announcement } from '../types';
 import { 
   parseMemberNote, 
   serializeMemberNote, 
@@ -140,6 +140,7 @@ import { DEFAULT_VENUE_MEDIA, parseVenueMedia } from './AlumniConvergenceMap';
 import PinAuthModal from './PinAuthModal';
 import { extractYouTubeVideoId } from './AudioPlayer';
 import { fetchGoogleAppsScriptCode } from '../utils/scriptCodeLoader';
+import AdminAnnouncementManager from './AdminAnnouncementManager';
 
 /**
  * Nén ảnh bằng Canvas HTML5 trước khi lưu trữ hoặc đẩy lên Google Drive / Sheet:
@@ -200,7 +201,7 @@ interface AdminManagementHubProps {
   currentUserRole: UserRole;
   onLoginSuccess: (role: UserRole) => void;
   onLogout: () => void;
-  initialTab?: 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings' | 'presentation';
+  initialTab?: 'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
   initialMediaSubTab?: 'venue' | 'banner' | 'videos' | 'photos';
   onOpenStagePresentation?: () => void;
   
@@ -257,6 +258,11 @@ interface AdminManagementHubProps {
   onDeleteTeacher?: (id: string) => void;
   onSaveAllTeachers?: (list: TeacherData[]) => void;
 
+  // Quản lý Bản Tin & Thông Báo K8A1 (Thong_Bao)
+  announcements?: Announcement[];
+  onSaveAnnouncement?: (announcement: Announcement) => void;
+  onDeleteAnnouncement?: (id: string) => void;
+
   // Cẩm Nang Hướng Dẫn Vận Hành & Nghiệp Vụ
   onOpenGuideModal?: () => void;
 }
@@ -306,6 +312,9 @@ export default function AdminManagementHub({
   onUpdateTeacher,
   onDeleteTeacher,
   onSaveAllTeachers,
+  announcements = [],
+  onSaveAnnouncement,
+  onDeleteAnnouncement,
   onOpenGuideModal,
   onOpenStagePresentation
 }: AdminManagementHubProps) {
@@ -342,7 +351,7 @@ export default function AdminManagementHub({
   }, [isTreasurer, isAdmin, activeMember]);
 
   // Navigation tabs
-  type ActiveTab = 'members' | 'fund' | 'teachers' | 'wishes' | 'media' | 'settings' | 'presentation';
+  type ActiveTab = 'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
 
   // Media Tab subtab state
@@ -3884,6 +3893,24 @@ export default function AdminManagementHub({
           </button>
 
           <button
+            onClick={() => setActiveTab('news')}
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'news'
+                ? 'bg-[#1E293B] text-amber-300 shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            <span className="sm:hidden">4. Bản tin ({announcements.length})</span>
+            <span className="hidden sm:inline">4. Bản Tin BLL ({announcements.length})</span>
+            {announcements.some(a => a.isPinned) && (
+              <span className="text-[9px] bg-amber-500 text-slate-950 font-bold px-1.5 py-0.2 rounded-full hidden sm:inline">
+                Ghim 📌
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('wishes')}
             className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'wishes'
@@ -3892,8 +3919,8 @@ export default function AdminManagementHub({
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">4. Lưu bút</span>
-            <span className="hidden sm:inline">4. Lưu Bút & Lời Chúc</span>
+            <span className="sm:hidden">5. Lưu bút</span>
+            <span className="hidden sm:inline">5. Lưu Bút & Lời Chúc</span>
           </button>
 
           <button
@@ -3905,8 +3932,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Video className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">5. Media</span>
-            <span className="hidden sm:inline">5. Ảnh Bìa, Video & Gallery</span>
+            <span className="sm:hidden">6. Media</span>
+            <span className="hidden sm:inline">6. Ảnh Bìa, Video & Gallery</span>
           </button>
 
           <button
@@ -3918,8 +3945,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Settings className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">6. Cài đặt</span>
-            <span className="hidden sm:inline">6. Cấu Hình & Cài Đặt</span>
+            <span className="sm:hidden">7. Cài đặt</span>
+            <span className="hidden sm:inline">7. Cấu Hình & Cài Đặt</span>
             {isAdmin ? (
               <span className="text-[9px] bg-amber-800 text-amber-200 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Admin 👑</span>
             ) : isTreasurer ? (
@@ -3938,8 +3965,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Tv className="w-3.5 h-3.5 shrink-0 text-purple-500" />
-            <span className="sm:hidden">7. Màn LED</span>
-            <span className="hidden sm:inline">7. Màn LED & Nhạc Nền</span>
+            <span className="sm:hidden">8. Màn LED</span>
+            <span className="hidden sm:inline">8. Màn LED & Nhạc Nền</span>
             <span className="text-[9px] bg-purple-900/60 text-purple-200 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Sân Khấu 🎬</span>
           </button>
         </div>
@@ -6418,7 +6445,20 @@ export default function AdminManagementHub({
           )}
 
           {/* --------------------------------------------------------------- */}
-          {/* TAB 4: WISHES GUESTBOOK CRUD */}
+          {/* TAB 4: BẢN TIN & THÔNG BÁO BLL */}
+          {/* --------------------------------------------------------------- */}
+          {activeTab === 'news' && (
+            <AdminAnnouncementManager
+              announcements={announcements}
+              onSaveAnnouncement={(item) => onSaveAnnouncement?.(item)}
+              onDeleteAnnouncement={(id) => onDeleteAnnouncement?.(id)}
+              currentAuthorName={getDefaultAuditorName()}
+              isAuthorized={isAuthorized}
+            />
+          )}
+
+          {/* --------------------------------------------------------------- */}
+          {/* TAB 5: WISHES GUESTBOOK CRUD */}
           {/* --------------------------------------------------------------- */}
           {activeTab === 'wishes' && (
             <div className="space-y-4">

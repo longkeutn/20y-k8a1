@@ -37,7 +37,9 @@ const CONFIG = {
   // Tên trang tính lưu trữ cấu hình bảo mật mã PIN phân quyền
   SECURITY_SHEET_NAME: "Bao_Mat_PIN",
   // Tên trang tính lưu danh sách thầy cô giáo tri ân (Độc lập 100%)
-  TEACHERS_SHEET_NAME: "Thay_Co_K8A1"
+  TEACHERS_SHEET_NAME: "Thay_Co_K8A1",
+  // Tên trang tính lưu thông báo & bản tin chính thức K8A1
+  ANNOUNCEMENTS_SHEET_NAME: "Thong_Bao"
 };
 
 // Chuẩn hóa phản hồi JSON cho WebApp (CORS tự động xử lý bởi Google Apps Script)
@@ -633,6 +635,11 @@ function doGet(e) {
       return handleResponse(getTeachersList(isAdmin));
     }
 
+    // 9. Lấy danh sách Thông Báo & Bản Tin K8A1 (Sheet: "Thong_Bao")
+    if (action === 'get_announcements' || action === 'get_news') {
+      return handleResponse(getAnnouncementsList());
+    }
+
     // Dọn dẹp bản ghi trùng lặp (Chỉ Admin)
     if (action === 'deduplicate_rsvp' || action === 'cleanup_duplicates') {
       if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên!' });
@@ -769,6 +776,21 @@ function doPost(e) {
     if (action === 'delete_teacher') {
       if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để xóa thầy cô!' });
       return handleResponse(deleteTeacher(postData));
+    }
+
+    // Quản lý Thông Báo & Bản Tin K8A1 (Sheet: "Thong_Bao")
+    if (action === 'save_announcement' || action === 'update_announcement' || action === 'add_announcement') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu thông báo!' });
+      return handleResponse(saveAnnouncement(postData));
+    }
+
+    if (action === 'delete_announcement' || action === 'remove_announcement') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để xóa thông báo!' });
+      return handleResponse(deleteAnnouncement(postData));
+    }
+
+    if (action === 'like_announcement') {
+      return handleResponse(likeAnnouncement(postData));
     }
 
     // Cập nhật mã PIN bảo mật
@@ -3515,6 +3537,9 @@ function getAllData(isAdmin) {
     let backdrops = [];
     try { backdrops = (getDriveBackdrops() || {}).data || []; } catch (e) {}
 
+    let announcements = [];
+    try { announcements = (getAnnouncementsList() || {}).data || []; } catch (e) {}
+
     return {
       status: 'success',
       data: {
@@ -3528,10 +3553,255 @@ function getAllData(isAdmin) {
         expenses: expenses,
         incomes: incomes,
         teachers: teachers,
-        backdrops: backdrops
+        backdrops: backdrops,
+        announcements: announcements
       }
     };
   } catch (err) {
     return { status: 'error', message: err.toString() };
   }
 }
+
+// =============================================================================
+// 📢 MODULE QUẢN LÝ THÔNG BÁO & BẢN TIN K8A1 (Sheet: "Thong_Bao")
+// =============================================================================
+function getAnnouncementsSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(CONFIG.ANNOUNCEMENTS_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(CONFIG.ANNOUNCEMENTS_SHEET_NAME);
+    var headers = [
+      'Mã Thông Báo',
+      'Tiêu Đề Bài Viết',
+      'Danh Mục Phân Loại',
+      'Tóm Tắt Ngắn',
+      'Nội Dung Toàn Văn',
+      'Link Ảnh Bìa',
+      'Link Hành Động CTA',
+      'Tên Nút CTA',
+      'Ghim Lên Đầu',
+      'Ngày Giờ Đăng',
+      'Người Đăng / Tác Giả',
+      'Trạng Thái Bài Viết',
+      'Lượt Thích (Likes)'
+    ];
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, 13).setFontWeight('bold').setBackground('#FAF3E0');
+    sheet.setFrozenRows(1);
+
+    // Chèn sẵn 4 thông báo mẫu chuẩn K8A1 ban đầu
+    var defaultAnnouncements = [
+      [
+        'TB-01',
+        '🚨 Chốt danh sách đặt may Áo Polo kỷ niệm 20 năm K8A1 — Hạn chót 18/09',
+        'urgent',
+        'Ban Liên Lạc chuẩn bị gửi số lượng và thông số size cho xưởng may chuyên dụng để kịp thêu logo vàng kim trước ngày hội khóa. Các bạn chưa chọn size vui lòng xác nhận sớm.',
+        'Thân gửi toàn thể 65 thành viên K8A1 thân mến,\n\nĐể đồng phục áo Polo kỷ niệm 20 Năm Ngày Trở Về kịp hoàn thiện chỉn chu, sắc nét trước ngày 27/09/2026, Ban Liên Lạc xin thông báo mốc thời gian chốt may áo:\n\n1. Thời hạn cuối cùng xác nhận size áo: Trước 23:59 ngày Thứ Sáu, 18/09/2026.\n2. Tiêu chuẩn áo: Chất liệu cá sấu 4 chiều cao cấp, cổ áo bo dệt kẻ chỉ hổ phách, ngực trái thêu nổi logo kỷ niệm 20 Năm mạ vàng tinh xảo.\n3. Các bạn chưa đăng ký size hoặc muốn đổi lại thông số vui lòng bấm nút bên dưới để chọn ngay.',
+        '/sample-polo-k8a1.jpg',
+        '#diem-danh',
+        '👕 Chọn Size Áo Của Bạn Ngay',
+        'TRUE',
+        '14/09/2026 08:30',
+        'Ban Liên Lạc K8A1',
+        'published',
+        42
+      ],
+      [
+        'TB-02',
+        '📋 Kế hoạch chi tiết & Lịch trình Ngày Hội Khóa 20 Năm (Chủ Nhật, 27/09/2026)',
+        'schedule',
+        'Lịch trình tập trung tại Cổng trường THPT Thái Nguyên từ 08:30 sáng, chụp ảnh lưu niệm sân trường và di chuyển tiệc trưa tại The Prime lúc 11:00.',
+        'Thân gửi các bạn học K8A1 thân mến,\n\nBan Liên Lạc xin trân trọng thông báo chi tiết kịch bản và khung giờ hoạt động của Ngày Hội Khóa 20 Năm K8A1 — Ngày Trở Về:\n\n🏛️ BUỔI SÁNG — TẬP TRUNG TẠI TRƯỜNG CŨ (08:30 — 10:45)\n• Địa điểm: Trường THPT Thái Nguyên (Số 127 đường Lương Thế Vinh, TP Thái Nguyên).\n• 08:30 - 09:15: Đón tiếp thành viên tại Cổng chính trường. Check-in nhận "Tấm Vé Vàng Tri Kỷ", phát áo đồng phục Polo K8A1.\n• 09:15 - 10:00: Thăm lại lớp học xưa, hành lang kỷ niệm, gặp gỡ và tri ân các Thầy Cô giáo chủ nhiệm và bộ môn.\n• 10:00 - 10:45: Chụp ảnh tập thể lớp trước tượng đài và sân trường lưu giữ khoảnh khắc 20 năm.\n\n🍽️ BUỔI TRƯA & CHIỀU — LIÊN HOAN HỘI NGỘ (11:00 — 15:30)\n• Địa điểm: Trung tâm Sự kiện & Nhà hàng The Prime Thái Nguyên (Số 1 đường Hoàng Văn Thụ, TP Thái Nguyên).\n• 11:00 - 11:30: Khai mạc tiệc mừng 20 năm, chiếu phóng sự hình ảnh tuổi học trò K8A1 trên màn hình LED sân khấu.\n• 11:30 - 13:30: Khai tiệc liên hoan, nâng ly chúc mừng sức khỏe và thành công của từng thành viên.\n• 13:30 - 15:30: Giao lưu âm nhạc, kể chuyện thời đi học, bốc thăm kỷ vật tri ân và trao quà lưu niệm.\n\nBan Tổ Chức đề nghị các bạn chủ động sắp xếp thời gian, có mặt đúng giờ để buổi lễ diễn ra trọn vẹn và ý nghĩa nhất!',
+        '',
+        '#hero',
+        '📅 Xem Sơ Đồ & Đếm Ngược',
+        'TRUE',
+        '13/09/2026 14:00',
+        'Ban Liên Lạc K8A1',
+        'published',
+        56
+      ],
+      [
+        'TB-03',
+        '💰 Báo cáo tiến độ Quỹ Lớp K8A1 & Tri ân các bạn đã hoàn thành đóng góp sớm',
+        'fund',
+        'Tính đến nay đã có đông đảo thành viên hoàn tất đóng góp kinh phí và ủng hộ thêm cho quỹ lớp. Mọi khoản thu chi đều được đối soát công khai minh bạch 100%.',
+        'Kính gửi tập thể lớp K8A1,\n\nThay mặt Ban Liên Lạc và Ban Tài Chính, Thủ quỹ Đào Thị Hồng Nhung xin gửi lời cảm ơn chân thành và sâu sắc nhất tới toàn thể các bạn học đã tích cực hưởng ứng đóng góp kinh phí tổ chức Hội khóa 20 Năm.\n\nMức kinh phí thống nhất: 700.000 đ / thành viên (đã bao gồm toàn bộ chi phí áo polo cao cấp, kỷ niệm chương, hoa quà tri ân Thầy Cô, tiệc liên hoan trọn gói tại The Prime và truyền thông sân khấu).\n\nToàn bộ các khoản đóng góp được hệ thống tự động đối soát qua tài khoản VietinBank và cập nhật liên tục thời gian thực lên Sổ Quỹ Lớp trên WebApp.\n\nCác bạn chưa hoàn tất đóng góp có thể chuyển khoản trực tiếp qua mã QR VietQR thông minh tích hợp trên Web để được cấp mã biên lai tức thì.',
+        '',
+        '#bank-transfer-card',
+        '💰 Mở Sổ Quỹ & Cổng Đóng Góp',
+        'FALSE',
+        '12/09/2026 18:30',
+        'Thủ Quỹ Đào Hồng Nhung',
+        'published',
+        38
+      ],
+      [
+        'TB-04',
+        '📸 Ký sự BLL tiền trạm nhà hàng The Prime & Thăm hỏi trường THPT Thái Nguyên',
+        'activity',
+        'Đại diện Ban Liên Lạc đã làm việc trực tiếp với Ban Giám Hiệu nhà trường và nhà hàng The Prime để rà soát cơ sở vật chất, sảnh tiệc và âm thanh ánh sáng.',
+        'Ngày 10/09 vừa qua, đại diện Ban Liên Lạc Lớp K8A1 đã có buổi gặp gỡ, làm việc tiền trạm tại cả hai điểm dừng chân của ngày hội khóa:\n\n1. Tại Trường THPT Thái Nguyên:\nBLL đã báo cáo kế hoạch hoạt động với Ban Giám Hiệu nhà trường và nhận được sự đồng thuận, tạo điều kiện tối đa cho cựu học sinh K8A1 trở về thăm trường. Khu vực sân trường và phòng học kỷ niệm sẽ được mở cửa đón tiếp lớp vào sáng Chủ Nhật 27/09.\n\n2. Tại Trung tâm Sự kiện The Prime:\nSảnh tiệc riêng biệt, hệ thống màn hình LED cỡ lớn độ nét cao, dàn âm thanh ánh sáng chuyên nghiệp đã được chốt hợp đồng và test kỹ thuật, đảm bảo không gian ấm cúng, sang trọng và trọn vẹn cảm xúc cho buổi gặp mặt của chúng ta.\n\nHẹn gặp lại tất cả 65 người bạn tri kỷ của K8A1 trong ngày 27/09/2026!',
+        '',
+        '#diem-danh',
+        '🎫 Nhận Vé Vàng Có Mặt Cùng Lớp',
+        'FALSE',
+        '11/09/2026 10:15',
+        'Ban Liên Lạc K8A1',
+        'published',
+        49
+      ]
+    ];
+    sheet.getRange(2, 1, defaultAnnouncements.length, 13).setValues(defaultAnnouncements);
+  }
+  return sheet;
+}
+
+function getAnnouncementsList() {
+  try {
+    var sheet = getAnnouncementsSheet();
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { status: 'success', data: [], count: 0 };
+
+    var data = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
+    var announcements = [];
+
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      var id = String(row[0] || '').trim();
+      var title = String(row[1] || '').trim();
+      if (!id || !title) continue;
+
+      var isPinnedRaw = row[8];
+      var isPinned = (isPinnedRaw === true || String(isPinnedRaw).toUpperCase() === 'TRUE' || isPinnedRaw === 1);
+
+      announcements.push({
+        id: id,
+        title: title,
+        category: String(row[2] || 'schedule').trim().toLowerCase(),
+        summary: String(row[3] || '').trim(),
+        content: String(row[4] || '').trim(),
+        imageUrl: String(row[5] || '').trim(),
+        actionUrl: String(row[6] || '').trim(),
+        actionLabel: String(row[7] || '').trim(),
+        isPinned: isPinned,
+        createdAt: String(row[9] || '').trim(),
+        author: String(row[10] || 'Ban Liên Lạc K8A1').trim(),
+        status: String(row[11] || 'published').trim().toLowerCase(),
+        likesCount: Number(row[12]) || 0
+      });
+    }
+
+    // Sắp xếp: Tin ghim lên đầu, sau đó theo createdAt giảm dần
+    announcements.sort(function(a, b) {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+
+    return { status: 'success', data: announcements, count: announcements.length };
+  } catch (err) {
+    return { status: 'error', message: err.toString(), data: [] };
+  }
+}
+
+function saveAnnouncement(postData) {
+  try {
+    var sheet = getAnnouncementsSheet();
+    var a = postData.announcement || postData;
+    if (!a.title) return { status: 'error', message: 'Tiêu đề thông báo không được để trống!' };
+
+    var nowStr = formatDate(new Date()) + ' ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'GMT+7', 'HH:mm');
+    var id = a.id ? String(a.id).trim() : ('TB-' + Date.now());
+    var createdAt = a.createdAt ? String(a.createdAt).trim() : nowStr;
+    var isPinned = Boolean(a.isPinned);
+
+    var rowValues = [
+      id,
+      String(a.title || '').trim(),
+      String(a.category || 'schedule').trim().toLowerCase(),
+      String(a.summary || '').trim(),
+      String(a.content || '').trim(),
+      String(a.imageUrl || '').trim(),
+      String(a.actionUrl || '').trim(),
+      String(a.actionLabel || '').trim(),
+      isPinned ? 'TRUE' : 'FALSE',
+      createdAt,
+      String(a.author || 'Ban Liên Lạc K8A1').trim(),
+      String(a.status || 'published').trim().toLowerCase(),
+      Number(a.likesCount) || 0
+    ];
+
+    var lastRow = sheet.getLastRow();
+    var existingRowIndex = -1;
+
+    if (lastRow >= 2) {
+      var idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      for (var i = 0; i < idValues.length; i++) {
+        if (String(idValues[i][0]).trim() === id) {
+          existingRowIndex = i + 2;
+          break;
+        }
+      }
+    }
+
+    if (existingRowIndex > 0) {
+      // Cập nhật dòng hiện có
+      sheet.getRange(existingRowIndex, 1, 1, 13).setValues([rowValues]);
+      return { status: 'success', message: 'Đã cập nhật thông báo thành công!', data: a, actionType: 'update' };
+    } else {
+      // Thêm dòng mới
+      sheet.appendRow(rowValues);
+      return { status: 'success', message: 'Đã đăng thông báo mới thành công!', data: a, actionType: 'create' };
+    }
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function deleteAnnouncement(postData) {
+  try {
+    var sheet = getAnnouncementsSheet();
+    var id = String(postData.id || postData.announcementId || '').trim();
+    if (!id) return { status: 'error', message: 'Mã thông báo không hợp lệ!' };
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { status: 'error', message: 'Không tìm thấy thông báo cần xóa!' };
+
+    var idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < idValues.length; i++) {
+      if (String(idValues[i][0]).trim() === id) {
+        sheet.deleteRow(i + 2);
+        return { status: 'success', message: 'Đã xóa thông báo ' + id + ' thành công!', id: id };
+      }
+    }
+    return { status: 'error', message: 'Không tìm thấy thông báo có mã: ' + id };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
+function likeAnnouncement(postData) {
+  try {
+    var sheet = getAnnouncementsSheet();
+    var id = String(postData.id || postData.announcementId || '').trim();
+    if (!id) return { status: 'error', message: 'Mã thông báo không hợp lệ!' };
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { status: 'error', message: 'Không tìm thấy thông báo!' };
+
+    var idValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < idValues.length; i++) {
+      if (String(idValues[i][0]).trim() === id) {
+        var currentLikes = Number(sheet.getRange(i + 2, 13).getValue()) || 0;
+        var newLikes = currentLikes + 1;
+        sheet.getRange(i + 2, 13).setValue(newLikes);
+        return { status: 'success', id: id, likesCount: newLikes };
+      }
+    }
+    return { status: 'error', message: 'Không tìm thấy thông báo có mã: ' + id };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  }
+}
+
