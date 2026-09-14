@@ -2733,7 +2733,7 @@ export default function App() {
             <div className="flex items-center justify-between px-2 pt-1 pb-1 text-xs select-none">
               <span className="flex items-center gap-1.5 font-medium text-[11px] text-slate-400">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>Bấm tiêu đề từng khối để Đóng / Mở gọn gàng</span>
+                <span>Tùy chỉnh thu gọn / mở rộng các khối</span>
               </span>
               <div className="flex items-center gap-2">
                 <button
