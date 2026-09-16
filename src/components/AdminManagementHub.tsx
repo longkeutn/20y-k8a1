@@ -2273,6 +2273,125 @@ export default function AdminManagementHub({
   // ---------------------------------------------------------------------------
   // FUND RECONCILIATION CRUD HANDLERS
   // ---------------------------------------------------------------------------
+  // Helper tự động đồng bộ thay đổi quỹ từ RSVP sang mảng Incomes (Sổ Thu)
+  const syncRsvpFundChangeToIncomes = (
+    attendee: RsvpData, 
+    status: 'paid' | 'unpaid' | 'pending' | 'exempt', 
+    amount: number, 
+    auditorName: string, 
+    paidTime?: string, 
+    receiptUrl?: string, 
+    noteStr?: string
+  ) => {
+    const isPaid = status === 'paid';
+    const isPending = status === 'pending';
+    const isUnpaid = status === 'unpaid' || status === 'exempt';
+
+    let updatedIncomes = [...effectiveIncomes];
+    const matchIdx = updatedIncomes.findIndex(i => 
+      (i.category === 'event' || !i.category) && (
+        (attendee.memberId && i.memberId === attendee.memberId) ||
+        (attendee.phone && i.payerPhone && isPhoneMatch(attendee.phone, i.payerPhone)) ||
+        (attendee.fullName && i.payerName && normNameRoster(attendee.fullName) === normNameRoster(i.payerName))
+      )
+    );
+
+    if (isPaid || isPending) {
+      const incDate = paidTime ? (paidTime.includes('/') ? paidTime.split(' ')[0].split('/').reverse().join('-') : paidTime.slice(0, 10)) : new Date().toISOString().slice(0, 10);
+      const incAuditor = auditorName || (isPaid ? getDefaultAuditorName() : 'Thành viên gửi bill (Chờ đối soát)');
+      const incNote = noteStr || attendee.fundNote || (isPaid ? `Đã đối soát khớp lệnh ${amount.toLocaleString('vi-VN')}đ` : 'Chờ BLL đối soát');
+      const incReceipt = receiptUrl || attendee.fundReceiptUrl;
+
+      if (matchIdx > -1) {
+        updatedIncomes[matchIdx] = {
+          ...updatedIncomes[matchIdx],
+          amount: amount,
+          date: incDate,
+          auditor: incAuditor,
+          receiptUrl: incReceipt,
+          note: incNote,
+          paymentMethod: attendee.fundPaymentMethod || 'bank_transfer',
+          payerName: attendee.fullName,
+          payerPhone: attendee.phone,
+          memberId: attendee.memberId
+        };
+      } else {
+        const newInc: IncomeItem = {
+          id: `inc-${Date.now()}`,
+          title: `Đóng quỹ họp lớp 20 năm - ${attendee.fullName}`,
+          category: 'event',
+          amount: amount,
+          date: incDate,
+          payerName: attendee.fullName,
+          payerPhone: attendee.phone,
+          memberId: attendee.memberId,
+          paymentMethod: attendee.fundPaymentMethod || 'bank_transfer',
+          auditor: incAuditor,
+          receiptUrl: incReceipt,
+          eventScope: 'Kỷ niệm 20 năm',
+          note: incNote,
+          createdAt: new Date().toISOString()
+        };
+        updatedIncomes = [newInc, ...updatedIncomes];
+      }
+    } else if (isUnpaid) {
+      if (matchIdx > -1) {
+        updatedIncomes = updatedIncomes.filter((_, idx) => idx !== matchIdx);
+      }
+    }
+
+    if (onSaveAllIncomes) {
+      onSaveAllIncomes(updatedIncomes);
+    } else {
+      try {
+        localStorage.setItem('k8a1_incomes_list', JSON.stringify(updatedIncomes));
+      } catch (e) {}
+    }
+  };
+
+  const [isSyncingIncomes, setIsSyncingIncomes] = useState(false);
+
+  const handleSyncAllRsvpToIncomes = async () => {
+    if (!canAuditAndSpend) {
+      alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền đồng bộ Sổ Thu!');
+      return;
+    }
+    if (!window.confirm('Hệ thống sẽ đối chiếu danh sách đóng quỹ từ Sheet RSVP để chuẩn hóa Sổ Thu Khoan_Thu (Bảo toàn 100% các khoản thu ngoài sự kiện như Áo polo, Quỹ thường niên...). Bạn có chắc chắn muốn thực hiện?')) {
+      return;
+    }
+
+    setIsSyncingIncomes(true);
+    const targetUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
+    if (!targetUrl || !targetUrl.trim()) {
+      alert('Chưa có cấu hình Google Apps Script URL!');
+      setIsSyncingIncomes(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'sync_rsvp_to_incomes',
+          pin: getAdminPinToken()
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert(data.message || 'Đồng bộ Sổ Thu thành công!');
+        if (onRefreshData) {
+          onRefreshData();
+        }
+      } else {
+        alert('Lỗi: ' + (data.message || 'Không thể đồng bộ Sổ Thu'));
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối: ' + (err.message || err.toString()));
+    } finally {
+      setIsSyncingIncomes(false);
+    }
+  };
+
   const handleToggleFundPaid = (attendee: RsvpData) => {
     if (!canAuditAndSpend) {
       alert('Chỉ Thủ Quỹ lớp (hoặc Admin) mới có quyền đối soát và xác nhận nộp tiền!');
@@ -2301,6 +2420,9 @@ export default function AdminManagementHub({
 
     onUpdateRsvpList(updated);
     localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+    // Đồng bộ tức thì sang Sổ Thu
+    syncRsvpFundChangeToIncomes(attendee, nextStatus, nextAmount, auditor, nowStr, attendee.fundReceiptUrl, nextStatus === 'paid' ? (attendee.fundNote || `Đã nộp ${standardFundAmount.toLocaleString('vi-VN')}đ`) : '');
 
     if (appsScriptUrl && appsScriptUrl.trim()) {
       fetch(appsScriptUrl, {
@@ -2352,6 +2474,9 @@ export default function AdminManagementHub({
 
     onUpdateRsvpList(updated);
     localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+    // Đồng bộ tức thì sang Sổ Thu
+    syncRsvpFundChangeToIncomes(attendee, 'paid', finalAmount, auditor, nowStr, attendee.fundReceiptUrl, finalNote);
 
     if (appsScriptUrl && appsScriptUrl.trim()) {
       fetch(appsScriptUrl, {
@@ -2499,6 +2624,9 @@ export default function AdminManagementHub({
 
     onUpdateRsvpList(updated);
     localStorage.setItem('rsvp_list', JSON.stringify(updated));
+
+    // Đồng bộ tức thì sang Sổ Thu
+    syncRsvpFundChangeToIncomes(adjustFundMember, targetStatus, Number(fundAdjustAmount), auditorName, auditedTime, fundAdjustReceiptUrl, fundAdjustNote.trim());
 
     if (appsScriptUrl && appsScriptUrl.trim()) {
       fetch(appsScriptUrl, {
@@ -5021,14 +5149,29 @@ export default function AdminManagementHub({
                 <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                   {fundSubTab === 'income' && (
                     canAuditAndSpend ? (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenAddIncome()}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-lg shadow-xs transition cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Thêm Khoản Thu Mới</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {fundIncomeViewMode === 'income_ledger' && (
+                          <button
+                            type="button"
+                            onClick={handleSyncAllRsvpToIncomes}
+                            disabled={isSyncingIncomes}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 text-xs font-sans font-bold rounded-lg shadow-2xs transition cursor-pointer disabled:opacity-50"
+                            title="Quét toàn bộ danh sách RSVP để chuẩn hóa Sổ Thu (Chống trùng lặp, bảo toàn các khoản ngoài sự kiện)"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingIncomes ? 'animate-spin text-amber-600' : 'text-amber-700'}`} />
+                            <span className="hidden sm:inline">{isSyncingIncomes ? 'Đang đồng bộ...' : 'Đồng Bộ Từ RSVP'}</span>
+                            <span className="sm:hidden">{isSyncingIncomes ? 'Đang đồng bộ...' : 'Khớp RSVP'}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddIncome()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-sans font-bold rounded-lg shadow-xs transition cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Thêm Khoản Thu Mới</span>
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-indigo-700 font-sans italic px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center gap-1.5">
                         👁️ Quyền thu quỹ: Thủ Quỹ
@@ -5813,11 +5956,16 @@ export default function AdminManagementHub({
 
                               <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 border-b border-slate-100">
                                 <div>
-                                  <span className="text-slate-700 text-[11px] font-semibold block">
-                                    {item.auditor || 'Thủ Quỹ BLL'}
+                                  <span className={`text-[11px] font-semibold inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${
+                                    item.auditor?.includes('Chờ đối soát')
+                                      ? 'text-amber-800 bg-amber-50 border border-amber-200'
+                                      : 'text-emerald-800 bg-emerald-50 border border-emerald-200'
+                                  }`}>
+                                    {item.auditor?.includes('Chờ đối soát') ? '⏳' : '✓'}
+                                    <span>{item.auditor || 'Thủ Quỹ BLL'}</span>
                                   </span>
                                   {item.note && (
-                                    <span className="text-[11px] text-slate-500 italic line-clamp-1" title={item.note}>
+                                    <span className="text-[11px] text-slate-500 italic line-clamp-1 mt-0.5" title={item.note}>
                                       "{item.note}"
                                     </span>
                                   )}

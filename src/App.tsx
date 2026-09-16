@@ -1802,8 +1802,8 @@ export default function App() {
           ...item,
           checkedIn: uniqueRsvp[existingIdx].checkedIn || item.checkedIn,
           checkedInAt: item.checkedInAt || uniqueRsvp[existingIdx].checkedInAt,
-          fundStatus: (uniqueRsvp[existingIdx].fundStatus === 'paid' || item.fundStatus === 'paid') ? 'paid' : (item.fundStatus || uniqueRsvp[existingIdx].fundStatus),
-          fundAmount: Math.max(uniqueRsvp[existingIdx].fundAmount || 0, item.fundAmount || 0),
+          fundStatus: item.fundStatus !== undefined ? item.fundStatus : (uniqueRsvp[existingIdx].fundStatus || 'unpaid'),
+          fundAmount: item.fundAmount !== undefined ? item.fundAmount : (uniqueRsvp[existingIdx].fundAmount || 0),
           fundReceiptUrl: finalReceiptUrl || uniqueRsvp[existingIdx].fundReceiptUrl
         };
       } else {

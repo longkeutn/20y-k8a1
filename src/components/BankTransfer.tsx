@@ -191,18 +191,9 @@ export default function BankTransfer({
 
   const displayedExtraIncomes = useMemo(() => {
     return effectiveIncomes
-      .filter(item => {
-        if (item.category !== 'event') return true;
-        // Nếu là 'event', chỉ giữ lại nếu người này CHƯA được hiển thị trong displayedPaidAttendees
-        const isAlreadyInPaid = displayedPaidAttendees.some(att => 
-          (item.memberId && att.memberId === item.memberId) ||
-          (item.payerPhone && att.phone && item.payerPhone.replace(/\D/g, '') === att.phone.replace(/\D/g, '')) ||
-          (item.payerName && item.payerName.trim().toLowerCase() === (att.fullName || '').trim().toLowerCase())
-        );
-        return !isAlreadyInPaid;
-      })
+      .filter(item => item.category !== 'event')
       .filter(item => isLedgerDateInFilter(item.date, ledgerTimeFilter));
-  }, [effectiveIncomes, displayedPaidAttendees, ledgerTimeFilter]);
+  }, [effectiveIncomes, ledgerTimeFilter]);
 
   const copyToClipboard = (text: any, type: 'account' | 'syntax') => {
     navigator.clipboard.writeText(String(text || ''));

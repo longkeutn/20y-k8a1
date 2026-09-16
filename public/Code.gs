@@ -658,6 +658,12 @@ function doGet(e) {
       return handleResponse(syncAllRsvpSizesToRoster());
     }
 
+    // Quét và chuẩn hóa Sổ Thu Khoan_Thu từ Sheet RSVP (1-Chạm, bảo toàn các khoản thu ngoài sự kiện)
+    if (action === 'sync_rsvp_to_incomes' || action === 'sync_incomes_from_rsvp') {
+      if (!isAdmin) return handleResponse({ status: 'error', message: 'Yêu cầu quyền quản trị viên hoặc Thủ Quỹ!' });
+      return handleResponse(syncAllRsvpToIncomes());
+    }
+
     // 7. Lấy số lượt xem trang
     if (action === 'get_view_count') {
       return handleResponse(getViewCount());
@@ -842,6 +848,11 @@ function doPost(e) {
     if (action === 'sync_rsvp_to_roster' || action === 'sync_sizes_to_roster') {
       if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để đồng bộ size áo!' });
       return handleResponse(syncAllRsvpSizesToRoster());
+    }
+
+    if (action === 'sync_rsvp_to_incomes' || action === 'sync_incomes_from_rsvp') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên hoặc Thủ Quỹ để đồng bộ Sổ Thu!' });
+      return handleResponse(syncAllRsvpToIncomes());
     }
 
     if (action === 'record_view' || action === 'hit_view') {
@@ -1447,6 +1458,15 @@ function updateRSVP(data) {
     syncRSVPToRoster(data);
   }
 
+  // Tự động đồng bộ thông tin sang Sheet Khoan_Thu nếu có thay đổi về quỹ
+  if (updated && (data.fundStatus !== undefined || data.fundAmount !== undefined || data.fundAuditedBy !== undefined || data.fundReceiptUrl !== undefined)) {
+    try {
+      syncRsvpRowToIncomes(data);
+    } catch (errSyncInc) {
+      console.warn("Lỗi syncRsvpRowToIncomes trong updateRSVP: " + errSyncInc);
+    }
+  }
+
   return { status: updated ? 'success' : 'not_found', message: updated ? 'Cập nhật thành công' : 'Không tìm thấy dòng tương ứng' };
 }
 
@@ -2004,50 +2024,50 @@ function uploadFundReceiptToDrive(data) {
     const driveUrl = file.getUrl();
 
     // 4. Ghi nhận chứng từ thu quỹ:
-    // - Luôn lưu đầy đủ vào Sheet "Khoan_Thu"
-    // - CHỈ cập nhật vào Sheet "Xac_Nhan_Tham_Gia" (RSVP) NẾU đây là khoản thu sự kiện họp lớp ('event')
+    // - Quỹ sự kiện họp lớp ('event'): Cập nhật Sheet RSVP, từ đó tự động đồng bộ sang Sheet Khoan_Thu (chống trùng lặp)
+    // - Các khoản thu ngoài sự kiện (áo polo, quỹ thường niên...): Ghi nhận trực tiếp vào Sheet Khoan_Thu
     if (!isExpense && (data.phone || data.fullName)) {
       const isReunionEventFee = !data.category || data.category === 'event';
 
-      // 4a. Tự động thêm vào Sheet Khoan_Thu
-      try {
-        addIncomeItem({
-          id: 'inc-' + Date.now(),
-          title: data.incomeTitle || (data.categoryLabel ? (data.categoryLabel + ' - ' + data.fullName) : ('Đóng quỹ họp lớp 20 năm - ' + data.fullName)),
-          category: data.category || 'event',
-          amount: Number(data.fundAmount || data.amount) || 700000,
-          date: formatDate(new Date()),
-          payerName: data.fullName,
-          payerPhone: data.phone,
-          memberId: data.memberId || '',
-          paymentMethod: data.fundPaymentMethod || 'bank_transfer',
-          auditor: data.fundAuditedBy || 'Thành viên gửi bill (Chờ đối soát)',
-          receiptUrl: cdnUrl,
-          eventScope: data.category === 'annual' ? 'Thường niên 2026' : 'Kỷ niệm 20 năm',
-          note: data.fundNote || ('Tải lên bill ' + (data.fundAmount || 700000).toLocaleString('vi-VN') + 'đ')
-        });
-      } catch (errInc) {
-        console.warn("Lỗi thêm Khoan_Thu: " + errInc);
-      }
-
-      // 4b. CHỈ cập nhật Sheet RSVP nếu là khoản đóng quỹ sự kiện họp lớp 20 năm ('event')
-      // TUYỆT ĐỐI KHÔNG ghi đè Sheet RSVP nếu là Quỹ thường niên (100k), Mua áo polo, Tài trợ, v.v.
       if (isReunionEventFee) {
+        // Cập nhật trạng thái quỹ sự kiện vào RSVP -> updateRSVP sẽ kích hoạt syncRsvpRowToIncomes (chống trùng)
         const targetStatus = data.fundStatus || (data.fundAuditedBy ? 'paid' : 'pending');
         try {
           updateRSVP({
             phone: data.phone,
             fullName: data.fullName,
+            memberId: data.memberId || '',
             fundReceiptUrl: cdnUrl,
             fundStatus: targetStatus,
-            fundAmount: data.fundAmount || 700000,
+            fundAmount: Number(data.fundAmount || data.amount) || 700000,
             fundPaymentMethod: data.fundPaymentMethod || 'bank_transfer',
             fundPaidAt: data.fundPaidAt || formatDate(new Date()),
             fundAuditedBy: data.fundAuditedBy || '',
-            fundNote: data.fundNote || ('Thành viên tự tải lên bill ' + (data.fundAmount || 700000).toLocaleString('vi-VN') + 'đ')
+            fundNote: data.fundNote || ('Thành viên tự tải lên bill ' + (data.fundAmount || data.amount || 700000).toLocaleString('vi-VN') + 'đ')
           });
         } catch (errSync) {
           console.warn("Lỗi sync sheet RSVP: " + errSync);
+        }
+      } else {
+        // Khoản thu ngoài sự kiện (áo polo, quỹ thường niên, tài trợ...) -> Ghi nhận thẳng vào Sổ Thu
+        try {
+          addIncomeItem({
+            id: 'inc-' + Date.now(),
+            title: data.incomeTitle || (data.categoryLabel ? (data.categoryLabel + ' - ' + data.fullName) : ('Khoản thu mới - ' + data.fullName)),
+            category: data.category || 'other_income',
+            amount: Number(data.fundAmount || data.amount) || 0,
+            date: formatDate(new Date()),
+            payerName: data.fullName,
+            payerPhone: data.phone,
+            memberId: data.memberId || '',
+            paymentMethod: data.fundPaymentMethod || 'bank_transfer',
+            auditor: data.fundAuditedBy || 'Thủ Quỹ BLL',
+            receiptUrl: cdnUrl,
+            eventScope: data.category === 'annual' ? 'Thường niên 2026' : 'Kỷ niệm 20 năm',
+            note: data.fundNote || ''
+          });
+        } catch (errInc) {
+          console.warn("Lỗi thêm Khoan_Thu ngoài sự kiện: " + errInc);
         }
       }
     }
@@ -2979,6 +2999,38 @@ function saveIncomesList(postData) {
     if (!sheet) {
       sheet = ss.insertSheet(CONFIG.INCOMES_SHEET_NAME);
     }
+    // Bảo tồn các dòng chờ đối soát mới trên Sheet mà client có thể chưa kịp fetch
+    var existingRows = sheet.getDataRange().getValues();
+    var clientIds = {};
+    var clientPayerMap = {};
+    const incomes = Array.isArray(postData.incomes) ? postData.incomes : (postData.data || []);
+    incomes.forEach(function(item) {
+      if (item.id) clientIds[String(item.id)] = true;
+      var pName = normalizeName(item.payerName);
+      var pPhone = normalizePhone(item.payerPhone);
+      if (item.category === 'event') {
+        if (pName) clientPayerMap[pName] = true;
+        if (pPhone) clientPayerMap[pPhone] = true;
+      }
+    });
+
+    var preservedPendingRows = [];
+    for (var erIdx = 1; erIdx < existingRows.length; erIdx++) {
+      var er = existingRows[erIdx];
+      var erId = String(er[0] || '');
+      var erCat = String(er[2] || '');
+      var erAuditor = String(er[9] || '');
+      var erName = normalizeName(er[5]);
+      var erPhone = normalizePhone(er[6]);
+
+      // Nếu là khoản thu chờ đối soát trên Sheet mà client chưa có ID và chưa có người nộp trùng -> Giữ lại
+      if (erAuditor.indexOf('Chờ đối soát') !== -1 && !clientIds[erId]) {
+        if (!clientPayerMap[erName] && (!erPhone || !clientPayerMap[erPhone])) {
+          preservedPendingRows.push(er);
+        }
+      }
+    }
+
     sheet.clearContents();
     sheet.appendRow([
       'ID', 
@@ -2997,27 +3049,32 @@ function saveIncomesList(postData) {
       'Thời gian tạo'
     ]);
     sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#E8F5E9');
-    const incomes = Array.isArray(postData.incomes) ? postData.incomes : (postData.data || []);
-    if (incomes.length > 0) {
-      const rows = incomes.map(function(item, idx) {
-        return [
-          item.id || ('inc-' + (Date.now() + idx)),
-          item.title || '',
-          item.category || 'other_income',
-          Number(item.amount) || 0,
-          item.date || '',
-          item.payerName || '',
-          item.payerPhone || '',
-          item.memberId || '',
-          item.paymentMethod || 'bank_transfer',
-          item.auditor || '',
-          item.receiptUrl || '',
-          item.eventScope || 'Kỷ niệm 20 năm',
-          item.note || '',
-          item.createdAt || new Date().toISOString()
-        ];
-      });
-      sheet.getRange(2, 1, rows.length, 14).setValues(rows);
+
+    var rowsToInsert = incomes.map(function(item, idx) {
+      return [
+        item.id || ('inc-' + (Date.now() + idx)),
+        item.title || '',
+        item.category || 'other_income',
+        Number(item.amount) || 0,
+        item.date || '',
+        item.payerName || '',
+        item.payerPhone || '',
+        item.memberId || '',
+        item.paymentMethod || 'bank_transfer',
+        item.auditor || '',
+        item.receiptUrl || '',
+        item.eventScope || 'Kỷ niệm 20 năm',
+        item.note || '',
+        item.createdAt || new Date().toISOString()
+      ];
+    });
+
+    if (preservedPendingRows.length > 0) {
+      rowsToInsert = rowsToInsert.concat(preservedPendingRows);
+    }
+
+    if (rowsToInsert.length > 0) {
+      sheet.getRange(2, 1, rowsToInsert.length, 14).setValues(rowsToInsert);
     }
     return { status: 'success', message: 'Đã lưu danh sách khoản thu vào Sheet Khoan_Thu thành công!' };
   } catch (err) {
@@ -3069,6 +3126,227 @@ function addIncomeItem(item) {
     return { status: 'success', message: 'Đã thêm khoản thu vào Sheet Khoan_Thu thành công!' };
   } catch (err) {
     return { status: 'error', message: err.toString() };
+  }
+}
+
+/**
+ * Tự động đồng bộ một dòng thay đổi quỹ từ RSVP sang Sheet Khoan_Thu (chống trùng lặp, cập nhật người đối soát)
+ */
+function syncRsvpRowToIncomes(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(CONFIG.INCOMES_SHEET_NAME);
+    if (!sheet) return;
+
+    var rows = sheet.getDataRange().getValues();
+    var targetMemberId = String(data.memberId || '').trim();
+    var targetPhone = normalizePhone(data.phone);
+    var targetName = normalizeName(data.fullName);
+
+    if (!targetMemberId && !targetPhone && !targetName) return;
+
+    var matchedRowIndices = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      var rCat = String(r[2] || '').trim();
+      // CHỈ đồng bộ khoản thu sự kiện họp lớp
+      if (rCat && rCat !== 'event') continue;
+
+      var rMid = String(r[7] || '').trim();
+      var rPhone = normalizePhone(r[6]);
+      var rName = normalizeName(r[5]);
+
+      var isMatch = (targetMemberId && rMid && targetMemberId === rMid) ||
+                    (targetPhone && rPhone && targetPhone === rPhone) ||
+                    (targetName && rName && targetName === rName);
+      if (isMatch) {
+        matchedRowIndices.push(i + 1);
+      }
+    }
+
+    var targetStatus = data.fundStatus;
+    var isPaid = targetStatus === 'paid';
+    var isPending = targetStatus === 'pending';
+    var isUnpaid = targetStatus === 'unpaid';
+
+    var now = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : String(n); };
+    var defaultDate = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+    var incDate = data.fundPaidAt || defaultDate;
+    if (incDate && incDate.indexOf('/') > -1) {
+      var parts = incDate.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        incDate = parts[2] + '-' + pad(Number(parts[1])) + '-' + pad(Number(parts[0]));
+      }
+    }
+
+    var amount = Number(data.fundAmount) || 700000;
+    var auditor = data.fundAuditedBy || (isPaid ? 'Ban Liên Lạc' : (isPending ? 'Thành viên gửi bill (Chờ đối soát)' : ''));
+    var receiptUrl = data.fundReceiptUrl || '';
+    var note = data.fundNote || (isPaid ? 'Đã đối soát khớp lệnh quỹ họp lớp 20 năm' : (isPending ? 'Thành viên gửi bill chờ đối soát' : ''));
+
+    if (isPaid || isPending) {
+      if (matchedRowIndices.length > 0) {
+        var firstRow = matchedRowIndices[0];
+        sheet.getRange(firstRow, 4).setValue(amount); // Số tiền
+        sheet.getRange(firstRow, 5).setValue(incDate); // Ngày thu
+        if (data.fullName) sheet.getRange(firstRow, 6).setValue(data.fullName);
+        if (data.phone) sheet.getRange(firstRow, 7).setValue("'" + normalizePhone(data.phone));
+        if (targetMemberId) sheet.getRange(firstRow, 8).setValue(targetMemberId);
+        sheet.getRange(firstRow, 9).setValue(data.fundPaymentMethod || 'bank_transfer');
+        sheet.getRange(firstRow, 10).setValue(auditor);
+        if (receiptUrl) sheet.getRange(firstRow, 11).setValue(receiptUrl);
+        sheet.getRange(firstRow, 13).setValue(note);
+
+        // Xóa các dòng trùng lặp thừa nếu có
+        if (matchedRowIndices.length > 1) {
+          for (var d = matchedRowIndices.length - 1; d >= 1; d--) {
+            sheet.deleteRow(matchedRowIndices[d]);
+          }
+        }
+      } else {
+        sheet.appendRow([
+          'inc-' + Date.now(),
+          'Đóng quỹ họp lớp 20 năm - ' + (data.fullName || 'Thành viên'),
+          'event',
+          amount,
+          incDate,
+          data.fullName || '',
+          data.phone ? ("'" + normalizePhone(data.phone)) : '',
+          targetMemberId || '',
+          data.fundPaymentMethod || 'bank_transfer',
+          auditor,
+          receiptUrl,
+          'Kỷ niệm 20 năm',
+          note,
+          new Date().toISOString()
+        ]);
+      }
+    } else if (isUnpaid) {
+      // Khi hủy duyệt: Xóa bỏ dòng sự kiện trong Khoan_Thu để số liệu luôn khớp với RSVP
+      if (matchedRowIndices.length > 0) {
+        for (var u = matchedRowIndices.length - 1; u >= 0; u--) {
+          sheet.deleteRow(matchedRowIndices[u]);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Lỗi syncRsvpRowToIncomes: " + err);
+  }
+}
+
+/**
+ * Quét toàn diện Sheet RSVP để chuẩn hóa Sổ Thu Khoan_Thu (Single Source of Truth)
+ * BẢO TỒN 100% CÁC KHOẢN THU NGOÀI SỰ KIỆN (Áo polo, Quỹ thường niên, Tài trợ ngoài...)
+ */
+function syncAllRsvpToIncomes() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var rsvpSheet = getActiveRsvpSheet();
+    var incSheet = ss.getSheetByName(CONFIG.INCOMES_SHEET_NAME);
+    if (!incSheet) {
+      getIncomesList(true);
+      incSheet = ss.getSheetByName(CONFIG.INCOMES_SHEET_NAME);
+    }
+
+    var rsvpRows = rsvpSheet.getDataRange().getValues();
+    var incRows = incSheet.getDataRange().getValues();
+
+    // 1. Tách và BẢO TỒN 100% các khoản thu NGOÀI sự kiện (Áo polo, Quỹ thường niên...)
+    var preservedExtraIncomes = [];
+    for (var i = 1; i < incRows.length; i++) {
+      var ir = incRows[i];
+      var cat = String(ir[2] || '').trim();
+      if (cat && cat !== 'event') {
+        preservedExtraIncomes.push(ir);
+      }
+    }
+
+    // 2. Trích xuất danh sách đóng quỹ từ Sheet RSVP (ĐÃ ĐÓNG và CHỜ ĐỐI SOÁT)
+    var eventIncomes = [];
+    var now = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : String(n); };
+    var defaultDate = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+
+    for (var r = 1; r < rsvpRows.length; r++) {
+      var row = rsvpRows[r];
+      var fStatus = String(row[9] || '').trim();
+      var isPaid = fStatus === 'ĐÃ ĐÓNG' || fStatus === 'paid';
+      var isPending = fStatus === 'CHỜ ĐỐI SOÁT' || fStatus === 'pending';
+
+      if (isPaid || isPending) {
+        var fAmount = Number(row[10]) || 700000;
+        var fNote = String(row[11] || '');
+        var fReceiptUrl = String(row[12] || '');
+        var fPaidAt = String(row[13] || '');
+        var fMethod = String(row[14] || 'bank_transfer');
+        var fAuditor = String(row[15] || (isPaid ? 'Ban Liên Lạc' : 'Thành viên gửi bill (Chờ đối soát)'));
+        var fMemberId = String(row[16] || '');
+        var fName = String(row[0] || '');
+        var fPhone = String(row[2] || '').replace("'", "");
+
+        var dateVal = defaultDate;
+        if (fPaidAt) {
+          var pDate = fPaidAt.split(' ')[0].split('/');
+          if (pDate.length === 3) {
+            dateVal = pDate[2] + '-' + pad(Number(pDate[1])) + '-' + pad(Number(pDate[0]));
+          } else {
+            dateVal = fPaidAt.split(' ')[0];
+          }
+        }
+
+        eventIncomes.push([
+          'inc-rsvp-' + (fMemberId || ('m' + r)) + '-' + (isPaid ? 'paid' : 'pending'),
+          'Đóng quỹ họp lớp 20 năm - ' + fName,
+          'event',
+          fAmount,
+          dateVal,
+          fName,
+          fPhone ? ("'" + normalizePhone(fPhone)) : '',
+          fMemberId,
+          fMethod,
+          fAuditor,
+          fReceiptUrl,
+          'Kỷ niệm 20 năm',
+          fNote || (isPaid ? 'Đã đối soát khớp lệnh từ RSVP' : 'Chờ BLL đối soát khớp lệnh'),
+          new Date().toISOString()
+        ]);
+      }
+    }
+
+    // 3. Ghi lại Sheet Khoan_Thu chuẩn hóa
+    incSheet.clearContents();
+    incSheet.appendRow([
+      'ID', 
+      'Tiêu đề khoản thu', 
+      'Nhóm thu', 
+      'Số tiền', 
+      'Ngày thu', 
+      'Người nộp/Đơn vị', 
+      'Số điện thoại', 
+      'Mã thành viên', 
+      'Hình thức', 
+      'Người đối soát', 
+      'Ảnh biên lai/UNC', 
+      'Phạm vi sự kiện', 
+      'Ghi chú', 
+      'Thời gian tạo'
+    ]);
+    incSheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#E8F5E9');
+
+    var finalRows = preservedExtraIncomes.concat(eventIncomes);
+    if (finalRows.length > 0) {
+      incSheet.getRange(2, 1, finalRows.length, 14).setValues(finalRows);
+    }
+
+    return {
+      status: 'success',
+      message: 'Đã đồng bộ chuẩn hóa ' + eventIncomes.length + ' khoản quỹ sự kiện từ Sheet RSVP sang Sheet Khoan_Thu (Bảo toàn ' + preservedExtraIncomes.length + ' khoản thu ngoài sự kiện)!',
+      eventCount: eventIncomes.length,
+      extraCount: preservedExtraIncomes.length
+    };
+  } catch (err) {
+    return { status: 'error', message: 'Lỗi đồng bộ RSVP sang Sổ Thu: ' + err.toString() };
   }
 }
 

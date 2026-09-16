@@ -466,36 +466,34 @@ export default function ReceiptUploadModal({
       localStorage.setItem('rsvp_list', JSON.stringify(updatedList));
     }
 
-    // 3. Tự động ghi nhận vào Sổ Thu (incomes) để Thủ quỹ mở Admin Hub là thấy ngay
-    const newIncomeRecord: IncomeItem = {
-      id: `inc-${Date.now()}`,
-      title: finalTitle,
-      category: selectedCategory,
-      amount: transferAmount,
-      date: now.toISOString().slice(0, 10),
-      payerName: finalName,
-      payerPhone: finalPhone,
-      memberId: selectedMemberId || undefined,
-      paymentMethod: 'bank_transfer',
-      auditor: 'Thành viên gửi bill (Chờ đối soát)',
-      receiptUrl: uploadedReceiptUrl,
-      eventScope: selectedCategory === 'annual' ? 'Thường niên 2026' : 'Kỷ niệm 20 năm',
-      note: auditNoteStr,
-      createdAt: now.toISOString()
-    };
-
-    if (onAddIncome) {
-      onAddIncome(newIncomeRecord);
-    } else {
-      // Fallback lưu trực tiếp vào localStorage nếu prop chưa nối
-      try {
-        const localIncomesRaw = localStorage.getItem('k8a1_incomes_list');
-        const localIncomes: IncomeItem[] = localIncomesRaw ? JSON.parse(localIncomesRaw) : [];
-        const nextIncomes = [newIncomeRecord, ...localIncomes];
-        localStorage.setItem('k8a1_incomes_list', JSON.stringify(nextIncomes));
-      } catch (e) {
-        console.warn('Lỗi ghi nhận sổ thu cục bộ:', e);
-      }
+    // 3. Cập nhật cục bộ Sổ Thu để hiển thị ngay trên máy người dùng (không gọi API ghi đè backend)
+    try {
+      const localIncomesRaw = localStorage.getItem('k8a1_incomes_list');
+      const localIncomes: IncomeItem[] = localIncomesRaw ? JSON.parse(localIncomesRaw) : [];
+      const newIncomeRecord: IncomeItem = {
+        id: `inc-${Date.now()}`,
+        title: finalTitle,
+        category: selectedCategory,
+        amount: transferAmount,
+        date: now.toISOString().slice(0, 10),
+        payerName: finalName,
+        payerPhone: finalPhone,
+        memberId: selectedMemberId || undefined,
+        paymentMethod: 'bank_transfer',
+        auditor: 'Thành viên gửi bill (Chờ đối soát)',
+        receiptUrl: uploadedReceiptUrl,
+        eventScope: selectedCategory === 'annual' ? 'Thường niên 2026' : 'Kỷ niệm 20 năm',
+        note: auditNoteStr,
+        createdAt: now.toISOString()
+      };
+      // Lọc bỏ dòng cũ của cùng thành viên nếu có
+      const filteredLocal = localIncomes.filter(inc => !(
+        inc.category === selectedCategory && 
+        ((selectedMemberId && inc.memberId === selectedMemberId) || (inc.payerPhone && finalPhone && inc.payerPhone.replace(/\D/g, '') === finalPhone.replace(/\D/g, '')))
+      ));
+      localStorage.setItem('k8a1_incomes_list', JSON.stringify([newIncomeRecord, ...filteredLocal]));
+    } catch (e) {
+      console.warn('Lỗi ghi nhận sổ thu cục bộ:', e);
     }
 
     confetti({ particleCount: 65, spread: 70, origin: { y: 0.6 } });
