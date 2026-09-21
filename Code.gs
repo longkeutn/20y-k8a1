@@ -693,6 +693,8 @@ function doGet(e) {
  * Xử lý yêu cầu POST: Ghi điểm danh, đối soát quỹ, lưu cấu hình, media vào Google Sheet / Drive
  */
 function doPost(e) {
+  var lock = null;
+  var hasLock = false;
   try {
     let postData = {};
     if (e && e.postData && e.postData.contents) {
@@ -708,6 +710,24 @@ function doPost(e) {
     const action = postData.action || 'rsvp';
     const pin = postData.pin || postData.adminPin || postData.authPin || '';
     const isAdmin = checkAdminAuthPin(pin);
+
+    // 🛡️ CƠ CHẾ KHÓA ĐỒNG THỜI (LOCKSERVICE): Chống Race Condition khi nhiều người cùng thao tác
+    // Xếp hàng tuần tự mọi tác vụ ghi dữ liệu vào Google Sheet / Drive, tránh trùng lặp bản ghi và quá tải bàn tiệc
+    const NO_LOCK_ACTIONS = ['verify_pin', 'auth_pin'];
+    const needsLock = NO_LOCK_ACTIONS.indexOf(action) === -1;
+
+    if (needsLock) {
+      lock = LockService.getScriptLock();
+      // Chờ tối đa 30 giây để các request cùng lúc tự động xếp hàng an toàn tuyệt đối
+      hasLock = lock.tryLock(30000);
+      if (!hasLock) {
+        return handleResponse({
+          status: 'error',
+          code: 'SERVER_BUSY',
+          message: 'Hệ thống đang xử lý nhiều thao tác cùng lúc, vui lòng thử lại sau giây lát!'
+        });
+      }
+    }
 
     // Khởi tạo / kiểm tra sheet bảo mật
     if (action === 'init_security' || action === 'init_pins') {
@@ -915,6 +935,19 @@ function doPost(e) {
     return handleResponse({ status: 'error', message: 'Hành động không hợp lệ!' });
   } catch (err) {
     return handleResponse({ status: 'error', message: err.toString() });
+  } finally {
+    if (hasLock && lock) {
+      try {
+        SpreadsheetApp.flush(); // Ép lưu dữ liệu xuống Google Sheet ngay trước khi nhả lock
+      } catch (eFlush) {
+        console.warn('Lỗi SpreadsheetApp.flush(): ' + eFlush);
+      }
+      try {
+        lock.releaseLock(); // Nhả lock cho request tiếp theo trong hàng đợi
+      } catch (eRel) {
+        console.warn('Lỗi lock.releaseLock(): ' + eRel);
+      }
+    }
   }
 }
 
