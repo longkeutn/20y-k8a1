@@ -5023,7 +5023,7 @@ export default function AdminManagementHub({
             classRoster={classRoster}
             teachersList={effectiveTeachers}
             appsScriptUrl={appsScriptUrl}
-            adminAuthPin={adminAuthPin}
+            adminAuthPin={getAdminPinToken()}
             onRefreshData={onRefreshData}
             onOpenPassModal={onOpenPassModal}
           />

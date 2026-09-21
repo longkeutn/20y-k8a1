@@ -59,6 +59,16 @@ export default function AdminTableManager({
   // Số bạn học sinh được phân ngồi tiếp đón Thầy Cô
   const [targetHostsCount, setTargetHostsCount] = useState<number>(3);
 
+  // Mã PIN xác thực quyền Admin/BLL (ưu tiên prop, fallback sessionStorage)
+  const effectivePin = useMemo(() => {
+    if (adminAuthPin) return adminAuthPin;
+    try {
+      return sessionStorage.getItem('admin_pin_token') || '';
+    } catch {
+      return '';
+    }
+  }, [adminAuthPin]);
+
 
   // Map danh bạ thành viên
   const rosterMap = useMemo(() => {
@@ -181,7 +191,7 @@ export default function AdminTableManager({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'assign_tables',
-            pin: adminAuthPin,
+            pin: effectivePin,
             assignments
           })
         });
@@ -253,7 +263,7 @@ export default function AdminTableManager({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'cancel_checkin',
-            pin: adminAuthPin,
+            pin: effectivePin,
             memberId: attendee.memberId,
             fullName: attendee.fullName,
             phone: attendee.phone,
