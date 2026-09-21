@@ -885,12 +885,16 @@ export default function App() {
   // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
   const [isZaloShareModalOpen, setIsZaloShareModalOpen] = useState(false);
+  const [zaloShareTemplate, setZaloShareTemplate] = useState<any>('milestone');
   const [isMobileQrModalOpen, setIsMobileQrModalOpen] = useState(false);
 
   useEffect(() => {
     const handleOpenIdentity = () => setIsIdentityModalOpen(true);
-    const handleOpenZaloShare = () => {
+    const handleOpenZaloShare = (e?: any) => {
       if (isBLLOrAdmin) {
+        if (e?.detail?.template) {
+          setZaloShareTemplate(e.detail.template);
+        }
         setIsZaloShareModalOpen(true);
       }
     };
@@ -3629,6 +3633,8 @@ export default function App() {
           eventConfig={eventConfig}
           activeMember={activeMember}
           appsScriptUrl={activeAppsScriptUrl}
+          teachersList={teachersList}
+          initialTemplate={zaloShareTemplate}
           onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
           onOpenMobileQr={() => {
             setIsZaloShareModalOpen(false);

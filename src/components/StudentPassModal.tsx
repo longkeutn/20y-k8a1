@@ -84,6 +84,7 @@ export default function StudentPassModal({
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [showTableModal, setShowTableModal] = useState(false);
   const [photoSaveModal, setPhotoSaveModal] = useState<{
     isOpen: boolean;
     imageUrl: string;
@@ -717,6 +718,34 @@ export default function StudentPassModal({
       ctx.font = 'bold 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.fillText(eventConfig?.venueName || 'Trường THPT Thái Nguyên', box2X + 16, gridY2 + 53);
 
+      // Box 5: Vị Trí Bàn Tiệc Hội Ngộ 20 Năm (Full Width Banner)
+      const gridY3 = 492;
+      const totalBoxW = boxW * 2 + 20; // 760px
+      const box3H = 58;
+
+      ctx.fillStyle = '#FFFBEB';
+      roundRect(ctx, infoX, gridY3, totalBoxW, box3H, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#F59E0B';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // Icon & Label
+      ctx.fillStyle = '#92400E';
+      ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('🍽️ BÀN TIỆC TRƯA 27/09', infoX + 16, gridY3 + 22);
+
+      // Table Name & Details
+      const displayTableTitle = currentTableNumber === 0 
+        ? 'MÂM TRI ÂN QUÝ THẦY CÔ (VIP)' 
+        : (currentTableName || (currentTableNumber !== undefined ? ('BÀN 0' + currentTableNumber) : 'ĐANG SẮP XẾP VỊ TRÍ'));
+      const tableDesc = activeTableConfig?.name && currentTableNumber !== 0 ? (' — ' + activeTableConfig.name) : (activeTableConfig?.description ? (' (' + activeTableConfig.description + ')') : '');
+
+      ctx.fillStyle = '#78350F';
+      ctx.font = 'bold 18px Georgia, serif';
+      ctx.fillText(displayTableTitle + tableDesc, infoX + 16, gridY3 + 46);
+
       // 8. Card Footer
       const footerY = 665;
       ctx.strokeStyle = '#E2CBA8';
@@ -1094,6 +1123,32 @@ export default function StudentPassModal({
                   </div>
                 </div>
 
+                {/* Dải Bàn Tiệc Hội Ngộ */}
+                {(currentTableNumber !== undefined || currentTableName) ? (
+                  <div className="flex items-center justify-between gap-1 text-xs bg-amber-500/15 border border-amber-400/60 rounded-lg px-2.5 py-1 shadow-2xs">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-xs shrink-0">🍽️</span>
+                      <span className="text-[8.5px] uppercase font-sans text-amber-900 font-bold shrink-0">Bàn tiệc:</span>
+                      <span className="font-serif font-black text-amber-950 text-xs truncate">
+                        {currentTableNumber === 0 ? 'Mâm Thầy Cô (Tiếp đón)' : (currentTableName || ('Bàn 0' + currentTableNumber))}
+                        {activeTableConfig?.name && currentTableNumber !== 0 ? (' — ' + activeTableConfig.name) : ''}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowTableModal(true)}
+                      className="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-bold text-[9.5px] shrink-0 cursor-pointer shadow-2xs transition-colors"
+                    >
+                      Bạn cùng bàn ➔
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-1 text-[10px] bg-amber-50/70 border border-amber-200/70 rounded-lg px-2 py-0.5 text-amber-800">
+                    <span className="italic">🍽️ Bàn tiệc: Đang được BTC sắp xếp theo nhóm bạn</span>
+                    <span className="font-bold text-[9px] bg-amber-200/60 px-1.5 py-0.5 rounded">Chờ xếp</span>
+                  </div>
+                )}
+
                 <div className="text-[9.5px] text-slate-600 space-y-0.5 pt-0.5">
                   <p className="flex items-center gap-1 truncate">
                     <Calendar className="w-3 h-3 text-amber-700 shrink-0" />
@@ -1170,6 +1225,16 @@ export default function StudentPassModal({
           imageUrl={photoSaveModal.imageUrl}
           filename={photoSaveModal.filename}
           title={photoSaveModal.title}
+        />
+
+        {/* MODAL DANH SÁCH BẠN CÙNG BÀN TIỆC */}
+        <TableMembersModal
+          isOpen={showTableModal}
+          onClose={() => setShowTableModal(false)}
+          tableNumber={currentTableNumber}
+          rsvpList={allAttendees}
+          classRoster={classRoster || []}
+          currentMemberName={name}
         />
       </div>
     </div>

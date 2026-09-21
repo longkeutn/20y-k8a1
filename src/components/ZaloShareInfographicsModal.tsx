@@ -21,8 +21,8 @@ import {
   Printer
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { RsvpData, ClassMember, EventConfig } from '../types';
-import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize } from '../data';
+import { RsvpData, ClassMember, EventConfig, TeacherData, TableConfigItem } from '../types';
+import { CLASS_ROSTER_K8A1, SHIRT_SIZE_OPTIONS, normalizeShirtSize, BANQUET_TABLES, getTableConfig } from '../data';
 import { saveOrDownloadJpg } from '../utils/imageUtils';
 import MobilePhotoSaveModal from './MobilePhotoSaveModal';
 
@@ -38,9 +38,11 @@ interface ZaloShareInfographicsModalProps {
   onUpdateClassRoster?: (list: ClassMember[]) => void;
   onRefreshData?: () => void;
   onOpenMobileQr?: () => void;
+  teachersList?: TeacherData[];
+  initialTemplate?: TemplateId;
 }
 
-type TemplateId = 'milestone' | 'attendees' | 'shirts' | 'finances' | 'standee_qr';
+type TemplateId = 'milestone' | 'attendees' | 'shirts' | 'finances' | 'standee_qr' | 'tables';
 
 export default function ZaloShareInfographicsModal({
   isOpen,
@@ -53,9 +55,17 @@ export default function ZaloShareInfographicsModal({
   onUpdateRsvpList,
   onUpdateClassRoster,
   onRefreshData,
-  onOpenMobileQr
+  onOpenMobileQr,
+  teachersList = [],
+  initialTemplate
 }: ZaloShareInfographicsModalProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('milestone');
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>(initialTemplate || 'milestone');
+
+  useEffect(() => {
+    if (initialTemplate) {
+      setSelectedTemplate(initialTemplate);
+    }
+  }, [initialTemplate]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedImage, setCopiedImage] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -325,6 +335,45 @@ export default function ZaloShareInfographicsModal({
     return currentY;
   };
 
+  const drawWrappedText = (
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    lineHeight: number,
+    maxLines: number = 3
+  ) => {
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+    let linesCount = 0;
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && n > 0) {
+        ctx.fillText(line.trim(), x, currentY);
+        line = words[n] + ' ';
+        currentY += lineHeight;
+        linesCount++;
+        if (linesCount >= maxLines - 1 && n < words.length - 1) {
+          const remWords = words.slice(n).join(' ');
+          let remLine = '';
+          for (let r = 0; r < remWords.length; r++) {
+            if (ctx.measureText(remLine + remWords[r] + '…').width > maxWidth) break;
+            remLine += remWords[r];
+          }
+          ctx.fillText(remLine + '…', x, currentY);
+          return currentY;
+        }
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line.trim(), x, currentY);
+    return currentY;
+  };
+
   // Render Canvas khi đổi template hoặc dữ liệu
   useEffect(() => {
     if (!isOpen) return;
@@ -341,7 +390,7 @@ export default function ZaloShareInfographicsModal({
       const width = 1080;
       let height = 1350;
 
-      if (selectedTemplate === 'standee_qr') {
+      if (selectedTemplate === 'standee_qr' || selectedTemplate === 'tables') {
         // Tỷ lệ chuẩn khổ A4 dọc 1:1.414 -> 1080 x 1528px (sắc nét 300DPI khi in ấn hoặc làm standee)
         height = 1528;
       } else if (selectedTemplate === 'attendees') {
@@ -1181,7 +1230,7 @@ export default function ZaloShareInfographicsModal({
 
     const t = setTimeout(renderCard, 80);
     return () => clearTimeout(t);
-  }, [isOpen, selectedTemplate, effectiveRsvp, rosterList, eventConfig, daysLeft]);
+  }, [isOpen, selectedTemplate, effectiveRsvp, rosterList, eventConfig, daysLeft, teachersList]);
 
   // Bộ lời bình Zalo dí dỏm, kích thích tương tác cho từng template
   const getZaloShareText = () => {
@@ -1202,6 +1251,25 @@ export default function ZaloShareInfographicsModal({
       const checkinUrl = `${webUrl}?mode=checkin`;
       return `🎫 MAKET BẢNG ĐÓN TIẾP & QR ĐIỂM DANH K8A1 (KHỔ A4 / STANDEE) 🎫\n📌 Mẫu thiết kế chuẩn khổ in A4 (hoặc in Standee đứng) đặt tại Bàn Đón Tiếp ở cổng trường THPT Thái Nguyên (sáng Chủ Nhật 27/09/2026).\n📱 Các bạn đến trường chỉ cần mở Camera hoặc Zalo quét mã QR để Tự Điểm Danh & Nhận Thẻ "Tấm Vé Vàng" kỷ niệm 20 năm!\n🔗 Link điểm danh trực tiếp: ${checkinUrl}\n✨ Kính mời cả lớp lưu về hoặc in màu kẹp mica để bàn đón tiếp!`;
     }
+    if (selectedTemplate === 'tables') {
+      const getNames = (tblNum: number) => {
+        return confirmedAttendees
+          .filter(a => a.tableNumber === tblNum)
+          .map((a, i) => `${i + 1}. ${a.fullName}${a.nickname ? ' (' + a.nickname + ')' : ''}`)
+          .join('\n');
+      };
+      const attendingTeachers = (teachersList || []).filter(t => t.status === 'confirmed' || t.status === 'invited');
+      const teacherNames = attendingTeachers.length > 0
+        ? attendingTeachers.map((t, i) => `${i + 1}. ${t.name} (${t.role || t.subject || 'Thầy Cô'})`).join('\n')
+        : '- Đang cập nhật danh sách Thầy Cô tham dự';
+
+      const table0Students = confirmedAttendees.filter(a => a.tableNumber === 0);
+      const studentHosts = table0Students.length > 0
+        ? table0Students.map((a, i) => `   + ${a.fullName}${a.nickname ? ' (' + a.nickname + ')' : ''}`).join('\n')
+        : '   + Ban Liên Lạc & Đại diện các tổ tiếp đón';
+
+      return `📋 SƠ ĐỒ & DANH SÁCH BÀN TIỆC HỘI NGỘ 20 NĂM K8A1 📋\n⏰ Thời gian: Trưa Chủ Nhật, 27/09/2026\n📍 Địa điểm: Trường THPT Thái Nguyên\n---------------------------------\n👑 MÂM 0: TRI ÂN QUÝ THẦY CÔ (VIP)\n- Quý Thầy Cô:\n${teacherNames}\n- Học sinh K8A1 tiếp đón:\n${studentHosts}\n\n🍽️ BÀN 01 (Mâm Đoàn Viên — Tuổi Trẻ & Kỷ Niệm):\n${getNames(1) || '(Chưa có thành viên)'}\n\n🍽️ BÀN 02 (Mâm Kỷ Niệm — Thanh Xuân Rực Rỡ):\n${getNames(2) || '(Chưa có thành viên)'}\n\n🍽️ BÀN 03 (Mâm Thanh Xuân — Gắn Kết Bền Lâu):\n${getNames(3) || '(Chưa có thành viên)'}\n\n🍽️ BÀN 04 (Mâm Tri Kỷ — 20 Năm Ngày Trở Về):\n${getNames(4) || '(Chưa có thành viên)'}\n\n🍽️ BÀN 05 (Mâm Hội Ngộ — Mãi Mãi Một Thời):\n${getNames(5) || '(Chưa có thành viên)'}\n\n✨ Chúc đại gia đình K8A1 một buổi hội ngộ tràn ngập tiếng cười và kỷ niệm thanh xuân!\n🔗 Xem sơ đồ trực tiếp: ${webUrl}`;
+    }
     return `💰 BÁO CÁO MINH BẠCH TÀI CHÍNH HỘI NGỘ 20 NĂM K8A1 💰\n✅ Tổng quỹ đóng góp đã thu: ${totalFundCollected.toLocaleString('vi-VN')} đ (${paidAttendees.length} bạn đã hoàn thành).\n🙏 Ban Liên Lạc xin trân trọng cảm ơn sự chung tay và ủng hộ nhiệt tình của cả lớp!\n🔍 Toàn bộ sao kê và danh sách đóng quỹ được công khai minh bạch tại:\n🔗 ${webUrl}#tai-chinh`;
   };
 
@@ -1210,9 +1278,11 @@ export default function ZaloShareInfographicsModal({
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
-      const filename = `K8A1-${selectedTemplate === 'standee_qr' ? 'Maket-QR-Standee-A4' : 'Poster-' + selectedTemplate}-${Date.now()}.jpg`;
+      const filename = `K8A1-${selectedTemplate === 'standee_qr' ? 'Maket-QR-Standee-A4' : selectedTemplate === 'tables' ? 'So-Do-Ban-Tiec-A4' : 'Poster-' + selectedTemplate}-${Date.now()}.jpg`;
       const title = selectedTemplate === 'standee_qr'
         ? 'Maket QR Standee Bàn Đón Tiếp K8A1 (A4)'
+        : selectedTemplate === 'tables'
+        ? 'Sơ Đồ & Danh Sách 6 Bàn Tiệc K8A1 (A4)'
         : 'Poster Bản Tin Hội Ngộ 20 Năm K8A1';
 
       const res = await saveOrDownloadJpg(canvas, filename, title, 0.92);
@@ -1363,7 +1433,7 @@ export default function ZaloShareInfographicsModal({
         <div className="p-3 sm:p-5 overflow-y-auto space-y-4">
           
           {/* THANH CHỌN 4 MẪU THẺ INFOGRAPHIC */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             <button
               type="button"
               onClick={() => setSelectedTemplate('milestone')}
@@ -1451,7 +1521,7 @@ export default function ZaloShareInfographicsModal({
             <button
               type="button"
               onClick={() => setSelectedTemplate('standee_qr')}
-              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between col-span-2 sm:col-span-1 ${
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                 selectedTemplate === 'standee_qr'
                   ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white border-amber-600 shadow-md scale-[1.01]'
                   : 'bg-white hover:bg-amber-50/50 text-slate-700 border-slate-200'
@@ -1461,10 +1531,32 @@ export default function ZaloShareInfographicsModal({
                 <span className="text-base">🎫</span>
                 {selectedTemplate === 'standee_qr' && <Check className="w-3.5 h-3.5 text-amber-200" />}
               </div>
+              
               <div className="mt-1">
                 <span className="text-xs font-bold font-sans block leading-tight">5. Maket Standee A4</span>
                 <span className={`text-[10px] block mt-0.5 ${selectedTemplate === 'standee_qr' ? 'text-amber-100' : 'text-slate-500'}`}>
                   QR Bàn đón tiếp
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedTemplate('tables')}
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                selectedTemplate === 'tables'
+                  ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white border-amber-600 shadow-md scale-[1.01]'
+                  : 'bg-white hover:bg-amber-50/50 text-slate-700 border-slate-200'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-base">🍽️</span>
+                {selectedTemplate === 'tables' && <Check className="w-3.5 h-3.5 text-amber-200" />}
+              </div>
+              <div className="mt-1">
+                <span className="text-xs font-bold font-sans block leading-tight">6. Sơ Đồ Bàn Tiệc</span>
+                <span className={`text-[10px] block mt-0.5 ${selectedTemplate === 'tables' ? 'text-amber-100' : 'text-slate-500'}`}>
+                  Mâm Thầy Cô & 5 Bàn Bạn
                 </span>
               </div>
             </button>
@@ -1475,7 +1567,7 @@ export default function ZaloShareInfographicsModal({
             
             {/* CỘT TRÁI: PREVIEW THẺ ẢNH */}
             <div className="md:col-span-6 flex flex-col items-center">
-              <div className={`relative w-full max-w-[340px] max-h-[36vh] sm:max-h-none ${selectedTemplate === 'standee_qr' ? 'aspect-[1/1.414]' : 'aspect-[4/5]'} rounded-xl overflow-hidden shadow-xl border-2 border-amber-300/80 bg-[#FFFDF9] flex items-center justify-center`}>
+              <div className={`relative w-full max-w-[340px] max-h-[36vh] sm:max-h-none ${selectedTemplate === 'standee_qr' || selectedTemplate === 'tables' ? 'aspect-[1/1.414]' : 'aspect-[4/5]'} rounded-xl overflow-hidden shadow-xl border-2 border-amber-300/80 bg-[#FFFDF9] flex items-center justify-center`}>
                 {previewDataUrl ? (
                   <img
                     ref={previewImgRef}
@@ -1493,7 +1585,7 @@ export default function ZaloShareInfographicsModal({
 
                 {/* Watermark preview */}
                 <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white text-[9.5px] rounded font-mono pointer-events-none">
-                  {selectedTemplate === 'standee_qr' ? 'A4 Dọc • 1080 x 1528' : '1080 x 1350 HD'}
+                  {selectedTemplate === 'standee_qr' || selectedTemplate === 'tables' ? 'A4 Dọc • 1080 x 1528' : '1080 x 1350 HD'}
                 </div>
               </div>
 
@@ -1559,7 +1651,7 @@ export default function ZaloShareInfographicsModal({
                     className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Download className="w-4 h-4" />
-                    <span>{downloadSuccess ? '✓ Đã tải xong' : selectedTemplate === 'standee_qr' ? 'Lưu Maket In A4 (.JPG)' : 'Lưu Ảnh Về Thư Viện (.JPG)'}</span>
+                    <span>{downloadSuccess ? '✓ Đã tải xong' : selectedTemplate === 'standee_qr' || selectedTemplate === 'tables' ? 'Lưu Bản In A4 (.JPG)' : 'Lưu Ảnh Về Thư Viện (.JPG)'}</span>
                   </button>
                 </div>
 

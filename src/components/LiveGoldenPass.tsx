@@ -15,6 +15,9 @@ interface LiveGoldenPassProps {
   checkedInAt?: string;
   schoolLogoUrl?: string;
   onOpenPassModal?: () => void;
+  tableNumber?: number;
+  tableName?: string;
+  onOpenTableModal?: () => void;
 }
 
 export default function LiveGoldenPass({
@@ -29,7 +32,10 @@ export default function LiveGoldenPass({
   checkedIn = false,
   checkedInAt,
   schoolLogoUrl,
-  onOpenPassModal
+  onOpenPassModal,
+  tableNumber,
+  tableName,
+  onOpenTableModal
 }: LiveGoldenPassProps) {
   const displayName = fullName && fullName.trim() ? fullName.trim() : 'Bạn Cũ K8A1';
   const passCode = memberId 
@@ -38,6 +44,8 @@ export default function LiveGoldenPass({
 
   const isAttending = status === 'yes';
   const normalizedSize = normalizeShirtSize(shirtSize);
+  const activeTableConfig = tableNumber !== undefined ? getTableConfig(tableNumber) : null;
+  const hasTable = (tableNumber !== undefined && tableNumber !== null) || Boolean(tableName && tableName.trim());
 
   return (
     <div className="relative group w-full">
@@ -208,11 +216,11 @@ export default function LiveGoldenPass({
             </div>
           </div>
 
-          {/* DẢI BÀN TIỆC ÁNH KIM (CHỐNG TỰ CHIA NHÓM TRƯỚC: MỞ KHI CHECK-IN) */}
+          {/* DẢI BÀN TIỆC ÁNH KIM: HIỂN THỊ LUÔN CHO THÀNH VIÊN ĐÃ ĐƯỢC XẾP BÀN */}
           {isAttending && (
             <div className="pt-1">
-              {checkedIn && (tableNumber !== undefined || tableName) ? (
-                <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-400/70 flex items-center justify-between gap-2 shadow-2xs">
+              {hasTable ? (
+                <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-400/80 flex items-center justify-between gap-2 shadow-2xs">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
                       🍽️
@@ -222,8 +230,8 @@ export default function LiveGoldenPass({
                         Bàn tiệc trưa 27/09:
                       </span>
                       <span className="font-serif font-black text-xs text-amber-950 truncate block">
-                        {tableNumber === 0 ? 'Mâm Thầy Cô' : (tableName || ('Bàn 0' + tableNumber))}
-                        {activeTableConfig?.description ? (' — ' + activeTableConfig.description) : ''}
+                        {tableNumber === 0 ? 'Mâm Thầy Cô (Tiếp đón)' : (tableName || ('Bàn 0' + tableNumber))}
+                        {activeTableConfig?.name && tableNumber !== 0 ? (' — ' + activeTableConfig.name) : ''}
                       </span>
                     </div>
                   </div>
@@ -232,7 +240,7 @@ export default function LiveGoldenPass({
                     <button
                       type="button"
                       onClick={onOpenTableModal}
-                      className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10.5px] shrink-0 flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-bold text-[10.5px] shrink-0 flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
                     >
                       <Users className="w-3 h-3" />
                       <span>Bạn cùng bàn</span>
@@ -240,15 +248,15 @@ export default function LiveGoldenPass({
                   )}
                 </div>
               ) : (
-                <div className="p-2 rounded-lg bg-slate-100/90 border border-slate-200/80 flex items-center justify-between gap-2 text-[10.5px] text-slate-600">
+                <div className="p-2 rounded-lg bg-amber-50/80 border border-amber-200/80 flex items-center justify-between gap-2 text-[10.5px] text-amber-900">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="shrink-0">🔒</span>
+                    <span className="shrink-0">🍽️</span>
                     <span className="italic truncate">
-                      <strong>Bàn tiệc:</strong> Quét QR tại cổng để mở khóa vị trí & bạn cùng bàn.
+                      <strong>Bàn tiệc:</strong> Đang được BTC sắp xếp theo nhóm bạn & mâm 10 người.
                     </span>
                   </div>
-                  <span className="text-[9.5px] font-sans font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-300 shrink-0">
-                    Chờ Check-in
+                  <span className="text-[9.5px] font-sans font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded border border-amber-300 shrink-0">
+                    Đang xếp bàn
                   </span>
                 </div>
               )}

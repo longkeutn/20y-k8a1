@@ -42,6 +42,7 @@ import {
   findDuplicatePhoneInRoster 
 } from '../utils/phoneUtils';
 import LiveGoldenPass from './LiveGoldenPass';
+import TableMembersModal from './TableMembersModal';
 
 interface RsvpFormProps {
   appsScriptUrl: string;
@@ -96,6 +97,7 @@ export default function RsvpForm({
   const [useSavedPhone, setUseSavedPhone] = useState(false);
   const [shirtSize, setShirtSize] = useState('');
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [status, setStatus] = useState<'yes' | 'no'>('yes');
   const [message, setMessage] = useState('');
   const [isCustomMode, setIsCustomMode] = useState(false);
@@ -905,7 +907,9 @@ export default function RsvpForm({
         hasReceipt: matchedExistingAttendee.hasReceipt,
         fundPaidAt: matchedExistingAttendee.fundPaidAt,
         fundPaymentMethod: matchedExistingAttendee.fundPaymentMethod,
-        fundAuditedBy: matchedExistingAttendee.fundAuditedBy
+        fundAuditedBy: matchedExistingAttendee.fundAuditedBy,
+        tableNumber: matchedExistingAttendee.tableNumber,
+        tableName: matchedExistingAttendee.tableName
       } : {})
     };
 
@@ -1525,6 +1529,11 @@ export default function RsvpForm({
             className="K8A1"
             memberId={effectiveMemberId}
             isConfirmed={isPassConfirmed}
+            checkedIn={Boolean(currentPassAttendee?.checkedIn)}
+            checkedInAt={currentPassAttendee?.checkedInAt}
+            tableNumber={currentPassAttendee?.tableNumber}
+            tableName={currentPassAttendee?.tableName}
+            onOpenTableModal={() => setIsTableModalOpen(true)}
             onOpenPassModal={currentPassAttendee ? () => onOpenPassModal && onOpenPassModal(currentPassAttendee) : undefined}
           />
 
@@ -2380,6 +2389,16 @@ export default function RsvpForm({
           </div>
         </div>
       )}
+
+      {/* MODAL XEM BẠN CÙNG BÀN TIỆC */}
+      <TableMembersModal
+        isOpen={isTableModalOpen}
+        onClose={() => setIsTableModalOpen(false)}
+        tableNumber={currentPassAttendee?.tableNumber}
+        rsvpList={rsvpList || []}
+        classRoster={rosterList}
+        currentMemberName={currentPassAttendee?.fullName || fullName}
+      />
     </div>
   );
 }

@@ -18,7 +18,8 @@ import {
   ArrowRightLeft,
   XCircle,
   Check,
-  Loader2
+  Loader2,
+  Share2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, ClassMember, TableConfigItem, TeacherData } from '../types';
@@ -347,6 +348,18 @@ export default function AdminTableManager({
             >
               <Wand2 className="w-4 h-4 text-slate-950" />
               <span>Tự Động Phân Bàn (AI Cân Bằng)</span>
+            </button>
+
+            {/* Nút Xuất Poster & Bản Tin Zalo Sơ Đồ Bàn Tiệc */}
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-zalo-share-modal', { detail: { template: 'tables' } }));
+              }}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Xuất poster hình ảnh A4 sắc nét & danh sách sao chép Zalo cho 6 bàn tiệc"
+            >
+              <Share2 className="w-4 h-4 text-blue-200" />
+              <span>Xuất Poster Bàn Tiệc (A4/Zalo)</span>
             </button>
 
             <button
