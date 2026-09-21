@@ -1482,7 +1482,8 @@ function updateRSVP(data) {
     var isMatch = (targetMemberId && rowMemberId && targetMemberId === rowMemberId) ||
                   (data.rowId && (i + 1) === Number(data.rowId)) ||
                   (targetPhone && rowPhone && targetPhone === rowPhone) ||
-                  (!targetPhone && targetName && rowName && targetName === rowName);
+                  (!targetPhone && targetName && rowName && targetName === rowName) ||
+                  (targetName && rowName && targetName === rowName);
 
     if (isMatch) {
       var rowIndex = i + 1;
@@ -1581,8 +1582,10 @@ function handleCheckIn(data) {
     var rPhone = normalizePhone(rows[i][2]);
     var rName = normalizeName(rows[i][0]);
     var isMatch = (targetMemberId && rMemberId && targetMemberId === rMemberId) ||
+                  (data.rowId && (i + 1) === Number(data.rowId)) ||
                   (targetPhone && rPhone && targetPhone === rPhone) ||
-                  (!targetPhone && targetName && rName && targetName === rName);
+                  (!targetPhone && targetName && rName && targetName === rName) ||
+                  (targetName && rName && targetName === rName);
     if (isMatch) {
       var rTable = rows[i][17] ? String(rows[i][17]).trim() : '';
       if (rTable) {

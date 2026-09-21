@@ -491,6 +491,7 @@ export default function AdminManagementHub({
   const rosterList = classRoster && classRoster.length > 0 ? classRoster : CLASS_ROSTER_K8A1;
   const [memberTabSubView, setMemberTabSubView] = useState<'roster' | 'rsvp'>('roster');
   const [memberSearch, setMemberSearch] = useState('');
+  const [togglingCheckinId, setTogglingCheckinId] = useState<string | null>(null);
   const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'yes' | 'no' | 'checkedIn' | 'notCheckedIn'>('all');
   const [memberShirtFilter, setMemberShirtFilter] = useState<string>('all');
   const [rosterStatusFilter, setRosterStatusFilter] = useState<'all' | 'confirmed' | 'declined' | 'pending' | 'new_phone'>('all');
@@ -1681,13 +1682,23 @@ export default function AdminManagementHub({
   // ---------------------------------------------------------------------------
   // MEMBER CRUD HANDLERS
   // ---------------------------------------------------------------------------
-  const handleToggleCheckIn = (attendee: RsvpData) => {
+  const handleToggleCheckIn = async (attendee: RsvpData) => {
+    const itemKey = attendee.id || attendee.phone || attendee.fullName;
+    if (togglingCheckinId === itemKey) return;
+
+    const nextState = !attendee.checkedIn;
+    const now = new Date();
+    const pad = (n: number) => (n < 10 ? '0' + n : n);
+    const timeFormatted = `${pad(now.getHours())}:${pad(now.getMinutes())} • ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+
+    // 1. Optimistic Update để UI cập nhật ngay tức thì
     const updated = rsvpList.map(item => {
-      if ((item.id && item.id === attendee.id) || item.phone === attendee.phone) {
-        const nextState = !item.checkedIn;
-        const now = new Date();
-        const pad = (n: number) => (n < 10 ? '0' + n : n);
-        const timeFormatted = `${pad(now.getHours())}:${pad(now.getMinutes())} • ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+      if (
+        (item.id && attendee.id && item.id === attendee.id) ||
+        (item.memberId && attendee.memberId && item.memberId === attendee.memberId) ||
+        (item.phone && attendee.phone && item.phone === attendee.phone) ||
+        (item.fullName && attendee.fullName && item.fullName.trim().toLowerCase() === attendee.fullName.trim().toLowerCase())
+      ) {
         return {
           ...item,
           checkedIn: nextState,
@@ -1698,10 +1709,91 @@ export default function AdminManagementHub({
     });
 
     onUpdateRsvpList(updated);
-    localStorage.setItem('rsvp_list', JSON.stringify(updated));
+    try {
+      localStorage.setItem('rsvp_list', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Lỗi lưu rsvp_list vào localStorage:', e);
+    }
 
-    if (!attendee.checkedIn) {
+    if (nextState) {
       confetti({ particleCount: 30, spread: 45, origin: { y: 0.6 } });
+    }
+
+    // 2. Ghi trực tiếp và bền vững xuống Google Sheet qua Apps Script
+    if (appsScriptUrl && appsScriptUrl.trim()) {
+      setTogglingCheckinId(itemKey);
+      try {
+        const payload = nextState
+          ? {
+              action: 'checkin',
+              pin: getAdminPinToken(),
+              memberId: attendee.memberId,
+              id: attendee.id,
+              rowId: attendee.rowId,
+              fullName: attendee.fullName,
+              phone: attendee.phone,
+              checkedIn: true,
+              checkedInAt: timeFormatted,
+              tableNumber: attendee.tableNumber,
+              tableName: attendee.tableName
+            }
+          : {
+              action: 'cancel_checkin',
+              pin: getAdminPinToken(),
+              memberId: attendee.memberId,
+              id: attendee.id,
+              rowId: attendee.rowId,
+              fullName: attendee.fullName,
+              phone: attendee.phone,
+              cancelCheckIn: true,
+              checkedIn: false,
+              checkedInAt: ''
+            };
+
+        const res = await fetch(appsScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const json = await res.json().catch(() => null);
+        if (json && json.status === 'error') {
+          console.error('Google Sheets báo lỗi khi cập nhật điểm danh:', json.message);
+          alert(`⚠️ Google Sheets báo lỗi: ${json.message || 'Không thể đồng bộ điểm danh'}`);
+          // Rollback state cũ nếu có lỗi
+          onUpdateRsvpList(rsvpList);
+          try {
+            localStorage.setItem('rsvp_list', JSON.stringify(rsvpList));
+          } catch {}
+        } else if (json && json.status === 'success') {
+          // Nếu backend tự gán bàn tiệc trong sự kiện checkin
+          if (nextState && (json.tableNumber !== undefined || json.tableName !== undefined)) {
+            const syncedWithTable = updated.map(item => {
+              if (
+                (item.id && attendee.id && item.id === attendee.id) ||
+                (item.memberId && attendee.memberId && item.memberId === attendee.memberId) ||
+                (item.phone && attendee.phone && item.phone === attendee.phone) ||
+                (item.fullName && attendee.fullName && item.fullName.trim().toLowerCase() === attendee.fullName.trim().toLowerCase())
+              ) {
+                return {
+                  ...item,
+                  tableNumber: json.tableNumber !== undefined ? json.tableNumber : item.tableNumber,
+                  tableName: json.tableName || item.tableName
+                };
+              }
+              return item;
+            });
+            onUpdateRsvpList(syncedWithTable);
+            try {
+              localStorage.setItem('rsvp_list', JSON.stringify(syncedWithTable));
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi kết nối khi đồng bộ điểm danh lên Google Sheet:', err);
+      } finally {
+        setTogglingCheckinId(null);
+      }
     }
   };
 
@@ -4931,14 +5023,20 @@ export default function AdminManagementHub({
                               {item.status === 'yes' ? (
                                 <button
                                   onClick={() => handleToggleCheckIn(item)}
+                                  disabled={togglingCheckinId === (item.id || item.phone || item.fullName)}
                                   title={item.checkedInAt ? `Thời gian điểm danh: ${formatDateTimeVi(item.checkedInAt) || item.checkedInAt}` : undefined}
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer ${
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                                     item.checkedIn
-                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs'
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs hover:bg-emerald-200'
                                       : 'bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-300'
                                   }`}
                                 >
-                                  {item.checkedIn ? (
+                                  {togglingCheckinId === (item.id || item.phone || item.fullName) ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 shrink-0" />
+                                      <span>Đang lưu...</span>
+                                    </>
+                                  ) : item.checkedIn ? (
                                     <>
                                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                       <span>Đã Đến {formatCheckInTimeShort(item.checkedInAt) ? `(${formatCheckInTimeShort(item.checkedInAt)})` : ''}</span>
