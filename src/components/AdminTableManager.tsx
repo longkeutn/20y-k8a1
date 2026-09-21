@@ -36,7 +36,7 @@ interface AdminTableManagerProps {
 }
 
 export default function AdminTableManager({
-  rsvpList,
+  rsvpList: rawRsvpList = [],
   onUpdateRsvpList,
   classRoster = [],
   teachersList = [],
@@ -45,6 +45,12 @@ export default function AdminTableManager({
   onRefreshData,
   onOpenPassModal
 }: AdminTableManagerProps) {
+  // Chuẩn hóa rsvpList luôn là Array, tự động gỡ bỏ nếu vô tình bị bọc trong object
+  const rsvpList: RsvpData[] = useMemo(() => {
+    if (Array.isArray(rawRsvpList)) return rawRsvpList;
+    if (rawRsvpList && Array.isArray((rawRsvpList as any).updatedList)) return (rawRsvpList as any).updatedList;
+    return [];
+  }, [rawRsvpList]);
   const [activeFilterTable, setActiveFilterTable] = useState<number | 'all' | 'unassigned'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -125,10 +131,11 @@ export default function AdminTableManager({
 
   // 1. Tự động phân bàn thông minh (AI Cân Bằng Nam/Nữ & Hạt Nhân BLL)
   const handleAutoAssign = () => {
-    const assigned = autoAssignStudentTables(rsvpList, classRoster, { studentHostsForTeacherTable: targetHostsCount });
-    onUpdateRsvpList(assigned);
+    const result = autoAssignStudentTables(rsvpList, classRoster, { studentHostsForTeacherTable: targetHostsCount });
+    const updated = result.updatedList;
+    onUpdateRsvpList(updated);
     try {
-      localStorage.setItem('rsvp_list', JSON.stringify(assigned));
+      localStorage.setItem('rsvp_list', JSON.stringify(updated));
     } catch {}
 
     confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });

@@ -351,6 +351,13 @@ export default function AdminManagementHub({
     return 'Ban Liên Lạc K8A1';
   }, [isTreasurer, isAdmin, activeMember]);
 
+  // Đảm bảo rsvpList luôn là một mảng an toàn tuyệt đối
+  const safeRsvpList: RsvpData[] = useMemo(() => {
+    if (Array.isArray(rsvpList)) return rsvpList;
+    if (rsvpList && Array.isArray((rsvpList as any).updatedList)) return (rsvpList as any).updatedList;
+    return [];
+  }, [rsvpList]);
+
   // Navigation tabs
   type ActiveTab = 'members' | 'tables' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
@@ -512,6 +519,7 @@ export default function AdminManagementHub({
 
   // Đồng bộ mỗi thành viên trong danh bạ với dữ liệu RSVP thực tế (bảo toàn 1-1, không gộp nhầm người trùng tên)
   const enrichedRoster = useMemo(() => {
+    const safeRsvp = Array.isArray(rsvpList) ? rsvpList : (rsvpList && Array.isArray((rsvpList as any).updatedList) ? (rsvpList as any).updatedList : []);
     const claimedRsvpKeys = new Set<string>();
 
     const getRsvpKey = (r: RsvpData, index: number) => {
@@ -526,7 +534,7 @@ export default function AdminManagementHub({
       const isDupName = mN ? (rosterNameCounts[mN] || 0) > 1 : false;
 
       let matchedIndex = -1;
-      const matchedRsvp = rsvpList.find((r, rIdx) => {
+      const matchedRsvp = safeRsvp.find((r, rIdx) => {
         if (!r) return false;
         const rKey = getRsvpKey(r, rIdx);
         if (claimedRsvpKeys.has(rKey)) return false;
@@ -2503,7 +2511,7 @@ export default function AdminManagementHub({
   const handleApproveFundFromModal = () => {
     if (!viewReceiptModal) return;
     const targetPhone = viewReceiptModal.phone;
-    const foundAttendee = viewReceiptModal.attendee || rsvpList.find(r => r.phone === targetPhone || r.fullName === viewReceiptModal.memberName);
+    const foundAttendee = viewReceiptModal.attendee || safeRsvpList.find(r => r.phone === targetPhone || r.fullName === viewReceiptModal.memberName);
     
     if (foundAttendee) {
       handleApproveFundDirect(foundAttendee, viewReceiptModal.amount || standardFundAmount);
@@ -10083,7 +10091,7 @@ export default function AdminManagementHub({
 
                       {/* Gợi ý SĐT mới từ Điểm danh nếu có */}
                       {editingRosterMember && (() => {
-                        const matched = rsvpList.find(r => 
+                        const matched = safeRsvpList.find(r => 
                           (r.memberId && r.memberId === editingRosterMember.id) || 
                           (r.fullName && isVietnameseNameMatch(editingRosterMember, r.fullName))
                         );
@@ -12377,7 +12385,7 @@ export default function AdminManagementHub({
                           .slice(0, 8)
                           .map(m => {
                             const isSelected = incomeFormData.memberId === m.id || incomeFormData.payerName === m.fullName;
-                            const matchedRsvp = rsvpList.find(r => r.memberId === m.id || r.phone === m.phone || r.fullName === m.fullName);
+                            const matchedRsvp = safeRsvpList.find(r => r.memberId === m.id || r.phone === m.phone || r.fullName === m.fullName);
                             const isPaid = matchedRsvp?.fundStatus === 'paid';
 
                             return (

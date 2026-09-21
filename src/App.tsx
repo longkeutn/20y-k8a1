@@ -921,13 +921,14 @@ export default function App() {
       const local = localStorage.getItem('rsvp_list');
       if (!local) return INITIAL_RSVP_LIST;
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      const targetArr = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.updatedList) ? parsed.updatedList : null);
+      if (Array.isArray(targetArr) && targetArr.length > 0) {
         // Tự động dọn cache cũ nếu người dùng từng lưu danh sách lỗi ít hơn số lượng chuẩn hiện tại
-        if (parsed.length < INITIAL_RSVP_LIST.length) {
+        if (targetArr.length < INITIAL_RSVP_LIST.length) {
           try { localStorage.setItem('rsvp_list', JSON.stringify(INITIAL_RSVP_LIST)); } catch (e) {}
           return INITIAL_RSVP_LIST;
         }
-        return parsed.map(sanitizeRsvp);
+        return targetArr.map(sanitizeRsvp);
       }
       return INITIAL_RSVP_LIST;
     } catch (e) {
@@ -1456,7 +1457,11 @@ export default function App() {
   };
 
   // Cập nhật danh sách RSVP và tự động đồng bộ ngược Size áo về Danh Sách Lớp
-  const handleUpdateRsvpList = (updated: RsvpData[]) => {
+  const handleUpdateRsvpList = (updatedInput: any) => {
+    const updated: RsvpData[] = Array.isArray(updatedInput)
+      ? updatedInput
+      : (updatedInput && Array.isArray(updatedInput.updatedList) ? updatedInput.updatedList : []);
+
     setRsvpList(updated);
     try {
       localStorage.setItem('rsvp_list', JSON.stringify(updated));
@@ -1466,7 +1471,7 @@ export default function App() {
     setClassRoster((prevRoster) => {
       let changed = false;
       const nextRoster = prevRoster.map((m) => {
-        const matched = updated.find((r) => {
+        const matched = (updated || []).find((r) => {
           if (m.id && r.memberId && m.id === r.memberId) return true;
           const p1 = normalizePhoneForMatch(m.phone);
           const p2 = normalizePhoneForMatch(r.phone);
