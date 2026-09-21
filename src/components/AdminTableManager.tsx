@@ -21,13 +21,14 @@ import {
   Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { RsvpData, ClassMember, TableConfigItem } from '../types';
+import { RsvpData, ClassMember, TableConfigItem, TeacherData } from '../types';
 import { BANQUET_TABLES, getTableConfig, autoAssignStudentTables } from '../data';
 
 interface AdminTableManagerProps {
   rsvpList: RsvpData[];
   onUpdateRsvpList: (list: RsvpData[]) => void;
   classRoster?: ClassMember[];
+  teachersList?: TeacherData[];
   appsScriptUrl: string;
   adminAuthPin?: string;
   onRefreshData?: () => void;
@@ -38,6 +39,7 @@ export default function AdminTableManager({
   rsvpList,
   onUpdateRsvpList,
   classRoster = [],
+  teachersList = [],
   appsScriptUrl,
   adminAuthPin = '',
   onRefreshData,
@@ -48,6 +50,15 @@ export default function AdminTableManager({
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [cancelingCheckinId, setCancelingCheckinId] = useState<string | null>(null);
+
+  // Danh sách Thầy Cô xác nhận tham dự
+  const attendingTeachers = useMemo(() => {
+    return teachersList.filter(t => t.status === 'attending');
+  }, [teachersList]);
+
+  // Số bạn học sinh được phân ngồi tiếp đón Thầy Cô
+  const [targetHostsCount, setTargetHostsCount] = useState<number>(3);
+
 
   // Map danh bạ thành viên
   const rosterMap = useMemo(() => {
@@ -104,7 +115,7 @@ export default function AdminTableManager({
 
   // 1. Tự động phân bàn thông minh (AI Cân Bằng Nam/Nữ & Hạt Nhân BLL)
   const handleAutoAssign = () => {
-    const assigned = autoAssignStudentTables(rsvpList, classRoster);
+    const assigned = autoAssignStudentTables(rsvpList, classRoster, { studentHostsForTeacherTable: targetHostsCount });
     onUpdateRsvpList(assigned);
     try {
       localStorage.setItem('rsvp_list', JSON.stringify(assigned));
@@ -294,10 +305,28 @@ export default function AdminTableManager({
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Tùy chọn học sinh ngồi mâm Thầy Cô */}
+            <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-xl border border-white/15 text-xs text-amber-200">
+              <span className="text-[11px] font-medium hidden sm:inline">Tiếp Thầy Cô:</span>
+              <select
+                value={targetHostsCount}
+                onChange={(e) => setTargetHostsCount(Number(e.target.value))}
+                className="bg-slate-900 text-amber-300 font-bold text-xs rounded-lg px-2 py-1 border border-amber-500/40 focus:outline-none cursor-pointer"
+                title="Số bạn học sinh K8A1 ngồi cùng Mâm Thầy Cô để đón tiếp"
+              >
+                <option value="1">1 bạn tiếp</option>
+                <option value="2">2 bạn tiếp</option>
+                <option value="3">3 bạn tiếp</option>
+                <option value="4">4 bạn tiếp</option>
+                <option value="5">5 bạn tiếp</option>
+                <option value="0">0 (ngồi riêng)</option>
+              </select>
+            </div>
+
             <button
               onClick={handleAutoAssign}
               className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Tự động cân bằng Nam/Nữ và rải đều cán sự BLL vào 5 bàn"
+              title="Tự động phân bổ học sinh tiếp Thầy Cô & cân bằng 5 bàn học sinh"
             >
               <Wand2 className="w-4 h-4 text-slate-950" />
               <span>Tự Động Phân Bàn (AI Cân Bằng)</span>
@@ -464,7 +493,7 @@ export default function AdminTableManager({
               {/* Header Bàn */}
               <div className={`p-4 border-b ${
                 table.id === 0
-                  ? 'bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border-amber-200'
+                  ? 'bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-slate-900 border-amber-300'
                   : 'bg-gradient-to-r from-slate-50 via-slate-100/60 to-transparent border-slate-200'
               }`}>
                 <div className="flex items-center justify-between gap-2">
@@ -528,6 +557,32 @@ export default function AdminTableManager({
 
               {/* Danh Sách Thành Viên Thuộc Bàn */}
               <div className="p-3 space-y-2 flex-1 max-h-80 overflow-y-auto custom-scrollbar">
+                {table.id === 0 && attendingTeachers.length > 0 && (
+                  <div className="mb-3 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs text-amber-950 font-bold">
+                      <span className="flex items-center gap-1">
+                        <GraduationCap className="w-4 h-4 text-amber-700" />
+                        <span>Quý Thầy Cô Tham Dự ({attendingTeachers.length})</span>
+                      </span>
+                      <span className="text-[10px] text-amber-800 font-normal italic">Danh dự VIP</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {attendingTeachers.map(t => (
+                        <span key={t.id} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-amber-300 text-[11px] font-medium text-slate-800 shadow-2xs">
+                          <span>{t.gender || 'Thầy/Cô'} {t.name}</span>
+                          {t.subject && <span className="text-[9.5px] text-amber-800 font-sans">({t.subject})</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {table.id === 0 && (
+                  <div className="flex items-center justify-between px-1 text-[11px] font-bold text-amber-900">
+                    <span>👑 Đại Diện Học Sinh K8A1 Tiếp Đón ({membersInTable.length} bạn):</span>
+                    <span className="text-[10px] font-normal text-slate-500">Rót trà, chúc rượu & chăm sóc</span>
+                  </div>
+                )}
                 {membersInTable.length === 0 ? (
                   <div className="py-8 text-center text-slate-400 text-xs italic">
                     Chưa có thành viên nào trong bàn này
@@ -614,7 +669,7 @@ export default function AdminTableManager({
                             className="text-[11px] py-1 px-1.5 bg-white border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:border-amber-500 cursor-pointer"
                             title="Đổi vị trí bàn tiệc"
                           >
-                            <option value="0">Mâm Thầy Cô</option>
+                            <option value="0">👑 Mâm Thầy Cô (Tiếp đón)</option>
                             <option value="1">Bàn 01</option>
                             <option value="2">Bàn 02</option>
                             <option value="3">Bàn 03</option>
@@ -698,7 +753,7 @@ export default function AdminTableManager({
                     className="text-[11px] py-1 px-1.5 bg-white border border-rose-300 rounded-lg text-rose-900 font-bold focus:outline-none cursor-pointer"
                   >
                     <option value="" disabled>Gán bàn...</option>
-                    <option value="0">Mâm Thầy Cô</option>
+                    <option value="0">👑 Mâm Thầy Cô (Tiếp đón)</option>
                     <option value="1">Bàn 01</option>
                     <option value="2">Bàn 02</option>
                     <option value="3">Bàn 03</option>

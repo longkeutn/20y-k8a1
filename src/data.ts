@@ -2652,16 +2652,18 @@ export function getTableConfig(tableNumber?: number): TableConfigItem {
  */
 export function autoAssignStudentTables(
   rsvpList: RsvpData[], 
-  rosterList: ClassMember[] = CLASS_ROSTER_K8A1
+  rosterList: ClassMember[] = CLASS_ROSTER_K8A1,
+  options?: { studentHostsForTeacherTable?: number }
 ): { updatedList: RsvpData[]; stats: Record<number, number> } {
   const attendees = rsvpList.filter(a => a.status === 'yes');
-  const tableCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  // Sức chứa các bàn: 0 (Mâm Thầy Cô - học sinh tiếp đón), 1-5 (Học sinh)
+  const tableCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   const assignedMap = new Map<string, number>();
 
-  // Giữ nguyên những ai đã có bàn hợp lệ (1-5)
+  // 1. GIỮ NGUYÊN TUYỆT ĐỐI những ai đã có bàn hợp lệ (Bàn 0 Mâm Thầy Cô hoặc Bàn 1-5)
   attendees.forEach(a => {
     const key = a.memberId || a.phone || a.fullName;
-    if (a.tableNumber && a.tableNumber >= 1 && a.tableNumber <= 5) {
+    if (a.tableNumber !== undefined && a.tableNumber !== null && a.tableNumber >= 0 && a.tableNumber <= 5) {
       assignedMap.set(key, a.tableNumber);
       tableCounts[a.tableNumber] = (tableCounts[a.tableNumber] || 0) + 1;
     }
@@ -2704,7 +2706,24 @@ export function autoAssignStudentTables(
       return bestTable;
     };
 
-    // 1. Rải đều BLL
+    // Tùy chọn: Bố trí học sinh ngồi Mâm Thầy Cô để tiếp đón (mặc định 2-4 bạn nếu chưa ai được phân)
+    const targetHosts = options?.studentHostsForTeacherTable !== undefined ? options.studentHostsForTeacherTable : 2;
+    let currentHosts = tableCounts[0] || 0;
+
+    // Nếu Mâm Thầy Cô chưa đủ số học sinh tiếp đón, ưu tiên phân Cán sự BLL vào Mâm 0
+    if (currentHosts < targetHosts && bllMembers.length > 0) {
+      const hostsToPick = Math.min(targetHosts - currentHosts, bllMembers.length);
+      for (let h = 0; h < hostsToPick; h++) {
+        const host = bllMembers.shift();
+        if (host) {
+          const key = host.memberId || host.phone || host.fullName;
+          assignedMap.set(key, 0);
+          tableCounts[0] = (tableCounts[0] || 0) + 1;
+        }
+      }
+    }
+
+    // 1. Rải đều BLL còn lại vào 5 bàn học sinh (1-5)
     bllMembers.forEach(a => {
       const t = pickBestTable();
       const key = a.memberId || a.phone || a.fullName;
@@ -2733,12 +2752,13 @@ export function autoAssignStudentTables(
   const updatedList = rsvpList.map(item => {
     if (item.status !== 'yes') return item;
     const key = item.memberId || item.phone || item.fullName;
-    const tNum = assignedMap.get(key) || item.tableNumber || 1;
+    const tNum = assignedMap.get(key) !== undefined ? assignedMap.get(key)! : (item.tableNumber !== undefined ? item.tableNumber : 1);
     const tCfg = getTableConfig(tNum);
+    const tableNameStr = tNum === 0 ? 'Mâm Thầy Cô' : tCfg.name;
     return {
       ...item,
       tableNumber: tNum,
-      tableName: tCfg.name,
+      tableName: tableNameStr,
       tableAssignedAt: item.tableAssignedAt || nowStr
     };
   });

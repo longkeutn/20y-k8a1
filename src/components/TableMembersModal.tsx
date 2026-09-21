@@ -10,7 +10,7 @@ import {
   Crown, 
   GraduationCap
 } from 'lucide-react';
-import { RsvpData, ClassMember, TableConfigItem } from '../types';
+import { RsvpData, ClassMember, TableConfigItem, TeacherData } from '../types';
 import { BANQUET_TABLES, getTableConfig } from '../data';
 
 interface TableMembersModalProps {
@@ -19,6 +19,7 @@ interface TableMembersModalProps {
   tableNumber?: number; // 0 (Thầy cô) hoặc 1-5 (Học sinh)
   rsvpList: RsvpData[];
   classRoster: ClassMember[];
+  teachersList?: TeacherData[];
   currentMemberName?: string;
   onSelectMember?: (member: ClassMember | RsvpData) => void;
 }
@@ -29,6 +30,7 @@ export default function TableMembersModal({
   tableNumber: initialTableNumber,
   rsvpList,
   classRoster,
+  teachersList = [],
   currentMemberName,
   onSelectMember
 }: TableMembersModalProps) {
@@ -81,6 +83,11 @@ export default function TableMembersModal({
   }, [rsvpList, selectedTable]);
 
   // Thống kê thành viên trong bàn
+  // Thầy Cô xác nhận tham dự
+  const attendingTeachers = useMemo(() => {
+    return teachersList.filter(t => t.status === 'attending');
+  }, [teachersList]);
+
   const stats = useMemo(() => {
     const total = tableMembers.length;
     const checkedIn = tableMembers.filter(m => m.checkedIn).length;
@@ -178,6 +185,41 @@ export default function TableMembersModal({
 
           {/* Danh Sách Thành Viên Trong Bàn */}
           <div className="flex-1 overflow-y-auto p-4 space-y-2.5 custom-scrollbar">
+            {selectedTable === 0 && attendingTeachers.length > 0 && (
+              <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 space-y-2 mb-3">
+                <div className="flex items-center justify-between text-xs text-amber-200 font-bold">
+                  <span className="flex items-center gap-1.5 text-amber-300">
+                    <GraduationCap className="w-4 h-4 text-amber-400" />
+                    <span>Quý Thầy Cô Tham Dự ({attendingTeachers.length})</span>
+                  </span>
+                  <span className="text-[10px] text-amber-200/70 uppercase">VIP Tri Ân</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {attendingTeachers.map(teacher => (
+                    <div key={teacher.id} className="p-2 rounded-xl bg-slate-900/80 border border-amber-500/20 flex items-center gap-2 text-xs">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-bold text-xs flex items-center justify-center shrink-0">
+                        {teacher.name.split(' ').pop()?.charAt(0) || 'T'}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-bold text-amber-200 truncate block">
+                          {teacher.gender || 'Thầy/Cô'} {teacher.name}
+                        </span>
+                        <span className="text-[10.5px] text-slate-400 truncate block">
+                          {teacher.subject ? `Môn: ${teacher.subject}` : (teacher.role || 'THPT Thái Nguyên')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedTable === 0 && (
+              <div className="flex items-center justify-between text-xs font-bold text-amber-300 px-1 pt-1">
+                <span>👑 Học Sinh K8A1 Ngồi Cùng Tiếp Đón ({tableMembers.length} bạn):</span>
+                <span className="text-[10px] font-normal text-slate-400">Đại diện Ban Liên Lạc</span>
+              </div>
+            )}
             {tableMembers.length === 0 ? (
               <div className="py-12 text-center text-slate-400">
                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3 text-slate-500">

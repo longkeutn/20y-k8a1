@@ -4067,6 +4067,22 @@ export default function AdminManagementHub({
           </button>
 
           <button
+            onClick={() => setActiveTab('tables')}
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === 'tables'
+                ? 'bg-[#1E293B] text-amber-300 shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Utensils className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            <span className="sm:hidden">2. Bàn tiệc</span>
+            <span className="hidden sm:inline">2. Sơ Đồ Bàn Tiệc (6 Bàn)</span>
+            <span className="text-[9px] bg-amber-500 text-slate-950 font-bold px-1.5 py-0.2 rounded-full hidden sm:inline">
+              6 Bàn 🍽️
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('fund')}
             className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'fund'
@@ -5004,6 +5020,7 @@ export default function AdminManagementHub({
             rsvpList={rsvpList}
             onUpdateRsvpList={onUpdateRsvpList}
             classRoster={classRoster}
+            teachersList={effectiveTeachers}
             appsScriptUrl={appsScriptUrl}
             adminAuthPin={adminAuthPin}
             onRefreshData={onRefreshData}
