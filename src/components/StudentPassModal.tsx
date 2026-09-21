@@ -19,7 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import { RsvpData, EventConfig, ClassMember, TeacherData } from '../types';
 import TableMembersModal from './TableMembersModal';
-import { SHIRT_SIZE_OPTIONS, normalizeShirtSize, isVietnameseNameMatch, uploadMemberAvatarViaBackend } from '../data';
+import { SHIRT_SIZE_OPTIONS, normalizeShirtSize, isVietnameseNameMatch, uploadMemberAvatarViaBackend, getTableConfig, BANQUET_TABLES } from '../data';
 import { parseMemberNote } from '../utils/memberUtils';
 import { saveOrDownloadJpg } from '../utils/imageUtils';
 import MobilePhotoSaveModal from './MobilePhotoSaveModal';
