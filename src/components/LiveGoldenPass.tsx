@@ -1,6 +1,6 @@
 import React from 'react';
-import { Award, QrCode, Sparkles, Check, CheckCircle2, Heart, Star, Calendar, MapPin, Shirt, Eye } from 'lucide-react';
-import { normalizeShirtSize, formatCheckInTimeShort } from '../data';
+import { Award, QrCode, Sparkles, Check, CheckCircle2, Heart, Star, Calendar, MapPin, Shirt, Eye, Utensils, Users } from 'lucide-react';
+import { normalizeShirtSize, formatCheckInTimeShort, getTableConfig } from '../data';
 
 interface LiveGoldenPassProps {
   fullName?: string;
@@ -207,6 +207,53 @@ export default function LiveGoldenPass({
               </span>
             </div>
           </div>
+
+          {/* DẢI BÀN TIỆC ÁNH KIM (CHỐNG TỰ CHIA NHÓM TRƯỚC: MỞ KHI CHECK-IN) */}
+          {isAttending && (
+            <div className="pt-1">
+              {checkedIn && (tableNumber !== undefined || tableName) ? (
+                <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-400/70 flex items-center justify-between gap-2 shadow-2xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
+                      🍽️
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[8.5px] uppercase font-bold text-amber-900 tracking-wider block">
+                        Bàn tiệc trưa 27/09:
+                      </span>
+                      <span className="font-serif font-black text-xs text-amber-950 truncate block">
+                        {tableNumber === 0 ? 'Mâm Thầy Cô' : (tableName || ('Bàn 0' + tableNumber))}
+                        {activeTableConfig?.description ? (' — ' + activeTableConfig.description) : ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  {onOpenTableModal && (
+                    <button
+                      type="button"
+                      onClick={onOpenTableModal}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10.5px] shrink-0 flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <Users className="w-3 h-3" />
+                      <span>Bạn cùng bàn</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="p-2 rounded-lg bg-slate-100/90 border border-slate-200/80 flex items-center justify-between gap-2 text-[10.5px] text-slate-600">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="shrink-0">🔒</span>
+                    <span className="italic truncate">
+                      <strong>Bàn tiệc:</strong> Quét QR tại cổng để mở khóa vị trí & bạn cùng bàn.
+                    </span>
+                  </div>
+                  <span className="text-[9.5px] font-sans font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-300 shrink-0">
+                    Chờ Check-in
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* FOOTER THẺ & MÃ QR MÔ PHỎNG VÉ VÀO CỔNG */}
           <div className="flex items-center justify-between pt-2 text-[10.5px] text-slate-600 font-sans border-t border-amber-200/60">

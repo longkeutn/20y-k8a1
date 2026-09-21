@@ -53,6 +53,7 @@ import ActivityToastManager from './components/ActivityToastManager';
 import QuickShare from './components/QuickShare';
 import DeveloperGuide from './components/DeveloperGuide';
 import StudentPassModal from './components/StudentPassModal';
+import TableMembersModal from './components/TableMembersModal';
 import SelfCheckinPage from './components/SelfCheckinPage';
 import AdminManagementHub from './components/AdminManagementHub';
 import StagePresentationHub from './components/StagePresentationHub';
@@ -401,6 +402,7 @@ export default function App() {
   // Student Souvenir Pass modal state
   const [selectedPassAttendee, setSelectedPassAttendee] = useState<RsvpData | null>(null);
   const [isPassModalOpen, setIsPassModalOpen] = useState(false);
+  const [tableModalState, setTableModalState] = useState<{ isOpen: boolean; tableNumber?: number; memberName?: string }>({ isOpen: false });
 
   // Self-service Receipt Upload Modal state
   const [selectedReceiptAttendee, setSelectedReceiptAttendee] = useState<RsvpData | null>(null);
@@ -1300,11 +1302,14 @@ export default function App() {
     shirtSize?: string;
     avatarUrl?: string;
     nickname?: string;
-  }): Promise<{ success: boolean; message?: string; checkedInAt?: string }> => {
+  }): Promise<{ success: boolean; message?: string; checkedInAt?: string; tableNumber?: number; tableName?: string }> => {
     try {
       const now = new Date();
       const pad = (n: number) => (n < 10 ? '0' + n : n);
       const timestamp = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      let assignedTableNumber: number | undefined = undefined;
+      let assignedTableName: string | undefined = undefined;
 
       // 1. Cập nhật local state rsvpList
       setRsvpList((prev) => {
@@ -1314,6 +1319,34 @@ export default function App() {
             (data.memberId && r.memberId === data.memberId) ||
             normalizeNameForMatch(r.fullName) === normName
         );
+
+        if (existingIndex >= 0) {
+          const ex = prev[existingIndex];
+          if (ex.tableNumber !== undefined && ex.tableNumber !== null) {
+            assignedTableNumber = Number(ex.tableNumber);
+            assignedTableName = ex.tableName || (assignedTableNumber === 0 ? 'Mâm Thầy Cô' : `Bàn 0${assignedTableNumber}`);
+          }
+        }
+
+        // Nếu chưa có bàn, tự động gán vào bàn 1-5 có ít người nhất
+        if (assignedTableNumber === undefined) {
+          const tableCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+          prev.forEach((r) => {
+            if (r.status === 'yes' && r.tableNumber !== undefined && r.tableNumber >= 1 && r.tableNumber <= 5) {
+              tableCounts[r.tableNumber] = (tableCounts[r.tableNumber] || 0) + 1;
+            }
+          });
+          let chosen = 1;
+          let minCount = 999;
+          for (let t = 1; t <= 5; t++) {
+            if (tableCounts[t] < minCount) {
+              minCount = tableCounts[t];
+              chosen = t;
+            }
+          }
+          assignedTableNumber = chosen;
+          assignedTableName = `Bàn 0${chosen}`;
+        }
 
         let updated: RsvpData[];
         if (existingIndex >= 0) {
@@ -1326,7 +1359,9 @@ export default function App() {
             shirtSize: data.shirtSize || updated[existingIndex].shirtSize,
             avatarUrl: data.avatarUrl || updated[existingIndex].avatarUrl,
             phone: data.phone || updated[existingIndex].phone,
-            memberId: data.memberId || updated[existingIndex].memberId
+            memberId: data.memberId || updated[existingIndex].memberId,
+            tableNumber: assignedTableNumber,
+            tableName: assignedTableName
           };
         } else {
           const newRsvp: RsvpData = {
@@ -1342,7 +1377,9 @@ export default function App() {
             avatarUrl: data.avatarUrl,
             nickname: data.nickname,
             submittedAt: timestamp,
-            fundStatus: 'unpaid'
+            fundStatus: 'unpaid',
+            tableNumber: assignedTableNumber,
+            tableName: assignedTableName
           };
           updated = [newRsvp, ...prev];
         }
@@ -1390,7 +1427,9 @@ export default function App() {
         shirtSize: data.shirtSize,
         checkedIn: true,
         checkedInAt: timestamp,
-        status: 'yes'
+        status: 'yes',
+        tableNumber: assignedTableNumber,
+        tableName: assignedTableName
       });
 
       // 4. Bắn Toast notification
@@ -1404,7 +1443,12 @@ export default function App() {
         timestamp: Date.now()
       });
 
-      return { success: true, checkedInAt: timestamp };
+      return { 
+        success: true, 
+        checkedInAt: timestamp,
+        tableNumber: assignedTableNumber,
+        tableName: assignedTableName
+      };
     } catch (err: any) {
       console.error('Self check-in error:', err);
       return { success: false, message: err?.message || 'Có lỗi xảy ra khi điểm danh' };

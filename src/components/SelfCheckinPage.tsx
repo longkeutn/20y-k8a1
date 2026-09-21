@@ -3,6 +3,7 @@ import {
   Search,
   UserCheck,
   CheckCircle2,
+  Utensils,
   Award,
   School,
   Sparkles,
@@ -38,6 +39,8 @@ import {
 import { parseMemberNote } from '../utils/memberUtils';
 import { saveOrDownloadJpg } from '../utils/imageUtils';
 import MobilePhotoSaveModal from './MobilePhotoSaveModal';
+import TableMembersModal from './TableMembersModal';
+import { BANQUET_TABLES, getTableConfig } from '../data';
 
 interface SelfCheckinPageProps {
   classRoster: ClassMember[];
@@ -52,7 +55,7 @@ interface SelfCheckinPageProps {
     shirtSize?: string;
     avatarUrl?: string;
     nickname?: string;
-  }) => Promise<{ success: boolean; message?: string; checkedInAt?: string }>;
+  }) => Promise<{ success: boolean; message?: string; checkedInAt?: string; tableNumber?: number; tableName?: string }>;
   onExitCheckin: () => void;
 }
 
@@ -102,9 +105,17 @@ export default function SelfCheckinPage({
     title: ''
   });
   const [copiedLink, setCopiedLink] = useState(false);
+  const [assignedTableNumber, setAssignedTableNumber] = useState<number | undefined>(undefined);
+  const [assignedTableName, setAssignedTableName] = useState<string>('');
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [oneTapMember, setOneTapMember] = useState<ClassMember | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cardPreviewRef = useRef<HTMLDivElement>(null);
+
+  const activeTableConfig = useMemo(() => {
+    return assignedTableNumber !== undefined ? getTableConfig(assignedTableNumber) : null;
+  }, [assignedTableNumber]);
 
   // Thống kê sĩ số có mặt
   const confirmedAttendees = useMemo(() => rsvpList.filter((a) => a.status === 'yes'), [rsvpList]);
@@ -235,6 +246,59 @@ export default function SelfCheckinPage({
           spread: 80,
           origin: { y: 0.6 }
         });
+      } else {
+        alert(res.message || 'Không thể ghi nhận điểm danh. Vui lòng thử lại hoặc báo Bàn Lễ Tân.');
+      }
+    } catch (err: any) {
+      alert('Lỗi kết nối điểm danh: ' + (err?.message || err));
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
+
+  // Xác nhận điểm danh 1-chạm không cần SĐT
+  const handleOneTapConfirm = async (member: ClassMember) => {
+    setSelectedMember(member);
+    const rsvp = rsvpList.find(
+      (r) =>
+        (member.id && r.memberId === member.id) ||
+        normalizeName(r.fullName) === normalizeName(member.fullName) ||
+        isVietnameseNameMatch(member, r.fullName, r.nickname)
+    );
+
+    const size = rsvp?.shirtSize || member.shirtSize || '';
+    setSelectedShirtSize(normalizeShirtSize(size));
+    const av = getSavedAvatar(member.fullName, member.id);
+    setAvatarUrl(av);
+
+    setIsCheckingIn(true);
+    try {
+      const payload = {
+        fullName: member.fullName,
+        phone: rsvp?.phone || member.phone || '',
+        memberId: member.id,
+        className: member.className || 'K8A1',
+        shirtSize: normalizeShirtSize(size),
+        avatarUrl: av || undefined,
+        nickname: member.nickname || rsvp?.nickname
+      };
+
+      const res = await onCheckIn(payload);
+      if (res.success) {
+        setCheckInDone(true);
+        setCheckInTime(res.checkedInAt || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+        if (res.tableNumber !== undefined) setAssignedTableNumber(res.tableNumber);
+        if (res.tableName) setAssignedTableName(res.tableName);
+        setOneTapMember(null);
+        confetti({
+          particleCount: 90,
+          spread: 85,
+          origin: { y: 0.55 }
+        });
+        setTimeout(() => {
+          cardPreviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
       } else {
         alert(res.message || 'Không thể ghi nhận điểm danh. Vui lòng thử lại hoặc báo Bàn Lễ Tân.');
       }

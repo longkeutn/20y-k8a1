@@ -132,17 +132,21 @@ function initRsvpSheetHeaders(sheet) {
     'Thời gian nộp',
     'Hình thức',
     'Người đối soát',
-    'Mã TV' // Cột 17: Khóa ngoại liên kết danh bạ K8A1
+    'Mã TV', // Cột 17: Khóa ngoại liên kết danh bạ K8A1
+    'Bàn Tiệc' // Cột 18: Bàn 01 - Bàn 05 hoặc Mâm Thầy Cô
   ];
 
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, 17).setFontWeight('bold').setBackground('#FAF3E0');
+    sheet.getRange(1, 1, 1, 18).setFontWeight('bold').setBackground('#FAF3E0');
   } else {
-    var maxCols = Math.max(17, sheet.getLastColumn());
+    var maxCols = Math.max(18, sheet.getLastColumn());
     var currentHeaders = sheet.getRange(1, 1, 1, maxCols).getValues()[0];
     if (!currentHeaders[16] || String(currentHeaders[16]).trim() === '') {
       sheet.getRange(1, 17).setValue('Mã TV').setFontWeight('bold').setBackground('#FAF3E0');
+    }
+    if (!currentHeaders[17] || String(currentHeaders[17]).trim() === '') {
+      sheet.getRange(1, 18).setValue('Bàn Tiệc').setFontWeight('bold').setBackground('#FAF3E0');
     }
   }
 }
@@ -886,6 +890,16 @@ function doPost(e) {
       return handleResponse(handleCheckIn(postData));
     }
 
+    if (action === 'cancel_checkin') {
+      postData.cancelCheckIn = true;
+      postData.checkedIn = false;
+      return handleResponse(updateRSVP(postData));
+    }
+
+    if (action === 'assign_tables' || action === 'save_tables') {
+      return handleResponse(batchAssignTables(postData));
+    }
+
     if (action === 'update_fund' || action === 'update_rsvp') {
       return handleResponse(updateRSVP(postData));
     }
@@ -1007,6 +1021,24 @@ function getRSVPList(isAdmin) {
     // Ưu tiên hợp nhất theo Mã TV nếu có, sau đó mới tới SĐT
     var uniqueKey = memberId ? ('mid_' + memberId) : (normPhone ? ('phone_' + normPhone) : '');
 
+    var rawTable = row[17] !== undefined && row[17] !== null ? String(row[17]).trim() : '';
+    var tableNum = undefined;
+    var tableNameStr = '';
+    if (rawTable) {
+      if (rawTable.toLowerCase().indexOf('thầy') !== -1 || rawTable.toLowerCase().indexOf('cô') !== -1 || rawTable === '0') {
+        tableNum = 0;
+        tableNameStr = 'Mâm Thầy Cô';
+      } else {
+        var numMatch = rawTable.match(/\d+/);
+        if (numMatch) {
+          tableNum = parseInt(numMatch[0], 10);
+          tableNameStr = 'Bàn ' + (tableNum < 10 ? '0' + tableNum : tableNum);
+        } else {
+          tableNameStr = rawTable;
+        }
+      }
+    }
+
     var item = {
       id: String(i),
       rowId: String(i + 1),
@@ -1027,7 +1059,9 @@ function getRSVPList(isAdmin) {
       hasReceipt: !!row[12],
       fundPaidAt: formatDateTimeVi(row[13] || ''),
       fundPaymentMethod: String(row[14] || 'bank_transfer'),
-      fundAuditedBy: String(row[15] || '')
+      fundAuditedBy: String(row[15] || ''),
+      tableNumber: tableNum !== undefined ? tableNum : undefined,
+      tableName: tableNameStr || undefined
     };
 
     if (uniqueKey && seenMap[uniqueKey] !== undefined) {
@@ -1053,7 +1087,9 @@ function getRSVPList(isAdmin) {
         hasReceipt: existing.hasReceipt || item.hasReceipt,
         fundPaidAt: item.fundPaidAt || existing.fundPaidAt,
         fundPaymentMethod: item.fundPaymentMethod || existing.fundPaymentMethod,
-        fundAuditedBy: item.fundAuditedBy || existing.fundAuditedBy
+        fundAuditedBy: item.fundAuditedBy || existing.fundAuditedBy,
+        tableNumber: (existing.tableNumber !== undefined ? existing.tableNumber : item.tableNumber),
+        tableName: existing.tableName || item.tableName || ''
       };
     } else {
       if (uniqueKey) seenMap[uniqueKey] = list.length;
@@ -1318,6 +1354,20 @@ function saveRSVP(data) {
               ? 'CHỜ ĐỐI SOÁT' 
               : (existingRow[9] || 'CHƯA ĐÓNG')));
 
+    var tableVal = '';
+    if (data.tableNumber !== undefined || data.tableName !== undefined) {
+      if (data.tableNumber === 0 || data.tableName === 'Mâm Thầy Cô') {
+        tableVal = 'Mâm Thầy Cô';
+      } else if (data.tableNumber !== undefined && data.tableNumber !== null && Number(data.tableNumber) > 0) {
+        var tNum = Number(data.tableNumber);
+        tableVal = 'Bàn ' + (tNum < 10 ? '0' + tNum : tNum);
+      } else if (data.tableName) {
+        tableVal = String(data.tableName).trim();
+      }
+    } else if (existingRow && existingRow[17]) {
+      tableVal = String(existingRow[17]).trim();
+    }
+
     var updatedRow = [
       data.fullName || existingRow[0] || '',
       (data.nickname !== undefined && data.nickname !== '') ? data.nickname : (existingRow[1] || ''),
@@ -1335,10 +1385,11 @@ function saveRSVP(data) {
       data.fundPaidAt || existingRow[13] || '',
       data.fundPaymentMethod || existingRow[14] || 'bank_transfer',
       existingRow[15] || '',
-      effectiveMemberId || '' // Cột 17: Mã TV
+      effectiveMemberId || '', // Cột 17: Mã TV
+      tableVal || '' // Cột 18: Bàn Tiệc
     ];
 
-    sheet.getRange(matchedRowIndex, 1, 1, 17).setValues([updatedRow]);
+    sheet.getRange(matchedRowIndex, 1, 1, 18).setValues([updatedRow]);
 
     if (duplicateRowIndices.length > 0) {
       duplicateRowIndices.sort(function(a, b) { return b - a; });
@@ -1373,6 +1424,16 @@ function saveRSVP(data) {
       }
     }
 
+    var newTableVal = '';
+    if (data.tableNumber === 0 || data.tableName === 'Mâm Thầy Cô') {
+      newTableVal = 'Mâm Thầy Cô';
+    } else if (data.tableNumber !== undefined && data.tableNumber !== null && Number(data.tableNumber) > 0) {
+      var nNum = Number(data.tableNumber);
+      newTableVal = 'Bàn ' + (nNum < 10 ? '0' + nNum : nNum);
+    } else if (data.tableName) {
+      newTableVal = String(data.tableName).trim();
+    }
+
     var newRow = [
       data.fullName || '',
       data.nickname || '',
@@ -1390,7 +1451,8 @@ function saveRSVP(data) {
       data.fundPaidAt || '',
       data.fundPaymentMethod || 'bank_transfer',
       data.fundAuditedBy || '',
-      effectiveMemberId || '' // Cột 17: Mã TV
+      effectiveMemberId || '', // Cột 17: Mã TV
+      newTableVal || '' // Cột 18: Bàn Tiệc
     ];
 
     sheet.appendRow(newRow);
@@ -1449,6 +1511,24 @@ function updateRSVP(data) {
       if (data.fundPaymentMethod !== undefined) sheet.getRange(rowIndex, 15).setValue(data.fundPaymentMethod);
       if (data.fundAuditedBy !== undefined) sheet.getRange(rowIndex, 16).setValue(data.fundAuditedBy);
       if (data.memberId) sheet.getRange(rowIndex, 17).setValue(data.memberId);
+      if (data.cancelCheckIn === true || data.checkedIn === false) {
+        sheet.getRange(rowIndex, 8).setValue('CHƯA ĐẾN');
+        sheet.getRange(rowIndex, 9).setValue('');
+      }
+      if (data.tableNumber !== undefined || data.tableName !== undefined) {
+        var tableVal = '';
+        if (data.tableNumber === null || data.tableNumber === '' || data.tableName === '') {
+          tableVal = '';
+        } else if (data.tableNumber === 0 || data.tableName === 'Mâm Thầy Cô') {
+          tableVal = 'Mâm Thầy Cô';
+        } else if (data.tableNumber !== undefined && data.tableNumber !== null && Number(data.tableNumber) > 0) {
+          var tNum = Number(data.tableNumber);
+          tableVal = 'Bàn ' + (tNum < 10 ? '0' + tNum : tNum);
+        } else if (data.tableName) {
+          tableVal = String(data.tableName).trim();
+        }
+        sheet.getRange(rowIndex, 18).setValue(tableVal);
+      }
       updated = true;
       break;
     }
@@ -1486,6 +1566,80 @@ function handleCheckIn(data) {
     data.checkedInAt = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
   }
 
+  var sheet = getActiveRsvpSheet();
+  var rows = sheet.getDataRange().getValues();
+  var targetMemberId = String(data.memberId || '').trim();
+  var targetPhone = normalizePhone(data.phone);
+  var targetName = normalizeName(data.fullName);
+
+  var existingTableNumber = undefined;
+  var existingTableName = '';
+
+  // Kiểm tra xem thành viên đã có bàn tiệc trong Sheet chưa
+  for (var i = 1; i < rows.length; i++) {
+    var rMemberId = String(rows[i][16] || '').trim();
+    var rPhone = normalizePhone(rows[i][2]);
+    var rName = normalizeName(rows[i][0]);
+    var isMatch = (targetMemberId && rMemberId && targetMemberId === rMemberId) ||
+                  (targetPhone && rPhone && targetPhone === rPhone) ||
+                  (!targetPhone && targetName && rName && targetName === rName);
+    if (isMatch) {
+      var rTable = rows[i][17] ? String(rows[i][17]).trim() : '';
+      if (rTable) {
+        if (rTable.toLowerCase().indexOf('thầy') !== -1 || rTable.toLowerCase().indexOf('cô') !== -1 || rTable === '0') {
+          existingTableNumber = 0;
+          existingTableName = 'Mâm Thầy Cô';
+        } else {
+          var numM = rTable.match(/\d+/);
+          if (numM) {
+            existingTableNumber = parseInt(numM[0], 10);
+            existingTableName = 'Bàn ' + (existingTableNumber < 10 ? '0' + existingTableNumber : existingTableNumber);
+          } else {
+            existingTableName = rTable;
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  // Nếu người dùng đã truyền bàn lên hoặc đã có bàn trong Sheet -> Giữ nguyên
+  if (data.tableNumber !== undefined && data.tableNumber !== null) {
+    existingTableNumber = Number(data.tableNumber);
+    existingTableName = data.tableName || (existingTableNumber === 0 ? 'Mâm Thầy Cô' : ('Bàn ' + (existingTableNumber < 10 ? '0' + existingTableNumber : existingTableNumber)));
+  } else if (existingTableNumber !== undefined) {
+    data.tableNumber = existingTableNumber;
+    data.tableName = existingTableName;
+  } else {
+    // Nếu chưa có bàn, tự động gán bàn trống tiếp theo (1 -> 5, tối đa 10 người/bàn)
+    var tableCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (var j = 1; j < rows.length; j++) {
+      var tCell = rows[j][17] ? String(rows[j][17]).trim() : '';
+      if (tCell) {
+        var num = tCell.match(/\d+/);
+        if (num) {
+          var n = parseInt(num[0], 10);
+          if (tableCounts[n] !== undefined) {
+            tableCounts[n]++;
+          }
+        }
+      }
+    }
+    // Tìm bàn 1-5 có ít người nhất và < 10
+    var chosenTable = 1;
+    var minCount = 999;
+    for (var t = 1; t <= 5; t++) {
+      if (tableCounts[t] < minCount) {
+        minCount = tableCounts[t];
+        chosenTable = t;
+      }
+    }
+    existingTableNumber = chosenTable;
+    existingTableName = 'Bàn ' + (chosenTable < 10 ? '0' + chosenTable : chosenTable);
+    data.tableNumber = existingTableNumber;
+    data.tableName = existingTableName;
+  }
+
   // 1. Thử cập nhật dòng RSVP đã có
   var updateResult = updateRSVP(data);
   if (updateResult && updateResult.status === 'success') {
@@ -1494,7 +1648,9 @@ function handleCheckIn(data) {
       message: 'Điểm danh thành công! Chào mừng bạn đã về lại trường xưa.',
       checkedIn: true,
       checkedInAt: data.checkedInAt,
-      fullName: data.fullName
+      fullName: data.fullName,
+      tableNumber: existingTableNumber,
+      tableName: existingTableName
     };
   }
 
@@ -1506,7 +1662,9 @@ function handleCheckIn(data) {
     message: 'Điểm danh và ghi nhận tham dự thành công!',
     checkedIn: true,
     checkedInAt: data.checkedInAt,
-    fullName: data.fullName
+    fullName: data.fullName,
+    tableNumber: existingTableNumber,
+    tableName: existingTableName
   };
 }
 
@@ -1566,9 +1724,9 @@ function deduplicateRSVP() {
     if (!uniqueMap[key]) {
       uniqueMap[key] = {
         rowIndex: i + 1,
-        data: row.slice(0, 17)
+        data: row.slice(0, 18)
       };
-      while (uniqueMap[key].data.length < 17) uniqueMap[key].data.push('');
+      while (uniqueMap[key].data.length < 18) uniqueMap[key].data.push('');
     } else {
       var master = uniqueMap[key];
       var masterData = master.data;
@@ -1593,6 +1751,7 @@ function deduplicateRSVP() {
       if (row[14]) masterData[14] = row[14];
       if (row[15]) masterData[15] = row[15];
       if (row[16] && !masterData[16]) masterData[16] = row[16];
+      if (row[17] && !masterData[17]) masterData[17] = row[17];
 
       rowsToDelete.push(i + 1);
       mergedCount++;
@@ -1605,7 +1764,7 @@ function deduplicateRSVP() {
       var p = normalizePhone(item.data[2]);
       item.data[2] = "'" + (p || item.data[2]);
     }
-    sheet.getRange(item.rowIndex, 1, 1, 17).setValues([item.data]);
+    sheet.getRange(item.rowIndex, 1, 1, 18).setValues([item.data]);
   }
 
   rowsToDelete.sort(function(a, b) { return b - a; });
@@ -4286,3 +4445,58 @@ function voteAnnouncement(postData) {
   }
 }
 
+
+/**
+ * Lưu sơ đồ phân bàn tiệc hàng loạt từ Admin Hub
+ */
+function batchAssignTables(data) {
+  var sheet = getActiveRsvpSheet();
+  var rows = sheet.getDataRange().getValues();
+  var assignments = data.assignments || [];
+  if (!assignments || !assignments.length) {
+    return { status: 'error', message: 'Không có dữ liệu phân bàn' };
+  }
+
+  var updatedCount = 0;
+  for (var a = 0; a < assignments.length; a++) {
+    var assign = assignments[a];
+    var targetMemberId = String(assign.memberId || '').trim();
+    var targetPhone = normalizePhone(assign.phone);
+    var targetName = normalizeName(assign.fullName);
+
+    var tableVal = '';
+    if (assign.tableNumber === null || assign.tableNumber === '' || assign.tableName === '') {
+      tableVal = '';
+    } else if (assign.tableNumber === 0 || assign.tableName === 'Mâm Thầy Cô') {
+      tableVal = 'Mâm Thầy Cô';
+    } else if (assign.tableNumber !== undefined && assign.tableNumber !== null && Number(assign.tableNumber) > 0) {
+      var tNum = Number(assign.tableNumber);
+      tableVal = 'Bàn ' + (tNum < 10 ? '0' + tNum : tNum);
+    } else if (assign.tableName) {
+      tableVal = String(assign.tableName).trim();
+    }
+
+    for (var i = 1; i < rows.length; i++) {
+      var rowMemberId = String(rows[i][16] || '').trim();
+      var rowPhone = normalizePhone(rows[i][2]);
+      var rowName = normalizeName(rows[i][0]);
+
+      var isMatch = (targetMemberId && rowMemberId && targetMemberId === rowMemberId) ||
+                    (targetPhone && rowPhone && targetPhone === rowPhone) ||
+                    (!targetPhone && targetName && rowName && targetName === rowName);
+
+      if (isMatch) {
+        sheet.getRange(i + 1, 18).setValue(tableVal);
+        rows[i][17] = tableVal;
+        updatedCount++;
+        break;
+      }
+    }
+  }
+
+  return {
+    status: 'success',
+    message: 'Đã lưu thành công phân bàn cho ' + updatedCount + ' thành viên!',
+    updatedCount: updatedCount
+  };
+}

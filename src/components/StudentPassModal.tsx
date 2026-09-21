@@ -96,6 +96,23 @@ export default function StudentPassModal({
   });
 
   const cardRef = useRef<HTMLDivElement>(null);
+  // Tra cứu bàn tiệc của thành viên đang xem
+  const activeRsvp = useMemo(() => {
+    return allAttendees.find(
+      (a) =>
+        (defaultAttendee?.id && a.id === defaultAttendee.id) ||
+        (defaultAttendee?.memberId && a.memberId === defaultAttendee.memberId) ||
+        normalizeName(a.fullName) === normalizeName(name)
+    );
+  }, [allAttendees, defaultAttendee, name]);
+
+  const currentTableNumber = activeRsvp?.tableNumber !== undefined
+    ? Number(activeRsvp.tableNumber)
+    : (defaultAttendee?.tableNumber !== undefined ? Number(defaultAttendee.tableNumber) : undefined);
+
+  const currentTableName = activeRsvp?.tableName || defaultAttendee?.tableName || '';
+  const isCheckedIn = Boolean(activeRsvp?.checkedIn || defaultAttendee?.checkedIn);
+  const activeTableConfig = currentTableNumber !== undefined ? getTableConfig(currentTableNumber) : null;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to load avatar from attendee, classRoster note metadata, or localStorage

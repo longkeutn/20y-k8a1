@@ -201,7 +201,7 @@ interface AdminManagementHubProps {
   currentUserRole: UserRole;
   onLoginSuccess: (role: UserRole) => void;
   onLogout: () => void;
-  initialTab?: 'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
+  initialTab?: 'members' | 'tables' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
   initialMediaSubTab?: 'venue' | 'banner' | 'videos' | 'photos';
   onOpenStagePresentation?: () => void;
   
@@ -351,7 +351,7 @@ export default function AdminManagementHub({
   }, [isTreasurer, isAdmin, activeMember]);
 
   // Navigation tabs
-  type ActiveTab = 'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
+  type ActiveTab = 'members' | 'tables' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
 
   // Media Tab subtab state
@@ -4075,8 +4075,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Receipt className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">2. Quỹ lớp</span>
-            <span className="hidden sm:inline">2. Thu & Chi Quỹ Lớp</span>
+            <span className="sm:hidden">3. Quỹ lớp</span>
+            <span className="hidden sm:inline">3. Thu & Chi Quỹ Lớp</span>
             {canAuditAndSpend ? (
               <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Thủ Quỹ 💰</span>
             ) : (
@@ -4093,8 +4093,8 @@ export default function AdminManagementHub({
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">3. Thầy cô ({effectiveTeachers.length})</span>
-            <span className="hidden sm:inline">3. Quý Thầy Cô ({effectiveTeachers.length})</span>
+            <span className="sm:hidden">4. Thầy cô ({effectiveTeachers.length})</span>
+            <span className="hidden sm:inline">4. Quý Thầy Cô ({effectiveTeachers.length})</span>
             {teacherStats.attending > 0 && (
               <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">
                 {teacherStats.attending} tham dự
@@ -4111,8 +4111,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Bell className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-            <span className="sm:hidden">4. Bản tin ({announcements.length})</span>
-            <span className="hidden sm:inline">4. Bản Tin BLL ({announcements.length})</span>
+            <span className="sm:hidden">5. Bản tin ({announcements.length})</span>
+            <span className="hidden sm:inline">5. Bản Tin BLL ({announcements.length})</span>
             {announcements.some(a => a.isPinned) && (
               <span className="text-[9px] bg-amber-500 text-slate-950 font-bold px-1.5 py-0.2 rounded-full hidden sm:inline">
                 Ghim 📌
@@ -4129,8 +4129,8 @@ export default function AdminManagementHub({
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">5. Lưu bút</span>
-            <span className="hidden sm:inline">5. Lưu Bút & Lời Chúc</span>
+            <span className="sm:hidden">6. Lưu bút</span>
+            <span className="hidden sm:inline">6. Lưu Bút & Lời Chúc</span>
           </button>
 
           <button
@@ -4142,8 +4142,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Video className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">6. Media</span>
-            <span className="hidden sm:inline">6. Ảnh Bìa, Video & Gallery</span>
+            <span className="sm:hidden">7. Media</span>
+            <span className="hidden sm:inline">7. Ảnh Bìa, Video & Gallery</span>
           </button>
 
           <button
@@ -4155,8 +4155,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Settings className="w-3.5 h-3.5 shrink-0" />
-            <span className="sm:hidden">7. Cài đặt</span>
-            <span className="hidden sm:inline">7. Cấu Hình & Cài Đặt</span>
+            <span className="sm:hidden">8. Cài đặt</span>
+            <span className="hidden sm:inline">8. Cấu Hình & Cài Đặt</span>
             {isAdmin ? (
               <span className="text-[9px] bg-amber-800 text-amber-200 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Admin 👑</span>
             ) : isTreasurer ? (
@@ -4175,8 +4175,8 @@ export default function AdminManagementHub({
             }`}
           >
             <Tv className="w-3.5 h-3.5 shrink-0 text-purple-500" />
-            <span className="sm:hidden">8. Màn LED</span>
-            <span className="hidden sm:inline">8. Màn LED & Nhạc Nền</span>
+            <span className="sm:hidden">9. Màn LED</span>
+            <span className="hidden sm:inline">9. Màn LED & Nhạc Nền</span>
             <span className="text-[9px] bg-purple-900/60 text-purple-200 px-1.5 py-0.2 rounded font-mono hidden sm:inline">Sân Khấu 🎬</span>
           </button>
         </div>
@@ -4999,7 +4999,19 @@ export default function AdminManagementHub({
           {/* --------------------------------------------------------------- */}
           {/* TAB 2: FUND RECONCILIATION */}
           {/* --------------------------------------------------------------- */}
-          {activeTab === 'fund' && (
+          {activeTab === 'tables' && (
+          <AdminTableManager
+            rsvpList={rsvpList}
+            onUpdateRsvpList={onUpdateRsvpList}
+            classRoster={classRoster}
+            appsScriptUrl={appsScriptUrl}
+            adminAuthPin={adminAuthPin}
+            onRefreshData={onRefreshData}
+            onOpenPassModal={onOpenPassModal}
+          />
+        )}
+
+        {activeTab === 'fund' && (
             <div className="space-y-4">
               {/* Giám Sát BLL Info Banner */}
               {!canAuditAndSpend && (

@@ -1,4 +1,4 @@
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings } from './types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings, TableConfigItem } from './types';
 export {
   isValidVietnamesePhone,
   normalizeVietnamesePhone,
@@ -2553,6 +2553,197 @@ export async function uploadMemberAvatarViaBackend(
       message: 'Lỗi kết nối máy chủ Google Drive: ' + (err?.message || err)
     };
   }
+}
+
+/**
+ * ---------------------------------------------------------------------------
+ * CẤU HÌNH & THUẬT TOÁN PHÂN BÀN TIỆC K8A1 (5 BÀN HỌC SINH + 1 MÂM THẦY CÔ)
+ * ---------------------------------------------------------------------------
+ */
+export const BANQUET_TABLES: TableConfigItem[] = [
+  {
+    id: 0,
+    name: 'Mâm Tri Ân Quý Thầy Cô',
+    shortName: 'Mâm Thầy Cô',
+    description: 'Dành riêng đón tiếp Quý Thầy Cô giáo chủ nhiệm và bộ môn K8A1',
+    maxCapacity: 12,
+    isTeacherTable: true,
+    badgeBg: 'bg-rose-100',
+    badgeText: 'text-rose-900',
+    badgeBorder: 'border-rose-300'
+  },
+  {
+    id: 1,
+    name: 'Bàn 01 (Mâm 1)',
+    shortName: 'Bàn 01',
+    description: 'Mâm tiệc học sinh K8A1 — Tuổi Trẻ & Kỷ Niệm',
+    maxCapacity: 10,
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-900',
+    badgeBorder: 'border-amber-300'
+  },
+  {
+    id: 2,
+    name: 'Bàn 02 (Mâm 2)',
+    shortName: 'Bàn 02',
+    description: 'Mâm tiệc học sinh K8A1 — Thanh Xuân Rực Rỡ',
+    maxCapacity: 10,
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-900',
+    badgeBorder: 'border-emerald-300'
+  },
+  {
+    id: 3,
+    name: 'Bàn 03 (Mâm 3)',
+    shortName: 'Bàn 03',
+    description: 'Mâm tiệc học sinh K8A1 — Gắn Kết Bền Lâu',
+    maxCapacity: 10,
+    badgeBg: 'bg-blue-100',
+    badgeText: 'text-blue-900',
+    badgeBorder: 'border-blue-300'
+  },
+  {
+    id: 4,
+    name: 'Bàn 04 (Mâm 4)',
+    shortName: 'Bàn 04',
+    description: 'Mâm tiệc học sinh K8A1 — 20 Năm Ngày Trở Về',
+    maxCapacity: 10,
+    badgeBg: 'bg-purple-100',
+    badgeText: 'text-purple-900',
+    badgeBorder: 'border-purple-300'
+  },
+  {
+    id: 5,
+    name: 'Bàn 05 (Mâm 5)',
+    shortName: 'Bàn 05',
+    description: 'Mâm tiệc học sinh K8A1 — Mãi Mãi Một Thời',
+    maxCapacity: 10,
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-900',
+    badgeBorder: 'border-amber-400'
+  }
+];
+
+export function getTableConfig(tableNumber?: number): TableConfigItem {
+  if (tableNumber === 0) {
+    return BANQUET_TABLES[0];
+  }
+  const found = BANQUET_TABLES.find(t => t.id === tableNumber);
+  if (found) return found;
+  const num = tableNumber || 1;
+  return {
+    id: num,
+    name: `Bàn 0${num} (Mâm ${num})`,
+    shortName: `Bàn 0${num}`,
+    description: 'Mâm tiệc học sinh K8A1',
+    maxCapacity: 10,
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-900',
+    badgeBorder: 'border-amber-300'
+  };
+}
+
+/**
+ * Thuật toán phân bàn thông minh cho học sinh K8A1:
+ * - Rải đều thành viên BLL (hạt nhân kết nối) vào 5 bàn
+ * - Cân bằng tỷ lệ Nam / Nữ
+ * - Tối đa 10 người/bàn (1 đến 5)
+ * - Giữ nguyên những ai đã được phân bàn từ trước (không đổi nếu đã có)
+ */
+export function autoAssignStudentTables(
+  rsvpList: RsvpData[], 
+  rosterList: ClassMember[] = CLASS_ROSTER_K8A1
+): { updatedList: RsvpData[]; stats: Record<number, number> } {
+  const attendees = rsvpList.filter(a => a.status === 'yes');
+  const tableCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const assignedMap = new Map<string, number>();
+
+  // Giữ nguyên những ai đã có bàn hợp lệ (1-5)
+  attendees.forEach(a => {
+    const key = a.memberId || a.phone || a.fullName;
+    if (a.tableNumber && a.tableNumber >= 1 && a.tableNumber <= 5) {
+      assignedMap.set(key, a.tableNumber);
+      tableCounts[a.tableNumber] = (tableCounts[a.tableNumber] || 0) + 1;
+    }
+  });
+
+  const unassigned = attendees.filter(a => {
+    const key = a.memberId || a.phone || a.fullName;
+    return !assignedMap.has(key);
+  });
+
+  if (unassigned.length > 0) {
+    const isBLL = (a: RsvpData) => {
+      const roster = rosterList.find(m => (a.memberId && m.id === a.memberId) || isVietnameseNameMatch(m.fullName, a.fullName));
+      return isOfficialBLLMember(roster) || isOfficialBLLMember(a as any);
+    };
+
+    const isFemale = (a: RsvpData) => {
+      const roster = rosterList.find(m => (a.memberId && m.id === a.memberId) || isVietnameseNameMatch(m.fullName, a.fullName));
+      const g = (roster?.gender || '').toLowerCase();
+      if (g.includes('nữ') || g.includes('female') || g === 'f') return true;
+      const fn = a.fullName.toLowerCase();
+      return fn.includes('thị') || fn.includes('ngọc') || fn.includes('hương') || fn.includes('mai') || fn.includes('lan');
+    };
+
+    const bllMembers = unassigned.filter(isBLL);
+    const nonBllMembers = unassigned.filter(a => !isBLL(a));
+    const females = nonBllMembers.filter(isFemale);
+    const males = nonBllMembers.filter(a => !isFemale(a));
+
+    const pickBestTable = () => {
+      let bestTable = 1;
+      let minCount = 999;
+      for (let t = 1; t <= 5; t++) {
+        const count = tableCounts[t] || 0;
+        if (count < minCount && count < 10) {
+          minCount = count;
+          bestTable = t;
+        }
+      }
+      return bestTable;
+    };
+
+    // 1. Rải đều BLL
+    bllMembers.forEach(a => {
+      const t = pickBestTable();
+      const key = a.memberId || a.phone || a.fullName;
+      assignedMap.set(key, t);
+      tableCounts[t] = (tableCounts[t] || 0) + 1;
+    });
+
+    // 2. Rải đều Nữ
+    females.forEach(a => {
+      const t = pickBestTable();
+      const key = a.memberId || a.phone || a.fullName;
+      assignedMap.set(key, t);
+      tableCounts[t] = (tableCounts[t] || 0) + 1;
+    });
+
+    // 3. Rải đều Nam
+    males.forEach(a => {
+      const t = pickBestTable();
+      const key = a.memberId || a.phone || a.fullName;
+      assignedMap.set(key, t);
+      tableCounts[t] = (tableCounts[t] || 0) + 1;
+    });
+  }
+
+  const nowStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const updatedList = rsvpList.map(item => {
+    if (item.status !== 'yes') return item;
+    const key = item.memberId || item.phone || item.fullName;
+    const tNum = assignedMap.get(key) || item.tableNumber || 1;
+    const tCfg = getTableConfig(tNum);
+    return {
+      ...item,
+      tableNumber: tNum,
+      tableName: tCfg.name,
+      tableAssignedAt: item.tableAssignedAt || nowStr
+    };
+  });
+
+  return { updatedList, stats: tableCounts };
 }
 
 

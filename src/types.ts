@@ -50,6 +50,21 @@ export interface RsvpData {
   fundPaidAt?: string;         // Thời gian xác nhận đóng quỹ
   fundPaymentMethod?: 'bank_transfer' | 'cash' | 'other'; // Hình thức đóng
   fundAuditedBy?: string;      // Tên thủ quỹ / Admin đối soát
+  tableNumber?: number;        // Số bàn tiệc (1-5 cho học sinh, 0 cho Quý Thầy Cô)
+  tableName?: string;          // Tên hiển thị mâm tiệc (VD: 'Bàn 01 (Mâm 1)', 'Mâm Tri Ân Quý Thầy Cô')
+  tableAssignedAt?: string;    // Thời điểm phân bàn
+}
+
+export interface TableConfigItem {
+  id: number;
+  name: string;
+  shortName: string;
+  description: string;
+  maxCapacity: number;
+  isTeacherTable?: boolean;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
 }
 
 export interface WishData {
