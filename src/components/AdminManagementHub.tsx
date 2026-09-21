@@ -141,6 +141,7 @@ import PinAuthModal from './PinAuthModal';
 import { extractYouTubeVideoId } from './AudioPlayer';
 import { fetchGoogleAppsScriptCode } from '../utils/scriptCodeLoader';
 import AdminAnnouncementManager from './AdminAnnouncementManager';
+import AdminTableManager from './AdminTableManager';
 
 /**
  * Nén ảnh bằng Canvas HTML5 trước khi lưu trữ hoặc đẩy lên Google Drive / Sheet:
