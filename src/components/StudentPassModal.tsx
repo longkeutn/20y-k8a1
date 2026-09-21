@@ -17,7 +17,8 @@ import {
   Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { RsvpData, EventConfig, ClassMember } from '../types';
+import { RsvpData, EventConfig, ClassMember, TeacherData } from '../types';
+import TableMembersModal from './TableMembersModal';
 import { SHIRT_SIZE_OPTIONS, normalizeShirtSize, isVietnameseNameMatch, uploadMemberAvatarViaBackend } from '../data';
 import { parseMemberNote } from '../utils/memberUtils';
 import { saveOrDownloadJpg } from '../utils/imageUtils';

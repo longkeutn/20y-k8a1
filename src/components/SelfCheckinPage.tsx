@@ -27,7 +27,7 @@ import {
   ThumbsUp
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { RsvpData, ClassMember, EventConfig } from '../types';
+import { RsvpData, ClassMember, EventConfig, TeacherData } from '../types';
 import {
   SHIRT_SIZE_OPTIONS,
   normalizeShirtSize,

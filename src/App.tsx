@@ -2248,6 +2248,7 @@ export default function App() {
       <SelfCheckinPage
         classRoster={classRoster}
         rsvpList={rsvpList}
+        teachersList={teachersList}
         eventConfig={eventConfig}
         appsScriptUrl={activeAppsScriptUrl}
         onCheckIn={handleMemberSelfCheckIn}
@@ -3521,6 +3522,7 @@ export default function App() {
         defaultAttendee={selectedPassAttendee}
         allAttendees={rsvpList}
         classRoster={classRoster}
+        teachersList={teachersList}
         activeMember={activeMember}
         eventConfig={eventConfig}
         appsScriptUrl={activeAppsScriptUrl}
