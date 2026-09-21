@@ -24,7 +24,8 @@ import {
   AlertCircle,
   X,
   Loader2,
-  ThumbsUp
+  ThumbsUp,
+  Users
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RsvpData, ClassMember, EventConfig, TeacherData } from '../types';
