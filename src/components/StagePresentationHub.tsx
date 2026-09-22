@@ -587,9 +587,9 @@ export default function StagePresentationHub({
                   </div>
 
                   {/* Chữ viết tay hoài niệm dưới chân ảnh Polaroid */}
-                  <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center">
-                    <p className="text-xs md:text-sm font-serif italic text-amber-950/85 font-bold tracking-wider">
-                      Kỷ niệm K8A1 — 20 Năm Ngày Trở Về (2003 — 2006)
+                  <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center px-2">
+                    <p className="text-xs md:text-sm font-serif italic text-amber-950/90 font-bold tracking-wide line-clamp-1">
+                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
                     </p>
                   </div>
                 </div>
@@ -605,11 +605,16 @@ export default function StagePresentationHub({
                 />
               )}
 
-              {/* Dải Caption chú thích ảnh hoài niệm (ĐÃ BỎ DÒNG DATE/UPLOAD TIME) */}
+              {/* Dải Caption chú thích ảnh hoài niệm phong cách điện ảnh */}
               {showCaption && (
-                <div className="absolute bottom-16 md:bottom-20 left-0 right-0 z-20 flex justify-center px-6 pointer-events-none">
-                  <div className="max-w-3xl bg-black/75 backdrop-blur-md px-6 py-3 rounded-2xl border border-amber-500/40 text-center shadow-2xl">
-                    <p className="text-base md:text-xl font-bold font-serif italic text-amber-200 tracking-wide leading-relaxed">
+                <div className="absolute bottom-16 md:bottom-20 left-0 right-0 z-20 flex justify-center px-4 md:px-6 pointer-events-none">
+                  <div className="max-w-4xl bg-gradient-to-r from-black/85 via-black/92 to-black/85 backdrop-blur-xl px-5 md:px-8 py-3 md:py-3.5 rounded-2xl border border-amber-400/50 text-center shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_25px_rgba(245,158,11,0.25)] flex flex-col items-center gap-1.5">
+                    <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] md:text-xs font-sans font-bold tracking-[0.15em] text-amber-300 uppercase">
+                      <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+                      <span>Ký Ức K8A1 • Ảnh {photoIndex + 1}/{memories.length}</span>
+                      <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+                    </div>
+                    <p className="text-base md:text-2xl font-bold font-serif italic text-amber-100 tracking-wide leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
                       “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
                     </p>
                   </div>
@@ -708,10 +713,15 @@ export default function StagePresentationHub({
               )}
 
               {showCaption && (
-                <div className="absolute bottom-4 left-4 right-4 z-20 bg-black/75 backdrop-blur-md px-5 py-2.5 rounded-xl border border-amber-500/30 text-center">
-                  <p className="text-sm md:text-lg font-bold font-serif italic text-amber-200">
-                    “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
-                  </p>
+                <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
+                  <div className="max-w-3xl bg-black/85 backdrop-blur-md px-6 py-2.5 rounded-xl border border-amber-400/40 text-center shadow-2xl flex flex-col items-center gap-1">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-[10px] md:text-xs font-sans font-semibold tracking-wider text-amber-300 uppercase">
+                      <span>Kỷ Niệm K8A1 • Ảnh {photoIndex + 1}/{memories.length}</span>
+                    </div>
+                    <p className="text-sm md:text-xl font-bold font-serif italic text-amber-200 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                    </p>
+                  </div>
                 </div>
               )}
             </>
@@ -1164,8 +1174,8 @@ export default function StagePresentationHub({
                 {/* Bật/Tắt chú thích ảnh hoài niệm */}
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
                   <div>
-                    <span className="text-xs font-medium text-slate-200">Hiển thị trích dẫn hoài niệm ở cuối màn hình</span>
-                    <p className="text-[10px] text-slate-400">Chỉ hiển thị các câu nói thanh xuân ý nghĩa, không hiện ngày giờ upload</p>
+                    <span className="text-xs font-medium text-slate-200">Hiển thị câu dẫn hoài niệm thanh xuân</span>
+                    <p className="text-[10px] text-slate-400">120+ câu dẫn sâu lắng K8A1 kèm số thứ tự ảnh, tự động lọc sạch mã rác</p>
                   </div>
                   <input
                     type="checkbox"

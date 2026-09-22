@@ -1908,33 +1908,210 @@ export const DEFAULT_STAGE_SETTINGS: StageSettings = {
   showCorners: true
 };
 
-// Danh sách các câu trích dẫn thanh xuân, hoài niệm tuổi học trò K8A1
+/**
+ * Nhận diện chuỗi chú thích là tên file máy ảnh, mã băm Drive, chuỗi số Facebook hoặc từ khóa mặc định chung chung
+ */
+export function isMachineOrGenericCaption(caption?: string): boolean {
+  if (!caption) return true;
+  const trimmed = String(caption).trim();
+  if (trimmed.length < 4) return true;
+
+  // 1. Kiểm tra danh sách từ khóa mặc định chung chung
+  const lower = trimmed.toLowerCase().replace(/\s+/g, ' ');
+  const genericList = [
+    'kỷ niệm lớp k8a1',
+    'kỷ niệm k8a1',
+    'ảnh kỷ niệm',
+    'ảnh kỷ niệm k8a1',
+    'ảnh k8a1',
+    'k8a1',
+    'kỷ niệm 20 năm',
+    'kỷ niệm 20 năm k8a1',
+    'kỷ niệm',
+    'chưa có chú thích',
+    'default',
+    'untitled',
+    'null',
+    'undefined',
+    'image',
+    'photo',
+    'hinh anh',
+    'ảnh',
+    'hình ảnh'
+  ];
+  if (genericList.includes(lower)) return true;
+
+  // 2. Định dạng đuôi file hình ảnh / video
+  if (/\.(jpg|jpeg|png|webp|gif|bmp|mp4|mov|heic|heif|raw)$/i.test(trimmed)) return true;
+
+  // 3. Tiền tố máy ảnh / chụp màn hình / mạng xã hội
+  if (/^(img|image|dsc|photo|pasted|screenshot|zalo|fb|facebook|snap|178\d+|569\d+)/i.test(trimmed)) return true;
+
+  // 4. Chuỗi số dài liên tiếp hoặc chuỗi timestamp Facebook (chứa nhiều cụm số 8+ chữ số, hoặc kết thúc bằng 'n')
+  if (/^\d{8,}/.test(trimmed) || /^[\d\s_.-]{8,}/.test(trimmed) || (/\s+n$/i.test(trimmed) && /\d{8,}/.test(trimmed))) return true;
+
+  // 5. Chuỗi ngẫu nhiên không có dấu cách dài >= 16 ký tự (mã băm Drive như 2aOboQx0cIp0ytJctMR2mYgDpSIvagbVQ47zopO4)
+  if (!trimmed.includes(' ') && trimmed.length >= 16) return true;
+
+  // 6. Mã hex dài hoặc chứa hash nội bộ
+  if (/^[0-9a-f]{16,}$/i.test(trimmed) || trimmed.includes('9527bee86c')) return true;
+
+  return false;
+}
+
+// Danh sách 122 câu trích dẫn thanh xuân, hoài niệm tuổi học trò K8A1 — THPT Thái Nguyên (2003 – 2006)
 export const NOSTALGIC_QUOTES: string[] = [
+  // --- CHỦ ĐỀ 1: MÁI TRƯỜNG XƯA THPT THÁI NGUYÊN (127 LƯƠNG THẾ VINH) ---
   "Hai mươi năm ngày trở về — Ký ức năm tháng học trò K8A1 vẫn vẹn nguyên như ngày hôm qua.",
-  "Thanh xuân như một cơn mưa rào, dẫu có ướt lạnh vẫn muốn đắm mình lần nữa.",
-  "Những nụ cười ngây ngô thuở ấy, nay đã hóa thành ký ức vô giá của cuộc đời.",
-  "Nắng sân trường THPT Thái Nguyên năm ấy, lưu giữ trọn vẹn những ước mơ tuổi mười tám.",
-  "Thời gian có thể trôi mau, nhưng tình bạn tuổi học trò sẽ sống mãi trong tim chúng ta.",
-  "Gặp lại nhau sau 20 năm, để thấy tuổi trẻ của chúng ta chưa từng phai nhòa theo năm tháng.",
+  "Nắng sân trường THPT Thái Nguyên năm ấy, lưu giữ trọn vẹn những ước mơ tuổi mười tám ngây ngô.",
   "Tháng năm rực rỡ dưới mái trường THPT Thái Nguyên — Nơi thanh xuân chúng ta bắt đầu.",
+  "Cổng trường xưa rợp bóng cây xanh, nơi bước chân tuổi mười lăm lần đầu bỡ ngỡ bước vào.",
+  "Bảng đen, phấn trắng, tiếng giảng bài vang vọng giữa không gian tĩnh lặng của những buổi sớm thu.",
+  "Dãy hành lang rực nắng, nơi tiếng bước chân rộn rã sau mỗi hồi trống tan trường.",
+  "Hàng phượng vĩ già góc sân trường, chứng nhân của bao mùa thi và những lời hẹn ước chưa ngỏ.",
+  "Góc cầu thang quen thuộc, nơi những buổi tụ tập rôm rả chia nhau từng viên kẹo, mẩu bánh mì.",
+  "Chiếc bảng xanh bám bụi phấn, nơi lưu lại nét chữ thanh xuân của thầy cô và bạn bè K8A1.",
+  "Tiếng trống trường ngân vang giục giã từng nhịp đập thổn thức trước giờ vào lớp.",
+  "Khung cửa sổ lớp học nhìn ra khoảng trời bao la, nơi nuôi dưỡng biết bao hoài bão thời hoa niên.",
+  "Chiếc ghế đá rêu phong dưới gốc xà cừ, nơi từng chứng kiến biết bao câu chuyện buồn vui tuổi học trò.",
+  "Bầu trời Thái Nguyên những ngày chớm hạ, xanh ngắt một màu ký ức không thể phai mờ.",
+  "Cánh phượng rơi đỏ thắm trang vở, ướp hương kỷ niệm của một thời áo trắng tinh khôi.",
+  "Con đường Lương Thế Vinh mỗi sớm mai tới lớp, rộn rã tiếng cười nói của bè bạn đồng môn.",
+  "Phòng học K8A1 tầng hai thân thương, nơi từng hơi thở thanh xuân quyện hòa trong từng trang sách.",
+  "Cơn mưa rào bất chợt tưới ướt góc sân trường, như cuốn trôi mọi âu lo của tuổi học trò hồn nhiên.",
+  "Những chiều hoàng hôn buông trên mái trường xưa, bình yên và dịu ngọt tựa một giấc mơ.",
+  "Tấm bảng danh dự đầu năm, nơi ghi dấu những nỗ lực không ngừng nghỉ của cả tập thể K8A1.",
+  "Sân thể dục rợp bóng râm, nơi ghi dấu những buổi tập luyện miệt mài và tiếng cổ vũ vang dội.",
+
+  // --- CHỦ ĐỀ 2: KỶ NIỆM TUỔI 18 & TÌNH BẠN LỚP K8A1 ---
+  "Áo trắng ngày xưa, tiếng cười ngày cũ — Kho báu vô giá sau hai mươi năm bôn ba đường đời.",
+  "Những nụ cười ngây ngô thuở ấy, nay đã hóa thành ánh sáng dẫn đường trong tâm hồn mỗi chúng ta.",
+  "Thời gian có thể trôi mau, nhưng tình bạn tuổi học trò sẽ sống mãi trong tim chúng ta.",
   "Mỗi bức ảnh là một mảnh ghép hoài niệm, gửi gắm trọn vẹn tình bạn mang tên K8A1.",
-  "Áo trắng ngày xưa, tiếng cười ngày cũ — Kho báu vô giá sau hai mươi năm đường đời.",
-  "Cảm ơn vì chúng ta đã cùng nhau đi qua những năm tháng thanh xuân tươi đẹp nhất!"
+  "Cảm ơn vì chúng ta đã cùng nhau đi qua những năm tháng thanh xuân tươi đẹp nhất!",
+  "Cuốn lưu bút chuyền tay những ngày cuối cấp, từng dòng mực tím đong đầy giọt nước mắt chia ly.",
+  "Bài toán khó cùng chụm đầu giải dở, ánh mắt nhìn nhau cười xòa khi chuông báo hết giờ.",
+  "Những mẩu giấy chuyền vội dưới hộc bàn, chở che bao tâm sự bí mật của tuổi mới lớn.",
+  "Lớp học K8A1 sôi động những giờ sinh hoạt cuối tuần, tiếng hát vang hòa cùng tràng pháo tay giòn giã.",
+  "Nét vẽ ngộ nghĩnh trên trang giấy trắng, gửi gắm lời chúc may mắn cho kỳ thi đại học phía trước.",
+  "Tình bạn tuổi mười tám trong trẻo như giọt sương mai, không toan tính, chỉ có sự chân thành bất tận.",
+  "Chiếc áo đồng phục ký chật kín chữ ký và lời nhắn nhủ yêu thương của cả tập thể K8A1.",
+  "Giờ ra chơi rộn rã tiếng cười đùa, rủ nhau chạy ùa xuống căng-tin với những món quà vặt khó quên.",
+  "Những buổi lao động mồ hôi ướt đẫm lưng áo, nhưng tiếng cười chưa bao giờ vơi cạn trên môi.",
+  "Ánh mắt ngại ngùng giấu sau tán phượng đỏ, rung động đầu đời trong sáng tựa bài thơ.",
+  "Chúng ta của năm ấy, trẻ trung, nhiệt huyết và tin rằng bầu trời phía trước luôn rộng mở đón chờ.",
+  "Từng chỗ ngồi, từng góc bàn khắc tên kỷ niệm, nay trở thành di sản vô giá trong trái tim K8A1.",
+  "Những buổi trưa ở lại ôn thi, chia nhau từng nắm cơm, ngụm nước ấm áp nghĩa tình đồng môn.",
+  "Cùng nhau cất cao tiếng hát bài ca thanh xuân, để giai điệu ấy ngân vang suốt dọc dài năm tháng.",
+  "Tình bạn K8A1 như ngọn lửa sưởi ấm tâm hồn, dù thời gian trôi qua vẫn mãi cháy bỏng niềm tin.",
+
+  // --- CHỦ ĐỀ 3: MÙA HẠ 2006 & LỜI CHIA TAY THỜI ÁO TRẮNG ---
+  "Tháng Năm năm 2006 rực lửa phượng hồng, chúng ta ôm nhau khóc nghẹn ngào trong lễ bế giảng.",
+  "Tiếng trống bế giảng cuối cùng vang lên, khép lại ba năm trung học tươi đẹp dưới mái trường mến yêu.",
+  "Lời hẹn ước ngày gặp lại viết vội trên lưng áo, theo chân mỗi người bước vào những ngã rẽ cuộc đời.",
+  "Bàn tay nắm chặt không muốn buông, sợ rằng buông ra là thanh xuân sẽ vụt bay mất.",
+  "Những giọt nước mắt chia tay năm ấy, hóa thành viên ngọc lấp lánh sưởi ấm ký ức suốt 20 năm qua.",
+  "Tạm biệt lớp K8A1 thân thương, mang theo hành trang là tri thức, tình yêu và niềm tin của thầy cô.",
+  "Bước chân ngập ngừng rời khỏi cổng trường, ngoái đầu nhìn lại khoảng trời thanh xuân lần cuối.",
+  "Tấm ảnh tập thể chụp vội dưới gốc phượng già, lưu lại nụ cười rạng ngời của những gương mặt thân thương.",
+  "Chia tay nhé thời áo trắng mộng mơ, hẹn ngày hội ngộ khi mái đầu đã phong sương cùng năm tháng.",
+  "Mùa hạ năm 2006 không chỉ có nắng và gió, mà còn có cả nỗi nhớ da diết của ngày chia xa.",
+  "Cánh hoa phượng ép khô trong cuốn sổ, như giữ lại trọn vẹn hương vị nồng nàn của mùa hè năm ấy.",
+  "Dù mỗi người một phương trời, hướng nhìn về K8A1 vẫn luôn là một điểm tựa bình yên nhất.",
+  "Chuyến tàu thanh xuân năm ấy đã dừng lại, để lại trên sân ga biết bao lưu luyến khôn nguôi.",
+  "Lời dặn dò cuối cùng của cô giáo chủ nhiệm, theo chúng ta trên suốt những chặng đường bôn ba.",
+  "Chúng ta rời trường với đôi cánh ước mơ, mang theo khát vọng chinh phục những đỉnh cao mới.",
+  "Nắng tháng Sáu vàng ruộm con đường thi, mỗi bước đi là một bước trưởng thành đầy thử thách.",
+  "Tạm biệt tiếng ve râm ran trưa hè, tạm biệt chiếc bàn gỗ gắn bó suốt ba năm hoa mộng.",
+  "Hãy giữ mãi nụ cười tuổi mười tám bạn nhé, dù ngày mai giông bão cuộc đời có thể ùa về.",
+  "Ký ức mùa hạ năm 2006 sẽ mãi là ngọn hải đăng soi sáng tâm hồn trên vạn nẻo đường đời.",
+  "Hai mươi năm trôi qua như một cái chớp mắt, đưa chúng ta trở về đúng nơi tình bạn bắt đầu.",
+
+  // --- CHỦ ĐỀ 4: 20 NĂM BÔN BA & TRƯỞNG THÀNH (2006 – 2026) ---
+  "Hai mươi năm bôn ba giữa dòng đời hối hả, chợt nhận ra không nơi nào bình yên bằng tuổi học trò.",
+  "Thời gian có thể phủ mờ vạn vật, nhưng ánh mắt chân tình của bạn bè K8A1 vẫn vẹn nguyên như xưa.",
+  "Đi qua ngàn con đường, gặp gỡ vạn người, tri kỷ K8A1 vẫn là bến đỗ ấm áp nhất để tìm về.",
+  "Những cô cậu học trò ngây thơ năm nào, nay đã là những người cha, người mẹ bản lĩnh và kiên cường.",
+  "Dẫu cuộc sống có thăng trầm sóng gió, nụ cười bạn bè vẫn là liều thuốc xoa dịu mọi mệt nhoài.",
+  "Hai mươi năm — Một chặng đường đủ dài để thấu hiểu giá trị thiêng liêng của hai chữ tri kỷ đồng môn.",
+  "Bụi thời gian có thể làm mờ ký ức, nhưng tình đồng môn K8A1 sẽ mãi tỏa sáng lung linh.",
+  "Từng vấp ngã, từng thành công trên trường đời, để hôm nay trở về bên nhau với lòng biết ơn sâu sắc.",
+  "Khoảng cách địa lý dẫu nghìn trùng xa cách, nhưng nhịp tim K8A1 vẫn luôn cùng chung một tần số.",
+  "Nếp nhăn trên khóe mắt đã hằn sâu theo năm tháng, nhưng tâm hồn tuổi đôi mươi vẫn sống mãi trong ta.",
+  "Có những tình bạn không cần nói thành lời, chỉ cần chạm ánh mắt là bao ký ức lại ùa về.",
+  "Hai thập kỷ nỗ lực không ngừng nghỉ, để hôm nay tự hào kể cho nhau nghe câu chuyện cuộc đời mình.",
+  "Đời người được mấy lần hai mươi năm, hãy trân trọng từng phút giây quý giá khi được bên nhau.",
+  "Cảm ơn những phong ba bão táp đã qua, để hôm nay nhận ra giá trị vô bờ của ngày hội ngộ.",
+  "Dù bạn đang ở đâu, làm gì, hãy luôn nhớ rằng bạn là một phần không thể thiếu của gia đình K8A1.",
+  "Năm tháng có thể lấy đi tuổi trẻ, nhưng không thể lấy đi những hồi ức thanh xuân rực rỡ chúng ta từng có.",
+  "Mỗi vết hằn của thời gian là một minh chứng cho sự kiên cường và trưởng thành của mỗi thành viên K8A1.",
+  "Đi thật xa để rồi nhận ra, nơi chốn ngọt ngào nhất chính là ký ức những ngày cùng chung lớp học.",
+  "Hai mươi năm xa cách, nhưng chỉ một câu chào là mọi khoảng cách thời gian bỗng chốc tan biến.",
+  "Tình bạn được tôi luyện qua hai mươi năm gió sương càng trở nên bền chặt và son sắt hơn bao giờ hết.",
+
+  // --- CHỦ ĐỀ 5: NGÀY HỘI NGỘ 2026 – TRỞ VỀ TRONG YÊU THƯƠNG ---
+  "Gặp lại nhau sau 20 năm, để thấy tuổi trẻ của chúng ta chưa từng phai nhòa theo năm tháng.",
+  "Hai mươi năm ngày trở về — Về lại mái trường xưa, về với vòng tay ấm áp của thầy cô và bạn bè.",
+  "Hôm nay chúng ta không còn là cô cậu học trò thuở nào, nhưng nụ cười vẫn hồn nhiên như ngày xưa ấy.",
+  "Nắm chặt bàn tay bạn sau hai mươi năm xa cách, cảm nhận trọn vẹn hơi ấm của tình bạn thuở hoa niên.",
+  "Ngày hội ngộ 2026 — Nơi những mảnh ghép ký ức thất lạc sau hai thập kỷ được ghép lại vẹn tròn.",
+  "Về đây để tìm lại chính mình của những năm tháng mười tám rực rỡ, vô tư và tràn đầy nhiệt huyết.",
+  "Tiếng cười nói rộn rã hôm nay như xua tan mọi mỏi mệt, lo toan của cuộc sống thường nhật.",
+  "Cùng ngồi lại bên nhau, ôn lại từng kỷ niệm cũ, thấy thanh xuân của chúng ta chưa từng phai mờ.",
+  "Hạnh phúc vỡ òa khi được gọi tên bạn thân quen, như thể hai mươi năm chỉ vừa trôi qua trong giấc ngủ trưa.",
+  "Chiếc áo polo kỷ niệm 20 năm mang màu cờ sắc áo K8A1, gắn kết triệu trái tim thành một khối đồng lòng.",
+  "Cảm ơn mỗi thành viên K8A1 đã thu xếp công việc, vượt đường xa để có mặt trong ngày hội ngộ lịch sử này.",
+  "Bữa tiệc hội ngộ ngập tràn yêu thương, cùng nâng ly chúc mừng cho tình bạn bền lâu của chúng ta.",
+  "Nhìn vào mắt nhau hôm nay, thấy bóng hình của chính mình hai mươi năm về trước rạng rỡ nụ cười.",
+  "Ngày trở về không chỉ là hoài niệm, mà còn là lời hứa sẽ luôn đồng hành bên nhau trên chặng đường phía trước.",
+  "Chúc cho đại gia đình K8A1 luôn tràn đầy sức khỏe, hạnh phúc và thành công trên mọi nẻo đường đời.",
+  "Hãy để ngày hôm nay trở thành một cột mốc vàng son, mãi mãi in đậm trong trang sử của lớp K8A1.",
+  "Từng cái bắt tay, từng ánh mắt rạng ngời, minh chứng cho một tình bạn vượt qua mọi thử thách thời gian.",
+  "Ngồi lại bên nhau dưới mái trường xưa, nghe tiếng chuông ký ức vang vọng từ nơi sâu thẳm con tim.",
+  "Hội ngộ sau 20 năm là một phép màu, được tạo nên từ tình yêu và sự gắn kết của cả tập thể K8A1.",
+  "Chào mừng bạn đã trở về nhà — Ngôi nhà K8A1 ấm áp và bao dung luôn mở rộng cửa đón chào!",
+
+  // --- CHỦ ĐỀ 6: TRI ÂN THẦY CÔ K8A1 – ƠN NGƯỜI LÁI ĐÒ ---
+  "Kính dâng lời tri ân sâu sắc nhất tới các thầy cô giáo — Những người lái đò thầm lặng đưa K8A1 cập bến tương lai.",
+  "Tóc thầy đã bạc theo năm tháng, nhưng ánh mắt trìu mến dành cho học trò K8A1 vẫn ấm áp như xưa.",
+  "Nét phấn trắng năm nào thầy cô trao, đã mở ra con đường tri thức nâng bước chúng em vào đời.",
+  "Lời dạy bảo ân cần của thầy cô thuở ấy, là kim chỉ nam soi đường cho chúng em vượt qua bão giông cuộc đời.",
+  "Hai mươi năm trở về, cúi đầu tạ ơn công lao trời biển của những người thầy, người cô kính yêu.",
+  "Dù thời gian có làm thay đổi vạn vật, tình thầy trò K8A1 mãi mãi là báu vật thiêng liêng nhất.",
+  "Kính chúc các thầy cô luôn mạnh khỏe, bình an và luôn tự hào về lớp học trò K8A1 năm ấy.",
+  "Những bài học làm người thầy cô trao tặng, chúng em vẫn luôn khắc ghi và gìn giữ suốt cuộc đời.",
+  "Nhớ bóng dáng cô đứng bên bục giảng, giọng nói ngọt ngào gieo mầm ước mơ vào tâm hồn thơ ngây.",
+  "Thầy cô như vầng trăng soi sáng đêm trường, dẫn dắt chúng em đi qua những tháng ngày gian khó.",
+  "Trở về bên thầy cô hôm nay, chúng em lại thấy mình bé bỏng như những cô cậu học trò ngày nào.",
+  "Ngàn đóa hoa tươi thắm không bằng tấm lòng biết ơn vô hạn của chúng em gửi tới thầy cô.",
+  "Cảm ơn thầy cô đã kiên nhẫn uốn nắn, nâng đỡ từng bước đi chập chững đầu đời của chúng em.",
+  "Công ơn dưỡng dục của thầy cô cao hơn núi, rộng hơn biển, lớp K8A1 xin trọn đời ghi nhớ.",
+  "Nụ cười hài lòng của thầy cô trong ngày hội ngộ là món quà quý giá nhất dành cho tất cả chúng em.",
+
+  // --- CHỦ ĐỀ 7: TRIẾT LÝ HOÀI NIỆM & TÌNH TRI KỶ VĨNH CỬU ---
+  "Thanh xuân như một cơn mưa rào, dẫu có ướt lạnh vẫn muốn đắm mình lần nữa.",
+  "Chúng ta không thể tắm hai lần trên một dòng sông, nhưng tình bạn tuổi học trò thì vĩnh viễn không đổi thay.",
+  "Có những kỷ niệm dẫu nhỏ bé như hạt cát, nhưng lại đủ sức sưởi ấm cả một mùa đông dài.",
+  "Tuổi trẻ của chúng ta đã gửi lại nơi mái trường THPT Thái Nguyên, mãi mãi vẹn nguyên và tươi đẹp.",
+  "Thời gian trôi đi không lấy lại được, nhưng kỷ niệm là kho báu mà không ai có thể tước đoạt từ chúng ta.",
+  "Mỗi bức ảnh là một chiếc vé du hành thời gian, đưa ta trở về với những năm tháng hồn nhiên nhất.",
+  "Những người bạn cùng ta đi qua tuổi thanh xuân sẽ luôn giữ một vị trí đặc biệt không ai thay thế được.",
+  "Dù bạn đang ở đỉnh cao danh vọng hay bình dị giữa đời thường, về với K8A1, bạn luôn là tri kỷ.",
+  "Đời người có nhiều cuộc gặp gỡ, nhưng duyên hội ngộ dưới mái trường xưa là món quà kỳ diệu của số phận.",
+  "Hãy giữ chặt lấy những ký ức tươi đẹp này, để chúng tiếp thêm sức mạnh cho hành trình tương lai.",
+  "Đừng buồn vì thanh xuân đã qua đi, hãy mỉm cười vì chúng ta đã từng có một thanh xuân rực rỡ cùng K8A1.",
+  "K8A1 — Bốn ký tự đơn sơ nhưng chứa đựng cả một bầu trời thương nhớ và tự hào khôn nguôi.",
+  "Tình bạn đích thực không đo bằng khoảng cách hay thời gian, mà đo bằng sự đồng điệu giữa những tâm hồn.",
+  "Hãy để tình bạn K8A1 mãi là ngọn lửa ấm áp thắp sáng những ngày đông lạnh giá của cuộc đời.",
+  "Chúng ta của tuổi ba mươi tám, nhìn lại tuổi mười tám, mỉm cười tự hào vì đã sống trọn vẹn từng khoảnh khắc!"
 ];
 
 /**
- * Lấy câu chú thích hoài niệm thay thế cho tên file ảnh kỹ thuật số
+ * Lấy câu chú thích hoài niệm thay thế cho tên file ảnh kỹ thuật số hoặc caption mặc định chung chung
  */
 export function getNostalgicPhotoCaption(index: number, customCaption?: string): string {
-  if (customCaption) {
-    const trimmed = customCaption.trim();
-    // Loại bỏ các chuỗi tên file máy ảnh, timestamp, hash ngẫu nhiên
-    const isMachineName = /^(img|image|dsc|photo|pasted|screenshot|178\d+|[0-9a-f]{16,}|[\d\s_.-]{10,})/i.test(trimmed) 
-      || trimmed.includes('9527bee86c')
-      || /^\d{10,}/.test(trimmed);
-    if (!isMachineName && trimmed.length > 0) {
-      return trimmed;
-    }
+  if (customCaption && !isMachineOrGenericCaption(customCaption)) {
+    return customCaption.trim();
   }
   return NOSTALGIC_QUOTES[Math.abs(index) % NOSTALGIC_QUOTES.length];
 }
