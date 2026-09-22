@@ -73,6 +73,7 @@ import NotificationBell from './components/NotificationBell';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import PullToRefresh from './components/PullToRefresh';
 import CollapsibleSection from './components/CollapsibleSection';
+import InitialSplashScreen from './components/InitialSplashScreen';
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -111,6 +112,33 @@ export default function App() {
   // Trạng thái đồng bộ thời gian thực từ Google Sheet
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'live' | 'error'>('syncing');
   const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
+
+  // 🌟 Màn hình Splash mở đầu: chỉ kích hoạt khi người dùng lần đầu truy cập (chưa có cache k8a1_event_config)
+  // Giúp loại bỏ hoàn toàn hiện tượng các khối bị ẩn hiện giật cục (FOUC)
+  const [showInitialSplash, setShowInitialSplash] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('k8a1_event_config');
+    } catch {
+      return false;
+    }
+  });
+  const [splashFading, setSplashFading] = useState<boolean>(false);
+
+  const dismissInitialSplash = useCallback(() => {
+    setSplashFading(true);
+    setTimeout(() => {
+      setShowInitialSplash(false);
+    }, 400);
+  }, []);
+
+  // Tự động đóng Splash tối đa sau 2.5s an toàn phòng khi mất kết nối mạng
+  useEffect(() => {
+    if (!showInitialSplash) return;
+    const timer = setTimeout(() => {
+      dismissInitialSplash();
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [showInitialSplash, dismissInitialSplash]);
 
   // Config state (Google Apps Script WebApp URL)
   const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => {
@@ -2075,6 +2103,37 @@ export default function App() {
 
         setSyncStatus('live');
         setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        // Mở rèm chào đón Splash mượt mà ngay khi dữ liệu Google Sheets đã áp dụng xong 100%
+        dismissInitialSplash();
+
+        // Kích hoạt luồng ngầm nạp thêm ảnh Google Drive nếu có (không chặn UI)
+        (async () => {
+          try {
+            const photoRes = await fetchSafeAppsScript(targetUrl, 'get_photos', '', 0, 18000);
+            if (photoRes?.status === 'success' && Array.isArray(photoRes.data) && photoRes.data.length > 0) {
+              const driveImgs: MemoryImage[] = photoRes.data.map((p: any) => ({
+                id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+                thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+                caption: p.caption || 'Kỷ niệm Lớp K8A1',
+                date: p.date || '2006',
+                isUserUploaded: true,
+                driveUrl: p.driveUrl
+              }));
+
+              setImages((prev) => {
+                const driveIds = new Set(driveImgs.map(i => i.id));
+                const localOnly = prev.filter(i => !driveIds.has(i.id));
+                const merged = [...driveImgs, ...localOnly];
+                try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
+                return merged;
+              });
+            }
+          } catch (e) {
+            console.warn('Background sync photos warning:', e);
+          }
+        })();
+
         return; // Đã đồng bộ siêu tốc xong trong 1 request, thoát ngay!
       }
 
@@ -2127,6 +2186,7 @@ export default function App() {
       if (gotStage1Data) {
         setSyncStatus('live');
         setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        dismissInitialSplash();
       }
 
       // ============================================================================
@@ -2280,6 +2340,7 @@ export default function App() {
       setSyncStatus(prev => prev === 'live' ? 'live' : 'error');
     } finally {
       setIsRefreshing(false);
+      dismissInitialSplash();
     }
   };
 
@@ -2426,6 +2487,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#334155] flex flex-col items-center pb-20 selection:bg-amber-200 selection:text-amber-900 relative overflow-x-hidden font-sans">
+      
+      {/* 🌟 MÀN HÌNH CHÀO ĐÓN KHỞI ĐỘNG (FIRST-TIME VISITOR SPLASH SCREEN) */}
+      <InitialSplashScreen isOpen={showInitialSplash} isFading={splashFading} />
       
       {/* 📌 THANH TIÊU ĐỀ CỐ ĐỊNH & TINH GỌN (PREMIUM FIXED NAVBAR) */}
       <header className="fixed top-0 inset-x-0 z-50 w-full backdrop-blur-md bg-[#161B26]/95 border-b border-amber-500/25 text-white shadow-md transition-all pt-[env(safe-area-inset-top,0px)]">

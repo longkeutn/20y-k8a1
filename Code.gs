@@ -3996,11 +3996,13 @@ function getAllData(isAdmin) {
     let roster = [];
     try { roster = (getClassRoster(isAdmin) || {}).data || []; } catch (e) { console.warn('roster err', e); }
 
-    let viewCount = 1258;
-    try { viewCount = (getViewCount() || {}).count || 1258; } catch (e) {}
+    let viewCount = 0;
+    try { viewCount = (getViewCount() || {}).count || 0; } catch (e) {}
 
+    // ⚡ TỐI ƯU SIÊU TỐC: Tách DriveApp khỏi getAllData() để khởi động dưới 1 giây
+    // Loại bỏ duyệt Google Drive (vốn tốn 8-15s gây timeout và nghẽn toàn bộ WebApp).
+    // Frontend đã có sẵn 87 ảnh kỷ niệm trong DEFAULT_MEMORIES (0ms) và nạp ngầm qua 'get_photos'.
     let drivePhotos = [];
-    try { drivePhotos = (getDrivePhotos() || {}).data || []; } catch (e) {}
 
     let expenses = [];
     try { expenses = (getExpensesList(isAdmin) || {}).data || []; } catch (e) {}
@@ -4011,8 +4013,8 @@ function getAllData(isAdmin) {
     let teachers = [];
     try { teachers = (getTeachersList(isAdmin) || {}).data || []; } catch (e) {}
 
+    // Backdrop Drive tải riêng biệt khi Admin vào Studio (action 'get_backdrops')
     let backdrops = [];
-    try { backdrops = (getDriveBackdrops() || {}).data || []; } catch (e) {}
 
     let announcements = [];
     try { announcements = (getAnnouncementsList() || {}).data || []; } catch (e) {}

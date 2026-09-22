@@ -2218,7 +2218,8 @@ export async function verifyPinViaBackend(
   // 1. Thử xác thực trực tuyến qua Google Apps Script / Google Sheets (POST)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    // Tăng timeout lên 15 giây để không bị abort khi server đang đồng bộ dữ liệu lúc tải đầu trang
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const res = await fetch(targetUrl, {
       method: 'POST',
@@ -2240,7 +2241,12 @@ export async function verifyPinViaBackend(
   } catch (netErr: any) {
     // 2. Dự phòng qua GET nếu POST bị mạng/CORS can thiệp
     try {
-      const getRes = await fetch(`${targetUrl}?action=verify_pin&pin=${encodeURIComponent(cleanPin)}&t=${Date.now()}`);
+      const getController = new AbortController();
+      const getTimerId = setTimeout(() => getController.abort(), 10000);
+      const getRes = await fetch(`${targetUrl}?action=verify_pin&pin=${encodeURIComponent(cleanPin)}&t=${Date.now()}`, {
+        signal: getController.signal
+      });
+      clearTimeout(getTimerId);
       const getJson = await getRes.json();
       if (getJson.status === 'success' && getJson.role) {
         return { success: true, role: getJson.role as UserRole, message: getJson.message };
