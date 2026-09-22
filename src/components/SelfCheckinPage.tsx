@@ -59,6 +59,10 @@ interface SelfCheckinPageProps {
   }) => Promise<{ success: boolean; message?: string; checkedInAt?: string; tableNumber?: number; tableName?: string }>;
   onExitCheckin: () => void;
   teachersList?: TeacherData[];
+  syncStatus?: 'live' | 'syncing' | 'error';
+  lastSyncedTime?: string;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 function normalizeName(n?: any): string {
@@ -84,7 +88,11 @@ export default function SelfCheckinPage({
   appsScriptUrl,
   onCheckIn,
   onExitCheckin,
-  teachersList = []
+  teachersList = [],
+  syncStatus = 'live',
+  lastSyncedTime = '',
+  isRefreshing = false,
+  onRefresh
 }: SelfCheckinPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<ClassMember | null>(null);
@@ -119,6 +127,17 @@ export default function SelfCheckinPage({
   const activeTableConfig = useMemo(() => {
     return assignedTableNumber !== undefined ? getTableConfig(assignedTableNumber) : null;
   }, [assignedTableNumber]);
+
+  // Tự động làm mới số liệu ngầm mỗi 25s khi màn hình đang mở để số người có mặt luôn chuẩn xác
+  useEffect(() => {
+    if (!onRefresh) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isRefreshing && !isCheckingIn) {
+        onRefresh();
+      }
+    }, 25000);
+    return () => clearInterval(timer);
+  }, [onRefresh, isRefreshing, isCheckingIn]);
 
   // Thống kê sĩ số có mặt
   const confirmedAttendees = useMemo(() => rsvpList.filter((a) => a.status === 'yes'), [rsvpList]);
@@ -212,24 +231,35 @@ export default function SelfCheckinPage({
       return;
     }
 
-    setIsUploadingAvatar(true);
-    try {
-      const driveUrl = await uploadMemberAvatarViaBackend(file, selectedMember.fullName, appsScriptUrl);
-      setAvatarUrl(driveUrl);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const b64 = e.target?.result as string;
+      if (!b64) return;
+      // Hiển thị ngay ảnh base64 tại màn hình để khách xem tức thì (Optimistic UI)
+      setAvatarUrl(b64);
+      setIsUploadingAvatar(true);
       try {
-        localStorage.setItem(`k8a1_avatar_${selectedMember.fullName.trim().toLowerCase()}`, driveUrl);
-      } catch {}
-    } catch (err: any) {
-      // Fallback base64 local
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const b64 = e.target?.result as string;
-        setAvatarUrl(b64);
-      };
-      reader.readAsDataURL(file);
-    } finally {
-      setIsUploadingAvatar(false);
-    }
+        const res = await uploadMemberAvatarViaBackend(
+          {
+            fileData: b64,
+            memberId: selectedMember.id,
+            fullName: selectedMember.fullName
+          },
+          appsScriptUrl
+        );
+        if (res.success && res.avatarUrl) {
+          setAvatarUrl(res.avatarUrl);
+          try {
+            localStorage.setItem(`k8a1_avatar_${selectedMember.fullName.trim().toLowerCase()}`, res.avatarUrl);
+          } catch {}
+        }
+      } catch (err: any) {
+        console.warn('Lỗi upload avatar lên Drive:', err);
+      } finally {
+        setIsUploadingAvatar(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Xác nhận điểm danh
@@ -836,6 +866,30 @@ export default function SelfCheckinPage({
           </div>
 
           <div className="shrink-0 flex items-center gap-1.5">
+            {/* Live Status Badge */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-brand-border rounded-md text-[10px] font-sans font-medium text-brand-text-muted shadow-2xs">
+              <span className={`w-2 h-2 rounded-full ${syncStatus === 'syncing' ? 'bg-amber-400 animate-ping' : syncStatus === 'error' ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+              <span className="font-bold">{syncStatus === 'syncing' ? 'Đang đồng bộ...' : syncStatus === 'error' ? 'Mất mạng' : 'Trực tiếp'}</span>
+              {lastSyncedTime && <span className="text-[9px] text-gray-400">({lastSyncedTime})</span>}
+            </div>
+
+            {/* Nút Làm Mới / Đồng bộ Sheet */}
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className={`inline-flex items-center gap-1 text-[11px] font-sans font-bold px-2.5 py-1 rounded-md border transition-all cursor-pointer shadow-2xs ${
+                  isRefreshing
+                    ? 'bg-amber-50 border-amber-300 text-amber-800'
+                    : 'bg-white border-brand-border hover:border-brand-gold text-brand-text hover:bg-amber-50/50'
+                }`}
+                title="Đồng bộ danh sách điểm danh mới nhất từ Google Sheets"
+              >
+                <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-amber-600' : 'text-amber-700'}`} />
+                <span className="hidden md:inline">{isRefreshing ? 'Đang tải...' : 'Đồng bộ'}</span>
+              </button>
+            )}
+
             <button
               onClick={handleCopyLink}
               className="inline-flex items-center gap-1 text-[11px] font-sans font-bold px-2 py-1 bg-white border border-brand-border rounded-md hover:border-brand-gold text-brand-text-muted hover:text-brand-text cursor-pointer transition-colors shadow-2xs"
@@ -881,6 +935,21 @@ export default function SelfCheckinPage({
                 }}
               />
             </div>
+
+            {onRefresh && (
+              <div className="pt-1 flex items-center justify-center">
+                <button
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 hover:bg-white border border-amber-300/70 text-[10px] font-sans font-bold text-amber-900 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+                  title="Nhấn để lấy số lượng điểm danh mới nhất từ Google Sheets"
+                >
+                  <RefreshCw className={`w-2.5 h-2.5 ${isRefreshing ? 'animate-spin text-amber-600' : 'text-amber-700'}`} />
+                  <span>{isRefreshing ? 'Đang cập nhật từ Sheet...' : 'Làm mới số liệu'}</span>
+                  {lastSyncedTime && <span className="text-amber-700/70 font-normal">({lastSyncedTime})</span>}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
