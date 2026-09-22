@@ -34,7 +34,7 @@ export function getGoogleCalendarUrl(event: CalendarEventDetails = OFFICIAL_K8A1
   const title = encodeURIComponent(event.title);
   const webUrl = event.url || (typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app');
   const details = encodeURIComponent(`${event.description}\n\n🌐 WebApp Lớp: ${webUrl}`);
-  const location = encodeURIComponent(event.location || 'Crown Palace / The Prime Thái Nguyên');
+  const location = encodeURIComponent(event.location || 'Trường THPT Thái Nguyên & Trung tâm Sự kiện The Prime, TP. Thái Nguyên');
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&details=${details}&location=${location}`;
 }
 

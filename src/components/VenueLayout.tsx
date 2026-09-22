@@ -33,7 +33,7 @@ const ZONES: VenueZone[] = [
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
     desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
+    tags: ['K8A1 Hội Ngộ', 'Thực Đơn Tiệc Mừng']
   },
   {
     id: 'z-to2',
@@ -41,7 +41,7 @@ const ZONES: VenueZone[] = [
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
     desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
+    tags: ['K8A1 Hội Ngộ', 'Thực Đơn Tiệc Mừng']
   },
   {
     id: 'z-to3',
@@ -49,7 +49,7 @@ const ZONES: VenueZone[] = [
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
     desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
+    tags: ['K8A1 Hội Ngộ', 'Thực Đơn Tiệc Mừng']
   },
   {
     id: 'z-to4',
@@ -57,15 +57,15 @@ const ZONES: VenueZone[] = [
     type: 'class',
     capacity: '16 - 20 ghế ngồi',
     desc: 'Khu vực bàn tiệc tự do dành cho các thành viên Lớp K8A1 niên khóa 2003 - 2006.',
-    tags: ['K8A1 Hội Ngộ', 'Menu Crown Palace']
+    tags: ['K8A1 Hội Ngộ', 'Thực Đơn Tiệc Mừng']
   },
   {
     id: 'z-buffet',
-    name: 'Quầy Ẩm Thực Tiệc Mừng & Teabreak Crown Palace',
+    name: 'Quầy Ẩm Thực Tiệc Mừng & Teabreak Prime Thái Nguyên',
     type: 'buffet',
     capacity: 'Phục vụ xuyên suốt chương trình',
-    desc: 'Thực đơn tiệc cao cấp tại Crown Palace Thái Nguyên, kèm quầy cafe, trà và bánh ngọt teabreak giao lưu buổi sáng.',
-    tags: ['Ẩm thực Crown Palace', 'Teabreak', 'Tiệc mừng 20 năm']
+    desc: 'Thực đơn tiệc cao cấp tại Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên, kèm quầy cafe, trà và bánh ngọt teabreak giao lưu.',
+    tags: ['Ẩm thực Prime Thái Nguyên', 'Teabreak', 'Tiệc mừng 20 năm']
   },
   {
     id: 'z-photobooth',
@@ -93,13 +93,13 @@ export default function VenueLayout() {
       {/* Header */}
       <div className="text-center space-y-2 border-b border-brand-border pb-4">
         <span className="text-[11px] font-sans uppercase tracking-[0.25em] text-brand-gold font-bold">
-          Không Gian Sảnh Tiệc • Crown Palace Thái Nguyên
+          Không Gian Sảnh Tiệc • Prime Thái Nguyên
         </span>
         <h2 className="text-2xl md:text-3xl font-serif text-brand-text font-bold">
           Sơ Đồ Bàn Tiệc & Khu Vực Hội Ngộ Lớp K8A1
         </h2>
         <p className="text-xs text-brand-text-muted font-serif italic max-w-xl mx-auto">
-          Bấm vào từng khu vực trên sơ đồ để xem vị trí bàn tiệc và các không gian đón tiếp tại Crown Palace.
+          Bấm vào từng khu vực trên sơ đồ để xem vị trí bàn tiệc và các không gian đón tiếp tại sảnh tiệc Prime Thái Nguyên.
         </p>
       </div>
 
@@ -108,7 +108,7 @@ export default function VenueLayout() {
         <div className="lg:col-span-8 bg-white border border-brand-border rounded-sm p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between text-xs text-brand-text-muted pb-2 border-b border-brand-border">
             <span className="font-sans font-bold uppercase tracking-wider text-[10px] text-brand-gold">
-              Mặt Bằng Sảnh Hội Ngộ K8A1 - Crown Palace
+              Mặt Bằng Sảnh Hội Ngộ K8A1 - Prime Thái Nguyên
             </span>
             <span className="font-serif italic text-[11px]">
               * Bấm vào từng khối để xem chi tiết
@@ -213,7 +213,7 @@ export default function VenueLayout() {
             >
               <div className="flex items-center justify-center gap-1.5 text-xs font-serif font-bold">
                 <Utensils className="w-3.5 h-3.5" />
-                <span>QUẦY TIỆC MỪNG & TEABREAK CROWN PALACE</span>
+                <span>QUẦY TIỆC MỪNG & TEABREAK PRIME THÁI NGUYÊN</span>
               </div>
             </button>
 

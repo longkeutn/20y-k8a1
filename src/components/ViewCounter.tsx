@@ -6,7 +6,7 @@ interface ViewCounterProps {
 }
 
 export default function ViewCounter({ appsScriptUrl }: ViewCounterProps) {
-  const [viewCount, setViewCount] = useState<number>(() => {
+  const [viewCount, setViewCount] = useState<number | null>(() => {
     try {
       const saved = localStorage.getItem('alumni_view_count');
       if (saved) {
@@ -16,7 +16,7 @@ export default function ViewCounter({ appsScriptUrl }: ViewCounterProps) {
     } catch {
       // ignore
     }
-    return 1258; // Baseline realistic start for 20th reunion website
+    return null;
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -66,7 +66,7 @@ export default function ViewCounter({ appsScriptUrl }: ViewCounterProps) {
       if (isMounted) {
         if (!hasViewedThisSession) {
           setViewCount((prev) => {
-            const next = prev + 1;
+            const next = (prev || 0) + 1;
             try {
               localStorage.setItem('alumni_view_count', next.toString());
               sessionStorage.setItem('alumni_has_visited_session', 'true');
@@ -119,7 +119,7 @@ export default function ViewCounter({ appsScriptUrl }: ViewCounterProps) {
   };
 
   // Format with thousand separator (e.g. 1.259)
-  const formattedCount = new Intl.NumberFormat('vi-VN').format(viewCount);
+  const formattedCount = viewCount !== null ? new Intl.NumberFormat('vi-VN').format(viewCount) : '...';
 
   return (
     <div 

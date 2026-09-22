@@ -1001,78 +1001,9 @@ export const INCOME_CATEGORIES: IncomeCategoryMeta[] = [
 
 export const INITIAL_INCOMES_LIST: IncomeItem[] = [];
 
-export const INITIAL_EXPENSES_LIST: ExpenseItem[] = [
-  {
-    id: 'exp-01',
-    title: 'Đặt cọc sảnh tiệc Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên',
-    category: 'party',
-    amount: 5000000,
-    date: '15/08/2026',
-    spender: 'Bùi Thành Long',
-    recipient: 'Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên',
-    receiptUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
-    eventScope: 'Kỷ niệm 20 năm',
-    note: 'Đặt cọc giữ chỗ sảnh tiệc trưa ngày 27/09/2026 (dự kiến 40-45 suất tiệc VIP)',
-    createdAt: '2026-08-15T09:00:00.000Z'
-  },
-  {
-    id: 'exp-02',
-    title: 'Đặt may & in ấn 45 áo polo đồng phục 20 năm K8A1',
-    category: 'souvenir',
-    amount: 6750000,
-    date: '20/08/2026',
-    spender: 'Huyền Trang B',
-    recipient: 'Xưởng may đồng phục Thái Nguyên',
-    receiptUrl: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?auto=format&fit=crop&w=800&q=80',
-    eventScope: 'Kỷ niệm 20 năm',
-    note: 'May 45 áo polo cá sấu cao cấp thêu logo 20 năm K8A1 theo bảng size đã đăng ký',
-    createdAt: '2026-08-20T14:30:00.000Z'
-  },
-  {
-    id: 'exp-03',
-    title: 'In ấn Backdrop check-in, sân khấu & 45 Thẻ học sinh lưu niệm',
-    category: 'media',
-    amount: 2500000,
-    date: '28/08/2026',
-    spender: 'Nguyễn Tuấn Thành',
-    recipient: 'Quảng cáo & In ấn Thái Nguyên',
-    receiptUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
-    eventScope: 'Kỷ niệm 20 năm',
-    note: 'Backdrop bạt hiflex căng khung sắt + 45 thẻ học sinh K8A1 kèm dây đeo cổ',
-    createdAt: '2026-08-28T16:00:00.000Z'
-  },
-  {
-    id: 'exp-04',
-    title: 'Đặt 5 giỏ hoa tươi & quà tặng tri ân Thầy Cô giáo cũ',
-    category: 'teacher',
-    amount: 3000000,
-    date: '01/09/2026',
-    spender: 'Hứa Thị Vân Anh',
-    recipient: 'Tiệm hoa tươi Thái Nguyên',
-    eventScope: 'Kỷ niệm 20 năm',
-    note: 'Tri ân thầy cô giáo chủ nhiệm và các thầy cô bộ môn gắn bó cùng lớp K8A1',
-    createdAt: '2026-09-01T10:00:00.000Z'
-  }
-];
+export const INITIAL_EXPENSES_LIST: ExpenseItem[] = [];
 
-export const SPONSORS_LIST: SponsorItem[] = [
-  {
-    id: 'sp-1',
-    name: 'Lê Hoàng Nam',
-    className: 'K8A1',
-    amount: 300000,
-    note: 'Ủng hộ thêm quỹ lớp cho ngày hội ngộ 20 năm thêm tưng bừng',
-    date: '02/09/2026'
-  },
-  {
-    id: 'sp-2',
-    name: 'Nguyễn Tuấn Anh',
-    className: 'K8A1',
-    amount: 500000,
-    note: 'Góp thêm vào quỹ nước uống & đạo cụ trò chơi anh em',
-    date: '01/09/2026'
-  }
-];
+export const SPONSORS_LIST: SponsorItem[] = [];
 
 export interface BankItem {
   code: string;       // VietQR identifier / short code

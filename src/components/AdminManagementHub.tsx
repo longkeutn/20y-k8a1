@@ -3349,7 +3349,7 @@ export default function AdminManagementHub({
       title: venueMediaFormData.title.trim() || (parsed.type === 'image' ? 'Ảnh Không Gian Nhà Hàng' : `${parsed.label} Minh Họa`),
       url: venueMediaFormData.url.trim(),
       type: parsed.type === 'empty' ? 'image' : parsed.type,
-      desc: venueMediaFormData.desc.trim() || 'Minh họa không gian tổ chức họp lớp tại Crown Palace Thái Nguyên.'
+      desc: venueMediaFormData.desc.trim() || 'Minh họa không gian tổ chức họp lớp tại Prime Thái Nguyên.'
     };
 
     const updated = [newItem, ...venueMediaListState];
@@ -3383,7 +3383,7 @@ export default function AdminManagementHub({
     setIsUploadingVenuePhoto(true);
     try {
       const compressed = await compressImageToJpeg(file, 1600, 0.82);
-      const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ') || 'Ảnh Không Gian Crown Palace';
+      const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ') || 'Ảnh Không Gian Prime Thái Nguyên';
 
       const targetScriptUrl = appsScriptUrl || localStorage.getItem('apps_script_url') || '';
       if (targetScriptUrl && targetScriptUrl.trim()) {
@@ -3427,7 +3427,7 @@ export default function AdminManagementHub({
   };
 
   const handleResetVenueMedia = () => {
-    if (confirm('Khôi phục danh sách video & ảnh không gian Crown Palace về mặc định?')) {
+    if (confirm('Khôi phục danh sách video & ảnh không gian Prime Thái Nguyên về mặc định?')) {
       setVenueMediaListState(DEFAULT_VENUE_MEDIA);
       localStorage.removeItem('k8a1_venue_media_list');
       if (onUpdateVenueMediaList) {
@@ -11601,7 +11601,7 @@ export default function AdminManagementHub({
                     {[
                       { title: 'Phúng viếng tứ thân phụ mẫu (kèm vòng hoa)', cat: 'care', amt: 500000, label: '🌹 Viếng phụ mẫu (500k)', scope: 'Thường niên theo quy chế' },
                       { title: 'Thăm hỏi ốm đau / khó khăn đột xuất', cat: 'care', amt: 300000, label: '🩹 Thăm ốm đau (300k)', scope: 'Thường niên theo quy chế' },
-                      { title: 'Đặt cọc sảnh tiệc Crown Palace Thái Nguyên', cat: 'party', amt: 5000000, label: '🍽️ Cọc tiệc Crown Palace (5tr)', scope: 'Kỷ niệm 20 năm' },
+                      { title: 'Đặt cọc sảnh tiệc Prime Thái Nguyên', cat: 'party', amt: 5000000, label: '🍽️ Cọc tiệc Prime (5tr)', scope: 'Kỷ niệm 20 năm' },
                       { title: 'Đặt may in áo polo đồng phục 20 năm K8A1', cat: 'souvenir', amt: 6750000, label: '👕 May áo polo K8A1 (6.75tr)', scope: 'Kỷ niệm 20 năm' },
                       { title: 'Hoa tươi & quà tri ân các Thầy Cô giáo cũ', cat: 'teacher', amt: 3000000, label: '💐 Quà tri ân Thầy Cô (3tr)', scope: 'Kỷ niệm 20 năm' },
                       { title: 'In ấn Backdrop sân khấu & Thẻ học sinh', cat: 'media', amt: 2500000, label: '📸 Backdrop & Thẻ (2.5tr)', scope: 'Kỷ niệm 20 năm' },
@@ -11637,7 +11637,7 @@ export default function AdminManagementHub({
                     required
                     value={expenseFormData.title || ''}
                     onChange={(e) => setExpenseFormData({ ...expenseFormData, title: e.target.value })}
-                    placeholder="VD: Đặt cọc sảnh tiệc Crown Palace, Phúng viếng phụ mẫu..."
+                    placeholder="VD: Đặt cọc sảnh tiệc Prime Thái Nguyên, Phúng viếng phụ mẫu..."
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-amber-500 text-xs font-sans"
                   />
                 </div>
@@ -11758,7 +11758,7 @@ export default function AdminManagementHub({
                     type="text"
                     value={expenseFormData.recipient || ''}
                     onChange={(e) => setExpenseFormData({ ...expenseFormData, recipient: e.target.value })}
-                    placeholder="VD: Trung tâm Crown Palace, Xưởng may, Gia đình bạn A..."
+                    placeholder="VD: Trung tâm Prime Thái Nguyên, Xưởng may, Gia đình bạn A..."
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-amber-500 text-xs font-sans"
                   />
                 </div>

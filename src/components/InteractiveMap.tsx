@@ -28,21 +28,21 @@ import {
 import confetti from 'canvas-confetti';
 
 // ============================================================================
-// CONSTANTS & VENUE METADATA (CROWN PALACE THÁI NGUYÊN)
+// CONSTANTS & VENUE METADATA (TRƯỜNG THPT THÁI NGUYÊN & THE PRIME)
 // ============================================================================
 export const VENUE_DETAILS = {
-  name: 'Trung Tâm Hội Nghị & Tiệc Cưới Crown Palace',
-  subtitle: 'Địa điểm tổ chức Đại Lễ Kỷ Niệm 20 Năm Ngày Trở Về — Lớp K8A1',
-  address: 'Số 779 đường Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên, Tỉnh Thái Nguyên',
-  shortAddress: '779 Dương Tự Minh, TP. Thái Nguyên',
-  coordinates: { lat: 21.6041, lng: 105.8286 },
-  eventTime: '08:30 — 15:30 • Chủ Nhật, ngày 27/09/2026',
+  name: 'Trung Tâm Sự Kiện & Nhà Hàng Prime Thái Nguyên',
+  subtitle: 'Địa điểm tổ chức Tiệc Mừng & Hội Ngộ 20 Năm — Lớp K8A1',
+  address: 'Số 1 đường Hoàng Văn Thụ, P. Phan Đình Phùng, TP. Thái Nguyên, Tỉnh Thái Nguyên',
+  shortAddress: 'Số 1 Hoàng Văn Thụ, TP. Thái Nguyên',
+  coordinates: { lat: 21.5949, lng: 105.8386 },
+  eventTime: '11:30 — 15:30 • Chủ Nhật, ngày 27/09/2026',
   hotline: '0208 3858 888',
-  bllContact: '0912 345 678 (Ban Liên Lạc K8A1)',
-  parkingInfo: 'Bãi đỗ xe ô tô & xe máy rộng rãi ngay trong khuôn viên Crown Palace, an ninh 24/7, bảo vệ hướng dẫn tận tình miễn phí.',
-  googleMapsUrl: 'https://maps.google.com/?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&ll=21.6041,105.8286&z=16',
-  directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.6041,105.8286',
-  embedMapUrl: 'https://maps.google.com/maps?q=Crown+Palace+779+D%C6%B0%C6%A1ng+T%E1%BB%B1+Minh+Th%C3%A1i+Nguy%C3%AAn&t=h&z=18&ie=UTF8&iwloc=&output=embed'
+  bllContact: 'Ban Liên Lạc Lớp K8A1',
+  parkingInfo: 'Bãi đỗ xe ô tô & xe máy rộng rãi ngay tại trung tâm, an ninh 24/7, thuận tiện di chuyển.',
+  googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Th%C3%A1p+%C4%91%C3%B4i+Prime+Th%C3%A1i+Nguy%C3%AAn',
+  directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=21.5949,105.8386',
+  embedMapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d600!2d105.8386089!3d21.5949009!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e1!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn'
 };
 
 export interface VenueMediaItem {
@@ -54,14 +54,14 @@ export interface VenueMediaItem {
   desc?: string;
 }
 
-// Media mặc định minh họa không gian sang trọng của Crown Palace
+// Media mặc định minh họa không gian sang trọng của Prime Thái Nguyên
 export const DEFAULT_VENUE_MEDIA: VenueMediaItem[] = [
   {
     id: 'vm-1',
-    title: 'Video Không Gian Sảnh Tiệc & Hội Nghị Crown Palace',
+    title: 'Video Không Gian Sảnh Tiệc & Hội Nghị Prime Thái Nguyên',
     url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     thumbnail: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80',
-    desc: 'Video giới thiệu toàn cảnh không gian sảnh tiệc lộng lẫy, hệ thống âm thanh ánh sáng hiện đại tại Crown Palace Thái Nguyên.'
+    desc: 'Video giới thiệu toàn cảnh không gian sảnh tiệc lộng lẫy, hệ thống âm thanh ánh sáng hiện đại tại Nhà hàng Prime Thái Nguyên.'
   },
   {
     id: 'vm-2',
@@ -79,7 +79,7 @@ export const DEFAULT_VENUE_MEDIA: VenueMediaItem[] = [
     id: 'vm-4',
     title: 'Ảnh Khuôn Viên & Bãi Đỗ Xe Thuận Tiện',
     url: 'https://images.unsplash.com/photo-1545232979-fbf68fe9ec1c?auto=format&fit=crop&w=1200&q=80',
-    desc: 'Khuôn viên Crown Palace nằm trên trục đường lớn Dương Tự Minh với bãi đỗ xe ô tô và xe máy rộng rãi.'
+    desc: 'Khuôn viên nằm ngay trên trục đường trung tâm Hoàng Văn Thụ với bãi đỗ xe ô tô và xe máy rộng rãi.'
   }
 ];
 
@@ -229,7 +229,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
       title: newMediaTitle.trim() || (parsed.type === 'image' ? 'Ảnh Không Gian Nhà Hàng' : `Video Minh Họa (${parsed.label})`),
       url: newMediaUrl.trim(),
       type: parsed.type === 'empty' ? 'image' : parsed.type,
-      desc: newMediaDesc.trim() || 'Minh họa không gian tổ chức sự kiện tại Crown Palace Thái Nguyên.'
+      desc: newMediaDesc.trim() || 'Minh họa không gian tổ chức sự kiện tại Prime Thái Nguyên.'
     };
 
     const updated = [newItem, ...mediaList];
@@ -264,7 +264,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
     <section id="dia-diem" className={`space-y-6 scroll-mt-20 ${className}`}>
       
       {/* ======================================================== */}
-      {/* 🌟 HEADER KHỐI ĐỊA ĐIỂM & KHÔNG GIAN CROWN PALACE */}
+      {/* 🌟 HEADER KHỐI ĐỊA ĐIỂM & KHÔNG GIAN HỘI NGỘ */}
       {/* ======================================================== */}
       <div className="bg-[#FAF7F2] border border-amber-200/90 rounded-3xl p-5 sm:p-8 shadow-lg relative overflow-hidden space-y-6 text-left">
         
@@ -275,7 +275,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 to-amber-200/80 text-amber-950 text-[10px] font-bold tracking-wider font-sans uppercase border border-amber-300/60 shadow-2xs">
               <Building2 className="w-3.5 h-3.5 text-amber-700" />
-              <span>Địa Điểm Tổ Chức • Crown Palace Thái Nguyên</span>
+              <span>Địa Điểm Tổ Chức • Prime Thái Nguyên</span>
             </div>
 
             <h3 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-[#1E293B] tracking-tight">
@@ -479,7 +479,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                       <p className="text-white text-xs font-serif italic">
-                        {currentMedia.desc || 'Không gian sảnh tiệc sang trọng tại Crown Palace Thái Nguyên'}
+                        {currentMedia.desc || 'Không gian sảnh tiệc sang trọng tại Prime Thái Nguyên'}
                       </p>
                     </div>
                   </div>
@@ -501,11 +501,11 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                 </p>
               )}
 
-              {/* Thumbnail Bar: Chuyển đổi giữa các góc của Crown Palace */}
+              {/* Thumbnail Bar: Chuyển đổi giữa các góc của Prime Thái Nguyên */}
               {mediaList.length > 1 && (
                 <div className="space-y-1.5 pt-1">
                   <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
-                    Góc nhìn không gian Crown Palace:
+                    Góc nhìn không gian Prime Thái Nguyên:
                   </span>
                   
                   <div className="grid grid-cols-4 gap-2">
@@ -583,7 +583,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
               {/* 🌟 GOOGLE MAPS EMBED CONTAINER */}
               <div className="relative rounded-xl overflow-hidden border-2 border-amber-300/40 shadow-inner aspect-video bg-[#E5E3DF]">
                 <iframe
-                  title="Bản đồ Google Maps Crown Palace Thái Nguyên"
+                  title="Bản đồ Google Maps Prime Thái Nguyên"
                   src={VENUE_DETAILS.embedMapUrl}
                   className="w-full h-full border-0"
                   allowFullScreen
@@ -594,7 +594,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                 {/* Pin Badge Overlay */}
                 <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold flex items-center gap-1.5 shadow-md border border-white/20 pointer-events-none">
                   <MapPin className="w-3 h-3 text-amber-400" />
-                  <span>Crown Palace Thái Nguyên</span>
+                  <span>Prime Thái Nguyên</span>
                 </div>
               </div>
 
@@ -671,7 +671,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                   🚗 Bạn đi Ô Tô Riêng:
                 </span>
                 <p className="text-slate-600 font-serif italic text-[11px] leading-relaxed">
-                  Crown Palace có khuôn viên đỗ xe ô tô cực kỳ rộng rãi và râm mát ngay phía trước sảnh tiệc. Có bảo vệ túc trực phân làn 24/7.
+                  Prime Thái Nguyên có khuôn viên đỗ xe ô tô cực kỳ rộng rãi ngay phía trước sảnh tiệc. Có bảo vệ túc trực phân làn 24/7.
                 </p>
               </div>
 
@@ -680,7 +680,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                   🛵 Bạn đi Xe Máy:
                 </span>
                 <p className="text-slate-600 font-serif italic text-[11px] leading-relaxed">
-                  Khu vực để xe máy có mái che, bảo vệ phát thẻ xe tự động và hướng dẫn chu đáo ngay khi bạn rẽ vào cổng 779 Dương Tự Minh.
+                  Khu vực để xe máy có mái che, bảo vệ hướng dẫn chu đáo ngay khi bạn rẽ vào cổng Số 1 Hoàng Văn Thụ.
                 </p>
               </div>
 
@@ -689,7 +689,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                   ✈️ Bạn ở xa về (Hà Nội / Tỉnh khác):
                 </span>
                 <p className="text-slate-600 font-serif italic text-[11px] leading-relaxed">
-                  Xe khách hoặc Taxi chạy thẳng theo trục đường cao tốc Hà Nội - Thái Nguyên, qua cầu Gia Bảy đến đường Dương Tự Minh (~5 phút).
+                  Xe khách hoặc Taxi chạy thẳng theo trục đường cao tốc Hà Nội - Thái Nguyên đến trung tâm đường Hoàng Văn Thụ.
                 </p>
               </div>
             </div>
@@ -725,7 +725,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                 Tùy Chỉnh Video & Ảnh Nhà Hàng
               </h3>
               <p className="text-xs text-slate-500 font-serif italic">
-                Hỗ trợ dán link video từ <strong>Facebook, YouTube, MP4</strong> hoặc link ảnh không gian Crown Palace.
+                Hỗ trợ dán link video từ <strong>Facebook, YouTube, MP4</strong> hoặc link ảnh không gian Prime Thái Nguyên.
               </p>
             </div>
 
@@ -760,7 +760,7 @@ export default function InteractiveMap({ className = '', customVenueMedia }: Int
                 </label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Video Giới Thiệu Sảnh Tiệc Hoàng Gia Crown Palace"
+                  placeholder="Ví dụ: Video Giới Thiệu Sảnh Tiệc Prime Thái Nguyên"
                   value={newMediaTitle}
                   onChange={(e) => setNewMediaTitle(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-amber-500 text-slate-800"

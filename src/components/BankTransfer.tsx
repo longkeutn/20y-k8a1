@@ -62,12 +62,12 @@ export default function BankTransfer({
   fundTitle,
   fundDescription,
   customQrUrl,
-  bankName = "Vietcombank (VCB)",
-  bankAccount = "10123456789",
-  bankHolder = "NGUYEN VAN BAN TO CHUC",
+  bankName = "VietinBank (CTG)",
+  bankAccount = "103004505646",
+  bankHolder = "DAO THI HONG NHUNG",
   transferSyntax = "KY NIEM 20 NAM K8A1",
   fundAmount = 700000,
-  bankCode = "vietcombank",
+  bankCode = "vietinbank",
   qrTemplate = "compact",
   appsScriptUrl = "",
   rsvpList = [],
@@ -108,12 +108,12 @@ export default function BankTransfer({
   const isAdminOrTreasurer = currentUserRole === 'admin' || currentUserRole === 'treasurer' || currentUserRole === 'bll';
 
   // Chuẩn hóa an toàn tuyệt đối các biến cấu hình tài khoản
-  const accountStr = String(bankAccount || '10123456789');
-  const bankNameStr = String(bankName || 'Vietcombank (VCB)');
-  const bankHolderStr = String(bankHolder || 'NGUYEN VAN BAN TO CHUC');
+  const accountStr = String(bankAccount || '103004505646');
+  const bankNameStr = String(bankName || 'VietinBank (CTG)');
+  const bankHolderStr = String(bankHolder || 'DAO THI HONG NHUNG');
   const transferSyntaxStr = String(transferSyntax || 'KY NIEM 20 NAM K8A1');
   const fundAmountNum = typeof fundAmount === 'number' && !isNaN(fundAmount) ? fundAmount : (Number(fundAmount) || 700000);
-  const bankCodeStr = String(bankCode || 'vietcombank');
+  const bankCodeStr = String(bankCode || 'vietinbank');
 
   // Tự động cá nhân hóa cú pháp chuyển khoản khi đã nhận diện thành viên (Chuẩn Napas không dấu, tuyệt đối không lộ SĐT để bảo mật)
   const effectiveSyntax = activeMember

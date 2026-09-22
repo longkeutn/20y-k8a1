@@ -664,7 +664,7 @@ export default function DeveloperGuide({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-serif italic text-brand-text">
               <div className="space-y-1">
-                <p className="font-bold font-sans not-italic text-brand-text">📱 Tạo mã QR in để ở cổng Crown Palace:</p>
+                <p className="font-bold font-sans not-italic text-brand-text">📱 Tạo mã QR in để ở bàn đón tiếp sự kiện:</p>
                 <p>Sau khi có đường link website, hãy tạo mã QR miễn phí tại <a href="https://www.qr-code-generator.com" target="_blank" rel="noopener noreferrer" className="text-brand-gold underline font-bold">qr-code-generator.com</a>. In mã QR này đặt tại bàn Lễ Tân để bạn bè quét điện thoại xem thẻ học sinh (Pass) và ảnh kỷ niệm.</p>
               </div>
               <div className="space-y-1">

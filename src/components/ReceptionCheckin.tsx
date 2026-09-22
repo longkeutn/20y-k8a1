@@ -107,7 +107,7 @@ export default function ReceptionCheckin({
         <div className="bg-white border border-brand-border rounded-sm p-4 space-y-1 shadow-2xs">
           <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-brand-text-muted flex items-center gap-1">
             <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-            Đã có mặt tại Crown Palace
+            Đã có mặt tại ngày hội ngộ
           </span>
           <p className="text-2xl font-serif font-bold text-emerald-700">
             {checkedInCount} / {confirmedAttendees.length}

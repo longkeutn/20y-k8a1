@@ -1052,7 +1052,11 @@ export default function App() {
         const parsed = JSON.parse(local);
         if (Array.isArray(parsed)) {
           // Xóa bỏ dữ liệu mẫu ban đầu nếu có để đồng bộ chính xác với Google Sheet
-          const isInitialMock = parsed.length === 4 && parsed.some((p: any) => String(p.title || '').includes('Đặt may & In ấn 45 áo polo'));
+          const isInitialMock = parsed.some((p: any) => 
+            p.id === 'exp-01' || 
+            String(p.title || '').toLowerCase().includes('đặt may & in ấn') ||
+            String(p.title || '').toLowerCase().includes('đặt cọc sảnh tiệc')
+          );
           if (isInitialMock) {
             localStorage.removeItem('k8a1_expenses_list');
             return [];
@@ -1921,9 +1925,162 @@ export default function App() {
       const pinQuery = adminPinToken ? `&pin=${encodeURIComponent(adminPinToken)}` : '';
 
       // ============================================================================
-      // GIAI ĐOẠN 1: CẤU HÌNH SỰ KIỆN & TOÀN BỘ 9 VIDEO KỶ NIỆM (2 REQUESTS)
+      // CHIẾN LƯỢC 1: ĐỒNG BỘ SIÊU TỐC TẤT CẢ DỮ LIỆU VỚI 1 REQUEST DUY NHẤT (1-2s)
       // ============================================================================
-      // Hoàn tất trong ~1 giây: Banner, Vị trí ảnh 82%, Đếm ngược, Quỹ, Địa điểm và 9 Video YouTube hiển thị ngay
+      // Thay vì 10 requests tuần tự gây nghẽn, gọi thẳng 'get_all_data' gom 10 bảng dữ liệu
+      const allRes = await fetchSafeAppsScript(targetUrl, 'get_all_data', pinQuery, 1, 15000);
+      if (allRes?.status === 'success' && allRes.data) {
+        const d = allRes.data;
+
+        // 1. Cấu hình sự kiện
+        if (d.config && typeof d.config === 'object') {
+          const cfg = d.config;
+          setEventConfig((prev) => {
+            const updated = sanitizeEventConfig({ ...prev, ...cfg });
+            try { localStorage.setItem('k8a1_event_config', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+          if (cfg.heroBannerUrl) {
+            const cleanBanner = normalizeImageUrl(cfg.heroBannerUrl);
+            setHeroBannerUrl(cleanBanner);
+            try { localStorage.setItem('k8a1_hero_banner_url', cleanBanner); } catch (e) {}
+          }
+          if (cfg.heroBannerPosition !== undefined) {
+            const pos = Number(cfg.heroBannerPosition) || 50;
+            setHeroBannerPosition(pos);
+            try { localStorage.setItem('k8a1_hero_banner_position', pos.toString()); } catch (e) {}
+          }
+        }
+
+        // 2. Media (Videos & Venue Media)
+        if (d.media && typeof d.media === 'object') {
+          if (Array.isArray(d.media.videos) && d.media.videos.length > 0) {
+            setVideos(d.media.videos);
+            try {
+              localStorage.setItem('k8a1_video_list', JSON.stringify(d.media.videos));
+              localStorage.setItem('custom_videos', JSON.stringify(d.media.videos));
+            } catch (e) {}
+          }
+          if (Array.isArray(d.media.venueMedia) && d.media.venueMedia.length > 0) {
+            setVenueMediaList(d.media.venueMedia);
+            try { localStorage.setItem('k8a1_venue_media_list', JSON.stringify(d.media.venueMedia)); } catch (e) {}
+          }
+        }
+
+        // 3. Điểm danh RSVP
+        let currentRsvpForRoster: RsvpData[] = [];
+        if (Array.isArray(d.rsvp) && d.rsvp.length > 0) {
+          setRsvpList((prev) => {
+            const sanitized = processRsvpList(d.rsvp, prev);
+            currentRsvpForRoster = sanitized;
+            try { localStorage.setItem('rsvp_list', JSON.stringify(sanitized)); } catch (e) {}
+            return sanitized;
+          });
+        }
+
+        // 4. Danh bạ Sĩ số Lớp 65 thành viên
+        if (Array.isArray(d.roster) && d.roster.length > 0) {
+          const rsvpArr = currentRsvpForRoster.length > 0 ? currentRsvpForRoster : rsvpList;
+          const cleanRoster = d.roster
+            .filter((r: any) => r && (r.fullName || r.id))
+            .map((r: any, idx: number) => {
+              const baseMember = sanitizeClassMember(r, idx);
+              if (!baseMember.shirtSize && rsvpArr.length > 0) {
+                const matchedRsvp = rsvpArr.find((item: any) => {
+                  if (baseMember.id && item.memberId && baseMember.id === item.memberId) return true;
+                  const normP = normalizePhoneForMatch(baseMember.phone);
+                  const rNormP = normalizePhoneForMatch(item.phone);
+                  if (normP && rNormP && normP === rNormP) return true;
+                  const normN = normalizeNameForMatch(baseMember.fullName);
+                  const rNormN = normalizeNameForMatch(item.fullName);
+                  return normN && rNormN && normN === rNormN;
+                });
+                if (matchedRsvp && matchedRsvp.shirtSize) {
+                  baseMember.shirtSize = normalizeShirtSize(matchedRsvp.shirtSize);
+                }
+              }
+              return baseMember;
+            });
+
+          if (cleanRoster.length > 0) {
+            setClassRoster(cleanRoster);
+            try { localStorage.setItem('k8a1_class_roster', JSON.stringify(cleanRoster)); } catch (e) {}
+
+            setActiveMember((prevActive) => {
+              if (!prevActive) return null;
+              const foundInRoster = cleanRoster.find(m => m.id === prevActive.id || normalizeNameForMatch(m.fullName) === normalizeNameForMatch(prevActive.fullName));
+              if (foundInRoster && foundInRoster.shirtSize && foundInRoster.shirtSize !== prevActive.shirtSize) {
+                const nextActive = { ...prevActive, shirtSize: foundInRoster.shirtSize };
+                try { localStorage.setItem('k8a1_active_member', JSON.stringify(nextActive)); } catch (e) {}
+                return nextActive;
+              }
+              return prevActive;
+            });
+          }
+        }
+
+        // 5. Lưu bút Wishes
+        if (Array.isArray(d.wishes)) {
+          setWishesList(d.wishes);
+          try { localStorage.setItem('wishes_list', JSON.stringify(d.wishes)); } catch (e) {}
+        }
+
+        // 6. Sổ thu Incomes
+        if (Array.isArray(d.incomes)) {
+          const cleanInc = d.incomes.map((item: any, idx: number) => sanitizeIncome(item, idx));
+          setIncomes(cleanInc);
+          try { localStorage.setItem('k8a1_incomes_list', JSON.stringify(cleanInc)); } catch (e) {}
+        }
+
+        // 7. Sổ chi Expenses
+        if (Array.isArray(d.expenses)) {
+          const cleanExp = d.expenses.map((item: any, idx: number) => sanitizeExpense(item, idx));
+          setExpenses(cleanExp);
+          try { localStorage.setItem('k8a1_expenses_list', JSON.stringify(cleanExp)); } catch (e) {}
+        }
+
+        // 8. Quý Thầy Cô
+        if (Array.isArray(d.teachers) && d.teachers.length > 0) {
+          const cleanTeachers = d.teachers.map((item: any, idx: number) => sanitizeTeacher(item, idx));
+          setTeachersList(cleanTeachers);
+          try { localStorage.setItem('k8a1_teachers_list', JSON.stringify(cleanTeachers)); } catch (e) {}
+        }
+
+        // 9. Bản tin Announcements
+        if (Array.isArray(d.announcements) && d.announcements.length > 0) {
+          setAnnouncements(d.announcements);
+          try { localStorage.setItem('k8a1_announcements', JSON.stringify(d.announcements)); } catch (e) {}
+        }
+
+        // 10. Ảnh Google Drive Photos
+        if (Array.isArray(d.drivePhotos) && d.drivePhotos.length > 0) {
+          const driveImgs: MemoryImage[] = d.drivePhotos.map((p: any) => ({
+            id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+            thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+            caption: p.caption || 'Kỷ niệm Lớp K8A1',
+            date: p.date || '2006',
+            isUserUploaded: true,
+            driveUrl: p.driveUrl
+          }));
+
+          setImages((prev) => {
+            const driveIds = new Set(driveImgs.map(i => i.id));
+            const localOnly = prev.filter(i => !driveIds.has(i.id));
+            const merged = [...driveImgs, ...localOnly];
+            try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          });
+        }
+
+        setSyncStatus('live');
+        setLastSyncedTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        return; // Đã đồng bộ siêu tốc xong trong 1 request, thoát ngay!
+      }
+
+      // ============================================================================
+      // DỰ PHÒNG (FALLBACK): NẠP PHÂN TẦNG NẾU GET_ALL_DATA BỊ LỖI MẠNG
+      // ============================================================================
       const [cfgRes, mediaRes] = await Promise.allSettled([
         fetchSafeAppsScript(targetUrl, 'get_config'),
         fetchSafeAppsScript(targetUrl, 'get_media')

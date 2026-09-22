@@ -11,8 +11,8 @@ export default function EventSchedule() {
 
   const handleAddToCalendar = (item: ScheduleItem) => {
     const title = encodeURIComponent(`[Hội Ngộ 20 Năm Lớp K8A1] ${item.title}`);
-    const details = encodeURIComponent(`${item.desc}\nĐịa điểm: ${item.location || 'Crown Palace Thái Nguyên'}`);
-    const location = encodeURIComponent("Trung tâm tổ chức sự kiện - tiệc cưới Crown Palace (779 Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên)");
+    const details = encodeURIComponent(`${item.desc}\nĐịa điểm: ${item.location || 'Trường THPT Thái Nguyên & Prime Thái Nguyên'}`);
+    const location = encodeURIComponent("Trường THPT Thái Nguyên (127 Lương Thế Vinh) & Trung Tâm Sự Kiện Prime Thái Nguyên (Số 1 Hoàng Văn Thụ)");
     // 2026-09-27T08:30:00 to 2026-09-27T15:30:00 in UTC (01:30 to 08:30)
     const dates = "20260927T013000Z/20260927T083000Z";
     window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}&location=${location}`, '_blank');
@@ -52,7 +52,7 @@ export default function EventSchedule() {
               </h4>
               <p className="text-xs text-brand-text-muted font-serif italic flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-brand-gold" />
-                <span>Crown Palace Thái Nguyên • 779 Dương Tự Minh, P. Quang Vinh, TP. Thái Nguyên</span>
+                <span>Trường THPT Thái Nguyên & Trung Tâm Sự Kiện Prime Thái Nguyên</span>
               </p>
             </div>
           </div>
@@ -123,12 +123,12 @@ export default function EventSchedule() {
         </div>
       </div>
 
-      {/* Google Map of Crown Palace Thái Nguyên */}
+      {/* Google Map */}
       <div className="bg-white border border-brand-border rounded-sm p-5 md:p-6 shadow-xs space-y-3">
         <div className="flex items-center gap-2 border-b border-brand-border pb-3">
           <MapPin className="w-4 h-4 text-brand-gold" />
           <h3 className="font-serif font-bold text-base text-brand-text">
-            Bản Đồ Chỉ Đường Đến Crown Palace Thái Nguyên
+            Bản Đồ Chỉ Đường Đến Địa Điểm Hội Ngộ
           </h3>
         </div>
         <InteractiveMap />
