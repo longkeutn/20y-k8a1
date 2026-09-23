@@ -3,7 +3,7 @@ import {
   X, Maximize2, Minimize2, Play, Pause, SkipForward, SkipBack, 
   Image as ImageIcon, Sparkles, Music, Volume2, VolumeX, Settings, 
   ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff,
-  WifiOff, Palette, Frame, QrCode, CheckCircle2, Shuffle
+  WifiOff, Palette, Frame, QrCode, CheckCircle2
 } from 'lucide-react';
 import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings } from '../types';
 import { getNostalgicPhotoCaption } from '../data';
@@ -234,18 +234,20 @@ export default function StagePresentationHub({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const idleTimeoutRef = useRef<any>(null);
 
-  // Quản lý xáo trộn ngẫu nhiên ảnh trình chiếu (giống logic sắp xếp ngẫu nhiên của MemoryCorner)
-  const [isPhotoShuffled, setIsPhotoShuffled] = useState<boolean>(() => {
-    return stageSettings?.shufflePhotos !== false; // Mặc định BẬT ngẫu nhiên giống MemoryCorner
-  });
-  const [photoShuffleSeed, setPhotoShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000));
+  // Seed xáo trộn ngẫu nhiên mỗi lần bật Màn LED sân khấu
+  const [photoShuffleSeed, setPhotoShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000) + 1);
 
-  // Danh sách ảnh trình chiếu: Xáo trộn ngẫu nhiên (Fisher-Yates) giống hệt logic của MemoryCorner
+  // Mỗi lần bật Màn LED lên: Tự động xáo trộn ngẫu nhiên toàn bộ ảnh kỷ niệm
+  useEffect(() => {
+    if (isOpen) {
+      setPhotoShuffleSeed(Math.floor(Math.random() * 1000000) + 1);
+      setPhotoIndex(0);
+    }
+  }, [isOpen]);
+
+  // Danh sách ảnh trình chiếu: Luôn xáo trộn ngẫu nhiên (Fisher-Yates) mỗi lần bật Màn LED giống Góc Kỷ Niệm
   const displayPhotos = useMemo(() => {
     if (!memories || memories.length === 0) return [];
-    if (!isPhotoShuffled) {
-      return [...memories]; // Thứ tự gốc (mới đến cũ)
-    }
 
     // Xáo trộn ngẫu nhiên Fisher-Yates với pseudo-random generator từ photoShuffleSeed giống MemoryCorner
     const list = [...memories];
@@ -259,7 +261,7 @@ export default function StagePresentationHub({
       [list[i], list[j]] = [list[j], list[i]];
     }
     return list;
-  }, [memories, isPhotoShuffled, photoShuffleSeed]);
+  }, [memories, photoShuffleSeed]);
 
   // Nạp toàn bộ các ca khúc offline đã lưu trong máy
   useEffect(() => {
@@ -430,12 +432,6 @@ export default function StagePresentationHub({
           break;
         case 'q':
           setShowCheckinQr(prev => !prev);
-          break;
-        case 's':
-          // Phím S: Xáo trộn ngẫu nhiên ảnh lại
-          setIsPhotoShuffled(true);
-          setPhotoShuffleSeed(Date.now());
-          setPhotoIndex(0);
           break;
         case ' ':
           e.preventDefault();
@@ -861,7 +857,7 @@ export default function StagePresentationHub({
               {eventTitle}
             </h2>
             <p className="text-[10px] text-slate-300">
-              {currentScene === 'backdrop' ? 'Chế độ: Backdrop Màn LED' : currentScene === 'slideshow' ? `Trình chiếu kỷ niệm (${photoIndex + 1}/${displayPhotos.length}${isPhotoShuffled ? ' • Ngẫu nhiên' : ''})` : 'Chế độ Kết hợp Backdrop & Kỷ niệm'}
+              {currentScene === 'backdrop' ? 'Chế độ: Backdrop Màn LED' : currentScene === 'slideshow' ? `Trình chiếu kỷ niệm (${photoIndex + 1}/${displayPhotos.length})` : 'Chế độ Kết hợp Backdrop & Kỷ niệm'}
             </p>
           </div>
         </div>
@@ -998,28 +994,6 @@ export default function StagePresentationHub({
                 title="Ảnh kế tiếp (Mũi tên phải)"
               >
                 <ChevronRight className="w-4 h-4" />
-              </button>
-
-              {/* Nút bật/tắt xáo trộn ảnh ngẫu nhiên giống Góc Kỷ Niệm */}
-              <button
-                onClick={() => {
-                  if (!isPhotoShuffled) {
-                    setIsPhotoShuffled(true);
-                  }
-                  setPhotoShuffleSeed(Date.now());
-                  setPhotoIndex(0);
-                }}
-                className={`px-2 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  isPhotoShuffled
-                    ? 'text-amber-300 bg-amber-500/20 border border-amber-400/40 font-bold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-                title={`Đang ${isPhotoShuffled ? 'BẬT' : 'TẮT'} xáo trộn ngẫu nhiên (Bấm để xáo trộn lại, Phím S)`}
-              >
-                <Shuffle className="w-3.5 h-3.5" />
-                <span className="text-[11px] hidden md:inline">
-                  {isPhotoShuffled ? 'Ngẫu Nhiên' : 'Thứ Tự'}
-                </span>
               </button>
             </div>
           )}
@@ -1240,24 +1214,6 @@ export default function StagePresentationHub({
                   />
                 </div>
 
-                {/* Trình chiếu ảnh ngẫu nhiên (Shuffle) */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                  <div>
-                    <span className="text-xs font-medium text-slate-200">Trình chiếu ảnh ngẫu nhiên (Shuffle)</span>
-                    <p className="text-[10px] text-slate-400">Xáo trộn ngẫu nhiên thứ tự ảnh giống Góc Kỷ Niệm thay vì theo ngày chụp</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isPhotoShuffled}
-                    onChange={(e) => {
-                      setIsPhotoShuffled(e.target.checked);
-                      if (e.target.checked) {
-                        setPhotoShuffleSeed(Math.floor(Math.random() * 1000000));
-                      }
-                    }}
-                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
-                  />
-                </div>
               </div>
 
               {/* Chọn Backdrop mặc định */}
@@ -1300,7 +1256,7 @@ export default function StagePresentationHub({
                       enableSparkles: particleEffect === 'sparkles',
                       volume,
                       showCaption,
-                      shufflePhotos: isPhotoShuffled,
+                      shufflePhotos: true,
                       photoFrameStyle,
                       particleEffect,
                       photoFilter,
