@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   X, Maximize2, Minimize2, Play, Pause, SkipForward, SkipBack, 
   Image as ImageIcon, Sparkles, Music, Volume2, VolumeX, Settings, 
   ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff,
-  WifiOff, Palette, Frame, QrCode, CheckCircle2
+  WifiOff, Palette, Frame, QrCode, CheckCircle2, Shuffle
 } from 'lucide-react';
 import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings } from '../types';
 import { getNostalgicPhotoCaption } from '../data';
@@ -234,6 +234,33 @@ export default function StagePresentationHub({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const idleTimeoutRef = useRef<any>(null);
 
+  // Quản lý xáo trộn ngẫu nhiên ảnh trình chiếu (giống logic sắp xếp ngẫu nhiên của MemoryCorner)
+  const [isPhotoShuffled, setIsPhotoShuffled] = useState<boolean>(() => {
+    return stageSettings?.shufflePhotos !== false; // Mặc định BẬT ngẫu nhiên giống MemoryCorner
+  });
+  const [photoShuffleSeed, setPhotoShuffleSeed] = useState<number>(() => Math.floor(Math.random() * 1000000));
+
+  // Danh sách ảnh trình chiếu: Xáo trộn ngẫu nhiên (Fisher-Yates) giống hệt logic của MemoryCorner
+  const displayPhotos = useMemo(() => {
+    if (!memories || memories.length === 0) return [];
+    if (!isPhotoShuffled) {
+      return [...memories]; // Thứ tự gốc (mới đến cũ)
+    }
+
+    // Xáo trộn ngẫu nhiên Fisher-Yates với pseudo-random generator từ photoShuffleSeed giống MemoryCorner
+    const list = [...memories];
+    let seed = Math.abs(photoShuffleSeed) || 12345;
+    const rnd = () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  }, [memories, isPhotoShuffled, photoShuffleSeed]);
+
   // Nạp toàn bộ các ca khúc offline đã lưu trong máy
   useEffect(() => {
     loadAllOfflineTracks().then((offlineTracks) => {
@@ -337,15 +364,15 @@ export default function StagePresentationHub({
       return;
     }
 
-    if (!memories || memories.length <= 1) return;
+    if (!displayPhotos || displayPhotos.length <= 1) return;
 
     const timer = setInterval(() => {
-      setPhotoIndex((prev) => (prev + 1) % memories.length);
+      setPhotoIndex((prev) => (prev + 1) % displayPhotos.length);
       setKenBurnsStyle((prev) => (prev + 1) % 4);
     }, slideshowSpeed);
 
     return () => clearInterval(timer);
-  }, [isOpen, currentScene, isPhotoPaused, memories, slideshowSpeed]);
+  }, [isOpen, currentScene, isPhotoPaused, displayPhotos, slideshowSpeed]);
 
   // Bộ đếm tự động ẩn thanh điều khiển sau 3.5s không rê chuột
   const resetIdleTimer = useCallback(() => {
@@ -404,19 +431,25 @@ export default function StagePresentationHub({
         case 'q':
           setShowCheckinQr(prev => !prev);
           break;
+        case 's':
+          // Phím S: Xáo trộn ngẫu nhiên ảnh lại
+          setIsPhotoShuffled(true);
+          setPhotoShuffleSeed(Date.now());
+          setPhotoIndex(0);
+          break;
         case ' ':
           e.preventDefault();
           setIsPhotoPaused(prev => !prev);
           break;
         case 'arrowright':
-          if (memories.length > 0) {
-            setPhotoIndex(prev => (prev + 1) % memories.length);
+          if (displayPhotos.length > 0) {
+            setPhotoIndex(prev => (prev + 1) % displayPhotos.length);
             setKenBurnsStyle(prev => (prev + 1) % 4);
           }
           break;
         case 'arrowleft':
-          if (memories.length > 0) {
-            setPhotoIndex(prev => (prev - 1 + memories.length) % memories.length);
+          if (displayPhotos.length > 0) {
+            setPhotoIndex(prev => (prev - 1 + displayPhotos.length) % displayPhotos.length);
             setKenBurnsStyle(prev => (prev + 1) % 4);
           }
           break;
@@ -432,7 +465,7 @@ export default function StagePresentationHub({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, memories.length, onClose, resetIdleTimer]);
+  }, [isOpen, displayPhotos.length, onClose, resetIdleTimer]);
 
   // Bật / tắt toàn màn hình Fullscreen
   const toggleFullscreen = () => {
@@ -458,7 +491,7 @@ export default function StagePresentationHub({
   if (!isOpen) return null;
 
   const currentBackdrop = backdrops[selectedBackdropIndex] || backdrops[0];
-  const currentPhoto = memories[photoIndex] || memories[0];
+  const currentPhoto = displayPhotos[photoIndex] || displayPhotos[0] || memories[0];
   const effectivePlaylist = internalPlaylist.length > 0 ? internalPlaylist : playlist;
   const currentTrack = effectivePlaylist[currentTrackIndex] || effectivePlaylist[0];
 
@@ -611,7 +644,7 @@ export default function StagePresentationHub({
                   <div className="max-w-4xl bg-gradient-to-r from-black/85 via-black/92 to-black/85 backdrop-blur-xl px-5 md:px-8 py-3 md:py-3.5 rounded-2xl border border-amber-400/50 text-center shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_25px_rgba(245,158,11,0.25)] flex flex-col items-center gap-1.5">
                     <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] md:text-xs font-sans font-bold tracking-[0.15em] text-amber-300 uppercase">
                       <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                      <span>Ký Ức K8A1 • Ảnh {photoIndex + 1}/{memories.length}</span>
+                      <span>Ký Ức K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
                       <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
                     </div>
                     <p className="text-base md:text-2xl font-bold font-serif italic text-amber-100 tracking-wide leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
@@ -716,7 +749,7 @@ export default function StagePresentationHub({
                 <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
                   <div className="max-w-3xl bg-black/85 backdrop-blur-md px-6 py-2.5 rounded-xl border border-amber-400/40 text-center shadow-2xl flex flex-col items-center gap-1">
                     <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-[10px] md:text-xs font-sans font-semibold tracking-wider text-amber-300 uppercase">
-                      <span>Kỷ Niệm K8A1 • Ảnh {photoIndex + 1}/{memories.length}</span>
+                      <span>Kỷ Niệm K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
                     </div>
                     <p className="text-sm md:text-xl font-bold font-serif italic text-amber-200 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
                       “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
@@ -828,7 +861,7 @@ export default function StagePresentationHub({
               {eventTitle}
             </h2>
             <p className="text-[10px] text-slate-300">
-              {currentScene === 'backdrop' ? 'Chế độ: Backdrop Màn LED' : currentScene === 'slideshow' ? `Trình chiếu kỷ niệm (${photoIndex + 1}/${memories.length})` : 'Chế độ Kết hợp Backdrop & Kỷ niệm'}
+              {currentScene === 'backdrop' ? 'Chế độ: Backdrop Màn LED' : currentScene === 'slideshow' ? `Trình chiếu kỷ niệm (${photoIndex + 1}/${displayPhotos.length}${isPhotoShuffled ? ' • Ngẫu nhiên' : ''})` : 'Chế độ Kết hợp Backdrop & Kỷ niệm'}
             </p>
           </div>
         </div>
@@ -939,7 +972,7 @@ export default function StagePresentationHub({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => {
-                  setPhotoIndex(prev => (prev - 1 + memories.length) % memories.length);
+                  setPhotoIndex(prev => (prev - 1 + displayPhotos.length) % displayPhotos.length);
                   setKenBurnsStyle(prev => (prev + 1) % 4);
                 }}
                 className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
@@ -958,13 +991,35 @@ export default function StagePresentationHub({
 
               <button
                 onClick={() => {
-                  setPhotoIndex(prev => (prev + 1) % memories.length);
+                  setPhotoIndex(prev => (prev + 1) % displayPhotos.length);
                   setKenBurnsStyle(prev => (prev + 1) % 4);
                 }}
                 className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
                 title="Ảnh kế tiếp (Mũi tên phải)"
               >
                 <ChevronRight className="w-4 h-4" />
+              </button>
+
+              {/* Nút bật/tắt xáo trộn ảnh ngẫu nhiên giống Góc Kỷ Niệm */}
+              <button
+                onClick={() => {
+                  if (!isPhotoShuffled) {
+                    setIsPhotoShuffled(true);
+                  }
+                  setPhotoShuffleSeed(Date.now());
+                  setPhotoIndex(0);
+                }}
+                className={`px-2 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isPhotoShuffled
+                    ? 'text-amber-300 bg-amber-500/20 border border-amber-400/40 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title={`Đang ${isPhotoShuffled ? 'BẬT' : 'TẮT'} xáo trộn ngẫu nhiên (Bấm để xáo trộn lại, Phím S)`}
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                <span className="text-[11px] hidden md:inline">
+                  {isPhotoShuffled ? 'Ngẫu Nhiên' : 'Thứ Tự'}
+                </span>
               </button>
             </div>
           )}
@@ -1184,6 +1239,25 @@ export default function StagePresentationHub({
                     className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
                   />
                 </div>
+
+                {/* Trình chiếu ảnh ngẫu nhiên (Shuffle) */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                  <div>
+                    <span className="text-xs font-medium text-slate-200">Trình chiếu ảnh ngẫu nhiên (Shuffle)</span>
+                    <p className="text-[10px] text-slate-400">Xáo trộn ngẫu nhiên thứ tự ảnh giống Góc Kỷ Niệm thay vì theo ngày chụp</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isPhotoShuffled}
+                    onChange={(e) => {
+                      setIsPhotoShuffled(e.target.checked);
+                      if (e.target.checked) {
+                        setPhotoShuffleSeed(Math.floor(Math.random() * 1000000));
+                      }
+                    }}
+                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                  />
+                </div>
               </div>
 
               {/* Chọn Backdrop mặc định */}
@@ -1226,7 +1300,7 @@ export default function StagePresentationHub({
                       enableSparkles: particleEffect === 'sparkles',
                       volume,
                       showCaption,
-                      shufflePhotos: isShuffled,
+                      shufflePhotos: isPhotoShuffled,
                       photoFrameStyle,
                       particleEffect,
                       photoFilter,
