@@ -738,7 +738,7 @@ export default function StudentPassModal({
 
       // Table Name & Details
       const displayTableTitle = currentTableNumber === 0 
-        ? 'MÂM TRI ÂN QUÝ THẦY CÔ (VIP)' 
+        ? 'MÂM TRI ÂN THẦY CÔ (VIP)' 
         : (currentTableName || (currentTableNumber !== undefined ? ('BÀN 0' + currentTableNumber) : 'ĐANG SẮP XẾP VỊ TRÍ'));
       const tableDesc = activeTableConfig?.name && currentTableNumber !== 0 ? (' — ' + activeTableConfig.name) : (activeTableConfig?.description ? (' (' + activeTableConfig.description + ')') : '');
 

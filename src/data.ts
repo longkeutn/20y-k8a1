@@ -2474,6 +2474,21 @@ export function getVietnameseGivenName(fullName: string): string {
 }
 
 /**
+ * Trích xuất chữ cái viết tắt (monogram initials) của Thầy Cô để hiển thị avatar trang trọng khi chưa có ảnh
+ * VD: "Cô Trần Thị Lan" -> "TL", "Thầy Nguyễn Văn Hùng" -> "NH", "Vũ Đình Thu" -> "VT"
+ */
+export function getTeacherInitials(name?: string): string {
+  if (!name || !name.trim()) return 'TC';
+  const clean = name.replace(/^(Thầy|Cô|GS|PGS|TS|ThS)\.?\s+/i, '').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'TC';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const first = parts[0][0];
+  const last = parts[parts.length - 1][0];
+  return (first + last).toUpperCase();
+}
+
+/**
  * Lấy danh sách ảnh Backdrop màn LED từ thư mục "Backdrops_SanKhau" trên Google Drive
  */
 export async function fetchDriveBackdrops(appsScriptUrl?: string): Promise<BackdropItem[]> {
@@ -2626,9 +2641,9 @@ export async function uploadMemberAvatarViaBackend(
 export const BANQUET_TABLES: TableConfigItem[] = [
   {
     id: 0,
-    name: 'Mâm Tri Ân Quý Thầy Cô',
+    name: 'Mâm Tri Ân Thầy Cô',
     shortName: 'Mâm Thầy Cô',
-    description: 'Dành riêng đón tiếp Quý Thầy Cô giáo chủ nhiệm và bộ môn K8A1',
+    description: 'Dành riêng đón tiếp Thầy Cô giáo chủ nhiệm và bộ môn K8A1',
     maxCapacity: 12,
     isTeacherTable: true,
     badgeBg: 'bg-rose-100',

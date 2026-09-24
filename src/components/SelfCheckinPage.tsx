@@ -699,7 +699,7 @@ export default function SelfCheckinPage({
 
       // Table Name & Details
       const displayTableTitle = assignedTableNumber === 0 
-        ? 'MÂM TRI ÂN QUÝ THẦY CÔ (VIP)' 
+        ? 'MÂM TRI ÂN THẦY CÔ (VIP)' 
         : (assignedTableName || (assignedTableNumber !== undefined ? ('BÀN 0' + assignedTableNumber) : 'ĐANG SẮP XẾP VỊ TRÍ'));
       const tableDesc = activeTableConfig?.name && assignedTableNumber !== 0 ? (' — ' + activeTableConfig.name) : (activeTableConfig?.description ? (' (' + activeTableConfig.description + ')') : '');
 

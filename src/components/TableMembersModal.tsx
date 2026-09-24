@@ -190,7 +190,7 @@ export default function TableMembersModal({
                 <div className="flex items-center justify-between text-xs text-amber-200 font-bold">
                   <span className="flex items-center gap-1.5 text-amber-300">
                     <GraduationCap className="w-4 h-4 text-amber-400" />
-                    <span>Quý Thầy Cô Tham Dự ({attendingTeachers.length})</span>
+                    <span>Thầy Cô Tham Dự ({attendingTeachers.length})</span>
                   </span>
                   <span className="text-[10px] text-amber-200/70 uppercase">VIP Tri Ân</span>
                 </div>

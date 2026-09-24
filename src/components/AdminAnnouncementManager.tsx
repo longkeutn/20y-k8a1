@@ -39,7 +39,7 @@ const QUICK_ACTION_TARGETS = [
   { label: '📸 Thư viện ảnh kỷ niệm', value: '#album-ky-niem' },
   { label: '🎥 Video phóng sự 20 năm', value: '#video-chinh' },
   { label: '✍️ Viết lưu bút & Lời chúc', value: '#luu-but' },
-  { label: '👨‍🏫 Tri ân Quý Thầy Cô', value: '#tri-an-thay-co' },
+  { label: '👨‍🏫 Tri ân Thầy Cô', value: '#tri-an-thay-co' },
   { label: '🗺️ Bản đồ hội tụ cựu học sinh', value: '#hoi-tu-dia-ly' },
 ];
 

@@ -16,7 +16,51 @@ import {
   Search
 } from 'lucide-react';
 import { TeacherData, TeacherTribute, TeacherInvitationStatus } from '../types';
-import { TEACHERS_LIST, INITIAL_TEACHER_TRIBUTES } from '../data';
+import { TEACHERS_LIST, INITIAL_TEACHER_TRIBUTES, getTeacherInitials } from '../data';
+
+// Component hiển thị Avatar Thầy Cô (tự động fallback sang monogram initials trang nhã khi chưa có ảnh)
+function TeacherCardAvatar({ teacher }: { teacher: TeacherData }) {
+  const [hasError, setHasError] = useState(false);
+  const initials = getTeacherInitials(teacher.name);
+  const isFemale = teacher.gender === 'Cô';
+
+  if (teacher.avatarUrl && !hasError) {
+    return (
+      <div className="relative shrink-0">
+        <img
+          src={teacher.avatarUrl}
+          alt={teacher.name}
+          referrerPolicy="no-referrer"
+          className="w-16 h-16 rounded-xl object-cover border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform"
+          onError={() => setHasError(true)}
+        />
+        <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-serif font-bold shadow-xs">
+          {isFemale ? '👩‍🏫' : '👨‍🏫'}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative shrink-0">
+      <div
+        className={`w-16 h-16 rounded-xl border-2 border-amber-300/80 bg-gradient-to-br ${
+          isFemale
+            ? 'from-rose-50 via-amber-50 to-amber-100 text-amber-950 border-amber-300'
+            : 'from-amber-50 via-amber-100 to-amber-200 text-amber-900 border-amber-300'
+        } flex flex-col items-center justify-center shadow-xs group-hover:scale-105 transition-transform select-none`}
+      >
+        <GraduationCap className="w-6 h-6 text-amber-700/80 mb-0.5" />
+        <span className="text-[11px] font-serif font-black tracking-wider text-amber-900 uppercase">
+          {initials}
+        </span>
+      </div>
+      <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-serif font-bold shadow-xs">
+        {isFemale ? '👩‍🏫' : '👨‍🏫'}
+      </span>
+    </div>
+  );
+}
 
 interface TeachersHonorRollProps {
   teachers?: TeacherData[];
@@ -28,10 +72,8 @@ export default function TeachersHonorRoll({ teachers: propTeachers, onAddTribute
     return Array.isArray(propTeachers) ? propTeachers : [];
   }, [propTeachers]);
 
-
-
   const [tributes, setTributes] = useState<TeacherTribute[]>(INITIAL_TEACHER_TRIBUTES);
-  const [selectedTeacher, setSelectedTeacher] = useState<string>(teachers[0]?.name || 'Toàn thể Quý Thầy Cô giáo');
+  const [selectedTeacher, setSelectedTeacher] = useState<string>(teachers[0]?.name || 'Toàn thể Thầy Cô giáo');
   const [studentName, setStudentName] = useState('');
   const [className, setClassName] = useState('12A1');
   const [message, setMessage] = useState('');
@@ -163,7 +205,7 @@ export default function TeachersHonorRoll({ teachers: propTeachers, onAddTribute
           <span>Trường THPT Thái Nguyên • Khắc Ghi Ơn Người</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-serif text-[#1E293B] font-bold tracking-tight">
-          Bảng Vàng Tri Ân Quý Thầy Cô Giáo K8A1
+          Bảng Vàng Tri Ân Thầy Cô Giáo K8A1
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 font-serif italic max-w-2xl mx-auto leading-relaxed">
           "Người thầy vẫn lặng lẽ đi về sớm trưa, từng ngày giọt mồ hôi rơi nhòe trang giấy..."
@@ -250,20 +292,7 @@ export default function TeachersHonorRoll({ teachers: propTeachers, onAddTribute
             <div className="space-y-4 pt-1">
               {/* Profile Header */}
               <div className="flex items-start gap-3.5">
-                <div className="relative shrink-0">
-                  <img
-                    src={teacher.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'}
-                    alt={teacher.name}
-                    referrerPolicy="no-referrer"
-                    className="w-16 h-16 rounded-xl object-cover border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform"
-                    onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80';
-                    }}
-                  />
-                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-serif font-bold shadow-xs">
-                    {teacher.gender === 'Thầy' ? '👨‍🏫' : '👩‍🏫'}
-                  </span>
-                </div>
+                <TeacherCardAvatar teacher={teacher} />
 
                 <div className="space-y-1 min-w-0 flex-1">
                   <h4 className="font-serif font-bold text-base text-[#1E293B] leading-snug group-hover:text-amber-800 transition-colors truncate">
@@ -369,8 +398,8 @@ export default function TeachersHonorRoll({ teachers: propTeachers, onAddTribute
                 onChange={(e) => setSelectedTeacher(e.target.value)}
                 className="w-full px-3 py-2 border border-amber-200 rounded-lg bg-[#FAF9F5] text-xs font-serif text-[#1E293B] focus:outline-none focus:border-amber-500 cursor-pointer shadow-2xs"
               >
-                <option value="Toàn thể Quý Thầy Cô giáo trường xưa">
-                  Toàn thể Quý Thầy Cô giáo THPT Thái Nguyên
+                <option value="Toàn thể Thầy Cô giáo trường xưa">
+                  Toàn thể Thầy Cô giáo THPT Thái Nguyên
                 </option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.name}>

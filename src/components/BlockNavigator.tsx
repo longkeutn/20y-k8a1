@@ -32,7 +32,7 @@ export const PAGE_BLOCKS: BlockMeta[] = [
   { id: 'diem-danh', title: 'Báo Danh & Điểm Danh', shortTitle: 'Điểm danh', icon: CheckCircle2 },
   { id: 'danh-sach-diem-danh', title: 'Bảng Vàng & Áo Polo', shortTitle: 'Bạn bè & Áo', icon: Users },
   { id: 'bank-transfer-card', title: 'Sổ Quỹ Kỷ Niệm', shortTitle: 'Sổ quỹ', icon: Coins },
-  { id: 'thay-co', title: 'Tri Ân Quý Thầy Cô', shortTitle: 'Thầy cô', icon: GraduationCap },
+  { id: 'thay-co', title: 'Tri Ân Thầy Cô', shortTitle: 'Thầy cô', icon: GraduationCap },
   { id: 'ky-uc', title: 'Kho Kỷ Niệm Thanh Xuân', shortTitle: 'Kỷ niệm', icon: Camera },
 ];
 

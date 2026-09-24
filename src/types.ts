@@ -50,8 +50,8 @@ export interface RsvpData {
   fundPaidAt?: string;         // Thời gian xác nhận đóng quỹ
   fundPaymentMethod?: 'bank_transfer' | 'cash' | 'other'; // Hình thức đóng
   fundAuditedBy?: string;      // Tên thủ quỹ / Admin đối soát
-  tableNumber?: number;        // Số bàn tiệc (1-5 cho học sinh, 0 cho Quý Thầy Cô)
-  tableName?: string;          // Tên hiển thị mâm tiệc (VD: 'Bàn 01 (Mâm 1)', 'Mâm Tri Ân Quý Thầy Cô')
+  tableNumber?: number;        // Số bàn tiệc (1-5 cho học sinh, 0 cho Thầy Cô)
+  tableName?: string;          // Tên hiển thị mâm tiệc (VD: 'Bàn 01 (Mâm 1)', 'Mâm Tri Ân Thầy Cô')
   tableAssignedAt?: string;    // Thời điểm phân bàn
 }
 
@@ -320,7 +320,7 @@ export interface BlockVisibilityConfig {
   rsvpForm?: boolean;              // Phiếu báo danh & Điểm danh (mặc định: true)
   confirmedAttendees?: boolean;    // Bảng vàng bạn bè & Áo Polo (mặc định: true)
   fundBankTransfer?: boolean;      // Sổ quỹ lớp & Cổng chuyển khoản (mặc định: true)
-  teachers?: boolean;              // Tri ân Quý Thầy Cô (mặc định: true)
+  teachers?: boolean;              // Tri ân Thầy Cô (mặc định: true)
   memories?: boolean;              // Kho ký ức, Ảnh & Video (mặc định: true)
 }
 

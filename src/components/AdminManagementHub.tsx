@@ -119,6 +119,7 @@ import {
   TEACHER_ROLE_OPTIONS,
   TEACHER_TRANSPORTATION_OPTIONS,
   TEACHER_HEALTH_OPTIONS,
+  getTeacherInitials,
   normalizeImageUrl,
   SHIRT_SIZE_OPTIONS,
   normalizeShirtSize,
@@ -252,7 +253,7 @@ interface AdminManagementHubProps {
   onDeleteIncome?: (id: string) => void;
   onSaveAllIncomes?: (list: IncomeItem[]) => void;
 
-  // Quản lý Quý Thầy Cô giáo K8A1 (Thay_Co_K8A1)
+  // Quản lý Thầy Cô giáo K8A1 (Thay_Co_K8A1)
   teachersList?: TeacherData[];
   onAddTeacher?: (teacher: TeacherData) => void;
   onUpdateTeacher?: (teacher: TeacherData) => void;
@@ -266,6 +267,38 @@ interface AdminManagementHubProps {
 
   // Cẩm Nang Hướng Dẫn Vận Hành & Nghiệp Vụ
   onOpenGuideModal?: () => void;
+}
+
+// Component hiển thị Avatar Thầy Cô trong bảng Admin (tự động fallback sang monogram initials trang nhã khi chưa có ảnh)
+function AdminTeacherAvatar({ teacher }: { teacher: TeacherData }) {
+  const [hasError, setHasError] = useState(false);
+  const initials = getTeacherInitials(teacher.name);
+  const isFemale = teacher.gender === 'Cô';
+
+  if (teacher.avatarUrl && !hasError) {
+    return (
+      <img
+        src={teacher.avatarUrl}
+        alt={teacher.name}
+        referrerPolicy="no-referrer"
+        className="w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover border border-amber-300 shrink-0 shadow-2xs"
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full border border-amber-300/80 bg-gradient-to-br ${
+        isFemale
+          ? 'from-rose-50 via-amber-50 to-amber-100 text-amber-950 border-amber-300'
+          : 'from-amber-50 via-amber-100 to-amber-200 text-amber-900 border-amber-300'
+      } flex items-center justify-center shrink-0 shadow-2xs font-serif font-black text-[10px] sm:text-xs select-none`}
+      title={`${teacher.gender || 'Thầy/Cô'} ${teacher.name}`}
+    >
+      {initials}
+    </div>
+  );
 }
 
 export default function AdminManagementHub({
@@ -796,7 +829,7 @@ export default function AdminManagementHub({
     return true;
   }, []);
   // ---------------------------------------------------------------------------
-  // QUẢN LÝ QUÝ THẦY CÔ GIÁO K8A1 STATE (SHEET: "Thay_Co_K8A1")
+  // QUẢN LÝ THẦY CÔ GIÁO K8A1 STATE (SHEET: "Thay_Co_K8A1")
   // ---------------------------------------------------------------------------
   const effectiveTeachers = useMemo(() => {
     return Array.isArray(teachersList) ? teachersList : [];
@@ -4211,7 +4244,7 @@ export default function AdminManagementHub({
           >
             <GraduationCap className="w-3.5 h-3.5 shrink-0" />
             <span className="sm:hidden">4. Thầy cô ({effectiveTeachers.length})</span>
-            <span className="hidden sm:inline">4. Quý Thầy Cô ({effectiveTeachers.length})</span>
+            <span className="hidden sm:inline">4. Thầy Cô ({effectiveTeachers.length})</span>
             {teacherStats.attending > 0 && (
               <span className="text-[9px] bg-emerald-700 text-emerald-100 px-1.5 py-0.2 rounded font-mono hidden sm:inline">
                 {teacherStats.attending} tham dự
@@ -6475,7 +6508,7 @@ export default function AdminManagementHub({
       )}
 
           {/* --------------------------------------------------------------- */}
-          {/* TAB 3: QUÝ THẦY CÔ GIÁO K8A1 (SHEET: "Thay_Co_K8A1") */}
+          {/* TAB 3: THẦY CÔ GIÁO K8A1 (SHEET: "Thay_Co_K8A1") */}
           {/* --------------------------------------------------------------- */}
           {activeTab === 'teachers' && (
             <div className="space-y-4">
@@ -6485,7 +6518,7 @@ export default function AdminManagementHub({
                   <div>
                     <h3 className="text-base font-bold font-serif text-slate-900 flex items-center gap-2">
                       <GraduationCap className="w-5 h-5 text-amber-600" />
-                      <span>Danh Sách Quý Thầy Cô K8A1 ({teacherStats.total} Thầy Cô)</span>
+                      <span>Danh Sách Thầy Cô K8A1 ({teacherStats.total} Thầy Cô)</span>
                     </h3>
                     <p className="text-xs text-slate-500 font-sans">
                       Quản lý công tác tri ân, tiến độ gửi thiệp mời, phương án đưa đón và đón tiếp tại Hội Khóa 20 Năm.
@@ -6510,7 +6543,7 @@ export default function AdminManagementHub({
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 text-white text-xs font-sans font-bold rounded-lg shadow-sm transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Thêm Quý Thầy Cô</span>
+                      <span>+ Thêm Thầy Cô</span>
                     </button>
                   </div>
                 </div>
@@ -6633,7 +6666,7 @@ export default function AdminManagementHub({
                     <thead className="bg-[#F8F5EE] text-slate-600 font-sans uppercase text-[9px] sm:text-[10px] tracking-tight sm:tracking-wider">
                       <tr>
                         <th className="py-1.5 px-1 sm:py-2.5 sm:px-3 w-8 min-w-[32px] max-w-[32px] sm:w-10 sm:min-w-[40px] sm:max-w-[40px] text-center sticky top-0 left-0 z-30 bg-[#F8F5EE] border-b border-amber-200">STT</th>
-                        <th className="py-1.5 px-1.5 sm:py-2.5 sm:px-3 min-w-[110px] sm:min-w-[170px] sticky top-0 left-8 sm:left-10 z-30 bg-[#F8F5EE] border-b border-r border-amber-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Quý Thầy / Cô</th>
+                        <th className="py-1.5 px-1.5 sm:py-2.5 sm:px-3 min-w-[110px] sm:min-w-[170px] sticky top-0 left-8 sm:left-10 z-30 bg-[#F8F5EE] border-b border-r border-amber-200 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">Thầy / Cô</th>
                         <th className="py-1.5 px-1.5 sm:py-2.5 sm:px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Môn & Vai Trò</th>
                         <th className="py-1.5 px-1.5 sm:py-2.5 sm:px-3 sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Liên Hệ & Địa Chỉ</th>
                         <th className="py-1.5 px-1.5 sm:py-2.5 sm:px-3 text-center sticky top-0 z-20 bg-[#F8F5EE] border-b border-amber-200">Tiến Độ Thiệp</th>
@@ -6672,15 +6705,7 @@ export default function AdminManagementHub({
 
                               <td className="py-1 px-1.5 sm:py-2.5 sm:px-3 sticky left-8 sm:left-10 z-10 bg-white group-hover:bg-[#FFF9EE] min-w-[110px] sm:min-w-[170px] border-b border-r border-amber-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                                 <div className="flex items-center gap-2.5">
-                                  <img
-                                    src={t.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'}
-                                    alt={t.name}
-                                    referrerPolicy="no-referrer"
-                                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover border border-amber-300 shrink-0"
-                                    onError={(e: any) => {
-                                      e.target.src = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80';
-                                    }}
-                                  />
+                                  <AdminTeacherAvatar teacher={t} />
                                   <div>
                                     <div className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1 leading-tight sm:leading-normal">
                                       <span>{t.name}</span>
@@ -8997,7 +9022,7 @@ export default function AdminManagementHub({
                         },
                         {
                           key: 'teachers' as const,
-                          name: '9. Tri Ân Quý Thầy Cô Giáo',
+                          name: '9. Tri Ân Thầy Cô Giáo',
                           badge: 'Tri ân người lái đò',
                           description: 'Danh sách Thầy Cô giáo chủ nhiệm và bộ môn THPT Thái Nguyên niên khóa 2003 - 2006.',
                           icon: <GraduationCap className="w-4 h-4 text-blue-600" />
@@ -11923,7 +11948,7 @@ export default function AdminManagementHub({
       </AnimatePresence>
 
       {/* =================================================================== */}
-      {/* MODAL: THÊM / SỬA QUÝ THẦY CÔ GIÁO K8A1 (FULL 18 FIELDS) */}
+      {/* MODAL: THÊM / SỬA THẦY CÔ GIÁO K8A1 (FULL 18 FIELDS) */}
       {/* =================================================================== */}
       <AnimatePresence>
         {isTeacherModalOpen && (
@@ -11943,7 +11968,7 @@ export default function AdminManagementHub({
                   </div>
                   <div>
                     <h3 className="font-serif font-bold text-base sm:text-lg text-slate-900">
-                      {editingTeacher ? `Chỉnh Sửa Thông Tin: ${editingTeacher.name}` : 'Thêm Quý Thầy Cô Mới Vào Sổ Tri Ân'}
+                      {editingTeacher ? `Chỉnh Sửa Thông Tin: ${editingTeacher.name}` : 'Thêm Thầy Cô Mới Vào Sổ Tri Ân'}
                     </h3>
                     <p className="text-[11px] text-slate-500 font-sans">
                       Thiết lập hồ sơ tri ân, số điện thoại, tiến độ thiệp mời và phương án đưa đón tại Hội Khóa
@@ -12085,14 +12110,29 @@ export default function AdminManagementHub({
                   <div className="space-y-1.5 pt-1">
                     <label className="font-bold text-slate-700">Ảnh đại diện Thầy Cô:</label>
                     <div className="flex items-center gap-3">
-                      <img
-                        src={teacherFormData.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'}
-                        alt="Avatar preview"
-                        className="w-12 h-12 rounded-xl object-cover border border-amber-300 shadow-2xs shrink-0"
-                        onError={(e: any) => {
-                          e.target.src = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80';
-                        }}
-                      />
+                      {teacherFormData.avatarUrl ? (
+                        <img
+                          src={teacherFormData.avatarUrl}
+                          alt="Avatar preview"
+                          className="w-12 h-12 rounded-xl object-cover border border-amber-300 shadow-2xs shrink-0"
+                          onError={(e: any) => {
+                            e.currentTarget.style.display = 'none';
+                            const fb = e.currentTarget.parentElement?.querySelector('.teacher-modal-fallback');
+                            if (fb) (fb as HTMLElement).style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className={`teacher-modal-fallback w-12 h-12 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/80 flex-col items-center justify-center text-amber-800 shrink-0 select-none ${
+                          teacherFormData.avatarUrl ? 'hidden' : 'flex'
+                        }`}
+                        title="Chưa có ảnh đại diện"
+                      >
+                        <GraduationCap className="w-5 h-5 text-amber-700 mb-0.5" />
+                        <span className="text-[9px] font-serif font-black text-amber-900 leading-none">
+                          {teacherFormData.name ? getTeacherInitials(teacherFormData.name) : 'Thầy Cô'}
+                        </span>
+                      </div>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                           <label className="px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-700 border border-slate-300 rounded-lg cursor-pointer flex items-center gap-1.5 font-semibold text-xs transition">

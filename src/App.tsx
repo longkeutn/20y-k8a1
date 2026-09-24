@@ -1764,7 +1764,7 @@ export default function App() {
     updatedAt: item.updatedAt ? String(item.updatedAt).trim() : ''
   });
 
-  // Quản lý Danh Sách Quý Thầy Cô (Thay_Co_K8A1)
+  // Quản lý Danh Sách Thầy Cô (Thay_Co_K8A1)
   const [teachersList, setTeachersList] = useState<TeacherData[]>(() => {
     try {
       const local = localStorage.getItem('k8a1_teachers_list');
@@ -2067,7 +2067,7 @@ export default function App() {
           try { localStorage.setItem('k8a1_expenses_list', JSON.stringify(cleanExp)); } catch (e) {}
         }
 
-        // 8. Quý Thầy Cô
+        // 8. Thầy Cô
         if (Array.isArray(d.teachers) && d.teachers.length > 0) {
           const cleanTeachers = d.teachers.map((item: any, idx: number) => sanitizeTeacher(item, idx));
           setTeachersList(cleanTeachers);
@@ -2260,7 +2260,7 @@ export default function App() {
       }
 
       // ============================================================================
-      // GIAI ĐOẠN 3: TẢI NỀN LƯU BÚT, SỔ THU CHI, QUÝ THẦY CÔ & BẢN TIN (5 REQUESTS ~1s)
+      // GIAI ĐOẠN 3: TẢI NỀN LƯU BÚT, SỔ THU CHI, THẦY CÔ & BẢN TIN (5 REQUESTS ~1s)
       // ============================================================================
       // Giãn cách 200ms để nhường đường truyền và CPU
       await new Promise(r => setTimeout(r, 200));
@@ -3586,12 +3586,12 @@ export default function App() {
             />
 
             {/* ======================================================== */}
-            {/* 9. 🎓 TRI ÂN QUÝ THẦY CÔ GIÁO K8A1                      */}
+            {/* 9. 🎓 TRI ÂN THẦY CÔ GIÁO K8A1                          */}
             {/* ======================================================== */}
             {eventConfig.blockVisibility?.teachers !== false && (
               <CollapsibleSection
                 id="thay-co"
-                title="Tri Ân Quý Thầy Cô Giáo"
+                title="Tri Ân Thầy Cô Giáo"
                 shortTitle="Thầy Cô"
                 subtitle="Bảng vàng tôn vinh những người lái đò thầm lặng niên khóa 2003 - 2006"
                 icon={GraduationCap}
@@ -3601,7 +3601,7 @@ export default function App() {
                 variant="paper"
                 previewSnippet={
                   <span className="text-slate-800 font-serif font-semibold italic">
-                    🌹 Kính chúc Quý Thầy Cô luôn dồi dào sức khỏe, hạnh phúc và bình an! ({teachersList.length} Thầy Cô)
+                    🌹 Kính chúc Thầy Cô luôn dồi dào sức khỏe, hạnh phúc và bình an! ({teachersList.length} Thầy Cô)
                   </span>
                 }
               >

@@ -592,7 +592,7 @@ export default function AdminTableManager({
                     <div className="flex items-center justify-between text-xs text-amber-950 font-bold">
                       <span className="flex items-center gap-1">
                         <GraduationCap className="w-4 h-4 text-amber-700" />
-                        <span>Quý Thầy Cô Tham Dự ({attendingTeachers.length})</span>
+                        <span>Thầy Cô Tham Dự ({attendingTeachers.length})</span>
                       </span>
                       <span className="text-[10px] text-amber-800 font-normal italic">Danh dự VIP</span>
                     </div>
