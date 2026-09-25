@@ -685,7 +685,7 @@ export default function StagePresentationHub({
 
               {/* KHUNG ẢNH KỶ NIỆM THEO PHONG CÁCH TÙY CHỌN */}
               {photoFrameStyle === 'gold' && (
-                <div className="relative z-10 w-[92vw] md:w-[82vw] h-[68vh] md:h-[76vh] p-2 md:p-3.5 bg-gradient-to-b from-amber-500/25 via-amber-950/20 to-black/85 rounded-2xl md:rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_25px_rgba(245,158,11,0.25)] flex items-center justify-center overflow-hidden">
+                <div className="relative z-10 w-[92vw] md:w-[82vw] h-[66vh] md:h-[73vh] mb-5 md:mb-7 p-2 md:p-3.5 bg-gradient-to-b from-amber-500/25 via-amber-950/20 to-black/85 rounded-2xl md:rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_25px_rgba(245,158,11,0.25)] flex items-center justify-center overflow-hidden">
                   {showCorners && (
                     <>
                       <VintageCorner position="top-left" />
@@ -708,7 +708,7 @@ export default function StagePresentationHub({
               )}
 
               {photoFrameStyle === 'polaroid' && (
-                <div className="relative z-10 w-[88vw] md:w-[65vw] max-w-2xl bg-[#FAF7F2] p-3 md:p-4 pb-12 md:pb-16 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
+                <div className="relative z-10 w-[88vw] md:w-[65vw] max-w-2xl bg-[#FAF7F2] p-3 md:p-4 pb-10 md:pb-12 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
                   {/* Dải băng dính washi hoài niệm dán ở trên */}
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 md:w-44 h-6 bg-amber-100/80 border border-amber-300/50 backdrop-blur-xs shadow-xs rotate-[-1deg] z-30" />
 
@@ -751,7 +751,7 @@ export default function StagePresentationHub({
               )}
 
               {photoFrameStyle === 'none' && (
-                <div className="relative z-10 w-full h-[78vh] md:h-[84vh] flex items-center justify-center overflow-hidden">
+                <div className="relative z-10 w-full h-[76vh] md:h-[82vh] mb-5 md:mb-7 flex items-center justify-center overflow-hidden">
                   <TransitionPhoto
                     photo={currentPhoto}
                     photoIndex={photoIndex}
@@ -763,28 +763,26 @@ export default function StagePresentationHub({
                 </div>
               )}
 
-              {/* Dải Caption chú thích ảnh hoài niệm phong cách điện ảnh */}
-              {showCaption && (
-                <div className="absolute bottom-16 md:bottom-20 left-0 right-0 z-20 flex justify-center px-4 md:px-6 pointer-events-none">
-                  <div className="max-w-4xl bg-gradient-to-r from-black/85 via-black/92 to-black/85 backdrop-blur-xl px-5 md:px-8 py-3 md:py-3.5 rounded-2xl border border-amber-400/50 text-center shadow-[0_10px_35px_rgba(0,0,0,0.85),0_0_25px_rgba(245,158,11,0.25)] flex flex-col items-center gap-1.5">
-                    <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] md:text-xs font-sans font-bold tracking-[0.15em] text-amber-300 uppercase">
-                      <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                      <span>Ký Ức K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
-                      <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                    </div>
-                    <AnimatePresence mode="wait">
-                      <motion.p
-                        key={`caption-${photoIndex}`}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.5 }}
-                        className="text-base md:text-2xl font-bold font-serif italic text-amber-100 tracking-wide leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
-                      >
-                        “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
-                      </motion.p>
-                    </AnimatePresence>
+              {/* Dải Phụ Đề Điện Ảnh (Cinema Subtitle) — Tối giản, không khung hộp đặc, nhìn xuyên thấu ảnh */}
+              {showCaption && photoFrameStyle !== 'polaroid' && (
+                <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none pb-5 md:pb-7 pt-16 md:pt-24 px-4 md:px-8 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col items-center text-center">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/40 backdrop-blur-xs border border-amber-400/30 text-[10px] md:text-xs font-sans font-medium tracking-wider text-amber-300/90 mb-1.5 shadow-sm">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>Ký Ức K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
+                    <Sparkles className="w-3 h-3 text-amber-400" />
                   </div>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={`caption-${photoIndex}`}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.5 }}
+                      className="text-base md:text-xl lg:text-2xl font-serif italic text-amber-100 font-semibold tracking-wide leading-relaxed max-w-4xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]"
+                    >
+                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                    </motion.p>
+                  </AnimatePresence>
                 </div>
               )}
             </div>
@@ -842,14 +840,23 @@ export default function StagePresentationHub({
                       transitionConfig={currentTransitionConfig}
                     />
                   </div>
-                  <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center">
-                    <p className="text-xs md:text-sm font-serif italic text-amber-950/85 font-bold tracking-wider">
-                      Kỷ niệm K8A1 — 20 Năm Ngày Trở Về (2003 — 2006)
-                    </p>
+                  <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center px-2">
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={`dual-polaroid-${photoIndex}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="text-xs md:text-sm font-serif italic text-amber-950/90 font-bold tracking-wide line-clamp-1"
+                      >
+                        “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                      </motion.p>
+                    </AnimatePresence>
                   </div>
                 </div>
               ) : photoFrameStyle === 'gold' ? (
-                <div className="relative z-10 w-[90vw] md:w-[76vw] h-[65vh] md:h-[72vh] p-2.5 md:p-4 bg-gradient-to-b from-amber-500/25 via-amber-900/15 to-black/80 rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center overflow-hidden">
+                <div className="relative z-10 w-[90vw] md:w-[76vw] h-[64vh] md:h-[70vh] mb-4 md:mb-6 p-2.5 md:p-4 bg-gradient-to-b from-amber-500/25 via-amber-900/15 to-black/80 rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center overflow-hidden">
                   {showCorners && (
                     <>
                       <VintageCorner position="top-left" />
@@ -871,7 +878,7 @@ export default function StagePresentationHub({
                   </div>
                 </div>
               ) : (
-                <div className="relative z-10 w-[90vw] md:w-[75vw] h-[65vh] md:h-[72vh] rounded-3xl overflow-hidden shadow-2xl shadow-black/90 bg-black flex items-center justify-center">
+                <div className="relative z-10 w-[90vw] md:w-[75vw] h-[64vh] md:h-[70vh] mb-4 md:mb-6 rounded-3xl overflow-hidden shadow-2xl shadow-black/90 bg-black flex items-center justify-center">
                   <TransitionPhoto
                     photo={currentPhoto}
                     photoIndex={photoIndex}
@@ -884,25 +891,24 @@ export default function StagePresentationHub({
                 </div>
               )}
 
-              {showCaption && (
-                <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
-                  <div className="max-w-3xl bg-black/85 backdrop-blur-md px-6 py-2.5 rounded-xl border border-amber-400/40 text-center shadow-2xl flex flex-col items-center gap-1">
-                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-[10px] md:text-xs font-sans font-semibold tracking-wider text-amber-300 uppercase">
-                      <span>Kỷ Niệm K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
-                    </div>
-                    <AnimatePresence mode="wait">
-                      <motion.p
-                        key={`dual-caption-${photoIndex}`}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.5 }}
-                        className="text-sm md:text-xl font-bold font-serif italic text-amber-200 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]"
-                      >
-                        “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
-                      </motion.p>
-                    </AnimatePresence>
+              {/* Dải Phụ Đề Điện Ảnh (Cinema Subtitle) cho Chế độ Kết Hợp */}
+              {showCaption && photoFrameStyle !== 'polaroid' && (
+                <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none pb-4 md:pb-6 pt-12 md:pt-16 px-4 md:px-8 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col items-center text-center">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-xs border border-amber-400/30 text-[10px] md:text-xs font-sans font-medium tracking-wider text-amber-300/90 mb-1 shadow-sm">
+                    <span>Ký Niệm K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
                   </div>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={`dual-caption-${photoIndex}`}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.5 }}
+                      className="text-sm md:text-lg lg:text-xl font-serif italic text-amber-100 font-semibold tracking-wide leading-relaxed max-w-3xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)]"
+                    >
+                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                    </motion.p>
+                  </AnimatePresence>
                 </div>
               )}
             </>
