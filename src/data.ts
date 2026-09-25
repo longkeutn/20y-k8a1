@@ -1905,7 +1905,8 @@ export const DEFAULT_STAGE_SETTINGS: StageSettings = {
   photoFrameStyle: 'gold',
   particleEffect: 'petals',
   photoFilter: 'sepia',
-  showCorners: true
+  showCorners: true,
+  transitionEffect: 'alternate'
 };
 
 /**

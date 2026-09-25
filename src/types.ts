@@ -218,6 +218,8 @@ export interface BackdropItem {
 
 export type StagePresentationScene = 'backdrop' | 'slideshow' | 'dual';
 
+export type SlideTransitionType = 'alternate' | 'crossfade' | 'zoom' | 'slide' | 'blur' | 'scale' | 'none';
+
 // Cấu hình điều khiển màn LED sân khấu
 export interface StageSettings {
   slideshowSpeed: number; // Thời gian mỗi ảnh (ms), ví dụ: 6000 (6s)
@@ -231,6 +233,7 @@ export interface StageSettings {
   particleEffect?: 'none' | 'petals' | 'chalk' | 'sparkles'; // Hiệu ứng hạt bay hoài niệm
   photoFilter?: 'original' | 'sepia' | 'film' | 'bw'; // Bộ lọc màu ảnh xưa
   showCorners?: boolean; // Họa tiết hoa văn 4 góc mạ vàng
+  transitionEffect?: SlideTransitionType; // Hiệu ứng chuyển cảnh ảnh (mặc định 'alternate': xen kẽ kết hợp)
 }
 
 export interface ActivityToast {

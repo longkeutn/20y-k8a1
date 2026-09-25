@@ -9902,6 +9902,37 @@ export default function AdminManagementHub({
                     </div>
                   </div>
 
+                  {/* Hiệu ứng chuyển cảnh ảnh (Slide Transition) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-2">
+                      Hiệu ứng chuyển cảnh ảnh kỷ niệm (Slide Transition):
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'alternate', label: '🔄 Xen Kẽ Đa Dạng (Mặc định)' },
+                        { id: 'zoom', label: '🔍 Phóng Lớn Chiều Sâu' },
+                        { id: 'slide', label: '🎞️ Trượt Êm Lật Trang' },
+                        { id: 'blur', label: '💫 Mờ Ảo Hoài Niệm' },
+                        { id: 'crossfade', label: '🌊 Hòa Tan Kinh Điển' },
+                        { id: 'scale', label: '✨ Tỏa Sáng Ký Ức' },
+                        { id: 'none', label: '❌ Cắt Trực Tiếp' }
+                      ].map((tr) => (
+                        <button
+                          key={tr.id}
+                          type="button"
+                          onClick={() => setStageSettingsState(prev => ({ ...prev, transitionEffect: tr.id as any }))}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer text-left ${
+                            (stageSettingsState.transitionEffect || 'alternate') === tr.id
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {tr.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Particle Effect */}
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-2">

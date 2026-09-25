@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Maximize2, Minimize2, Play, Pause, SkipForward, SkipBack, 
   Image as ImageIcon, Sparkles, Music, Volume2, VolumeX, Settings, 
   ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff,
   WifiOff, Palette, Frame, QrCode, CheckCircle2
 } from 'lucide-react';
-import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings } from '../types';
+import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings, SlideTransitionType } from '../types';
 import { getNostalgicPhotoCaption } from '../data';
 import MusicPlaylistModal from './MusicPlaylistModal';
 import { precacheMediaList, saveOfflineTrackFile, loadAllOfflineTracks } from '../utils/offlineStorage';
@@ -142,6 +143,100 @@ function NostalgiaParticles({ type }: { type: 'petals' | 'chalk' | 'sparkles' | 
   );
 }
 
+// 5 kiểu hiệu ứng chuyển cảnh điện ảnh luân phiên
+export const ROTATING_TRANSITIONS = ['zoom', 'slide', 'blur', 'crossfade', 'scale'] as const;
+
+export interface TransitionConfig {
+  initial: { opacity?: number; scale?: number; x?: number; filter?: string };
+  animate: { opacity?: number; scale?: number; x?: number; filter?: string };
+  exit: { opacity?: number; scale?: number; x?: number; filter?: string };
+  transition: { duration: number; ease?: any };
+}
+
+export const TRANSITION_PRESETS: Record<string, TransitionConfig> = {
+  crossfade: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+    transition: { duration: 1.2, ease: "easeInOut" }
+  },
+  zoom: {
+    initial: { opacity: 0, scale: 1.08 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.94 },
+    transition: { duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }
+  },
+  slide: {
+    initial: { opacity: 0, x: 60 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -60 },
+    transition: { duration: 1.1, ease: [0.25, 0.1, 0.25, 1] }
+  },
+  blur: {
+    initial: { opacity: 0, filter: 'blur(12px)', scale: 0.96 },
+    animate: { opacity: 1, filter: 'blur(0px)', scale: 1 },
+    exit: { opacity: 0, filter: 'blur(12px)', scale: 1.04 },
+    transition: { duration: 1.2, ease: "easeInOut" }
+  },
+  scale: {
+    initial: { opacity: 0, scale: 0.90 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 1.08 },
+    transition: { duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }
+  },
+  none: {
+    initial: { opacity: 1 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+    transition: { duration: 0.05 }
+  }
+};
+
+interface TransitionPhotoProps {
+  photo: MemoryImage;
+  photoIndex: number;
+  filterStyle: string;
+  kenBurnsClass: string;
+  slideshowSpeed: number;
+  transitionConfig: TransitionConfig;
+  className?: string;
+}
+
+// Component hiển thị ảnh chuyển cảnh mượt mà kèm Ken Burns pan/zoom
+function TransitionPhoto({
+  photo,
+  photoIndex,
+  filterStyle,
+  kenBurnsClass,
+  slideshowSpeed,
+  transitionConfig,
+  className = "max-w-full max-h-full object-contain"
+}: TransitionPhotoProps) {
+  if (!photo) return null;
+  return (
+    <AnimatePresence mode="sync">
+      <motion.div
+        key={photo.id || `${photoIndex}-${photo.url}`}
+        className="absolute inset-0 flex items-center justify-center pointer-events-none transform-gpu will-change-[transform,opacity]"
+        initial={transitionConfig.initial}
+        animate={transitionConfig.animate}
+        exit={transitionConfig.exit}
+        transition={transitionConfig.transition}
+      >
+        <img
+          src={photo.url}
+          alt={photo.caption || "Ảnh kỷ niệm K8A1"}
+          style={{ 
+            filter: filterStyle,
+            transitionDuration: `${slideshowSpeed}ms`
+          }}
+          className={`${className} transition-transform ease-out ${kenBurnsClass}`}
+        />
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 interface StagePresentationHubProps {
   isOpen: boolean;
   onClose: () => void;
@@ -183,6 +278,7 @@ export default function StagePresentationHub({
   const [particleEffect, setParticleEffect] = useState<'none' | 'petals' | 'chalk' | 'sparkles'>(stageSettings.particleEffect || 'petals');
   const [photoFilter, setPhotoFilter] = useState<'original' | 'sepia' | 'film' | 'bw'>(stageSettings.photoFilter || 'sepia');
   const [showCorners, setShowCorners] = useState<boolean>(stageSettings.showCorners !== false);
+  const [transitionEffect, setTransitionEffect] = useState<SlideTransitionType>(stageSettings.transitionEffect || 'alternate');
 
   // Bộ lọc màu ảnh kỷ niệm theo phong cách hoài niệm
   const getPhotoFilterStyle = () => {
@@ -206,6 +302,18 @@ export default function StagePresentationHub({
   const [photoIndex, setPhotoIndex] = useState<number>(0);
   const [isPhotoPaused, setIsPhotoPaused] = useState<boolean>(false);
   const [kenBurnsStyle, setKenBurnsStyle] = useState<number>(0);
+
+  // Cấu hình hiệu ứng chuyển cảnh cho ảnh hiện tại (tự động luân phiên nếu là 'alternate')
+  const currentTransitionConfig = useMemo<TransitionConfig>(() => {
+    if (transitionEffect === 'none') {
+      return TRANSITION_PRESETS.none;
+    }
+    if (transitionEffect === 'alternate') {
+      const selectedKey = ROTATING_TRANSITIONS[photoIndex % ROTATING_TRANSITIONS.length];
+      return TRANSITION_PRESETS[selectedKey] || TRANSITION_PRESETS.crossfade;
+    }
+    return TRANSITION_PRESETS[transitionEffect] || TRANSITION_PRESETS.crossfade;
+  }, [transitionEffect, photoIndex]);
 
   // Trạng thái Fullscreen & Điều khiển ẩn/hiện
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -559,18 +667,25 @@ export default function StagePresentationHub({
         <div className="absolute inset-0 flex items-center justify-center bg-black overflow-hidden animate-fadeIn">
           {currentPhoto ? (
             <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-              {/* Nền mờ nghệ thuật phía sau */}
-              <div 
-                className="absolute inset-0 bg-cover bg-center filter blur-2xl scale-125 opacity-40 brightness-50"
-                style={{ backgroundImage: `url(${currentPhoto.url})` }}
-              />
+              {/* Nền mờ nghệ thuật phía sau có hiệu ứng hòa tan êm dịu */}
+              <AnimatePresence mode="sync">
+                <motion.div 
+                  key={`bg-${currentPhoto.id || photoIndex}`}
+                  className="absolute inset-0 bg-cover bg-center filter blur-2xl scale-125 brightness-50"
+                  style={{ backgroundImage: `url(${currentPhoto.url})` }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.4 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                />
+              </AnimatePresence>
 
               {/* Hiệu ứng hạt bay hoài niệm */}
               <NostalgiaParticles type={particleEffect} />
 
               {/* KHUNG ẢNH KỶ NIỆM THEO PHONG CÁCH TÙY CHỌN */}
               {photoFrameStyle === 'gold' && (
-                <div className="relative z-10 max-w-[92vw] md:max-w-[82vw] max-h-[74vh] md:max-h-[78vh] p-2 md:p-3.5 bg-gradient-to-b from-amber-500/25 via-amber-950/20 to-black/85 rounded-2xl md:rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_25px_rgba(245,158,11,0.25)] flex items-center justify-center overflow-hidden">
+                <div className="relative z-10 w-[92vw] md:w-[82vw] h-[68vh] md:h-[76vh] p-2 md:p-3.5 bg-gradient-to-b from-amber-500/25 via-amber-950/20 to-black/85 rounded-2xl md:rounded-3xl border-2 md:border-4 border-amber-400/80 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_25px_rgba(245,158,11,0.25)] flex items-center justify-center overflow-hidden">
                   {showCorners && (
                     <>
                       <VintageCorner position="top-left" />
@@ -579,20 +694,21 @@ export default function StagePresentationHub({
                       <VintageCorner position="bottom-right" />
                     </>
                   )}
-                  <div className="w-full h-full overflow-hidden rounded-xl md:rounded-2xl flex items-center justify-center bg-black/40">
-                    <img
-                      key={currentPhoto.id || photoIndex}
-                      src={currentPhoto.url}
-                      alt={currentPhoto.caption || "Ảnh kỷ niệm K8A1"}
-                      style={{ filter: getPhotoFilterStyle() }}
-                      className={`max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                  <div className="relative w-full h-full overflow-hidden rounded-xl md:rounded-2xl flex items-center justify-center bg-black/40">
+                    <TransitionPhoto
+                      photo={currentPhoto}
+                      photoIndex={photoIndex}
+                      filterStyle={getPhotoFilterStyle()}
+                      kenBurnsClass={getKenBurnsClass()}
+                      slideshowSpeed={slideshowSpeed}
+                      transitionConfig={currentTransitionConfig}
                     />
                   </div>
                 </div>
               )}
 
               {photoFrameStyle === 'polaroid' && (
-                <div className="relative z-10 max-w-[88vw] md:max-w-[68vw] max-h-[74vh] bg-[#FAF7F2] p-3 md:p-4 pb-12 md:pb-16 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
+                <div className="relative z-10 w-[88vw] md:w-[65vw] max-w-2xl bg-[#FAF7F2] p-3 md:p-4 pb-12 md:pb-16 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
                   {/* Dải băng dính washi hoài niệm dán ở trên */}
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 md:w-44 h-6 bg-amber-100/80 border border-amber-300/50 backdrop-blur-xs shadow-xs rotate-[-1deg] z-30" />
 
@@ -605,33 +721,46 @@ export default function StagePresentationHub({
                     </>
                   )}
 
-                  <div className="w-full overflow-hidden rounded-lg bg-slate-950 flex items-center justify-center max-h-[57vh]">
-                    <img
-                      key={currentPhoto.id || photoIndex}
-                      src={currentPhoto.url}
-                      alt={currentPhoto.caption || "Ảnh kỷ niệm K8A1"}
-                      style={{ filter: getPhotoFilterStyle() }}
-                      className={`max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                  <div className="relative w-full h-[50vh] md:h-[56vh] overflow-hidden rounded-lg bg-slate-950 flex items-center justify-center">
+                    <TransitionPhoto
+                      photo={currentPhoto}
+                      photoIndex={photoIndex}
+                      filterStyle={getPhotoFilterStyle()}
+                      kenBurnsClass={getKenBurnsClass()}
+                      slideshowSpeed={slideshowSpeed}
+                      transitionConfig={currentTransitionConfig}
                     />
                   </div>
 
                   {/* Chữ viết tay hoài niệm dưới chân ảnh Polaroid */}
                   <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center px-2">
-                    <p className="text-xs md:text-sm font-serif italic text-amber-950/90 font-bold tracking-wide line-clamp-1">
-                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
-                    </p>
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={`polaroid-caption-${photoIndex}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="text-xs md:text-sm font-serif italic text-amber-950/90 font-bold tracking-wide line-clamp-1"
+                      >
+                        “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                      </motion.p>
+                    </AnimatePresence>
                   </div>
                 </div>
               )}
 
               {photoFrameStyle === 'none' && (
-                <img
-                  key={currentPhoto.id || photoIndex}
-                  src={currentPhoto.url}
-                  alt={currentPhoto.caption || "Ảnh kỷ niệm K8A1"}
-                  style={{ filter: getPhotoFilterStyle() }}
-                  className={`relative z-10 max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
-                />
+                <div className="relative z-10 w-full h-[78vh] md:h-[84vh] flex items-center justify-center overflow-hidden">
+                  <TransitionPhoto
+                    photo={currentPhoto}
+                    photoIndex={photoIndex}
+                    filterStyle={getPhotoFilterStyle()}
+                    kenBurnsClass={getKenBurnsClass()}
+                    slideshowSpeed={slideshowSpeed}
+                    transitionConfig={currentTransitionConfig}
+                  />
+                </div>
               )}
 
               {/* Dải Caption chú thích ảnh hoài niệm phong cách điện ảnh */}
@@ -643,9 +772,18 @@ export default function StagePresentationHub({
                       <span>Ký Ức K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
                       <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
                     </div>
-                    <p className="text-base md:text-2xl font-bold font-serif italic text-amber-100 tracking-wide leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
-                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
-                    </p>
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={`caption-${photoIndex}`}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.5 }}
+                        className="text-base md:text-2xl font-bold font-serif italic text-amber-100 tracking-wide leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                      >
+                        “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                      </motion.p>
+                    </AnimatePresence>
                   </div>
                 </div>
               )}
@@ -684,7 +822,7 @@ export default function StagePresentationHub({
           {currentPhoto && (
             <>
               {photoFrameStyle === 'polaroid' ? (
-                <div className="relative z-10 max-w-[85vw] md:max-w-[70vw] max-h-[72vh] bg-[#FAF7F2] p-3 md:p-4 pb-12 md:pb-16 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
+                <div className="relative z-10 w-[85vw] md:w-[65vw] max-w-2xl bg-[#FAF7F2] p-3 md:p-4 pb-12 md:pb-16 rounded-xl shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-amber-200/70 rotate-[-0.6deg] flex flex-col items-center">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 md:w-44 h-6 bg-amber-100/80 border border-amber-300/50 backdrop-blur-xs shadow-xs rotate-[-1deg] z-30" />
                   {showCorners && (
                     <>
@@ -694,13 +832,14 @@ export default function StagePresentationHub({
                       <VintageCorner position="bottom-right" />
                     </>
                   )}
-                  <div className="w-full overflow-hidden rounded-lg bg-slate-950 flex items-center justify-center max-h-[55vh]">
-                    <img
-                      key={currentPhoto.id || photoIndex}
-                      src={currentPhoto.url}
-                      alt={currentPhoto.caption || "Kỷ niệm K8A1"}
-                      style={{ filter: getPhotoFilterStyle() }}
-                      className={`max-w-full max-h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                  <div className="relative w-full h-[48vh] md:h-[54vh] overflow-hidden rounded-lg bg-slate-950 flex items-center justify-center">
+                    <TransitionPhoto
+                      photo={currentPhoto}
+                      photoIndex={photoIndex}
+                      filterStyle={getPhotoFilterStyle()}
+                      kenBurnsClass={getKenBurnsClass()}
+                      slideshowSpeed={slideshowSpeed}
+                      transitionConfig={currentTransitionConfig}
                     />
                   </div>
                   <div className="absolute bottom-2 md:bottom-3 left-4 right-4 text-center">
@@ -719,24 +858,28 @@ export default function StagePresentationHub({
                       <VintageCorner position="bottom-right" />
                     </>
                   )}
-                  <div className="w-full h-full overflow-hidden rounded-2xl flex items-center justify-center bg-black/40">
-                    <img
-                      key={currentPhoto.id || photoIndex}
-                      src={currentPhoto.url}
-                      alt={currentPhoto.caption || "Kỷ niệm K8A1"}
-                      style={{ filter: getPhotoFilterStyle() }}
-                      className={`w-full h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                  <div className="relative w-full h-full overflow-hidden rounded-2xl flex items-center justify-center bg-black/40">
+                    <TransitionPhoto
+                      photo={currentPhoto}
+                      photoIndex={photoIndex}
+                      filterStyle={getPhotoFilterStyle()}
+                      kenBurnsClass={getKenBurnsClass()}
+                      slideshowSpeed={slideshowSpeed}
+                      transitionConfig={currentTransitionConfig}
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 </div>
               ) : (
                 <div className="relative z-10 w-[90vw] md:w-[75vw] h-[65vh] md:h-[72vh] rounded-3xl overflow-hidden shadow-2xl shadow-black/90 bg-black flex items-center justify-center">
-                  <img
-                    key={currentPhoto.id || photoIndex}
-                    src={currentPhoto.url}
-                    alt={currentPhoto.caption || "Kỷ niệm K8A1"}
-                    style={{ filter: getPhotoFilterStyle() }}
-                    className={`w-full h-full object-contain transition-all duration-[6000ms] ease-out ${getKenBurnsClass()}`}
+                  <TransitionPhoto
+                    photo={currentPhoto}
+                    photoIndex={photoIndex}
+                    filterStyle={getPhotoFilterStyle()}
+                    kenBurnsClass={getKenBurnsClass()}
+                    slideshowSpeed={slideshowSpeed}
+                    transitionConfig={currentTransitionConfig}
+                    className="w-full h-full object-contain"
                   />
                 </div>
               )}
@@ -747,9 +890,18 @@ export default function StagePresentationHub({
                     <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-[10px] md:text-xs font-sans font-semibold tracking-wider text-amber-300 uppercase">
                       <span>Kỷ Niệm K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
                     </div>
-                    <p className="text-sm md:text-xl font-bold font-serif italic text-amber-200 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-                      “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
-                    </p>
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={`dual-caption-${photoIndex}`}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.5 }}
+                        className="text-sm md:text-xl font-bold font-serif italic text-amber-200 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]"
+                      >
+                        “{getNostalgicPhotoCaption(photoIndex, currentPhoto.caption)}”
+                      </motion.p>
+                    </AnimatePresence>
                   </div>
                 </div>
               )}
@@ -1151,6 +1303,39 @@ export default function StagePresentationHub({
                 </div>
               </div>
 
+              {/* Hiệu ứng chuyển cảnh ảnh (Slide Transition) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Hiệu ứng chuyển cảnh ảnh kỷ niệm (Slide Transition):</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { id: 'alternate', label: '🔄 Xen Kẽ Đa Dạng', desc: 'Luân phiên 5 hiệu ứng điện ảnh (Mặc định)' },
+                    { id: 'zoom', label: '🔍 Phóng Lớn Chiều Sâu', desc: 'Zoom dissolve êm ái' },
+                    { id: 'slide', label: '🎞️ Trượt Êm Lật Trang', desc: 'Trượt nhẹ tựa lật album' },
+                    { id: 'blur', label: '💫 Mờ Ảo Hoài Niệm', desc: 'Ký ức nhạt nhòa rồi hiện rõ' },
+                    { id: 'crossfade', label: '🌊 Hòa Tan Kinh Điển', desc: 'Tan biến êm dịu triển lãm' },
+                    { id: 'scale', label: '✨ Tỏa Sáng Ký Ức', desc: 'Scale từ tâm hoài niệm' },
+                    { id: 'none', label: '❌ Cắt Trực Tiếp', desc: 'Đổi ảnh không hiệu ứng' }
+                  ].map((tr) => (
+                    <button
+                      key={tr.id}
+                      type="button"
+                      onClick={() => setTransitionEffect(tr.id as any)}
+                      className={`p-2 rounded-xl text-xs font-medium border text-left transition-all cursor-pointer ${
+                        transitionEffect === tr.id
+                          ? 'bg-amber-500/25 border-amber-400 text-amber-200 ring-1 ring-amber-400/40'
+                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      <p className="font-bold">{tr.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{tr.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Hiệu ứng hạt bay hoài niệm */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
@@ -1260,7 +1445,8 @@ export default function StagePresentationHub({
                       photoFrameStyle,
                       particleEffect,
                       photoFilter,
-                      showCorners
+                      showCorners,
+                      transitionEffect
                     });
                   }
                   setShowSettingsModal(false);
