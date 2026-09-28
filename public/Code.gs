@@ -640,6 +640,14 @@ function doGet(e) {
       return handleResponse(getDriveBackdrops());
     }
 
+    // 4c. Quản lý Thư mục Album trên Google Drive
+    if (action === 'get_drive_albums') {
+      return handleResponse(getDriveAlbumsList());
+    }
+    if (action === 'init_album_folders') {
+      return handleResponse(initAllAlbumFoldersOnDrive());
+    }
+
     // 5. Lấy danh sách lưu bút / lời chúc
     if (action === 'get_wishes') {
       return handleResponse(getWishesList());
@@ -906,6 +914,14 @@ function doPost(e) {
 
     if (action === 'upload_photo' || action === 'upload_banner') {
       return handleResponse(uploadPhotoToDrive(postData));
+    }
+
+    if (action === 'init_album_folders') {
+      return handleResponse(initAllAlbumFoldersOnDrive());
+    }
+
+    if (action === 'get_drive_albums') {
+      return handleResponse(getDriveAlbumsList());
     }
 
     if (action === 'upload_member_avatar' || action === 'upload_avatar' || action === 'uploadMemberAvatar') {
@@ -1913,97 +1929,311 @@ function deleteWish(data) {
 }
 
 /**
- * Lấy ảnh từ Google Drive Folder (ID: 1Skmip1HQhmXan-58kwbY_msamP-bWokq)
+ * =========================================================================
+ * KIẾN TRÚC QUẢN LÝ ẢNH & ALBUM THEO THƯ MỤC GOOGLE DRIVE (K8A1 DRIVE HUB)
+ * =========================================================================
  */
-function getDrivePhotos() {
-  const folderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
+
+// Định nghĩa 6 Thư mục Album chuẩn cho Lớp K8A1
+var ALBUM_FOLDER_DEFINITIONS = [
+  { id: 'thanh-xuan-2003-2006', name: '1. Thoi_Nien_Thieu_2003_2006', title: 'Thời Niên Thiếu (2003 — 2006)', period: '2003 — 2006' },
+  { id: 'thay-co-mai-truong',   name: '2. Thay_Co_Va_Mai_Truong',   title: 'Thầy Cô & Mái Trường', period: 'Kính Yêu' },
+  { id: 'hoi-ngo-10-nam',       name: '3. Hoi_Ngo_10_Nam_2016',     title: 'Hội Ngộ 10 Năm (2016)', period: '2016' },
+  { id: 'hoi-ngo-15-nam',       name: '4. Hoi_Ngo_15_Nam_2021',     title: 'Hội Ngộ 15 Năm (2021)', period: '2021' },
+  { id: 'dai-le-20-nam',        name: '5. Dai_Le_20_Nam_2026',      title: 'Đại Lễ 20 Năm Ngày Trở Về (2026)', period: '2026' },
+  { id: 'dong-gop-k8a1',        name: '6. Dong_Gop_Tu_Lieu_Anh',    title: 'Đóng Góp & Tư Liệu Thành Viên', period: 'Kỷ Niệm' }
+];
+
+/**
+ * Lấy thư mục gốc "K8A1_KyNiem_20Nam" trên Google Drive.
+ * Tự động kiểm tra:
+ * - Nếu folder ID cấu hình đã bị xóa hoặc trong Thùng rác (Trash) -> Tự động bỏ qua.
+ * - Tìm thư mục "K8A1_KyNiem_20Nam" đang hoạt động (không nằm trong Trash).
+ * - Nếu chưa có, tự động tạo mới "K8A1_KyNiem_20Nam" và setSharing ANYONE_WITH_LINK.
+ */
+function getRootMemoryFolder() {
+  const folderId = CONFIG.DRIVE_FOLDER_ID;
   let folder = null;
 
-  // 1. Thử mở thư mục theo ID cấu hình
+  // 1. Thử mở theo ID nếu ID còn tồn tại và không nằm trong thùng rác
   if (folderId) {
     try {
-      folder = DriveApp.getFolderById(folderId);
+      const f = DriveApp.getFolderById(folderId);
+      if (f && !f.isTrashed()) {
+        folder = f;
+      } else {
+        console.warn("Folder ID cấu hình (" + folderId + ") đã bị xóa hoặc nằm trong Thùng rác (Trash).");
+      }
     } catch (e) {
-      console.warn("Không thể truy cập Folder ID: " + folderId + ". Nguyên nhân: Chưa cấp quyền hoặc ID không tồn tại.");
+      console.warn("Không mở được folder ID " + folderId + ": " + e.toString());
     }
   }
 
-  // 2. Nếu không tìm thấy theo ID, thử tìm theo tên thư mục "K8A1_KyNiem_20Nam"
+  // 2. Tìm thư mục theo tên "K8A1_KyNiem_20Nam" còn hoạt động (không trashed)
   if (!folder) {
     try {
       const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
-      if (folders.hasNext()) {
-        folder = folders.next();
+      while (folders.hasNext()) {
+        const candidate = folders.next();
+        if (!candidate.isTrashed()) {
+          folder = candidate;
+          break;
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Lỗi tìm folder K8A1_KyNiem_20Nam: " + e.toString());
+    }
   }
 
+  // 3. Nếu chưa có hoặc đã bị xóa hết, tự động tạo mới thư mục gốc K8A1_KyNiem_20Nam
   if (!folder) {
+    try {
+      folder = DriveApp.createFolder("K8A1_KyNiem_20Nam");
+      try {
+        folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (eShare) {
+        console.warn("Lỗi setSharing: " + eShare.toString());
+      }
+      console.info("Đã tạo mới thư mục gốc K8A1_KyNiem_20Nam thành công: " + folder.getId());
+    } catch (e) {
+      folder = DriveApp.getRootFolder();
+    }
+  }
+
+  return folder;
+}
+
+/**
+ * Lấy hoặc tự động tạo thư mục con theo Album trong Google Drive
+ */
+function getOrCreateAlbumFolder(albumId, albumTitle) {
+  const root = getRootMemoryFolder();
+  if (!root) return null;
+
+  let targetFolderName = '';
+  const def = ALBUM_FOLDER_DEFINITIONS.find(function(a) { return a.id === albumId; });
+  if (def) {
+    targetFolderName = def.name;
+  } else if (albumTitle) {
+    targetFolderName = String(albumTitle).replace(/[/\\?%*:|"<>]/g, '_').trim();
+  } else if (albumId) {
+    targetFolderName = String(albumId);
+  } else {
+    targetFolderName = '6. Dong_Gop_Tu_Lieu_Anh';
+  }
+
+  try {
+    // 1. Tìm thư mục theo targetFolderName (không trashed)
+    const subFolders = root.getFoldersByName(targetFolderName);
+    while (subFolders.hasNext()) {
+      const f = subFolders.next();
+      if (!f.isTrashed()) return f;
+    }
+
+    // 2. Tìm theo title tiếng Việt nếu có
+    if (def && def.title) {
+      const altFolders = root.getFoldersByName(def.title);
+      while (altFolders.hasNext()) {
+        const f = altFolders.next();
+        if (!f.isTrashed()) return f;
+      }
+    }
+
+    // 3. Nếu chưa tồn tại, tự động tạo mới subfolder trong root
+    const newSubFolder = root.createFolder(targetFolderName);
+    try {
+      newSubFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (eShare) {}
+    return newSubFolder;
+  } catch (e) {
+    console.warn("Lỗi getOrCreateAlbumFolder: " + e.toString());
+    return root;
+  }
+}
+
+/**
+ * Tự động tạo đầy đủ 6 thư mục Album trên Google Drive
+ */
+function initAllAlbumFoldersOnDrive() {
+  const root = getRootMemoryFolder();
+  const results = [];
+  for (let i = 0; i < ALBUM_FOLDER_DEFINITIONS.length; i++) {
+    const def = ALBUM_FOLDER_DEFINITIONS[i];
+    const folder = getOrCreateAlbumFolder(def.id, def.title);
+    results.push({
+      id: def.id,
+      title: def.title,
+      period: def.period,
+      driveFolderId: folder ? folder.getId() : '',
+      driveFolderUrl: folder ? folder.getUrl() : '',
+      folderName: def.name
+    });
+  }
+  return {
+    status: 'success',
+    message: 'Khởi tạo hệ thống thư mục Album trên Google Drive thành công!',
+    rootFolderId: root ? root.getId() : '',
+    rootFolderUrl: root ? root.getUrl() : '',
+    albums: results
+  };
+}
+
+/**
+ * Lấy danh sách thông tin các Album kèm link thư mục Drive
+ */
+function getDriveAlbumsList() {
+  const root = getRootMemoryFolder();
+  const list = [];
+  for (let i = 0; i < ALBUM_FOLDER_DEFINITIONS.length; i++) {
+    const def = ALBUM_FOLDER_DEFINITIONS[i];
+    let foundFolder = null;
+    try {
+      const subs = root.getFoldersByName(def.name);
+      while (subs.hasNext()) {
+        const f = subs.next();
+        if (!f.isTrashed()) { foundFolder = f; break; }
+      }
+    } catch (e) {}
+
+    list.push({
+      id: def.id,
+      title: def.title,
+      period: def.period,
+      driveFolderId: foundFolder ? foundFolder.getId() : '',
+      driveFolderUrl: foundFolder ? foundFolder.getUrl() : '',
+      folderName: def.name
+    });
+  }
+  return {
+    status: 'success',
+    rootFolderId: root ? root.getId() : '',
+    rootFolderUrl: root ? root.getUrl() : '',
+    albums: list
+  };
+}
+
+/**
+ * Lấy ảnh từ Google Drive: Quét toàn bộ các thư mục con Album + thư mục gốc
+ * Tự động gán albumId, albumName, driveFolderId cho từng ảnh
+ */
+function getDrivePhotos() {
+  const root = getRootMemoryFolder();
+  if (!root) {
     return { 
       status: 'success', 
       data: [], 
-      warning: 'Chưa thể mở thư mục Drive ' + folderId + '. Vui lòng kiểm tra quyền chia sẻ thư mục trên Google Drive!' 
+      warning: 'Chưa thể mở thư mục Drive. Vui lòng kiểm tra quyền chia sẻ thư mục trên Google Drive!' 
     };
   }
 
   try {
-    const files = folder.getFiles();
     const photos = [];
+    const seenIds = {};
 
-    while (files.hasNext()) {
-      const file = files.next();
-      const mimeType = file.getMimeType();
-      if (mimeType.indexOf('image/') === 0 || mimeType === 'application/octet-stream') {
-        const fileId = file.getId();
-        photos.push({
-          id: fileId,
-          // URL xem ảnh trực tiếp chất lượng cao từ CDN Google
-          url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
-          thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
-          driveUrl: file.getUrl(),
-          caption: file.getName().replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
-          date: formatDate(file.getDateCreated())
-        });
+    function scanFolder(folder, defaultAlbumId, defaultAlbumName) {
+      try {
+        const files = folder.getFiles();
+        while (files.hasNext()) {
+          const file = files.next();
+          if (file.isTrashed()) continue;
+          const fileId = file.getId();
+          if (seenIds[fileId]) continue;
+          seenIds[fileId] = true;
+
+          const mimeType = file.getMimeType();
+          if (mimeType.indexOf('image/') === 0 || mimeType === 'application/octet-stream') {
+            photos.push({
+              id: fileId,
+              url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
+              thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
+              driveUrl: file.getUrl(),
+              caption: file.getName().replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
+              date: formatDate(file.getDateCreated()),
+              albumId: defaultAlbumId,
+              albumName: defaultAlbumName,
+              driveFolderId: folder.getId()
+            });
+          }
+        }
+      } catch (eScan) {
+        console.warn("Lỗi scan folder: " + eScan.toString());
       }
     }
-    return { status: 'success', data: photos };
+
+    // 1. Quét qua tất cả thư mục con (album)
+    const subFolders = root.getFolders();
+    while (subFolders.hasNext()) {
+      const sub = subFolders.next();
+      if (sub.isTrashed()) continue;
+      const subName = sub.getName();
+
+      // Bỏ qua thư mục hệ thống
+      if (subName === 'Backdrops_SanKhau' || subName === 'ChungTu_QuyLop_K8A1' || subName === 'Avatar_Thanh_Vien') {
+        continue;
+      }
+
+      let matchedAlbumId = 'dong-gop-k8a1';
+      let matchedAlbumTitle = subName;
+
+      for (let i = 0; i < ALBUM_FOLDER_DEFINITIONS.length; i++) {
+        const def = ALBUM_FOLDER_DEFINITIONS[i];
+        if (subName.indexOf(def.name) >= 0 || subName.indexOf(def.id) >= 0 || subName.indexOf(def.title) >= 0 ||
+            (def.id === 'thanh-xuan-2003-2006' && (subName.indexOf('2003') >= 0 || subName.indexOf('Nien_Thieu') >= 0)) ||
+            (def.id === 'thay-co-mai-truong' && (subName.indexOf('Thay_Co') >= 0 || subName.indexOf('Thầy Cô') >= 0)) ||
+            (def.id === 'hoi-ngo-10-nam' && (subName.indexOf('10_Nam') >= 0 || subName.indexOf('10 Năm') >= 0 || subName.indexOf('2016') >= 0)) ||
+            (def.id === 'hoi-ngo-15-nam' && (subName.indexOf('15_Nam') >= 0 || subName.indexOf('15 Năm') >= 0 || subName.indexOf('2021') >= 0)) ||
+            (def.id === 'dai-le-20-nam' && (subName.indexOf('20_Nam') >= 0 || subName.indexOf('20 Năm') >= 0 || subName.indexOf('2026') >= 0)) ||
+            (def.id === 'dong-gop-k8a1' && (subName.indexOf('Dong_Gop') >= 0 || subName.indexOf('Tư Liệu') >= 0))) {
+          matchedAlbumId = def.id;
+          matchedAlbumTitle = def.title;
+          break;
+        }
+      }
+
+      scanFolder(sub, matchedAlbumId, matchedAlbumTitle);
+    }
+
+    // 2. Quét các ảnh nằm ở thư mục gốc (nếu có)
+    scanFolder(root, 'thanh-xuan-2003-2006', 'Thời Niên Thiếu (2003 — 2006)');
+
+    return { 
+      status: 'success', 
+      data: photos,
+      total: photos.length,
+      rootFolderId: root.getId()
+    };
   } catch (e) {
     return { status: 'success', data: [], error: e.toString() };
   }
 }
 
 /**
- * Tải ảnh lên thư mục Drive (ID: 1Skmip1HQhmXan-58kwbY_msamP-bWokq)
+ * Tải ảnh lên thư mục Drive theo từng Album
  */
 function uploadPhotoToDrive(data) {
-  const folderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
-  let folder = null;
-
-  // 1. Thử mở thư mục theo ID cấu hình
-  if (folderId) {
-    try {
-      folder = DriveApp.getFolderById(folderId);
-    } catch (e) {
-      console.warn("Không mở được folder ID " + folderId + ", tiến hành tìm/tạo thư mục dự phòng...");
-    }
-  }
-
-  // 2. Nếu không mở được, tự động tìm hoặc tạo thư mục "K8A1_KyNiem_20Nam"
-  if (!folder) {
-    try {
-      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
-      if (folders.hasNext()) {
-        folder = folders.next();
-      } else {
-        folder = DriveApp.createFolder("K8A1_KyNiem_20Nam");
-        folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      }
-    } catch (e) {
-      folder = DriveApp.getRootFolder();
-    }
-  }
-
   try {
+    const albumId = data.albumId || 'thanh-xuan-2003-2006';
+    const albumTitle = data.albumTitle || data.albumName;
+    let targetFolder = null;
+
+    // 1. Thử dùng driveFolderId nếu có và hợp lệ
+    if (data.driveFolderId) {
+      try {
+        const df = DriveApp.getFolderById(data.driveFolderId);
+        if (df && !df.isTrashed()) {
+          targetFolder = df;
+        }
+      } catch (e) {}
+    }
+
+    // 2. Tự động lấy/tạo thư mục tương ứng với Album
+    if (!targetFolder) {
+      targetFolder = getOrCreateAlbumFolder(albumId, albumTitle);
+    }
+    if (!targetFolder) {
+      targetFolder = getRootMemoryFolder();
+    }
+
     let rawBase64 = data.fileData || '';
     if (rawBase64.indexOf(',') > -1) {
       rawBase64 = rawBase64.split(',')[1];
@@ -2012,9 +2242,9 @@ function uploadPhotoToDrive(data) {
     const cleanCaption = String(data.caption || 'K8A1_KyNiem').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_');
     const fileName = cleanCaption + '_' + Date.now() + '.jpg';
     const blob = Utilities.newBlob(decoded, 'image/jpeg', fileName);
-    const file = folder.createFile(blob);
+    const file = targetFolder.createFile(blob);
     
-    // Cấp quyền xem cho bất kỳ ai có link (bọc try/catch phòng trường hợp tài khoản tổ chức bị khóa sharing)
+    // Cấp quyền xem cho bất kỳ ai có link
     try {
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     } catch (eShare) {
@@ -2028,7 +2258,10 @@ function uploadPhotoToDrive(data) {
       thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
       driveUrl: file.getUrl(),
       caption: data.caption || file.getName().replace(/\.[^/.]+$/, ''),
-      date: formatDate(new Date())
+      date: formatDate(new Date()),
+      albumId: albumId,
+      albumName: albumTitle,
+      driveFolderId: targetFolder.getId()
     };
 
     return {
@@ -2036,7 +2269,9 @@ function uploadPhotoToDrive(data) {
       message: 'Tải ảnh lên Google Drive thành công!',
       data: photoItem,
       fileId: fileId,
-      viewUrl: file.getUrl()
+      viewUrl: file.getUrl(),
+      albumId: albumId,
+      folderId: targetFolder.getId()
     };
   } catch (e) {
     return { status: 'error', message: 'Lỗi upload Drive: ' + e.toString() };
@@ -2047,25 +2282,12 @@ function uploadPhotoToDrive(data) {
  * Lấy hoặc tự động tạo thư mục con "Backdrops_SanKhau" trong Google Drive
  */
 function getBackdropFolder() {
-  const rootId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
-  let rootFolder = null;
-  if (rootId) {
-    try { rootFolder = DriveApp.getFolderById(rootId); } catch (e) {}
-  }
-  if (!rootFolder) {
-    try {
-      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
-      if (folders.hasNext()) rootFolder = folders.next();
-      else rootFolder = DriveApp.getRootFolder();
-    } catch (e) {
-      rootFolder = DriveApp.getRootFolder();
-    }
-  }
-
+  const rootFolder = getRootMemoryFolder();
   const subFolderName = "Backdrops_SanKhau";
   const subFolders = rootFolder.getFoldersByName(subFolderName);
-  if (subFolders.hasNext()) {
-    return subFolders.next();
+  while (subFolders.hasNext()) {
+    const f = subFolders.next();
+    if (!f.isTrashed()) return f;
   }
   const created = rootFolder.createFolder(subFolderName);
   try {
@@ -2150,41 +2372,22 @@ function uploadBackdropToDrive(data) {
  * Tải ảnh chứng từ / bill nộp quỹ lên thư mục con "ChungTu_QuyLop_K8A1" trong Drive
  */
 function uploadFundReceiptToDrive(data) {
-  const rootFolderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
-  let rootFolder = null;
-
-  // 1. Mở thư mục gốc
-  if (rootFolderId) {
-    try {
-      rootFolder = DriveApp.getFolderById(rootFolderId);
-    } catch (e) {
-      console.warn("Không mở được root folder " + rootFolderId);
-    }
-  }
-
-  if (!rootFolder) {
-    try {
-      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
-      if (folders.hasNext()) {
-        rootFolder = folders.next();
-      } else {
-        rootFolder = DriveApp.createFolder("K8A1_KyNiem_20Nam");
-        rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      }
-    } catch (e) {
-      rootFolder = DriveApp.getRootFolder();
-    }
-  }
-
-  // 2. Tự động tạo hoặc mở thư mục con lưu chứng từ: "ChungTu_QuyLop_K8A1"
+  const rootFolder = getRootMemoryFolder();
   let receiptFolder = null;
   try {
     const subFolders = rootFolder.getFoldersByName("ChungTu_QuyLop_K8A1");
-    if (subFolders.hasNext()) {
-      receiptFolder = subFolders.next();
-    } else {
+    while (subFolders.hasNext()) {
+      const f = subFolders.next();
+      if (!f.isTrashed()) {
+        receiptFolder = f;
+        break;
+      }
+    }
+    if (!receiptFolder) {
       receiptFolder = rootFolder.createFolder("ChungTu_QuyLop_K8A1");
-      receiptFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      try {
+        receiptFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (eShare) {}
     }
   } catch (e) {
     receiptFolder = rootFolder;
@@ -2315,27 +2518,22 @@ function uploadFundReceiptToDrive(data) {
  */
 function uploadPoloSampleToDrive(data) {
   try {
-    const rootFolderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
-    let rootFolder = null;
-    if (rootFolderId) {
-      try { rootFolder = DriveApp.getFolderById(rootFolderId); } catch(e) {}
-    }
-    if (!rootFolder) {
-      try {
-        const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
-        if (folders.hasNext()) rootFolder = folders.next();
-      } catch(e) {}
-    }
-    if (!rootFolder) rootFolder = DriveApp.getRootFolder();
-
+    const rootFolder = getRootMemoryFolder();
     let targetFolder = null;
     try {
       const subFolders = rootFolder.getFoldersByName("ChungTu_QuyLop_K8A1");
-      if (subFolders.hasNext()) {
-        targetFolder = subFolders.next();
-      } else {
+      while (subFolders.hasNext()) {
+        const f = subFolders.next();
+        if (!f.isTrashed()) {
+          targetFolder = f;
+          break;
+        }
+      }
+      if (!targetFolder) {
         targetFolder = rootFolder.createFolder("ChungTu_QuyLop_K8A1");
-        targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        try {
+          targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch (eShare) {}
       }
     } catch(e) {
       targetFolder = rootFolder;
@@ -2378,40 +2576,22 @@ function uploadPoloSampleToDrive(data) {
  * và tự động cập nhật link vào chuỗi JSON cột Ghi chú của Tab Danh_Sach_Lop
  */
 function uploadMemberAvatarToDrive(data) {
-  const rootFolderId = CONFIG.DRIVE_FOLDER_ID || "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
-  let rootFolder = null;
-
-  if (rootFolderId) {
-    try {
-      rootFolder = DriveApp.getFolderById(rootFolderId);
-    } catch (e) {
-      console.warn("Không mở được root folder: " + e.toString());
-    }
-  }
-
-  if (!rootFolder) {
-    try {
-      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
-      if (folders.hasNext()) {
-        rootFolder = folders.next();
-      } else {
-        rootFolder = DriveApp.createFolder("K8A1_KyNiem_20Nam");
-        rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      }
-    } catch (e) {
-      rootFolder = DriveApp.getRootFolder();
-    }
-  }
-
-  // Tự động tìm hoặc tạo thư mục con riêng biệt "Avatar_Thanh_Vien"
+  const rootFolder = getRootMemoryFolder();
   let avatarFolder = null;
   try {
     const subFolders = rootFolder.getFoldersByName("Avatar_Thanh_Vien");
-    if (subFolders.hasNext()) {
-      avatarFolder = subFolders.next();
-    } else {
+    while (subFolders.hasNext()) {
+      const f = subFolders.next();
+      if (!f.isTrashed()) {
+        avatarFolder = f;
+        break;
+      }
+    }
+    if (!avatarFolder) {
       avatarFolder = rootFolder.createFolder("Avatar_Thanh_Vien");
-      avatarFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      try {
+        avatarFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (eShare) {}
     }
   } catch (e) {
     avatarFolder = rootFolder;

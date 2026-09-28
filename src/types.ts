@@ -164,6 +164,21 @@ export interface AlumniRegion {
   note?: string;
 }
 
+// Interface đại diện cho từng Folder / Album kỷ niệm
+export interface PhotoAlbum {
+  id: string;                  // ID album (slug hoặc chuỗi định danh, vd: 'album_cap3_2003_2006')
+  title: string;               // Tên hiển thị Album
+  description?: string;        // Lời tựa, cảm xúc về Album
+  driveFolderId?: string;      // ID thư mục con trên Google Drive
+  driveFolderUrl?: string;     // URL mở thư mục trên Drive
+  coverPhotoUrl?: string;      // URL ảnh đại diện Album
+  period?: string;             // Mốc thời gian (vd: '2003 — 2006', '2016', '2026')
+  order?: number;              // Thứ tự hiển thị
+  allowPublicUpload?: boolean; // Cho phép thành viên tự tải ảnh vào album này
+  mediaCount?: number;         // Tổng số ảnh trong Album
+  createdAt?: string;          // Ngày tạo
+}
+
 export interface MemoryImage {
   id: string;
   url: string;
@@ -172,13 +187,25 @@ export interface MemoryImage {
   isUserUploaded?: boolean;
   thumbnail?: string;
   driveUrl?: string;
+  albumId?: string;            // Khóa liên kết tới PhotoAlbum.id
+  albumName?: string;          // Tên album tương ứng để hiển thị nhanh
+  driveFolderId?: string;      // ID thư mục Drive chứa file vật lý
+  isCover?: boolean;           // Đánh dấu ảnh này làm bìa Album
 }
 
 export interface MemoryVideo {
   id: string;
   title: string;
-  embedUrl: string;
+  embedUrl?: string;
+  url?: string;
   thumbnail?: string;
+  driveUrl?: string;
+  duration?: string;
+  dateCreated?: string;
+  author?: string;
+  albumId?: string;            // Khóa liên kết tới PhotoAlbum.id
+  albumName?: string;
+  driveFolderId?: string;
 }
 
 export interface ReunionConfig {
@@ -309,6 +336,7 @@ export interface EventConfig {
   backdrops?: BackdropItem[];
   musicPlaylist?: MusicTrack[];
   stageSettings?: StageSettings;
+  albums?: PhotoAlbum[]; // Danh sách các Album / Folder ảnh kỷ niệm
   showAnnouncements?: boolean; // Bật / Tắt hiển thị khối Thông báo & Bản tin lên Web
   blockVisibility?: BlockVisibilityConfig; // Cấu hình Ẩn/Hiện linh hoạt 10 khối nội dung
 }

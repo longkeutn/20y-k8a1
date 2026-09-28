@@ -33,16 +33,23 @@ import {
   Trash2,
   Plus,
   RefreshCw,
-  Tv
+  Tv,
+  Folder,
+  FolderOpen,
+  Grid,
+  Layers,
+  ExternalLink,
+  ArrowLeft
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { MemoryImage, MemoryVideo } from '../types';
-import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, getNostalgicPhotoCaption } from '../data';
+import { MemoryImage, MemoryVideo, PhotoAlbum } from '../types';
+import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, DEFAULT_ALBUMS, getPhotoAlbumId, getNostalgicPhotoCaption } from '../data';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
   images: MemoryImage[];
   videos?: MemoryVideo[];
+  albums?: PhotoAlbum[];
   onAddImage?: (newImage: MemoryImage | MemoryImage[]) => void;
   onOpenStagePresentation?: () => void;
 }
@@ -77,7 +84,7 @@ const INITIAL_VIDEOS: MemoryVideo[] = DEFAULT_VIDEOS;
 
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
-export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, onAddImage, onOpenStagePresentation }: MemoryCornerProps) {
+export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, albums = DEFAULT_ALBUMS, onAddImage, onOpenStagePresentation }: MemoryCornerProps) {
   // Đảm bảo luôn có ít nhất 87 ảnh từ DEFAULT_MEMORIES nếu prop images rỗng hoặc chưa nạp xong
   const displayImages = useMemo(() => {
     if (Array.isArray(images) && images.length > 0) {
@@ -85,6 +92,34 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
     return DEFAULT_MEMORIES;
   }, [images]);
+
+  // Danh sách Albums đã cấu hình
+  const albumsList = useMemo(() => {
+    return (albums && albums.length > 0) ? albums : DEFAULT_ALBUMS;
+  }, [albums]);
+
+  // Chế độ xem: 'albums' (theo Folder/Album) hoặc 'all' (lưới toàn bộ ảnh)
+  const [viewMode, setViewMode] = useState<'albums' | 'all'>('albums');
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+
+  // Album đang chọn (nếu đang ở chế độ drill-down)
+  const currentAlbum = useMemo(() => {
+    if (!selectedAlbumId) return null;
+    return albumsList.find(a => a.id === selectedAlbumId) || null;
+  }, [albumsList, selectedAlbumId]);
+
+  // Thống kê ảnh theo từng Album
+  const albumStats = useMemo(() => {
+    const stats: Record<string, { count: number; coverUrl: string }> = {};
+    albumsList.forEach(alb => {
+      const albPhotos = displayImages.filter(img => (img.albumId || getPhotoAlbumId(img)) === alb.id);
+      stats[alb.id] = {
+        count: albPhotos.length,
+        coverUrl: alb.coverPhotoUrl || (albPhotos[0] ? albPhotos[0].url : 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600')
+      };
+    });
+    return stats;
+  }, [albumsList, displayImages]);
 
   // Video State (Khởi tạo với 9 video chuẩn từ DEFAULT_VIDEOS)
   const [videoList, setVideoList] = useState<MemoryVideo[]>(() => {
@@ -194,6 +229,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     size: number;
   }[]>([]);
   const [uploadDate, setUploadDate] = useState<string>('2006');
+  const [uploadAlbumId, setUploadAlbumId] = useState<string>('album_dong_gop');
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; percent: number }>({ current: 0, total: 0, percent: 0 });
@@ -348,16 +384,24 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     setTimeout(() => setIsShuffling(false), 500);
   };
 
+  // Danh sách ảnh nguồn: Nếu đang chọn 1 album thì chỉ lấy ảnh thuộc album đó
+  const sourceImages = useMemo(() => {
+    if (selectedAlbumId) {
+      return displayImages.filter(img => (img.albumId || getPhotoAlbumId(img)) === selectedAlbumId);
+    }
+    return displayImages;
+  }, [displayImages, selectedAlbumId]);
+
   // Danh sách ảnh đã xáo trộn ngẫu nhiên (Fisher-Yates Shuffle) hoặc sắp xếp
   const shuffledImages = useMemo(() => {
-    if (!displayImages || displayImages.length === 0) return [];
+    if (!sourceImages || sourceImages.length === 0) return [];
 
     if (sortOrder === 'newest') {
-      return [...displayImages]; // Thứ tự mới nhất gốc từ Drive
+      return [...sourceImages]; // Thứ tự mới nhất gốc từ Drive
     }
 
     if (sortOrder === 'likes') {
-      return [...displayImages].sort((a, b) => {
+      return [...sourceImages].sort((a, b) => {
         const likesA = getPhotoLikes(a.id, 0);
         const likesB = getPhotoLikes(b.id, 0);
         return likesB - likesA;
@@ -365,7 +409,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }
 
     // Mặc định: Ngẫu nhiên (Fisher-Yates Shuffle với pseudo-random generator từ shuffleSeed)
-    const list = [...displayImages];
+    const list = [...sourceImages];
     let seed = Math.abs(shuffleSeed) || 12345;
     const rnd = () => {
       seed = (seed * 9301 + 49297) % 233280;
@@ -376,7 +420,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       [list[i], list[j]] = [list[j], list[i]];
     }
     return list;
-  }, [displayImages, sortOrder, shuffleSeed]);
+  }, [sourceImages, sortOrder, shuffleSeed]);
 
   // Lọc danh sách ảnh trên nguồn ảnh đã xáo trộn
   const filteredImages = useMemo(() => {
@@ -409,13 +453,13 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   // Đếm số lượng theo từng danh mục
   const countsByCategory = useMemo(() => {
     return {
-      all: displayImages.length,
-      class: displayImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(lớp|học|thầy|cô|bàn|trường|kem)/)).length,
-      activity: displayImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(trại|lửa|bóng|hồ|ngoại khóa|hát|đá)/)).length,
-      graduation: displayImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(bế giảng|áo trắng|lưu bút|kỷ yếu|tốt nghiệp|chia tay)/)).length,
-      uploads: displayImages.filter(i => !!i.isUserUploaded).length,
+      all: sourceImages.length,
+      class: sourceImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(lớp|học|thầy|cô|bàn|trường|kem)/)).length,
+      activity: sourceImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(trại|lửa|bóng|hồ|ngoại khóa|hát|đá)/)).length,
+      graduation: sourceImages.filter(i => `${i.caption || ''} ${i.date || ''}`.toLowerCase().match(/(bế giảng|áo trắng|lưu bút|kỷ yếu|tốt nghiệp|chia tay)/)).length,
+      uploads: sourceImages.filter(i => !!i.isUserUploaded).length,
     };
-  }, [displayImages]);
+  }, [sourceImages]);
 
   // Danh sách hiển thị sau khi giới hạn số lượng (Tối ưu performance)
   const displayedImages = useMemo(() => {
@@ -426,7 +470,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE_COUNT);
-  }, [activeFilter, searchKeyword, sortOrder, shuffleSeed]);
+  }, [activeFilter, searchKeyword, sortOrder, shuffleSeed, selectedAlbumId, viewMode]);
 
   const handleLoadMore = () => {
     setVisibleCount(prev => Math.min(prev + 8, filteredImages.length));
@@ -538,6 +582,11 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     const finalDate = uploadDate.trim() || '2006';
     const successfullyAdded: MemoryImage[] = [];
 
+    const targetAlbum = albumsList.find(a => a.id === uploadAlbumId) || albumsList[0];
+    const targetAlbumId = targetAlbum?.id || 'album_dong_gop';
+    const targetAlbumTitle = targetAlbum?.title || 'Góc Thành Viên Đóng Góp';
+    const targetAlbumDriveFolderId = targetAlbum?.driveFolderId;
+
     for (let i = 0; i < total; i++) {
       const item = pendingPhotos[i];
       setUploadProgress({
@@ -556,7 +605,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             body: JSON.stringify({
               action: 'upload_photo',
               fileData: item.preview,
-              caption: finalCaption
+              caption: finalCaption,
+              albumId: targetAlbumId,
+              albumTitle: targetAlbumTitle,
+              driveFolderId: targetAlbumDriveFolderId
             })
           });
 
@@ -569,7 +621,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               url: result.data?.url || `https://lh3.googleusercontent.com/d/${result.fileId}=w1600`,
               caption: finalCaption,
               date: finalDate,
-              isUserUploaded: true
+              isUserUploaded: true,
+              albumId: targetAlbumId,
+              albumName: targetAlbumTitle,
+              driveFolderId: targetAlbumDriveFolderId
             };
             successfullyAdded.push(newPhoto);
           } else {
@@ -583,7 +638,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             url: item.preview,
             caption: finalCaption,
             date: finalDate,
-            isUserUploaded: true
+            isUserUploaded: true,
+            albumId: targetAlbumId,
+            albumName: targetAlbumTitle,
+            driveFolderId: targetAlbumDriveFolderId
           };
           successfullyAdded.push(localPhoto);
         }
@@ -930,7 +988,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </h3>
             
             <p className="text-xs text-slate-600 font-serif italic">
-              Những nụ cười áo trắng và ngọn lửa trại thanh xuân 20 năm trước • {displayImages.length} bức ảnh
+              {displayImages.length} bức ảnh lưu giữ thanh xuân • Quản lý theo từng Folder / Album
             </p>
           </div>
 
@@ -960,7 +1018,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
             <button
               type="button"
-              onClick={() => setIsPhotoUploadModalOpen(true)}
+              onClick={() => {
+                setUploadAlbumId(selectedAlbumId || 'album_dong_gop');
+                setIsPhotoUploadModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -968,6 +1029,212 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             </button>
           </div>
         </div>
+
+        {/* 🌟 THANH CHỌN CHẾ ĐỘ XEM: THEO ALBUM / THƯ MỤC VS TẤT CẢ ẢNH */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10 bg-amber-100/50 p-2 sm:p-2.5 rounded-2xl border border-amber-200/90">
+          <div className="inline-flex items-center gap-1.5 p-1 bg-white rounded-xl border border-amber-200 shadow-2xs self-start">
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode('albums');
+                setSelectedAlbumId(null);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                viewMode === 'albums' && !selectedAlbumId
+                  ? 'bg-[#1E293B] text-amber-200 shadow-xs'
+                  : 'text-slate-600 hover:bg-amber-50 hover:text-amber-900'
+              }`}
+            >
+              <Folder className="w-3.5 h-3.5 text-amber-500" />
+              <span>Theo Album ({albumsList.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode('all');
+                setSelectedAlbumId(null);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                viewMode === 'all'
+                  ? 'bg-[#1E293B] text-amber-200 shadow-xs'
+                  : 'text-slate-600 hover:bg-amber-50 hover:text-amber-900'
+              }`}
+            >
+              <Grid className="w-3.5 h-3.5 text-amber-500" />
+              <span>Xem Tất Cả ({displayImages.length} Ảnh)</span>
+            </button>
+          </div>
+
+          {/* Breadcrumb info or Album count */}
+          <div className="text-xs text-slate-600 font-sans flex items-center gap-1.5">
+            {selectedAlbumId && currentAlbum ? (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAlbumId(null)}
+                  className="text-amber-800 hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  <span>Tất Cả Album</span>
+                </button>
+                <span className="text-slate-400">/</span>
+                <span className="font-bold text-slate-800">{currentAlbum.title}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-mono font-bold">
+                  {albumStats[currentAlbum.id]?.count || 0} ảnh
+                </span>
+              </div>
+            ) : (
+              <span className="italic text-slate-500 text-[11px]">
+                📁 Hệ thống phân loại ảnh kỷ niệm theo từng folder niên khóa & sự kiện
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 🌟 NỘI DUNG CHÍNH: THEO ALBUM HOẶC THEO LƯỚI ẢNH */}
+        {viewMode === 'albums' && !selectedAlbumId ? (
+          <div className="space-y-4 relative z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {albumsList.map((alb) => {
+                const stat = albumStats[alb.id] || { count: 0, coverUrl: alb.coverPhotoUrl || '' };
+                return (
+                  <div
+                    key={alb.id}
+                    onClick={() => {
+                      setSelectedAlbumId(alb.id);
+                      setVisibleCount(INITIAL_VISIBLE_COUNT);
+                    }}
+                    className="group bg-white rounded-2xl border border-amber-200/90 shadow-xs hover:shadow-xl hover:border-amber-400 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col justify-between"
+                  >
+                    {/* Ảnh Bìa Album & Badge */}
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
+                      <img
+                        src={stat.coverUrl || alb.coverPhotoUrl || 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600'}
+                        alt={alb.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+
+                      {/* Mốc thời gian */}
+                      {alb.period && (
+                        <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-amber-200 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                          📅 {alb.period}
+                        </span>
+                      )}
+
+                      {/* Số lượng ảnh */}
+                      <span className="absolute top-2.5 right-2.5 bg-amber-950/80 backdrop-blur-md text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1">
+                        <Camera className="w-3 h-3 text-amber-400" />
+                        <span>{stat.count} ảnh</span>
+                      </span>
+
+                      {/* Tên Album trên nền ảnh */}
+                      <div className="absolute bottom-2.5 left-3 right-3 text-white">
+                        <h4 className="font-serif font-bold text-sm sm:text-base text-amber-100 group-hover:text-amber-300 transition-colors line-clamp-1 drop-shadow-md">
+                          {alb.title}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Lời tựa Album & Nút hành động */}
+                    <div className="p-3.5 sm:p-4 space-y-3 flex-1 flex flex-col justify-between">
+                      <p className="text-xs text-slate-600 font-sans line-clamp-2 leading-relaxed">
+                        {alb.description || 'Kho ảnh kỷ niệm lưu giữ những khoảnh khắc ấm áp và đáng nhớ của tập thể K8A1.'}
+                      </p>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider inline-flex items-center gap-1 group-hover:text-amber-600 transition-colors">
+                          <FolderOpen className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Xem {stat.count} Ảnh →</span>
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedAlbumId(alb.id);
+                              startSlideshow(0);
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            title="Chiếu slide riêng cho Album này"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                          </button>
+
+                          {alb.driveFolderUrl && (
+                            <a
+                              href={alb.driveFolderUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
+                              title="Mở thư mục trên Google Drive"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Banner nổi bật khi đang xem 1 Album cụ thể */}
+            {selectedAlbumId && currentAlbum && (
+              <div className="bg-gradient-to-r from-[#2c1d11] via-slate-900 to-[#1f1710] p-4 sm:p-6 rounded-2xl border border-amber-400/40 text-white relative overflow-hidden shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1.5 max-w-2xl relative z-10 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 font-bold">
+                      📁 ALBUM {currentAlbum.period ? `• ${currentAlbum.period}` : ''}
+                    </span>
+                    <span className="text-xs text-amber-200/80 font-mono">
+                      {albumStats[selectedAlbumId]?.count || 0} bức ảnh
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-serif font-bold text-amber-200">
+                    {currentAlbum.title}
+                  </h3>
+                  {currentAlbum.description && (
+                    <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                      {currentAlbum.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 self-start md:self-center relative z-10 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => startSlideshow(0)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Chiếu Slide Album Này</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadAlbumId(currentAlbum.id);
+                      setIsPhotoUploadModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>+ Góp Ảnh Vào Album</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
         {/* BỘ LỌC CHỦ ĐỀ HOÀI NIỆM, SẮP XẾP & THANH TÌM KIẾM */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 relative z-10">
@@ -1281,6 +1548,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
           </div>
         )}
+          </>
+        )}
 
       </div>
 
@@ -1445,47 +1714,71 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               </div>
 
               {pendingPhotos.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-3 pt-1">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1 text-[11px]">
-                      Thời gian / Niên khóa:
+                    <label className="block font-semibold text-slate-700 mb-1 text-[11px] flex items-center gap-1.5">
+                      <Folder className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Chọn Thư Mục / Album Lưu Trữ Ảnh:</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       disabled={isUploading}
-                      value={uploadDate}
-                      onChange={(e) => setUploadDate(e.target.value)}
-                      placeholder="VD: 2006, hoặc Họp lớp 10 năm..."
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
-                    />
+                      value={uploadAlbumId}
+                      onChange={(e) => setUploadAlbumId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-amber-50/50 text-xs font-semibold text-slate-800"
+                    >
+                      {albumsList.map((alb) => (
+                        <option key={alb.id} value={alb.id}>
+                          {alb.title} {alb.period ? `(${alb.period})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1 italic">
+                      Ảnh sẽ được tự động phân loại và lưu trữ đúng thư mục Drive tương ứng của lớp.
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1 text-[11px]">
-                      Đặt chú thích chung (tùy chọn):
-                    </label>
-                    <div className="flex gap-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1 text-[11px]">
+                        Thời gian / Niên khóa:
+                      </label>
                       <input
                         type="text"
                         disabled={isUploading}
-                        id="batch-caption-input"
-                        placeholder="VD: Hội trại K8A1 2005..."
-                        className="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
+                        value={uploadDate}
+                        onChange={(e) => setUploadDate(e.target.value)}
+                        placeholder="VD: 2006, hoặc Họp lớp 10 năm..."
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
                       />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => {
-                          const el = document.getElementById('batch-caption-input') as HTMLInputElement;
-                          if (el && el.value.trim()) {
-                            handleApplyBatchCaption(el.value.trim());
-                          }
-                        }}
-                        className="px-2.5 py-1.5 bg-slate-200 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-lg text-[11px] font-sans font-semibold cursor-pointer shrink-0 transition"
-                        title="Áp dụng tên này cho tất cả các ảnh ở trên"
-                      >
-                        Áp dụng
-                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1 text-[11px]">
+                        Đặt chú thích chung (tùy chọn):
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          disabled={isUploading}
+                          id="batch-caption-input"
+                          placeholder="VD: Hội trại K8A1 2005..."
+                          className="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50 text-xs font-serif"
+                        />
+                        <button
+                          type="button"
+                          disabled={isUploading}
+                          onClick={() => {
+                            const el = document.getElementById('batch-caption-input') as HTMLInputElement;
+                            if (el && el.value.trim()) {
+                              handleApplyBatchCaption(el.value.trim());
+                            }
+                          }}
+                          className="px-2.5 py-1.5 bg-slate-200 hover:bg-amber-100 text-slate-700 hover:text-amber-900 rounded-lg text-[11px] font-sans font-semibold cursor-pointer shrink-0 transition"
+                          title="Áp dụng tên này cho tất cả các ảnh ở trên"
+                        >
+                          Áp dụng
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -35,8 +35,8 @@ import {
   Minimize2
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS } from './data';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement, PhotoAlbum } from './types';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS, DEFAULT_ALBUMS, getPhotoAlbumId } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 import { parseMemberNote, serializeMemberNote } from './utils/memberUtils';
 
@@ -236,6 +236,7 @@ export default function App() {
     backdrops: Array.isArray(cfg?.backdrops) && cfg.backdrops.length > 0 ? cfg.backdrops : (DEFAULT_EVENT_CONFIG.backdrops || DEFAULT_BACKDROPS),
     musicPlaylist: Array.isArray(cfg?.musicPlaylist) && cfg.musicPlaylist.length > 0 ? cfg.musicPlaylist : (DEFAULT_EVENT_CONFIG.musicPlaylist || DEFAULT_PLAYLIST),
     stageSettings: cfg?.stageSettings ? cfg.stageSettings : (DEFAULT_EVENT_CONFIG.stageSettings || DEFAULT_STAGE_SETTINGS),
+    albums: Array.isArray(cfg?.albums) && cfg.albums.length > 0 ? cfg.albums : (DEFAULT_EVENT_CONFIG.albums || DEFAULT_ALBUMS),
     showAnnouncements: parseBooleanSafe(cfg?.showAnnouncements, DEFAULT_EVENT_CONFIG.showAnnouncements !== false),
     blockVisibility: cfg?.blockVisibility ? {
       countdown: cfg.blockVisibility.countdown !== false,
@@ -2089,7 +2090,10 @@ export default function App() {
             caption: p.caption || 'Kỷ niệm Lớp K8A1',
             date: p.date || '2006',
             isUserUploaded: true,
-            driveUrl: p.driveUrl
+            driveUrl: p.driveUrl,
+            albumId: p.albumId || getPhotoAlbumId(p),
+            albumName: p.albumName,
+            driveFolderId: p.driveFolderId
           }));
 
           setImages((prev) => {
@@ -2118,7 +2122,10 @@ export default function App() {
                 caption: p.caption || 'Kỷ niệm Lớp K8A1',
                 date: p.date || '2006',
                 isUserUploaded: true,
-                driveUrl: p.driveUrl
+                driveUrl: p.driveUrl,
+                albumId: p.albumId || getPhotoAlbumId(p),
+                albumName: p.albumName,
+                driveFolderId: p.driveFolderId
               }));
 
               setImages((prev) => {
@@ -2320,7 +2327,10 @@ export default function App() {
               caption: p.caption || 'Kỷ niệm Lớp K8A1',
               date: p.date || '2006',
               isUserUploaded: true,
-              driveUrl: p.driveUrl
+              driveUrl: p.driveUrl,
+              albumId: p.albumId || getPhotoAlbumId(p),
+              albumName: p.albumName,
+              driveFolderId: p.driveFolderId
             }));
 
             setImages((prev) => {
@@ -3641,6 +3651,7 @@ export default function App() {
                   appsScriptUrl={activeAppsScriptUrl} 
                   images={images} 
                   videos={videos} 
+                  albums={eventConfig.albums || DEFAULT_ALBUMS}
                   onAddImage={handleAddImage}
                   onOpenStagePresentation={isBLLOrAdmin ? () => setIsStagePresentationOpen(true) : undefined}
                 />
@@ -3836,6 +3847,12 @@ export default function App() {
           onUpdateHeroBannerUrl={handleUpdateHeroBanner}
           eventConfig={eventConfig}
           onUpdateEventConfig={handleUpdateEventConfig}
+          albums={eventConfig.albums || DEFAULT_ALBUMS}
+          onUpdateAlbums={(updatedAlbums: PhotoAlbum[]) => {
+            const updated = { ...eventConfig, albums: updatedAlbums };
+            handleUpdateEventConfig(updated);
+            syncToBackend('save_albums', { albums: updatedAlbums });
+          }}
           appsScriptUrl={activeAppsScriptUrl}
           expenses={expenses}
           onAddExpense={handleAddExpense}
@@ -3942,6 +3959,7 @@ export default function App() {
           onClose={() => setIsStagePresentationOpen(false)}
           backdrops={eventConfig.backdrops || DEFAULT_BACKDROPS}
           memories={images}
+          albums={eventConfig.albums || DEFAULT_ALBUMS}
           playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
           stageSettings={eventConfig.stageSettings || DEFAULT_STAGE_SETTINGS}
           eventTitle={eventConfig.eventTitle || "KỶ NIỆM 20 NĂM NGÀY TRỞ VỀ — K8A1"}

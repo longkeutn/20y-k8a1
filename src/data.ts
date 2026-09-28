@@ -1,4 +1,4 @@
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings, TableConfigItem } from './types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings, TableConfigItem, PhotoAlbum } from './types';
 export {
   isValidVietnamesePhone,
   normalizeVietnamesePhone,
@@ -66,6 +66,79 @@ export const isOfficialBLLMember = (member?: ClassMember | null): boolean => {
 };
 
 export const INITIAL_WISHES_LIST: WishData[] = [];
+
+// =============================================================================
+// DANH SÁCH CÁC FOLDER / ALBUM ẢNH KỶ NIỆM MẶC ĐỊNH CHUẨN K8A1
+// =============================================================================
+export const DEFAULT_ALBUMS: PhotoAlbum[] = [
+  {
+    id: 'album_cap3_2003_2006',
+    title: '🎒 K8A1 Thời Niên Thiếu (2003 — 2006)',
+    description: 'Những ngày tháng học trò ngây ngô dưới mái trường THPT Thái Nguyên, tà áo trắng, hoa phượng đỏ và bao kỷ niệm thời hoa niên.',
+    period: '2003 — 2006',
+    order: 1,
+    coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600',
+    allowPublicUpload: true
+  },
+  {
+    id: 'album_thay_co',
+    title: '👨‍🏫 Tri Ân Thầy Cô Giáo',
+    description: 'Khoảnh khắc kính dâng tấm lòng tri ân tới những người thầy, người cô đã tận tụy dìu dắt bao thế hệ K8A1.',
+    period: '2003 — Nay',
+    order: 2,
+    coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv=w1600',
+    allowPublicUpload: true
+  },
+  {
+    id: 'album_hop_lop_10y_2016',
+    title: '🍻 10 Năm Tái Ngộ (2016)',
+    description: 'Những nụ cười rạng rỡ và cảm xúc vẹn nguyên trong lần gặp mặt kỷ niệm 10 năm ngày ra trường.',
+    period: '2016',
+    order: 3,
+    coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX=w1600',
+    allowPublicUpload: true
+  },
+  {
+    id: 'album_hop_lop_15y_2021',
+    title: '🌟 15 Năm Tình Bạn (2021)',
+    description: 'Một chặng đường gắn kết, trưởng thành và cùng nhau sẻ chia những câu chuyện đời thường ấm áp.',
+    period: '2021',
+    order: 4,
+    coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh=w1600',
+    allowPublicUpload: true
+  },
+  {
+    id: 'album_dai_le_20y_2026',
+    title: '🎉 20 Năm Ngày Trở Về (2026)',
+    description: 'Công tác chuẩn bị, các buổi gặp gỡ hậu trường và toàn bộ khoảnh khắc bùng nổ của Đại lễ 20 năm.',
+    period: '2026',
+    order: 5,
+    coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm=w1600',
+    allowPublicUpload: true
+  },
+  {
+    id: 'album_dong_gop',
+    title: '📸 Góc Thành Viên Đóng Góp',
+    description: 'Những góc ảnh tự chụp, kỷ niệm đời thường do chính các thành viên K8A1 đóng góp và chia sẻ.',
+    period: 'Mọi thời điểm',
+    order: 6,
+    coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb=w1600',
+    allowPublicUpload: true
+  }
+];
+
+/**
+ * Tự động phân loại Album cho ảnh nếu ảnh chưa có albumId
+ */
+export function getPhotoAlbumId(photo: Partial<MemoryImage>): string {
+  if (photo.albumId) return photo.albumId;
+  const text = `${photo.caption || ''} ${photo.date || ''}`.toLowerCase();
+  if (text.includes('thầy') || text.includes('cô') || text.includes('giáo')) return 'album_thay_co';
+  if (text.includes('2016') || text.includes('10 năm')) return 'album_hop_lop_10y_2016';
+  if (text.includes('2021') || text.includes('15 năm')) return 'album_hop_lop_15y_2021';
+  if (text.includes('2026') || text.includes('20 năm')) return 'album_dai_le_20y_2026';
+  return 'album_cap3_2003_2006';
+}
 
 // Thư viện ảnh kỷ niệm chính thức lớp K8A1 (Tự động đồng bộ với Google Drive)
 export const DEFAULT_MEMORIES: MemoryImage[] = [
@@ -2118,6 +2191,7 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   backdrops: DEFAULT_BACKDROPS,
   musicPlaylist: DEFAULT_PLAYLIST,
   stageSettings: DEFAULT_STAGE_SETTINGS,
+  albums: DEFAULT_ALBUMS,
   showAnnouncements: true,
   blockVisibility: {
     countdown: true,

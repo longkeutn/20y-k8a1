@@ -90,7 +90,7 @@ import {
   Layers,
   PlaySquare
 } from 'lucide-react';
-import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, BlockVisibilityConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene, Announcement } from '../types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, BlockVisibilityConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene, Announcement, PhotoAlbum } from '../types';
 import { 
   parseMemberNote, 
   serializeMemberNote, 
@@ -106,6 +106,8 @@ import {
   DEFAULT_BACKDROPS,
   DEFAULT_PLAYLIST,
   DEFAULT_STAGE_SETTINGS,
+  DEFAULT_ALBUMS,
+  getPhotoAlbumId,
   uploadBackdropViaBackend,
   uploadMemberAvatarViaBackend,
   fetchDriveBackdrops,
@@ -204,7 +206,7 @@ interface AdminManagementHubProps {
   onLoginSuccess: (role: UserRole) => void;
   onLogout: () => void;
   initialTab?: 'members' | 'tables' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation';
-  initialMediaSubTab?: 'venue' | 'banner' | 'videos' | 'photos';
+  initialMediaSubTab?: 'venue' | 'banner' | 'videos' | 'photos' | 'albums';
   onOpenStagePresentation?: () => void;
   
   // Data props
@@ -232,6 +234,8 @@ interface AdminManagementHubProps {
   
   eventConfig?: EventConfig;
   onUpdateEventConfig?: (config: EventConfig) => void;
+  albums?: PhotoAlbum[];
+  onUpdateAlbums?: (list: PhotoAlbum[]) => void;
 
   appsScriptUrl: string;
   onSaveAppsScriptUrl: (url: string) => void;
@@ -326,6 +330,8 @@ export default function AdminManagementHub({
   onUpdateHeroBannerUrl,
   eventConfig,
   onUpdateEventConfig,
+  albums = DEFAULT_ALBUMS,
+  onUpdateAlbums,
   appsScriptUrl,
   onSaveAppsScriptUrl,
   onRefreshData,
@@ -396,7 +402,37 @@ export default function AdminManagementHub({
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'members');
 
   // Media Tab subtab state
-  const [mediaSubTab, setMediaSubTab] = useState<'banner' | 'videos' | 'photos'>((initialMediaSubTab === 'venue' || !initialMediaSubTab ? 'banner' : initialMediaSubTab) as any);
+  const [mediaSubTab, setMediaSubTab] = useState<'banner' | 'videos' | 'photos' | 'albums'>((initialMediaSubTab === 'venue' || !initialMediaSubTab ? 'banner' : initialMediaSubTab) as any);
+
+  // Albums State & Management
+  const albumsList = useMemo<PhotoAlbum[]>(() => {
+    return (albums && albums.length > 0)
+      ? albums
+      : (eventConfig?.albums && eventConfig.albums.length > 0)
+        ? eventConfig.albums
+        : DEFAULT_ALBUMS;
+  }, [albums, eventConfig?.albums]);
+
+  const [albumsState, setAlbumsState] = useState<PhotoAlbum[]>(albumsList);
+  useEffect(() => {
+    setAlbumsState(albumsList);
+  }, [albumsList]);
+
+  // Modal thêm / sửa Album
+  const [isAlbumModalOpen, setIsAlbumModalOpen] = useState(false);
+  const [editingAlbum, setEditingAlbum] = useState<PhotoAlbum | null>(null);
+  const [albumFormTitle, setAlbumFormTitle] = useState('');
+  const [albumFormDesc, setAlbumFormDesc] = useState('');
+  const [albumFormPeriod, setAlbumFormPeriod] = useState('');
+  const [albumFormCover, setAlbumFormCover] = useState('');
+  const [albumFormDriveId, setAlbumFormDriveId] = useState('');
+  const [albumFormDriveUrl, setAlbumFormDriveUrl] = useState('');
+  const [albumFormOrder, setAlbumFormOrder] = useState<number>(1);
+
+  // Bộ lọc Album trong Sub-tab Thư Viện Kỷ Yếu (Photos)
+  const [adminPhotoAlbumFilter, setAdminPhotoAlbumFilter] = useState<string>('all');
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
+  const [batchMoveTargetAlbumId, setBatchMoveTargetAlbumId] = useState<string>('');
 
   // Stage Presentation & LED Backdrop States
   const [presentationSubTab, setPresentationSubTab] = useState<'backdrop' | 'music' | 'settings'>('backdrop');
@@ -3364,6 +3400,196 @@ export default function AdminManagementHub({
       onUpdateImages(updated);
       localStorage.setItem('uploaded_images', JSON.stringify(updated));
     }
+  };
+
+  // ---------------------------------------------------------------------------
+  // ALBUM MANAGEMENT HANDLERS (CRUD & BATCH REASSIGN)
+  // ---------------------------------------------------------------------------
+  const handleOpenCreateAlbum = () => {
+    setEditingAlbum(null);
+    setAlbumFormTitle('');
+    setAlbumFormDesc('');
+    setAlbumFormPeriod('');
+    setAlbumFormCover('');
+    setAlbumFormDriveId('');
+    setAlbumFormDriveUrl('');
+    setAlbumFormOrder(albumsState.length + 1);
+    setIsAlbumModalOpen(true);
+  };
+
+  const handleOpenEditAlbum = (album: PhotoAlbum) => {
+    setEditingAlbum(album);
+    setAlbumFormTitle(album.title);
+    setAlbumFormDesc(album.description || '');
+    setAlbumFormPeriod(album.period || '');
+    setAlbumFormCover(album.coverPhotoUrl || '');
+    setAlbumFormDriveId(album.driveFolderId || '');
+    setAlbumFormDriveUrl(album.driveFolderUrl || '');
+    setAlbumFormOrder(album.order || 1);
+    setIsAlbumModalOpen(true);
+  };
+
+  const handleSaveAlbumForm = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!albumFormTitle.trim()) {
+      alert('Vui lòng nhập tên Album!');
+      return;
+    }
+
+    let updated: PhotoAlbum[];
+    if (editingAlbum) {
+      updated = albumsState.map(a => a.id === editingAlbum.id ? {
+        ...a,
+        title: albumFormTitle.trim(),
+        description: albumFormDesc.trim(),
+        period: albumFormPeriod.trim(),
+        coverPhotoUrl: albumFormCover.trim(),
+        driveFolderId: albumFormDriveId.trim(),
+        driveFolderUrl: albumFormDriveUrl.trim() || (albumFormDriveId.trim() ? `https://drive.google.com/drive/folders/${albumFormDriveId.trim()}` : ''),
+        order: Number(albumFormOrder) || 1
+      } : a);
+    } else {
+      const newAlbumId = `album_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const newAlb: PhotoAlbum = {
+        id: newAlbumId,
+        title: albumFormTitle.trim(),
+        description: albumFormDesc.trim(),
+        period: albumFormPeriod.trim(),
+        coverPhotoUrl: albumFormCover.trim(),
+        driveFolderId: albumFormDriveId.trim(),
+        driveFolderUrl: albumFormDriveUrl.trim() || (albumFormDriveId.trim() ? `https://drive.google.com/drive/folders/${albumFormDriveId.trim()}` : ''),
+        order: Number(albumFormOrder) || (albumsState.length + 1),
+        allowPublicUpload: true
+      };
+      updated = [...albumsState, newAlb];
+    }
+
+    setAlbumsState(updated);
+    if (onUpdateAlbums) onUpdateAlbums(updated);
+    setIsAlbumModalOpen(false);
+    setEditingAlbum(null);
+  };
+
+  const handleDeleteAlbum = (albumId: string) => {
+    const alb = albumsState.find(a => a.id === albumId);
+    if (!alb) return;
+    if (confirm(`Bạn có chắc chắn muốn xóa album "${alb.title}"? Các ảnh sẽ được chuyển về mặc định.`)) {
+      const updated = albumsState.filter(a => a.id !== albumId);
+      setAlbumsState(updated);
+      if (onUpdateAlbums) onUpdateAlbums(updated);
+    }
+  };
+
+  const [isSyncingDriveFolders, setIsSyncingDriveFolders] = useState<boolean>(false);
+
+  const handleInitDriveAlbumFolders = async () => {
+    if (!appsScriptUrl || !appsScriptUrl.trim()) {
+      alert('Vui lòng cấu hình URL Google Apps Script WebApp trước khi đồng bộ!');
+      return;
+    }
+    if (!confirm('Hệ thống sẽ tự động tạo thư mục gốc K8A1_KyNiem_20Nam và 6 thư mục Album trên Google Drive của lớp, đồng thời liên kết trực tiếp vào ứng dụng.\n\nBạn có muốn tiếp tục?')) {
+      return;
+    }
+
+    setIsSyncingDriveFolders(true);
+    try {
+      const targetUrl = appsScriptUrl.trim();
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'init_album_folders',
+          pin: adminPin
+        })
+      });
+      const data = await res.json();
+      if (data && data.status === 'success' && Array.isArray(data.albums)) {
+        const updated = albumsState.map(album => {
+          const matched = data.albums.find((a: any) => a.id === album.id);
+          if (matched && matched.driveFolderId) {
+            return {
+              ...album,
+              driveFolderId: matched.driveFolderId,
+              driveFolderUrl: matched.driveFolderUrl || album.driveFolderUrl
+            };
+          }
+          return album;
+        });
+
+        data.albums.forEach((retAlbum: any) => {
+          if (!updated.some(a => a.id === retAlbum.id)) {
+            updated.push({
+              id: retAlbum.id,
+              title: retAlbum.title,
+              period: retAlbum.period,
+              driveFolderId: retAlbum.driveFolderId,
+              driveFolderUrl: retAlbum.driveFolderUrl
+            });
+          }
+        });
+
+        setAlbumsState(updated);
+        if (onUpdateAlbums) {
+          onUpdateAlbums(updated);
+        }
+        alert('🎉 Đã khởi tạo và liên kết thành công ' + data.albums.length + ' thư mục Album trên Google Drive!');
+      } else {
+        alert('Có lỗi khi tạo thư mục: ' + (data?.message || 'Không thể kết nối đến Google Drive'));
+      }
+    } catch (e: any) {
+      alert('Lỗi kết nối tới Google Apps Script: ' + (e?.message || e));
+    } finally {
+      setIsSyncingDriveFolders(false);
+    }
+  };
+
+  const handleChangePhotoAlbum = (photo: MemoryImage, targetAlbumId: string) => {
+    const targetAlbum = albumsState.find(a => a.id === targetAlbumId);
+    const updated = images.map(p => p.id === photo.id ? {
+      ...p,
+      albumId: targetAlbumId,
+      albumName: targetAlbum?.title,
+      driveFolderId: targetAlbum?.driveFolderId
+    } : p);
+    onUpdateImages(updated);
+    localStorage.setItem('uploaded_images', JSON.stringify(updated.filter(i => i.isUserUploaded)));
+  };
+
+  const handleSetPhotoAsAlbumCover = (photo: MemoryImage) => {
+    const photoAlbId = photo.albumId || getPhotoAlbumId(photo);
+    const targetAlbum = albumsState.find(a => a.id === photoAlbId);
+    if (!targetAlbum) {
+      alert('Không tìm thấy Album tương ứng của ảnh này!');
+      return;
+    }
+    const updated = albumsState.map(a => a.id === targetAlbum.id ? {
+      ...a,
+      coverPhotoUrl: photo.url
+    } : a);
+    setAlbumsState(updated);
+    if (onUpdateAlbums) onUpdateAlbums(updated);
+    alert(`Đã đặt ảnh này làm ảnh bìa cho album "${targetAlbum.title}"!`);
+  };
+
+  const handleBatchMovePhotos = () => {
+    if (selectedPhotoIds.size === 0) {
+      alert('Vui lòng chọn ít nhất 1 ảnh để chuyển album!');
+      return;
+    }
+    if (!batchMoveTargetAlbumId) {
+      alert('Vui lòng chọn Album đích!');
+      return;
+    }
+    const targetAlbum = albumsState.find(a => a.id === batchMoveTargetAlbumId);
+    const updated = images.map(p => selectedPhotoIds.has(p.id) ? {
+      ...p,
+      albumId: batchMoveTargetAlbumId,
+      albumName: targetAlbum?.title,
+      driveFolderId: targetAlbum?.driveFolderId
+    } : p);
+    onUpdateImages(updated);
+    localStorage.setItem('uploaded_images', JSON.stringify(updated.filter(i => i.isUserUploaded)));
+    alert(`Đã chuyển thành công ${selectedPhotoIds.size} ảnh sang album "${targetAlbum?.title || batchMoveTargetAlbumId}"!`);
+    setSelectedPhotoIds(new Set());
   };
 
   // ---------------------------------------------------------------------------
@@ -6974,7 +7200,27 @@ export default function AdminManagementHub({
                     <ImageIcon className="w-3.5 h-3.5" />
                     <span>Thư Viện Kỷ Yếu ({images.length})</span>
                   </button>
+
+                  <button
+                    onClick={() => setMediaSubTab('albums')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                      mediaSubTab === 'albums' ? 'bg-[#1E293B] text-amber-300' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Folder className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Quản Lý Album ({albumsState.length})</span>
+                  </button>
                 </div>
+
+                {mediaSubTab === 'albums' && (
+                  <button
+                    onClick={handleOpenCreateAlbum}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-sans font-bold rounded-lg transition cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Tạo Album Mới</span>
+                  </button>
+                )}
 
                 {mediaSubTab === 'videos' && (
                   <button
@@ -7245,33 +7491,343 @@ export default function AdminManagementHub({
                 </div>
               )}
 
-              {/* Sub-tab: Photos */}
-              {mediaSubTab === 'photos' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {images.map((img, idx) => (
-                    <div key={img.id || idx} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-xs flex flex-col justify-between group">
-                      <div className="aspect-square bg-slate-100 relative overflow-hidden">
-                        <img
-                          src={img.url}
-                          alt={img.caption}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                        />
-                      </div>
-                      <div className="p-2.5 space-y-1">
-                        <p className="text-[11px] font-bold text-slate-800 line-clamp-1">{img.caption}</p>
-                        <div className="flex items-center justify-between text-[10px] text-slate-400">
-                          <span>{img.date || 'Kỷ niệm xưa'}</span>
-                          <button
-                            onClick={() => handleDeletePhoto(img)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition"
-                            title="Xóa ảnh"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+              {/* Sub-tab: Album Management */}
+              {mediaSubTab === 'albums' && (
+                <div className="space-y-4 text-left">
+                  {/* Info Header */}
+                  <div className="bg-amber-50/70 p-3.5 sm:p-4 rounded-xl border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <h4 className="text-xs font-bold text-amber-950 flex items-center gap-1.5 uppercase tracking-wider">
+                        <Folder className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Danh Sách Folder / Album Kỷ Niệm K8A1</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-600 font-sans">
+                        Quản lý các thư mục niên khóa, đặt ảnh bìa, liên kết thư mục Google Drive để lưu trữ ảnh chuẩn hóa.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleInitDriveAlbumFolders}
+                        disabled={isSyncingDriveFolders}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs disabled:opacity-50"
+                        title="Tự động tạo hoặc khôi phục 6 thư mục Album trên Google Drive và liên kết"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncingDriveFolders ? 'animate-spin' : ''}`} />
+                        <span>{isSyncingDriveFolders ? 'Đang tạo thư mục...' : 'Đồng bộ Thư Mục Drive'}</span>
+                      </button>
+
+                      <a
+                        href={K8A1_DRIVE_FOLDER_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-100 text-slate-700 hover:text-amber-900 border border-slate-300 rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
+                      >
+                        <Folder className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Mở Drive Gốc</span>
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Lưới danh sách các Album */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {albumsState.map((alb, idx) => {
+                      const albPhotos = images.filter(img => (img.albumId || getPhotoAlbumId(img)) === alb.id);
+                      const cover = alb.coverPhotoUrl || (albPhotos[0] ? albPhotos[0].url : 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600');
+
+                      return (
+                        <div
+                          key={alb.id || idx}
+                          className="bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden flex flex-col justify-between hover:shadow-md transition group"
+                        >
+                          <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
+                            <img
+                              src={cover}
+                              alt={alb.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e: any) => {
+                                e.target.src = 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600';
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                            
+                            {/* Badges */}
+                            <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                              {alb.period && (
+                                <span className="bg-black/60 backdrop-blur-md text-amber-200 text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-amber-400/30">
+                                  {alb.period}
+                                </span>
+                              )}
+                              <span className="bg-amber-950/80 backdrop-blur-md text-amber-300 text-[10px] font-mono px-1.5 py-0.5 rounded font-bold border border-amber-400/30">
+                                #{alb.order || (idx + 1)}
+                              </span>
+                            </div>
+
+                            <span className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Camera className="w-3 h-3 text-amber-400" />
+                              <span>{albPhotos.length} ảnh</span>
+                            </span>
+
+                            <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
+                              <h5 className="font-serif font-bold text-xs sm:text-sm text-amber-100 line-clamp-1">
+                                {alb.title}
+                              </h5>
+                            </div>
+                          </div>
+
+                          <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
+                            <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                              {alb.description || 'Chưa có lời tựa giới thiệu cho album này.'}
+                            </p>
+
+                            {alb.driveFolderId && (
+                              <div className="text-[10px] font-mono text-slate-500 bg-slate-50 p-1.5 rounded border border-slate-200 flex items-center justify-between">
+                                <span className="truncate">Drive: {alb.driveFolderId}</span>
+                                {alb.driveFolderUrl && (
+                                  <a
+                                    href={alb.driveFolderUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-amber-700 hover:text-amber-900 ml-1 shrink-0"
+                                    title="Mở thư mục"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAdminPhotoAlbumFilter(alb.id);
+                                  setMediaSubTab('photos');
+                                }}
+                                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded text-[11px] font-bold transition cursor-pointer flex items-center gap-1"
+                              >
+                                <Eye className="w-3 h-3 text-amber-700" />
+                                <span>Xem {albPhotos.length} ảnh</span>
+                              </button>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditAlbum(alb)}
+                                  className="p-1 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded transition cursor-pointer"
+                                  title="Chỉnh sửa Album"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAlbum(alb.id)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                  title="Xóa Album"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-tab: Photos with Album Filter and Batch Actions */}
+              {mediaSubTab === 'photos' && (
+                <div className="space-y-3.5 text-left">
+                  {/* Album Filter Bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                      <button
+                        type="button"
+                        onClick={() => setAdminPhotoAlbumFilter('all')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
+                          adminPhotoAlbumFilter === 'all'
+                            ? 'bg-[#1E293B] text-amber-300 shadow-xs'
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        Tất Cả ({images.length})
+                      </button>
+
+                      {albumsState.map((alb) => {
+                        const count = images.filter(img => (img.albumId || getPhotoAlbumId(img)) === alb.id).length;
+                        const isActive = adminPhotoAlbumFilter === alb.id;
+                        return (
+                          <button
+                            key={alb.id}
+                            type="button"
+                            onClick={() => setAdminPhotoAlbumFilter(alb.id)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 flex items-center gap-1 ${
+                              isActive
+                                ? 'bg-amber-600 text-white font-bold shadow-xs'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-amber-50'
+                            }`}
+                          >
+                            <span>{alb.title.split(' ')[0]} {alb.title.replace(/^[^a-zA-Z0-9À-ỹ\s]+/, '').trim().split(' ').slice(0, 3).join(' ')}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                              isActive ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-500'
+                            }`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedPhotoIds.size === images.length) {
+                            setSelectedPhotoIds(new Set());
+                          } else {
+                            setSelectedPhotoIds(new Set(images.map(i => i.id)));
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded text-xs font-medium text-slate-700 cursor-pointer"
+                      >
+                        {selectedPhotoIds.size === images.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Batch Action Toolbar when photos are selected */}
+                  {selectedPhotoIds.size > 0 && (
+                    <div className="bg-[#1E293B] text-white p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-md border border-amber-400/40">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-amber-300 font-mono">
+                          Đã chọn: {selectedPhotoIds.size} ảnh
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select
+                          value={batchMoveTargetAlbumId}
+                          onChange={(e) => setBatchMoveTargetAlbumId(e.target.value)}
+                          className="px-2.5 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-xs text-amber-200 font-medium focus:outline-none"
+                        >
+                          <option value="">-- Chọn Album cần chuyển đến --</option>
+                          {albumsState.map(alb => (
+                            <option key={alb.id} value={alb.id}>{alb.title}</option>
+                          ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={handleBatchMovePhotos}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-lg transition cursor-pointer shadow-xs"
+                        >
+                          Chuyển Album
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPhotoIds(new Set())}
+                          className="px-2 py-1.5 text-slate-400 hover:text-white text-xs cursor-pointer"
+                        >
+                          Hủy
+                        </button>
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Photos Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {images
+                      .filter(img => adminPhotoAlbumFilter === 'all' || (img.albumId || getPhotoAlbumId(img)) === adminPhotoAlbumFilter)
+                      .map((img, idx) => {
+                        const currentAlbId = img.albumId || getPhotoAlbumId(img);
+                        const currentAlb = albumsState.find(a => a.id === currentAlbId);
+                        const isSelected = selectedPhotoIds.has(img.id);
+
+                        return (
+                          <div
+                            key={img.id || idx}
+                            className={`bg-white rounded-xl border overflow-hidden shadow-xs flex flex-col justify-between group transition ${
+                              isSelected ? 'ring-2 ring-amber-500 border-amber-500' : 'border-amber-200'
+                            }`}
+                          >
+                            <div className="aspect-square bg-slate-100 relative overflow-hidden">
+                              <img
+                                src={img.url}
+                                alt={img.caption}
+                                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                loading="lazy"
+                              />
+
+                              {/* Selection Checkbox */}
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {
+                                  const next = new Set(selectedPhotoIds);
+                                  if (next.has(img.id)) next.delete(img.id);
+                                  else next.add(img.id);
+                                  setSelectedPhotoIds(next);
+                                }}
+                                className="absolute top-2 left-2 w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer shadow z-10"
+                              />
+
+                              {/* Current Album Pill */}
+                              {currentAlb && (
+                                <span className="absolute bottom-1.5 left-1.5 bg-black/75 backdrop-blur-xs text-amber-200 text-[9px] px-1.5 py-0.5 rounded font-medium truncate max-w-[85%] z-10">
+                                  {currentAlb.title.replace(/^[^a-zA-Z0-9À-ỹ\s]+/, '').trim().split(' ').slice(0, 2).join(' ')}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="p-2 space-y-1.5">
+                              <p className="text-[11px] font-bold text-slate-800 line-clamp-1">{img.caption}</p>
+
+                              {/* Change Album Dropdown */}
+                              <div className="space-y-0.5">
+                                <label className="text-[9px] text-slate-400 block">Thuộc Album:</label>
+                                <select
+                                  value={currentAlbId}
+                                  onChange={(e) => handleChangePhotoAlbum(img, e.target.value)}
+                                  className="w-full text-[10px] bg-slate-50 border border-slate-200 rounded px-1.5 py-1 text-slate-700 font-medium focus:outline-none focus:border-amber-400"
+                                >
+                                  {albumsState.map(alb => (
+                                    <option key={alb.id} value={alb.id}>
+                                      {alb.title}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                                <span>{img.date || 'Kỷ niệm xưa'}</span>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetPhotoAsAlbumCover(img)}
+                                    className="p-1 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition cursor-pointer"
+                                    title="Đặt làm ảnh bìa cho Album này"
+                                  >
+                                    <Sparkles className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeletePhoto(img)}
+                                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                                    title="Xóa ảnh"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
             </div>
@@ -11602,6 +12158,170 @@ export default function AdminManagementHub({
                     className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-sm cursor-pointer"
                   >
                     Thêm Ảnh
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* =================================================================== */}
+      {/* MODAL: TẠO / SỬA ALBUM KỶ NIỆM (ALBUMS) */}
+      {/* =================================================================== */}
+      <AnimatePresence>
+        {isAlbumModalOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl border border-amber-300 shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-4 text-xs my-8 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                    <Folder className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold font-serif text-slate-900">
+                      {editingAlbum ? '✏️ Chỉnh Sửa Album Kỷ Niệm' : '➕ Tạo Album / Thư Mục Mới'}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-sans">
+                      Phân chia album theo niên khóa, sự kiện hoặc chủ đề riêng của K8A1
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAlbumModalOpen(false)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAlbumForm} className="space-y-3.5">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">
+                    Tên Album / Thư mục (*):
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={albumFormTitle}
+                    onChange={(e) => setAlbumFormTitle(e.target.value)}
+                    placeholder="VD: 🎒 K8A1 Thời Niên Thiếu (2003 — 2006)"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">
+                      Niên khóa / Giai đoạn:
+                    </label>
+                    <input
+                      type="text"
+                      value={albumFormPeriod}
+                      onChange={(e) => setAlbumFormPeriod(e.target.value)}
+                      placeholder="VD: 2003 — 2006, hoặc 2016..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">
+                      Thứ tự hiển thị:
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={albumFormOrder}
+                      onChange={(e) => setAlbumFormOrder(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">
+                    Lời tựa / Giới thiệu Album:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={albumFormDesc}
+                    onChange={(e) => setAlbumFormDesc(e.target.value)}
+                    placeholder="Cảm xúc, lời dẫn ngắn về những bức ảnh trong album này..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-amber-500 leading-relaxed"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">
+                    URL Ảnh bìa đại diện (Cover Photo):
+                  </label>
+                  <input
+                    type="text"
+                    value={albumFormCover}
+                    onChange={(e) => setAlbumFormCover(e.target.value)}
+                    placeholder="https://... dán link ảnh làm bìa Album"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-[11px] focus:outline-none focus:border-amber-500"
+                  />
+                  {albumFormCover && (
+                    <div className="mt-1.5 h-24 rounded-lg overflow-hidden border border-amber-300 bg-slate-900 flex items-center justify-center">
+                      <img src={albumFormCover} alt="Xem trước bìa" className="max-h-full max-w-full object-contain" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">
+                      Google Drive Folder ID (nếu có):
+                    </label>
+                    <input
+                      type="text"
+                      value={albumFormDriveId}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        setAlbumFormDriveId(val);
+                        if (val && !albumFormDriveUrl) {
+                          setAlbumFormDriveUrl(`https://drive.google.com/drive/folders/${val}`);
+                        }
+                      }}
+                      placeholder="VD: 1Skmip1HQhmXan..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-[11px] focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">
+                      Link mở thư mục Google Drive:
+                    </label>
+                    <input
+                      type="text"
+                      value={albumFormDriveUrl}
+                      onChange={(e) => setAlbumFormDriveUrl(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-[11px] focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAlbumModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-lg shadow-sm cursor-pointer"
+                  >
+                    {editingAlbum ? 'Cập Nhật Album' : 'Tạo Album Mới'}
                   </button>
                 </div>
               </form>

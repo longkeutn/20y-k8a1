@@ -4,10 +4,10 @@ import {
   X, Maximize2, Minimize2, Play, Pause, SkipForward, SkipBack, 
   Image as ImageIcon, Sparkles, Music, Volume2, VolumeX, Settings, 
   ChevronLeft, ChevronRight, Sliders, Layers, Tv, RefreshCw, Eye, EyeOff,
-  WifiOff, Palette, Frame, QrCode, CheckCircle2
+  WifiOff, Palette, Frame, QrCode, CheckCircle2, Folder
 } from 'lucide-react';
-import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings, SlideTransitionType } from '../types';
-import { getNostalgicPhotoCaption } from '../data';
+import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings, SlideTransitionType, PhotoAlbum } from '../types';
+import { getNostalgicPhotoCaption, DEFAULT_ALBUMS, getPhotoAlbumId } from '../data';
 import MusicPlaylistModal from './MusicPlaylistModal';
 import { precacheMediaList, saveOfflineTrackFile, loadAllOfflineTracks } from '../utils/offlineStorage';
 
@@ -242,6 +242,7 @@ interface StagePresentationHubProps {
   onClose: () => void;
   backdrops: BackdropItem[];
   memories: MemoryImage[];
+  albums?: PhotoAlbum[];
   playlist: MusicTrack[];
   stageSettings: StageSettings;
   eventTitle?: string;
@@ -257,6 +258,7 @@ export default function StagePresentationHub({
   onClose,
   backdrops = [],
   memories = [],
+  albums = DEFAULT_ALBUMS,
   playlist = [],
   stageSettings,
   eventTitle = "KỶ NIỆM 20 NĂM NGÀY TRỞ VỀ — K8A1",
@@ -272,6 +274,11 @@ export default function StagePresentationHub({
   const [enableSparkles, setEnableSparkles] = useState<boolean>(stageSettings.enableSparkles !== false);
   const [showCaption, setShowCaption] = useState<boolean>(stageSettings.showCaption !== false);
   const [showCheckinQr, setShowCheckinQr] = useState<boolean>(false);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string>('all');
+
+  const albumsList = useMemo(() => {
+    return (albums && albums.length > 0) ? albums : DEFAULT_ALBUMS;
+  }, [albums]);
 
   // Hiệu ứng hoài niệm & Khung ảnh kỷ niệm
   const [photoFrameStyle, setPhotoFrameStyle] = useState<'gold' | 'polaroid' | 'none'>(stageSettings.photoFrameStyle || 'gold');
@@ -353,12 +360,17 @@ export default function StagePresentationHub({
     }
   }, [isOpen]);
 
-  // Danh sách ảnh trình chiếu: Luôn xáo trộn ngẫu nhiên (Fisher-Yates) mỗi lần bật Màn LED giống Góc Kỷ Niệm
+  // Danh sách ảnh trình chiếu: Lọc theo Album đang chọn & xáo trộn ngẫu nhiên (Fisher-Yates) mỗi lần bật Màn LED
   const displayPhotos = useMemo(() => {
     if (!memories || memories.length === 0) return [];
 
+    let list = [...memories];
+    if (selectedAlbumId !== 'all') {
+      list = list.filter(m => (m.albumId || getPhotoAlbumId(m)) === selectedAlbumId);
+    }
+    if (list.length === 0) return [];
+
     // Xáo trộn ngẫu nhiên Fisher-Yates với pseudo-random generator từ photoShuffleSeed giống MemoryCorner
-    const list = [...memories];
     let seed = Math.abs(photoShuffleSeed) || 12345;
     const rnd = () => {
       seed = (seed * 9301 + 49297) % 233280;
@@ -369,7 +381,7 @@ export default function StagePresentationHub({
       [list[i], list[j]] = [list[j], list[i]];
     }
     return list;
-  }, [memories, photoShuffleSeed]);
+  }, [memories, selectedAlbumId, photoShuffleSeed]);
 
   // Nạp toàn bộ các ca khúc offline đã lưu trong máy
   useEffect(() => {
@@ -1153,6 +1165,34 @@ export default function StagePresentationHub({
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
+
+              <div className="h-6 w-px bg-slate-700 mx-0.5" />
+
+              {/* Lựa chọn Album trình chiếu trực tiếp trên sân khấu */}
+              <div className="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1 rounded-xl border border-amber-500/40 shadow-xs">
+                <Folder className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <select
+                  value={selectedAlbumId}
+                  onChange={(e) => {
+                    setSelectedAlbumId(e.target.value);
+                    setPhotoIndex(0);
+                  }}
+                  className="bg-transparent text-amber-200 text-xs font-semibold focus:outline-none cursor-pointer max-w-[130px] md:max-w-[200px] truncate"
+                  title="Chọn Album ảnh trình chiếu"
+                >
+                  <option value="all" className="bg-slate-900 text-slate-100">
+                    Tất cả Album ({memories.length} ảnh)
+                  </option>
+                  {albumsList.map(a => {
+                    const count = memories.filter(m => (m.albumId || getPhotoAlbumId(m)) === a.id).length;
+                    return (
+                      <option key={a.id} value={a.id} className="bg-slate-900 text-slate-100">
+                        {a.title} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
             </div>
           )}
 
@@ -1227,6 +1267,57 @@ export default function StagePresentationHub({
             </div>
 
             <div className="space-y-4">
+              {/* Chọn Album ảnh trình chiếu trên sân khấu */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Folder className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Album ảnh trình chiếu:</span>
+                  </span>
+                  <span className="text-[11px] text-amber-300/80 font-normal">
+                    {selectedAlbumId === 'all' ? `Toàn bộ (${memories.length} ảnh)` : (albumsList.find(a => a.id === selectedAlbumId)?.title || '')}
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAlbumId('all');
+                      setPhotoIndex(0);
+                    }}
+                    className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                      selectedAlbumId === 'all'
+                        ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-sm ring-1 ring-amber-400/40'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    <div className="font-semibold text-xs truncate">📁 Tất cả Album</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">{memories.length} ảnh</div>
+                  </button>
+                  {albumsList.map(a => {
+                    const count = memories.filter(m => (m.albumId || getPhotoAlbumId(m)) === a.id).length;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAlbumId(a.id);
+                          setPhotoIndex(0);
+                        }}
+                        className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                          selectedAlbumId === a.id
+                            ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-sm ring-1 ring-amber-400/40'
+                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="font-semibold text-xs truncate">{a.title}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{a.period || `${count} ảnh`}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Tốc độ chuyển ảnh Ken Burns */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-2">
