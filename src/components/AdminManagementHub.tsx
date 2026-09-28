@@ -3494,11 +3494,13 @@ export default function AdminManagementHub({
     setIsSyncingDriveFolders(true);
     try {
       const targetUrl = appsScriptUrl.trim();
+      const pin = getAdminPinToken();
       const res = await fetch(targetUrl, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'init_album_folders',
-          pin: adminPin
+          pin: pin
         })
       });
       const data = await res.json();
