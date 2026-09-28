@@ -155,35 +155,75 @@ export function normalizeAlbumId(rawId?: string | null): string {
 }
 
 /**
- * Làm sạch và khử trùng lặp danh sách Album (tự động gộp 12 album về đúng 6 album chuẩn)
+ * Làm sạch và khử trùng lặp danh sách Album (tự động gộp 12 album về đúng 6 album chuẩn, bảo toàn tiêu đề và thông tin chỉnh sửa)
  */
 export function sanitizeAlbums(albums?: PhotoAlbum[] | null): PhotoAlbum[] {
-  if (!albums || !Array.isArray(albums) || albums.length === 0) {
-    return DEFAULT_ALBUMS;
-  }
-
-  // Khởi tạo map theo 6 album chuẩn
-  const albumMap = new Map<string, PhotoAlbum>();
+  const defaultMap = new Map<string, PhotoAlbum>();
   DEFAULT_ALBUMS.forEach(def => {
-    albumMap.set(def.id, { ...def });
+    defaultMap.set(def.id, { ...def });
   });
 
-  // Duyệt qua danh sách đầu vào và merge thông tin
-  albums.forEach(alb => {
+  if (!albums || !Array.isArray(albums) || albums.length === 0) {
+    return Array.from(defaultMap.values()).sort((a, b) => (a.order || 99) - (b.order || 99));
+  }
+
+  const resultMap = new Map<string, PhotoAlbum>();
+  defaultMap.forEach((def, id) => {
+    resultMap.set(id, { ...def });
+  });
+
+  // Khử trùng lặp: nếu danh sách có cả ID gốc (legacy) và ID chuẩn (canonical), ưu tiên ID chuẩn
+  const hasCanonical = new Set(albums.map(a => a.id));
+  const deduped = albums.filter(a => {
+    if (!a || !a.id) return false;
+    const can = normalizeAlbumId(a.id);
+    return !(a.id !== can && hasCanonical.has(can));
+  });
+
+  deduped.forEach(alb => {
     if (!alb || !alb.id) return;
     const canonicalId = normalizeAlbumId(alb.id);
-    const existing = albumMap.get(canonicalId);
+    const existing = resultMap.get(canonicalId);
     if (existing) {
-      if (alb.driveFolderId && !existing.driveFolderId) existing.driveFolderId = alb.driveFolderId;
-      if (alb.driveFolderUrl && !existing.driveFolderUrl) existing.driveFolderUrl = alb.driveFolderUrl;
-      if (alb.coverPhotoUrl && alb.coverPhotoUrl.trim() !== '') existing.coverPhotoUrl = alb.coverPhotoUrl;
-      if (alb.description && alb.description.trim() !== '') existing.description = alb.description;
+      if (alb.title && alb.title.trim() !== '') {
+        existing.title = alb.title.trim();
+      }
+      if (alb.description !== undefined) {
+        existing.description = alb.description.trim();
+      }
+      if (alb.period !== undefined) {
+        existing.period = alb.period.trim();
+      }
+      if (alb.coverPhotoUrl !== undefined && alb.coverPhotoUrl.trim() !== '') {
+        existing.coverPhotoUrl = alb.coverPhotoUrl.trim();
+      }
+      if (alb.driveFolderId !== undefined && alb.driveFolderId.trim() !== '') {
+        existing.driveFolderId = alb.driveFolderId.trim();
+      }
+      if (alb.driveFolderUrl !== undefined && alb.driveFolderUrl.trim() !== '') {
+        existing.driveFolderUrl = alb.driveFolderUrl.trim();
+      }
+      if (alb.order !== undefined && !isNaN(Number(alb.order))) {
+        existing.order = Number(alb.order);
+      }
+      if (alb.allowPublicUpload !== undefined) {
+        existing.allowPublicUpload = !!alb.allowPublicUpload;
+      }
+      if (alb.mediaCount !== undefined) {
+        existing.mediaCount = alb.mediaCount;
+      }
     } else {
-      albumMap.set(alb.id, { ...alb, id: alb.id });
+      resultMap.set(alb.id, {
+        ...alb,
+        id: alb.id,
+        title: (alb.title && alb.title.trim()) || 'Album Mới',
+        order: (alb.order !== undefined && !isNaN(Number(alb.order))) ? Number(alb.order) : (resultMap.size + 1),
+        allowPublicUpload: alb.allowPublicUpload !== false
+      });
     }
   });
 
-  return Array.from(albumMap.values()).sort((a, b) => (a.order || 99) - (b.order || 99));
+  return Array.from(resultMap.values()).sort((a, b) => (a.order || 99) - (b.order || 99));
 }
 
 /**

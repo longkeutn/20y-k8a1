@@ -647,6 +647,11 @@ function doGet(e) {
     if (action === 'init_album_folders') {
       return handleResponse(initAllAlbumFoldersOnDrive());
     }
+    if (action === 'get_albums' || action === 'get_photo_albums') {
+      var cfgRes = getEventConfig();
+      var albList = (cfgRes && cfgRes.data && cfgRes.data.albums) ? cfgRes.data.albums : [];
+      return handleResponse({ status: 'success', data: albList, albums: albList });
+    }
 
     // 5. Lấy danh sách lưu bút / lời chúc
     if (action === 'get_wishes') {
@@ -777,6 +782,13 @@ function doPost(e) {
     if (action === 'save_config' || action === 'update_config') {
       if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu cấu hình sự kiện!' });
       return handleResponse(saveEventConfig(postData));
+    }
+
+    // 1b. Lưu Danh Sách Album Kỷ Niệm -> Yêu cầu Admin/BLL
+    if (action === 'save_albums' || action === 'update_albums') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để lưu danh sách album!' });
+      var albumsToSave = postData.albums || postData.data || (postData.config && postData.config.albums) || [];
+      return handleResponse(saveEventConfig({ config: { albums: albumsToSave } }));
     }
 
     // 2. Lưu Media (Video, Venue Media) -> Yêu cầu Admin/BLL

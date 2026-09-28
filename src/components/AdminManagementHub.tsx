@@ -3441,8 +3441,9 @@ export default function AdminManagementHub({
 
     let updated: PhotoAlbum[];
     if (editingAlbum) {
-      updated = albumsState.map(a => a.id === editingAlbum.id ? {
+      updated = albumsState.map(a => (a.id === editingAlbum.id || normalizeAlbumId(a.id) === normalizeAlbumId(editingAlbum.id)) ? {
         ...a,
+        id: a.id,
         title: albumFormTitle.trim(),
         description: albumFormDesc.trim(),
         period: albumFormPeriod.trim(),
@@ -3467,17 +3468,19 @@ export default function AdminManagementHub({
       updated = [...albumsState, newAlb];
     }
 
-    setAlbumsState(updated);
-    if (onUpdateAlbums) onUpdateAlbums(updated);
+    const sanitized = sanitizeAlbums(updated);
+    setAlbumsState(sanitized);
+    if (onUpdateAlbums) onUpdateAlbums(sanitized);
     setIsAlbumModalOpen(false);
     setEditingAlbum(null);
+    alert('🎉 Đã cập nhật và lưu thông tin Album thành công!');
   };
 
   const handleDeleteAlbum = (albumId: string) => {
-    const alb = albumsState.find(a => a.id === albumId);
+    const alb = albumsState.find(a => a.id === albumId || normalizeAlbumId(a.id) === normalizeAlbumId(albumId));
     if (!alb) return;
     if (confirm(`Bạn có chắc chắn muốn xóa album "${alb.title}"? Các ảnh sẽ được chuyển về mặc định.`)) {
-      const updated = albumsState.filter(a => a.id !== albumId);
+      const updated = albumsState.filter(a => a.id !== albumId && normalizeAlbumId(a.id) !== normalizeAlbumId(albumId));
       setAlbumsState(updated);
       if (onUpdateAlbums) onUpdateAlbums(updated);
     }
