@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo, PhotoAlbum } from '../types';
-import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, DEFAULT_ALBUMS, getPhotoAlbumId, getNostalgicPhotoCaption } from '../data';
+import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, DEFAULT_ALBUMS, getPhotoAlbumId, getNostalgicPhotoCaption, sanitizeAlbums, normalizeAlbumId } from '../data';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
@@ -93,9 +93,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     return DEFAULT_MEMORIES;
   }, [images]);
 
-  // Danh sách Albums đã cấu hình
+  // Danh sách Albums đã cấu hình (luôn khử trùng lặp và chuẩn hóa về 6 album chuẩn)
   const albumsList = useMemo(() => {
-    return (albums && albums.length > 0) ? albums : DEFAULT_ALBUMS;
+    return sanitizeAlbums(albums);
   }, [albums]);
 
   // Chế độ xem: 'albums' (theo Folder/Album) hoặc 'all' (lưới toàn bộ ảnh)
@@ -105,14 +105,16 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   // Album đang chọn (nếu đang ở chế độ drill-down)
   const currentAlbum = useMemo(() => {
     if (!selectedAlbumId) return null;
-    return albumsList.find(a => a.id === selectedAlbumId) || null;
+    const norm = normalizeAlbumId(selectedAlbumId);
+    return albumsList.find(a => normalizeAlbumId(a.id) === norm) || null;
   }, [albumsList, selectedAlbumId]);
 
   // Thống kê ảnh theo từng Album
   const albumStats = useMemo(() => {
     const stats: Record<string, { count: number; coverUrl: string }> = {};
     albumsList.forEach(alb => {
-      const albPhotos = displayImages.filter(img => (img.albumId || getPhotoAlbumId(img)) === alb.id);
+      const albNorm = normalizeAlbumId(alb.id);
+      const albPhotos = displayImages.filter(img => normalizeAlbumId(img.albumId || getPhotoAlbumId(img)) === albNorm);
       stats[alb.id] = {
         count: albPhotos.length,
         coverUrl: alb.coverPhotoUrl || (albPhotos[0] ? albPhotos[0].url : 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600')
@@ -181,7 +183,10 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           caption: p.caption || 'Kỷ niệm Lớp K8A1',
           date: p.date || '2006',
           isUserUploaded: true,
-          driveUrl: p.driveUrl
+          driveUrl: p.driveUrl,
+          albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
+          albumName: p.albumName,
+          driveFolderId: p.driveFolderId
         }));
         if (onAddImage) {
           onAddImage(driveImgs);
@@ -229,7 +234,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     size: number;
   }[]>([]);
   const [uploadDate, setUploadDate] = useState<string>('2006');
-  const [uploadAlbumId, setUploadAlbumId] = useState<string>('album_dong_gop');
+  const [uploadAlbumId, setUploadAlbumId] = useState<string>('dong-gop-k8a1');
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; percent: number }>({ current: 0, total: 0, percent: 0 });
@@ -387,7 +392,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   // Danh sách ảnh nguồn: Nếu đang chọn 1 album thì chỉ lấy ảnh thuộc album đó
   const sourceImages = useMemo(() => {
     if (selectedAlbumId) {
-      return displayImages.filter(img => (img.albumId || getPhotoAlbumId(img)) === selectedAlbumId);
+      const targetNorm = normalizeAlbumId(selectedAlbumId);
+      return displayImages.filter(img => normalizeAlbumId(img.albumId || getPhotoAlbumId(img)) === targetNorm);
     }
     return displayImages;
   }, [displayImages, selectedAlbumId]);
@@ -582,8 +588,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     const finalDate = uploadDate.trim() || '2006';
     const successfullyAdded: MemoryImage[] = [];
 
-    const targetAlbum = albumsList.find(a => a.id === uploadAlbumId) || albumsList[0];
-    const targetAlbumId = targetAlbum?.id || 'album_dong_gop';
+    const targetAlbum = albumsList.find(a => normalizeAlbumId(a.id) === normalizeAlbumId(uploadAlbumId)) || albumsList[0];
+    const targetAlbumId = normalizeAlbumId(targetAlbum?.id || 'dong-gop-k8a1');
     const targetAlbumTitle = targetAlbum?.title || 'Góc Thành Viên Đóng Góp';
     const targetAlbumDriveFolderId = targetAlbum?.driveFolderId;
 
@@ -1019,7 +1025,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             <button
               type="button"
               onClick={() => {
-                setUploadAlbumId(selectedAlbumId || 'album_dong_gop');
+                setUploadAlbumId(selectedAlbumId ? normalizeAlbumId(selectedAlbumId) : 'dong-gop-k8a1');
                 setIsPhotoUploadModalOpen(true);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
@@ -1199,7 +1205,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                       📁 ALBUM {currentAlbum.period ? `• ${currentAlbum.period}` : ''}
                     </span>
                     <span className="text-xs text-amber-200/80 font-mono">
-                      {albumStats[selectedAlbumId]?.count || 0} bức ảnh
+                      {albumStats[currentAlbum.id]?.count ?? 0} bức ảnh
                     </span>
                   </div>
                   <h3 className="text-lg sm:text-xl font-serif font-bold text-amber-200">

@@ -1969,19 +1969,23 @@ function getRootMemoryFolder() {
     }
   }
 
-  // 2. Tìm thư mục theo tên "K8A1_KyNiem_20Nam" còn hoạt động (không trashed)
+  // 2. Tìm thư mục theo tên "ANH MEDIA", "K8A1_KyNiem_20Nam" hoặc "20 NAM (2006-2026)" còn hoạt động (không trashed)
   if (!folder) {
-    try {
-      const folders = DriveApp.getFoldersByName("K8A1_KyNiem_20Nam");
-      while (folders.hasNext()) {
-        const candidate = folders.next();
-        if (!candidate.isTrashed()) {
-          folder = candidate;
-          break;
+    const candidateNames = ["ANH MEDIA", "K8A1_KyNiem_20Nam", "20 NAM (2006-2026)"];
+    for (let c = 0; c < candidateNames.length; c++) {
+      try {
+        const folders = DriveApp.getFoldersByName(candidateNames[c]);
+        while (folders.hasNext()) {
+          const candidate = folders.next();
+          if (!candidate.isTrashed()) {
+            folder = candidate;
+            break;
+          }
         }
+        if (folder) break;
+      } catch (e) {
+        console.warn("Lỗi tìm folder " + candidateNames[c] + ": " + e.toString());
       }
-    } catch (e) {
-      console.warn("Lỗi tìm folder K8A1_KyNiem_20Nam: " + e.toString());
     }
   }
 
@@ -2167,8 +2171,8 @@ function getDrivePhotos() {
       if (sub.isTrashed()) continue;
       const subName = sub.getName();
 
-      // Bỏ qua thư mục hệ thống
-      if (subName === 'Backdrops_SanKhau' || subName === 'ChungTu_QuyLop_K8A1' || subName === 'Avatar_Thanh_Vien') {
+      // Bỏ qua thư mục hệ thống & video
+      if (subName === 'Backdrops_SanKhau' || subName === 'ChungTu_QuyLop_K8A1' || subName === 'Avatar_Thanh_Vien' || subName === 'VIDEO') {
         continue;
       }
 

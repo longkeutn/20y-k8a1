@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement, PhotoAlbum } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS, DEFAULT_ALBUMS, getPhotoAlbumId } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS, DEFAULT_ALBUMS, getPhotoAlbumId, sanitizeAlbums, normalizeAlbumId } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 import { parseMemberNote, serializeMemberNote } from './utils/memberUtils';
 
@@ -236,7 +236,7 @@ export default function App() {
     backdrops: Array.isArray(cfg?.backdrops) && cfg.backdrops.length > 0 ? cfg.backdrops : (DEFAULT_EVENT_CONFIG.backdrops || DEFAULT_BACKDROPS),
     musicPlaylist: Array.isArray(cfg?.musicPlaylist) && cfg.musicPlaylist.length > 0 ? cfg.musicPlaylist : (DEFAULT_EVENT_CONFIG.musicPlaylist || DEFAULT_PLAYLIST),
     stageSettings: cfg?.stageSettings ? cfg.stageSettings : (DEFAULT_EVENT_CONFIG.stageSettings || DEFAULT_STAGE_SETTINGS),
-    albums: Array.isArray(cfg?.albums) && cfg.albums.length > 0 ? cfg.albums : (DEFAULT_EVENT_CONFIG.albums || DEFAULT_ALBUMS),
+    albums: sanitizeAlbums(cfg?.albums),
     showAnnouncements: parseBooleanSafe(cfg?.showAnnouncements, DEFAULT_EVENT_CONFIG.showAnnouncements !== false),
     blockVisibility: cfg?.blockVisibility ? {
       countdown: cfg.blockVisibility.countdown !== false,
@@ -1013,13 +1013,15 @@ export default function App() {
       if (local) {
         const uploaded = JSON.parse(local);
         if (Array.isArray(uploaded) && uploaded.length > 0) {
-          const defaultIds = new Set(DEFAULT_MEMORIES.map(i => i.id));
-          const userOnly = uploaded.filter((i: any) => i && i.id && !defaultIds.has(i.id));
+          const defaultMap = new Map(DEFAULT_MEMORIES.map(i => [i.id, i]));
+          const userOnly = uploaded
+            .filter((i: any) => i && i.id && !defaultMap.has(i.id))
+            .map((i: any) => ({
+              ...i,
+              albumId: normalizeAlbumId(i.albumId || getPhotoAlbumId(i))
+            }));
           if (userOnly.length > 0) {
             return [...userOnly, ...DEFAULT_MEMORIES];
-          }
-          if (uploaded.length >= DEFAULT_MEMORIES.length) {
-            return uploaded;
           }
         }
       }
@@ -2123,7 +2125,7 @@ export default function App() {
                 date: p.date || '2006',
                 isUserUploaded: true,
                 driveUrl: p.driveUrl,
-                albumId: p.albumId || getPhotoAlbumId(p),
+                albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
                 albumName: p.albumName,
                 driveFolderId: p.driveFolderId
               }));
@@ -2328,7 +2330,7 @@ export default function App() {
               date: p.date || '2006',
               isUserUploaded: true,
               driveUrl: p.driveUrl,
-              albumId: p.albumId || getPhotoAlbumId(p),
+              albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
               albumName: p.albumName,
               driveFolderId: p.driveFolderId
             }));
@@ -3651,7 +3653,7 @@ export default function App() {
                   appsScriptUrl={activeAppsScriptUrl} 
                   images={images} 
                   videos={videos} 
-                  albums={eventConfig.albums || DEFAULT_ALBUMS}
+                  albums={sanitizeAlbums(eventConfig.albums || DEFAULT_ALBUMS)}
                   onAddImage={handleAddImage}
                   onOpenStagePresentation={isBLLOrAdmin ? () => setIsStagePresentationOpen(true) : undefined}
                 />
@@ -3847,11 +3849,12 @@ export default function App() {
           onUpdateHeroBannerUrl={handleUpdateHeroBanner}
           eventConfig={eventConfig}
           onUpdateEventConfig={handleUpdateEventConfig}
-          albums={eventConfig.albums || DEFAULT_ALBUMS}
+          albums={sanitizeAlbums(eventConfig.albums || DEFAULT_ALBUMS)}
           onUpdateAlbums={(updatedAlbums: PhotoAlbum[]) => {
-            const updated = { ...eventConfig, albums: updatedAlbums };
+            const sanitized = sanitizeAlbums(updatedAlbums);
+            const updated = { ...eventConfig, albums: sanitized };
             handleUpdateEventConfig(updated);
-            syncToBackend('save_albums', { albums: updatedAlbums });
+            syncToBackend('save_albums', { albums: sanitized });
           }}
           appsScriptUrl={activeAppsScriptUrl}
           expenses={expenses}
@@ -3959,7 +3962,7 @@ export default function App() {
           onClose={() => setIsStagePresentationOpen(false)}
           backdrops={eventConfig.backdrops || DEFAULT_BACKDROPS}
           memories={images}
-          albums={eventConfig.albums || DEFAULT_ALBUMS}
+          albums={sanitizeAlbums(eventConfig.albums || DEFAULT_ALBUMS)}
           playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
           stageSettings={eventConfig.stageSettings || DEFAULT_STAGE_SETTINGS}
           eventTitle={eventConfig.eventTitle || "KỶ NIỆM 20 NĂM NGÀY TRỞ VỀ — K8A1"}

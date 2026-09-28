@@ -7,7 +7,7 @@ import {
   WifiOff, Palette, Frame, QrCode, CheckCircle2, Folder
 } from 'lucide-react';
 import { BackdropItem, MemoryImage, MusicTrack, StagePresentationScene, StageSettings, SlideTransitionType, PhotoAlbum } from '../types';
-import { getNostalgicPhotoCaption, DEFAULT_ALBUMS, getPhotoAlbumId } from '../data';
+import { getNostalgicPhotoCaption, DEFAULT_ALBUMS, getPhotoAlbumId, sanitizeAlbums, normalizeAlbumId } from '../data';
 import MusicPlaylistModal from './MusicPlaylistModal';
 import { precacheMediaList, saveOfflineTrackFile, loadAllOfflineTracks } from '../utils/offlineStorage';
 
@@ -277,7 +277,7 @@ export default function StagePresentationHub({
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('all');
 
   const albumsList = useMemo(() => {
-    return (albums && albums.length > 0) ? albums : DEFAULT_ALBUMS;
+    return sanitizeAlbums(albums);
   }, [albums]);
 
   // Hiệu ứng hoài niệm & Khung ảnh kỷ niệm
@@ -366,7 +366,7 @@ export default function StagePresentationHub({
 
     let list = [...memories];
     if (selectedAlbumId !== 'all') {
-      list = list.filter(m => (m.albumId || getPhotoAlbumId(m)) === selectedAlbumId);
+      list = list.filter(m => normalizeAlbumId(m.albumId || getPhotoAlbumId(m)) === normalizeAlbumId(selectedAlbumId));
     }
     if (list.length === 0) return [];
 
@@ -1184,7 +1184,7 @@ export default function StagePresentationHub({
                     Tất cả Album ({memories.length} ảnh)
                   </option>
                   {albumsList.map(a => {
-                    const count = memories.filter(m => (m.albumId || getPhotoAlbumId(m)) === a.id).length;
+                    const count = memories.filter(m => normalizeAlbumId(m.albumId || getPhotoAlbumId(m)) === normalizeAlbumId(a.id)).length;
                     return (
                       <option key={a.id} value={a.id} className="bg-slate-900 text-slate-100">
                         {a.title} ({count})
@@ -1295,7 +1295,8 @@ export default function StagePresentationHub({
                     <div className="text-[10px] text-slate-400 mt-0.5">{memories.length} ảnh</div>
                   </button>
                   {albumsList.map(a => {
-                    const count = memories.filter(m => (m.albumId || getPhotoAlbumId(m)) === a.id).length;
+                    const count = memories.filter(m => normalizeAlbumId(m.albumId || getPhotoAlbumId(m)) === normalizeAlbumId(a.id)).length;
+                    const isSelected = selectedAlbumId === a.id || normalizeAlbumId(selectedAlbumId) === normalizeAlbumId(a.id);
                     return (
                       <button
                         key={a.id}
@@ -1305,7 +1306,7 @@ export default function StagePresentationHub({
                           setPhotoIndex(0);
                         }}
                         className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                          selectedAlbumId === a.id
+                          isSelected
                             ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-sm ring-1 ring-amber-400/40'
                             : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
                         }`}

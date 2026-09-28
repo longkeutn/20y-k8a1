@@ -108,6 +108,8 @@ import {
   DEFAULT_STAGE_SETTINGS,
   DEFAULT_ALBUMS,
   getPhotoAlbumId,
+  sanitizeAlbums,
+  normalizeAlbumId,
   uploadBackdropViaBackend,
   uploadMemberAvatarViaBackend,
   fetchDriveBackdrops,
@@ -406,11 +408,12 @@ export default function AdminManagementHub({
 
   // Albums State & Management
   const albumsList = useMemo<PhotoAlbum[]>(() => {
-    return (albums && albums.length > 0)
+    const raw = (albums && albums.length > 0)
       ? albums
       : (eventConfig?.albums && eventConfig.albums.length > 0)
         ? eventConfig.albums
         : DEFAULT_ALBUMS;
+    return sanitizeAlbums(raw);
   }, [albums, eventConfig?.albums]);
 
   const [albumsState, setAlbumsState] = useState<PhotoAlbum[]>(albumsList);
@@ -3505,35 +3508,12 @@ export default function AdminManagementHub({
       });
       const data = await res.json();
       if (data && data.status === 'success' && Array.isArray(data.albums)) {
-        const updated = albumsState.map(album => {
-          const matched = data.albums.find((a: any) => a.id === album.id);
-          if (matched && matched.driveFolderId) {
-            return {
-              ...album,
-              driveFolderId: matched.driveFolderId,
-              driveFolderUrl: matched.driveFolderUrl || album.driveFolderUrl
-            };
-          }
-          return album;
-        });
-
-        data.albums.forEach((retAlbum: any) => {
-          if (!updated.some(a => a.id === retAlbum.id)) {
-            updated.push({
-              id: retAlbum.id,
-              title: retAlbum.title,
-              period: retAlbum.period,
-              driveFolderId: retAlbum.driveFolderId,
-              driveFolderUrl: retAlbum.driveFolderUrl
-            });
-          }
-        });
-
-        setAlbumsState(updated);
+        const combined = sanitizeAlbums([...albumsState, ...data.albums]);
+        setAlbumsState(combined);
         if (onUpdateAlbums) {
-          onUpdateAlbums(updated);
+          onUpdateAlbums(combined);
         }
-        alert('🎉 Đã khởi tạo và liên kết thành công ' + data.albums.length + ' thư mục Album trên Google Drive!');
+        alert('🎉 Đã khởi tạo và liên kết thành công ' + combined.length + ' thư mục Album trên Google Drive!');
       } else {
         alert('Có lỗi khi tạo thư mục: ' + (data?.message || 'Không thể kết nối đến Google Drive'));
       }
@@ -7536,7 +7516,7 @@ export default function AdminManagementHub({
                   {/* Lưới danh sách các Album */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {albumsState.map((alb, idx) => {
-                      const albPhotos = images.filter(img => (img.albumId || getPhotoAlbumId(img)) === alb.id);
+                      const albPhotos = images.filter(img => normalizeAlbumId(img.albumId || getPhotoAlbumId(img)) === normalizeAlbumId(alb.id));
                       const cover = alb.coverPhotoUrl || (albPhotos[0] ? albPhotos[0].url : 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600');
 
                       return (
@@ -7660,8 +7640,8 @@ export default function AdminManagementHub({
                       </button>
 
                       {albumsState.map((alb) => {
-                        const count = images.filter(img => (img.albumId || getPhotoAlbumId(img)) === alb.id).length;
-                        const isActive = adminPhotoAlbumFilter === alb.id;
+                        const count = images.filter(img => normalizeAlbumId(img.albumId || getPhotoAlbumId(img)) === normalizeAlbumId(alb.id)).length;
+                        const isActive = normalizeAlbumId(adminPhotoAlbumFilter) === normalizeAlbumId(alb.id);
                         return (
                           <button
                             key={alb.id}
@@ -7744,10 +7724,10 @@ export default function AdminManagementHub({
                   {/* Photos Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {images
-                      .filter(img => adminPhotoAlbumFilter === 'all' || (img.albumId || getPhotoAlbumId(img)) === adminPhotoAlbumFilter)
+                      .filter(img => adminPhotoAlbumFilter === 'all' || normalizeAlbumId(img.albumId || getPhotoAlbumId(img)) === normalizeAlbumId(adminPhotoAlbumFilter))
                       .map((img, idx) => {
-                        const currentAlbId = img.albumId || getPhotoAlbumId(img);
-                        const currentAlb = albumsState.find(a => a.id === currentAlbId);
+                        const currentAlbId = normalizeAlbumId(img.albumId || getPhotoAlbumId(img));
+                        const currentAlb = albumsState.find(a => normalizeAlbumId(a.id) === currentAlbId);
                         const isSelected = selectedPhotoIds.has(img.id);
 
                         return (

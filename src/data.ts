@@ -72,731 +72,158 @@ export const INITIAL_WISHES_LIST: WishData[] = [];
 // =============================================================================
 export const DEFAULT_ALBUMS: PhotoAlbum[] = [
   {
-    id: 'album_cap3_2003_2006',
+    id: 'thanh-xuan-2003-2006',
     title: '🎒 K8A1 Thời Niên Thiếu (2003 — 2006)',
     description: 'Những ngày tháng học trò ngây ngô dưới mái trường THPT Thái Nguyên, tà áo trắng, hoa phượng đỏ và bao kỷ niệm thời hoa niên.',
     period: '2003 — 2006',
     order: 1,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600',
+    driveFolderId: '1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo',
     allowPublicUpload: true
   },
   {
-    id: 'album_thay_co',
+    id: 'thay-co-mai-truong',
     title: '👨‍🏫 Tri Ân Thầy Cô Giáo',
     description: 'Khoảnh khắc kính dâng tấm lòng tri ân tới những người thầy, người cô đã tận tụy dìu dắt bao thế hệ K8A1.',
     period: '2003 — Nay',
     order: 2,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv=w1600',
+    driveFolderId: '1nbo9ePPdFBSMvvl_fvUk-67P9MiYvC44',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/1nbo9ePPdFBSMvvl_fvUk-67P9MiYvC44',
     allowPublicUpload: true
   },
   {
-    id: 'album_hop_lop_10y_2016',
+    id: 'hoi-ngo-10-nam',
     title: '🍻 10 Năm Tái Ngộ (2016)',
     description: 'Những nụ cười rạng rỡ và cảm xúc vẹn nguyên trong lần gặp mặt kỷ niệm 10 năm ngày ra trường.',
     period: '2016',
     order: 3,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX=w1600',
+    driveFolderId: '1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9',
     allowPublicUpload: true
   },
   {
-    id: 'album_hop_lop_15y_2021',
+    id: 'hoi-ngo-15-nam',
     title: '🌟 15 Năm Tình Bạn (2021)',
     description: 'Một chặng đường gắn kết, trưởng thành và cùng nhau sẻ chia những câu chuyện đời thường ấm áp.',
     period: '2021',
     order: 4,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh=w1600',
+    driveFolderId: '10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH',
     allowPublicUpload: true
   },
   {
-    id: 'album_dai_le_20y_2026',
+    id: 'dai-le-20-nam',
     title: '🎉 20 Năm Ngày Trở Về (2026)',
     description: 'Công tác chuẩn bị, các buổi gặp gỡ hậu trường và toàn bộ khoảnh khắc bùng nổ của Đại lễ 20 năm.',
     period: '2026',
     order: 5,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm=w1600',
+    driveFolderId: '19NiwMjF0T4wo_Tq9iFSzSphmtxppkXl2',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/19NiwMjF0T4wo_Tq9iFSzSphmtxppkXl2',
     allowPublicUpload: true
   },
   {
-    id: 'album_dong_gop',
+    id: 'dong-gop-k8a1',
     title: '📸 Góc Thành Viên Đóng Góp',
     description: 'Những góc ảnh tự chụp, kỷ niệm đời thường do chính các thành viên K8A1 đóng góp và chia sẻ.',
     period: 'Mọi thời điểm',
     order: 6,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb=w1600',
+    driveFolderId: '1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl',
+    driveFolderUrl: 'https://drive.google.com/drive/folders/1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl',
     allowPublicUpload: true
   }
 ];
 
 /**
- * Tự động phân loại Album cho ảnh nếu ảnh chưa có albumId
+ * Chuẩn hóa Album ID từ bất kỳ ID cũ (legacy) hoặc alias
+ */
+export function normalizeAlbumId(rawId?: string | null): string {
+  if (!rawId) return 'thanh-xuan-2003-2006';
+  const id = rawId.toLowerCase().trim();
+  if (id === 'album_cap3_2003_2006' || id === 'thanh-xuan-2003-2006' || id === 'thoi-nien-thieu-2003-2006' || id.includes('thoi_nien_thieu')) return 'thanh-xuan-2003-2006';
+  if (id === 'album_thay_co' || id === 'thay-co-mai-truong' || id.includes('thay_co')) return 'thay-co-mai-truong';
+  if (id === 'album_hop_lop_10y_2016' || id === 'hoi-ngo-10-nam' || id === 'hoi-ngo-10-nam-2016' || id.includes('10_nam')) return 'hoi-ngo-10-nam';
+  if (id === 'album_hop_lop_15y_2021' || id === 'hoi-ngo-15-nam' || id === 'hoi-ngo-15-nam-2021' || id.includes('15_nam')) return 'hoi-ngo-15-nam';
+  if (id === 'album_dai_le_20y_2026' || id === 'dai-le-20-nam' || id === 'dai-le-20-nam-2026' || id.includes('20_nam')) return 'dai-le-20-nam';
+  if (id === 'album_dong_gop' || id === 'dong-gop-k8a1' || id === 'dong-gop-tu-lieu-anh' || id.includes('dong_gop')) return 'dong-gop-k8a1';
+  return id;
+}
+
+/**
+ * Làm sạch và khử trùng lặp danh sách Album (tự động gộp 12 album về đúng 6 album chuẩn)
+ */
+export function sanitizeAlbums(albums?: PhotoAlbum[] | null): PhotoAlbum[] {
+  if (!albums || !Array.isArray(albums) || albums.length === 0) {
+    return DEFAULT_ALBUMS;
+  }
+
+  // Khởi tạo map theo 6 album chuẩn
+  const albumMap = new Map<string, PhotoAlbum>();
+  DEFAULT_ALBUMS.forEach(def => {
+    albumMap.set(def.id, { ...def });
+  });
+
+  // Duyệt qua danh sách đầu vào và merge thông tin
+  albums.forEach(alb => {
+    if (!alb || !alb.id) return;
+    const canonicalId = normalizeAlbumId(alb.id);
+    const existing = albumMap.get(canonicalId);
+    if (existing) {
+      if (alb.driveFolderId && !existing.driveFolderId) existing.driveFolderId = alb.driveFolderId;
+      if (alb.driveFolderUrl && !existing.driveFolderUrl) existing.driveFolderUrl = alb.driveFolderUrl;
+      if (alb.coverPhotoUrl && alb.coverPhotoUrl.trim() !== '') existing.coverPhotoUrl = alb.coverPhotoUrl;
+      if (alb.description && alb.description.trim() !== '') existing.description = alb.description;
+    } else {
+      albumMap.set(alb.id, { ...alb, id: alb.id });
+    }
+  });
+
+  return Array.from(albumMap.values()).sort((a, b) => (a.order || 99) - (b.order || 99));
+}
+
+/**
+ * Tự động phân loại Album cho ảnh nếu ảnh chưa có albumId hoặc chuẩn hóa ID cũ
  */
 export function getPhotoAlbumId(photo: Partial<MemoryImage>): string {
-  if (photo.albumId) return photo.albumId;
-  const text = `${photo.caption || ''} ${photo.date || ''}`.toLowerCase();
-  if (text.includes('thầy') || text.includes('cô') || text.includes('giáo')) return 'album_thay_co';
-  if (text.includes('2016') || text.includes('10 năm')) return 'album_hop_lop_10y_2016';
-  if (text.includes('2021') || text.includes('15 năm')) return 'album_hop_lop_15y_2021';
-  if (text.includes('2026') || text.includes('20 năm')) return 'album_dai_le_20y_2026';
-  return 'album_cap3_2003_2006';
+  if (photo.albumId) {
+    return normalizeAlbumId(photo.albumId);
+  }
+  const text = `${photo.caption || ''} ${photo.date || ''} ${photo.albumName || ''}`.toLowerCase();
+  if (text.includes('thầy') || text.includes('cô') || text.includes('giáo') || text.includes('tri ân') || text.includes('mái trường')) {
+    return 'thay-co-mai-truong';
+  }
+  if (text.includes('2016') || text.includes('10 năm') || text.includes('10y') || text.includes('tái ngộ')) {
+    return 'hoi-ngo-10-nam';
+  }
+  if (text.includes('2021') || text.includes('15 năm') || text.includes('15y') || text.includes('tình bạn')) {
+    return 'hoi-ngo-15-nam';
+  }
+  if (text.includes('2026') || text.includes('20 năm') || text.includes('20y') || text.includes('đại lễ') || text.includes('trở về')) {
+    return 'dai-le-20-nam';
+  }
+  if (text.includes('đóng góp') || text.includes('thành viên') || text.includes('tự chụp') || text.includes('tư liệu')) {
+    return 'dong-gop-k8a1';
+  }
+  return 'thanh-xuan-2003-2006';
 }
 
 // Thư viện ảnh kỷ niệm chính thức lớp K8A1 (Tự động đồng bộ với Google Drive)
 export const DEFAULT_MEMORIES: MemoryImage[] = [
-  {
-    "id": "1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD",
-    "url": "https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w600",
-    "driveUrl": "https://drive.google.com/file/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD/view?usp=drivesdk",
-    "caption": "1788824248451 3501496844115072933 g8213875404109675727 9527bee86c38f35b4561e6a754f06d46",
-    "date": "08/09/2026 08:17"
-  },
-  {
-    "id": "1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv",
-    "url": "https://lh3.googleusercontent.com/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv=w600",
-    "driveUrl": "https://drive.google.com/file/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv/view?usp=drivesdk",
-    "caption": "1788824248592 3501496844115072933 g8213875404109675727 ebf9663813a934ae04dd580a52fd3244",
-    "date": "08/09/2026 08:17"
-  },
-  {
-    "id": "1iXWP-WZniC5rcV0qevoymDvFxG41DXXX",
-    "url": "https://lh3.googleusercontent.com/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX=w600",
-    "driveUrl": "https://drive.google.com/file/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX/view?usp=drivesdk",
-    "caption": "1788824248732 3501496844115072933 g8213875404109675727 da08312a632de5f5bf4e6f53ad649388",
-    "date": "08/09/2026 08:17"
-  },
-  {
-    "id": "1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh",
-    "url": "https://lh3.googleusercontent.com/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh=w600",
-    "driveUrl": "https://drive.google.com/file/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh/view?usp=drivesdk",
-    "caption": "1788824248871 3501496844115072933 g8213875404109675727 23e6f269ae05048e27f12abbf107f266",
-    "date": "08/09/2026 08:17"
-  },
-  {
-    "id": "1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm",
-    "url": "https://lh3.googleusercontent.com/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm=w600",
-    "driveUrl": "https://drive.google.com/file/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm/view?usp=drivesdk",
-    "caption": "1788824249013 3501496844115072933 g8213875404109675727 04f464b9b04065b8e3aa43b6e41f7dd6",
-    "date": "08/09/2026 08:17"
-  },
-  {
-    "id": "1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb",
-    "url": "https://lh3.googleusercontent.com/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb=w600",
-    "driveUrl": "https://drive.google.com/file/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb/view?usp=drivesdk",
-    "caption": "1788824249209 3501496844115072933 g8213875404109675727 eb5473dac01488365f15e3dc53c1e935",
-    "date": "08/09/2026 08:17"
-  },
-  {
-    "id": "1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi",
-    "url": "https://lh3.googleusercontent.com/d/1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi=w600",
-    "driveUrl": "https://drive.google.com/file/d/1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi/view?usp=drivesdk",
-    "caption": "1788824248331 3501496844115072933 g8213875404109675727 065c7067d85cb59faf76157717165807",
-    "date": "08/09/2026 08:17"
-  },
-  {
-    "id": "1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo",
-    "url": "https://lh3.googleusercontent.com/d/1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo=w600",
-    "driveUrl": "https://drive.google.com/file/d/1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo/view?usp=drivesdk",
-    "caption": "2aOboQx0cIp0ytJctMR2mYgDpSIvagbVQ47zopO4",
-    "date": "07/09/2026 23:36"
-  },
-  {
-    "id": "1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx",
-    "url": "https://lh3.googleusercontent.com/d/1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx=w600",
-    "driveUrl": "https://drive.google.com/file/d/1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx/view?usp=drivesdk",
-    "caption": "2aOboQx0baKOoIURuyvahzXio9cEbiKEgfKnDCcq",
-    "date": "07/09/2026 21:39"
-  },
-  {
-    "id": "12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1",
-    "url": "https://lh3.googleusercontent.com/d/12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1=w600",
-    "driveUrl": "https://drive.google.com/file/d/12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1/view?usp=drivesdk",
-    "caption": "569594713 25427700770149816 2644678869832531622 n",
-    "date": "07/09/2026 14:29"
-  },
-  {
-    "id": "16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc",
-    "url": "https://lh3.googleusercontent.com/d/16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc=w600",
-    "driveUrl": "https://drive.google.com/file/d/16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc/view?usp=drivesdk",
-    "caption": "568591301 25427700846816475 1126852120421423282 n",
-    "date": "07/09/2026 14:28"
-  },
-  {
-    "id": "1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q",
-    "url": "https://lh3.googleusercontent.com/d/1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q=w600",
-    "driveUrl": "https://drive.google.com/file/d/1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q/view?usp=drivesdk",
-    "caption": "568521421 25427700783483148 7823683749895364541 n",
-    "date": "07/09/2026 14:28"
-  },
-  {
-    "id": "1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_",
-    "url": "https://lh3.googleusercontent.com/d/1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_=w600",
-    "driveUrl": "https://drive.google.com/file/d/1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_/view?usp=drivesdk",
-    "caption": "568711089 25427701150149778 8533686120286400563 n",
-    "date": "07/09/2026 14:28"
-  },
-  {
-    "id": "1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW",
-    "url": "https://lh3.googleusercontent.com/d/1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW=w600",
-    "driveUrl": "https://drive.google.com/file/d/1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW/view?usp=drivesdk",
-    "caption": "568570760 25427700993483127 702110216661534225 n",
-    "date": "07/09/2026 14:28"
-  },
-  {
-    "id": "1_TEoL7kscr16madk1x_RFk-yYDgdqzR_",
-    "url": "https://lh3.googleusercontent.com/d/1_TEoL7kscr16madk1x_RFk-yYDgdqzR_=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1_TEoL7kscr16madk1x_RFk-yYDgdqzR_=w600",
-    "driveUrl": "https://drive.google.com/file/d/1_TEoL7kscr16madk1x_RFk-yYDgdqzR_/view?usp=drivesdk",
-    "caption": "568684012 25427701193483107 3841298913620152420 n",
-    "date": "07/09/2026 14:28"
-  },
-  {
-    "id": "1XHVCQdD8zry64VsaguH-qjiDL268sTLO",
-    "url": "https://lh3.googleusercontent.com/d/1XHVCQdD8zry64VsaguH-qjiDL268sTLO=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1XHVCQdD8zry64VsaguH-qjiDL268sTLO=w600",
-    "driveUrl": "https://drive.google.com/file/d/1XHVCQdD8zry64VsaguH-qjiDL268sTLO/view?usp=drivesdk",
-    "caption": "569034083 25427700956816464 1023055468056574601 n",
-    "date": "07/09/2026 14:27"
-  },
-  {
-    "id": "19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw",
-    "url": "https://lh3.googleusercontent.com/d/19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw=w600",
-    "driveUrl": "https://drive.google.com/file/d/19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw/view?usp=drivesdk",
-    "caption": "569407909 25427701183483108 3435695790737340030 n",
-    "date": "07/09/2026 14:27"
-  },
-  {
-    "id": "1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14",
-    "url": "https://lh3.googleusercontent.com/d/1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14=w600",
-    "driveUrl": "https://drive.google.com/file/d/1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14/view?usp=drivesdk",
-    "caption": "568465914 25427700736816486 4586619359066166841 n",
-    "date": "07/09/2026 14:27"
-  },
-  {
-    "id": "1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74",
-    "url": "https://lh3.googleusercontent.com/d/1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74=w600",
-    "driveUrl": "https://drive.google.com/file/d/1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74/view?usp=drivesdk",
-    "caption": "568644863 25427701010149792 2103536203186524603 n",
-    "date": "07/09/2026 14:27"
-  },
-  {
-    "id": "1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ",
-    "url": "https://lh3.googleusercontent.com/d/1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ=w600",
-    "driveUrl": "https://drive.google.com/file/d/1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ/view?usp=drivesdk",
-    "caption": "568660519 25427701133483113 3101238401658299889 n",
-    "date": "07/09/2026 14:27"
-  },
-  {
-    "id": "14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO",
-    "url": "https://lh3.googleusercontent.com/d/14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO=w600",
-    "driveUrl": "https://drive.google.com/file/d/14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO/view?usp=drivesdk",
-    "caption": "568391428 25427700786816481 3815322867541178641 n",
-    "date": "07/09/2026 14:27"
-  },
-  {
-    "id": "1HaSseVibgreTddMgzBONxJgVlpkSTNd7",
-    "url": "https://lh3.googleusercontent.com/d/1HaSseVibgreTddMgzBONxJgVlpkSTNd7=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1HaSseVibgreTddMgzBONxJgVlpkSTNd7=w600",
-    "driveUrl": "https://drive.google.com/file/d/1HaSseVibgreTddMgzBONxJgVlpkSTNd7/view?usp=drivesdk",
-    "caption": "569045915 25427701130149780 6295153971260902112 n",
-    "date": "07/09/2026 14:26"
-  },
-  {
-    "id": "1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7",
-    "url": "https://lh3.googleusercontent.com/d/1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7=w600",
-    "driveUrl": "https://drive.google.com/file/d/1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7/view?usp=drivesdk",
-    "caption": "568732066 25427701006816459 8741581285049397805 n",
-    "date": "07/09/2026 14:26"
-  },
-  {
-    "id": "1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX",
-    "url": "https://lh3.googleusercontent.com/d/1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX=w600",
-    "driveUrl": "https://drive.google.com/file/d/1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX/view?usp=drivesdk",
-    "caption": "568368382 25427701003483126 6337531773628394740 n",
-    "date": "07/09/2026 14:26"
-  },
-  {
-    "id": "1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA",
-    "url": "https://lh3.googleusercontent.com/d/1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA=w600",
-    "driveUrl": "https://drive.google.com/file/d/1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA/view?usp=drivesdk",
-    "caption": "568673263 25427700840149809 1166261907794601885 n",
-    "date": "07/09/2026 14:26"
-  },
-  {
-    "id": "11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt",
-    "url": "https://lh3.googleusercontent.com/d/11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt=w600",
-    "driveUrl": "https://drive.google.com/file/d/11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt/view?usp=drivesdk",
-    "caption": "568626605 25427701180149775 7581562842138321625 n",
-    "date": "07/09/2026 14:25"
-  },
-  {
-    "id": "1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt",
-    "url": "https://lh3.googleusercontent.com/d/1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt=w600",
-    "driveUrl": "https://drive.google.com/file/d/1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt/view?usp=drivesdk",
-    "caption": "568743815 25427700963483130 2635418458490161686 n",
-    "date": "07/09/2026 14:24"
-  },
-  {
-    "id": "1kEAtvZGkriNORGy8N6KL3h65TwYGQybD",
-    "url": "https://lh3.googleusercontent.com/d/1kEAtvZGkriNORGy8N6KL3h65TwYGQybD=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1kEAtvZGkriNORGy8N6KL3h65TwYGQybD=w600",
-    "driveUrl": "https://drive.google.com/file/d/1kEAtvZGkriNORGy8N6KL3h65TwYGQybD/view?usp=drivesdk",
-    "caption": "568679026 25427699210149972 7810656936267837094 n",
-    "date": "07/09/2026 14:24"
-  },
-  {
-    "id": "1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl",
-    "url": "https://lh3.googleusercontent.com/d/1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl=w600",
-    "driveUrl": "https://drive.google.com/file/d/1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl/view?usp=drivesdk",
-    "caption": "569263239 25427700996816460 3729324044172904123 n",
-    "date": "07/09/2026 14:24"
-  },
-  {
-    "id": "1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx",
-    "url": "https://lh3.googleusercontent.com/d/1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx=w600",
-    "driveUrl": "https://drive.google.com/file/d/1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx/view?usp=drivesdk",
-    "caption": "568573499 25427700953483131 5327576891590810063 n",
-    "date": "07/09/2026 14:23"
-  },
-  {
-    "id": "13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP",
-    "url": "https://lh3.googleusercontent.com/d/13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP=w600",
-    "driveUrl": "https://drive.google.com/file/d/13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP/view?usp=drivesdk",
-    "caption": "568695090 25427700926816467 6488015068094102325 n",
-    "date": "07/09/2026 14:23"
-  },
-  {
-    "id": "10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_",
-    "url": "https://lh3.googleusercontent.com/d/10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_=w600",
-    "driveUrl": "https://drive.google.com/file/d/10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_/view?usp=drivesdk",
-    "caption": "569361841 25427700896816470 871589613218143097 n",
-    "date": "07/09/2026 14:23"
-  },
-  {
-    "id": "1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5",
-    "url": "https://lh3.googleusercontent.com/d/1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5=w600",
-    "driveUrl": "https://drive.google.com/file/d/1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5/view?usp=drivesdk",
-    "caption": "569275669 25427700886816471 1727293045959048178 n",
-    "date": "07/09/2026 14:23"
-  },
-  {
-    "id": "1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_",
-    "url": "https://lh3.googleusercontent.com/d/1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_=w600",
-    "driveUrl": "https://drive.google.com/file/d/1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_/view?usp=drivesdk",
-    "caption": "568636651 25427701116816448 7916458789377339898 n",
-    "date": "07/09/2026 14:23"
-  },
-  {
-    "id": "1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ",
-    "url": "https://lh3.googleusercontent.com/d/1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ=w600",
-    "driveUrl": "https://drive.google.com/file/d/1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ/view?usp=drivesdk",
-    "caption": "568630213 25427698856816674 2846856576979995986 n",
-    "date": "07/09/2026 14:23"
-  },
-  {
-    "id": "1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk",
-    "url": "https://lh3.googleusercontent.com/d/1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk=w600",
-    "driveUrl": "https://drive.google.com/file/d/1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk/view?usp=drivesdk",
-    "caption": "569279888 25427698850150008 885288553376472055 n",
-    "date": "07/09/2026 14:22"
-  },
-  {
-    "id": "17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD",
-    "url": "https://lh3.googleusercontent.com/d/17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD=w600",
-    "driveUrl": "https://drive.google.com/file/d/17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD/view?usp=drivesdk",
-    "caption": "568461253 25427698870150006 3328890851937873153 n",
-    "date": "07/09/2026 14:22"
-  },
-  {
-    "id": "1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS",
-    "url": "https://lh3.googleusercontent.com/d/1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS=w600",
-    "driveUrl": "https://drive.google.com/file/d/1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS/view?usp=drivesdk",
-    "caption": "568958945 25427698953483331 796230735043202253 n",
-    "date": "07/09/2026 14:22"
-  },
-  {
-    "id": "1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD",
-    "url": "https://lh3.googleusercontent.com/d/1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD=w600",
-    "driveUrl": "https://drive.google.com/file/d/1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD/view?usp=drivesdk",
-    "caption": "568550900 25427698930150000 3725851553165042490 n",
-    "date": "07/09/2026 14:22"
-  },
-  {
-    "id": "1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC",
-    "url": "https://lh3.googleusercontent.com/d/1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC=w600",
-    "driveUrl": "https://drive.google.com/file/d/1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC/view?usp=drivesdk",
-    "caption": "569414997 25427698846816675 5023155042365671726 n",
-    "date": "07/09/2026 14:20"
-  },
-  {
-    "id": "1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ",
-    "url": "https://lh3.googleusercontent.com/d/1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ=w600",
-    "driveUrl": "https://drive.google.com/file/d/1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ/view?usp=drivesdk",
-    "caption": "569032834 25427698886816671 6964238627033919601 n",
-    "date": "07/09/2026 14:20"
-  },
-  {
-    "id": "1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N",
-    "url": "https://lh3.googleusercontent.com/d/1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N=w600",
-    "driveUrl": "https://drive.google.com/file/d/1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N/view?usp=drivesdk",
-    "caption": "568580679 25427698980149995 2528942899829108465 n",
-    "date": "07/09/2026 14:20"
-  },
-  {
-    "id": "1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j",
-    "url": "https://lh3.googleusercontent.com/d/1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j=w600",
-    "driveUrl": "https://drive.google.com/file/d/1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j/view?usp=drivesdk",
-    "caption": "569014762 25427698990149994 6107575324795489823 n",
-    "date": "07/09/2026 14:20"
-  },
-  {
-    "id": "12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb",
-    "url": "https://lh3.googleusercontent.com/d/12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb=w600",
-    "driveUrl": "https://drive.google.com/file/d/12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb/view?usp=drivesdk",
-    "caption": "568647261 25427699213483305 2404001179269260586 n",
-    "date": "07/09/2026 14:20"
-  },
-  {
-    "id": "1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L",
-    "url": "https://lh3.googleusercontent.com/d/1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L=w600",
-    "driveUrl": "https://drive.google.com/file/d/1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L/view?usp=drivesdk",
-    "caption": "568477608 25427699000149993 7399702547866199340 n",
-    "date": "07/09/2026 14:20"
-  },
-  {
-    "id": "1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI",
-    "url": "https://lh3.googleusercontent.com/d/1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI=w600",
-    "driveUrl": "https://drive.google.com/file/d/1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI/view?usp=drivesdk",
-    "caption": "568410051 25427698866816673 2671118570767665667 n",
-    "date": "07/09/2026 14:19"
-  },
-  {
-    "id": "1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B",
-    "url": "https://lh3.googleusercontent.com/d/1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B=w600",
-    "driveUrl": "https://drive.google.com/file/d/1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B/view?usp=drivesdk",
-    "caption": "568916889 25427699006816659 3087752054251687335 n",
-    "date": "07/09/2026 14:19"
-  },
-  {
-    "id": "15Y7EUSibVURczn5ACyHACR9R5wyze5Ar",
-    "url": "https://lh3.googleusercontent.com/d/15Y7EUSibVURczn5ACyHACR9R5wyze5Ar=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/15Y7EUSibVURczn5ACyHACR9R5wyze5Ar=w600",
-    "driveUrl": "https://drive.google.com/file/d/15Y7EUSibVURczn5ACyHACR9R5wyze5Ar/view?usp=drivesdk",
-    "caption": "568638419 25427698940149999 1402577002769121704 n",
-    "date": "07/09/2026 14:19"
-  },
-  {
-    "id": "1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg",
-    "url": "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w600",
-    "driveUrl": "https://drive.google.com/file/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg/view?usp=drivesdk",
-    "caption": "Hero Banner K8A1 1788595247751",
-    "date": "05/09/2026 15:00"
-  },
-  {
-    "id": "1aY8eo6a1heLuw034pLpDQsYKMMfuLc51",
-    "url": "https://lh3.googleusercontent.com/d/1aY8eo6a1heLuw034pLpDQsYKMMfuLc51=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1aY8eo6a1heLuw034pLpDQsYKMMfuLc51=w600",
-    "driveUrl": "https://drive.google.com/file/d/1aY8eo6a1heLuw034pLpDQsYKMMfuLc51/view?usp=drivesdk",
-    "caption": "554971995 32660542940203212 2424085129544350643 n",
-    "date": "05/09/2026 09:15"
-  },
-  {
-    "id": "1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-",
-    "url": "https://lh3.googleusercontent.com/d/1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-=w600",
-    "driveUrl": "https://drive.google.com/file/d/1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-/view?usp=drivesdk",
-    "caption": "648357832 10226146414361480 3833201303384509491 n",
-    "date": "05/09/2026 09:15"
-  },
-  {
-    "id": "1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2",
-    "url": "https://lh3.googleusercontent.com/d/1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2=w600",
-    "driveUrl": "https://drive.google.com/file/d/1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2/view?usp=drivesdk",
-    "caption": "506460880 29829890076657001 4142235106235955816 n",
-    "date": "05/09/2026 09:14"
-  },
-  {
-    "id": "1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o",
-    "url": "https://lh3.googleusercontent.com/d/1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o=w600",
-    "driveUrl": "https://drive.google.com/file/d/1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o/view?usp=drivesdk",
-    "caption": "511009035 30602990642625346 2880448722037149222 n",
-    "date": "05/09/2026 09:13"
-  },
-  {
-    "id": "1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju",
-    "url": "https://lh3.googleusercontent.com/d/1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju=w600",
-    "driveUrl": "https://drive.google.com/file/d/1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju/view?usp=drivesdk",
-    "caption": "511330109 3855424527936875 8908743723824579465 n",
-    "date": "05/09/2026 09:12"
-  },
-  {
-    "id": "1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE",
-    "url": "https://lh3.googleusercontent.com/d/1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE=w600",
-    "driveUrl": "https://drive.google.com/file/d/1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE/view?usp=drivesdk",
-    "caption": "513896040 24325259480400973 6935572474755808817 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9",
-    "url": "https://lh3.googleusercontent.com/d/1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9=w600",
-    "driveUrl": "https://drive.google.com/file/d/1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9/view?usp=drivesdk",
-    "caption": "514954212 24325259277067660 1271437142121605245 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX",
-    "url": "https://lh3.googleusercontent.com/d/1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX=w600",
-    "driveUrl": "https://drive.google.com/file/d/1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX/view?usp=drivesdk",
-    "caption": "515121447 24325259427067645 1046997780096707513 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ",
-    "url": "https://lh3.googleusercontent.com/d/1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ=w600",
-    "driveUrl": "https://drive.google.com/file/d/1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ/view?usp=drivesdk",
-    "caption": "514405511 24325259380400983 3852819756365493424 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS",
-    "url": "https://lh3.googleusercontent.com/d/11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS=w600",
-    "driveUrl": "https://drive.google.com/file/d/11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS/view?usp=drivesdk",
-    "caption": "514374652 24325259297067658 8532392626940600440 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ",
-    "url": "https://lh3.googleusercontent.com/d/1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ=w600",
-    "driveUrl": "https://drive.google.com/file/d/1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ/view?usp=drivesdk",
-    "caption": "513898701 24325259320400989 3468692801592186009 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE",
-    "url": "https://lh3.googleusercontent.com/d/15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE=w600",
-    "driveUrl": "https://drive.google.com/file/d/15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE/view?usp=drivesdk",
-    "caption": "514374655 24325259213734333 978284759044515201 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg",
-    "url": "https://lh3.googleusercontent.com/d/1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg=w600",
-    "driveUrl": "https://drive.google.com/file/d/1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg/view?usp=drivesdk",
-    "caption": "515593345 24325259387067649 1247523544945188133 n",
-    "date": "05/09/2026 09:11"
-  },
-  {
-    "id": "1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ",
-    "url": "https://lh3.googleusercontent.com/d/1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ=w600",
-    "driveUrl": "https://drive.google.com/file/d/1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ/view?usp=drivesdk",
-    "caption": "566388636 24935157649469681 6276832814599423669 n",
-    "date": "05/09/2026 09:10"
-  },
-  {
-    "id": "1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5",
-    "url": "https://lh3.googleusercontent.com/d/1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5=w600",
-    "driveUrl": "https://drive.google.com/file/d/1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5/view?usp=drivesdk",
-    "caption": "503504170 2977749089065057 1459925905882967295 n",
-    "date": "05/09/2026 09:10"
-  },
-  {
-    "id": "1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa",
-    "url": "https://lh3.googleusercontent.com/d/1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa=w600",
-    "driveUrl": "https://drive.google.com/file/d/1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa/view?usp=drivesdk",
-    "caption": "503605997 2977749192398380 442522293639860588 n",
-    "date": "05/09/2026 09:09"
-  },
-  {
-    "id": "1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6",
-    "url": "https://lh3.googleusercontent.com/d/1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6=w600",
-    "driveUrl": "https://drive.google.com/file/d/1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6/view?usp=drivesdk",
-    "caption": "503828962 2977749182398381 1325996235817212040 n",
-    "date": "05/09/2026 09:09"
-  },
-  {
-    "id": "1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v",
-    "url": "https://lh3.googleusercontent.com/d/1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v=w600",
-    "driveUrl": "https://drive.google.com/file/d/1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v/view?usp=drivesdk",
-    "caption": "503504723 2977749309065035 1228763104923627602 n",
-    "date": "05/09/2026 09:09"
-  },
-  {
-    "id": "1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW",
-    "url": "https://lh3.googleusercontent.com/d/1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW=w600",
-    "driveUrl": "https://drive.google.com/file/d/1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW/view?usp=drivesdk",
-    "caption": "503889696 2977750115731621 8515012779203325994 n",
-    "date": "05/09/2026 09:09"
-  },
-  {
-    "id": "1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g",
-    "url": "https://lh3.googleusercontent.com/d/1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g=w600",
-    "driveUrl": "https://drive.google.com/file/d/1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g/view?usp=drivesdk",
-    "caption": "509261017 3393265960816629 6127474883787765388 n",
-    "date": "05/09/2026 09:08"
-  },
-  {
-    "id": "1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf",
-    "url": "https://lh3.googleusercontent.com/d/1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf=w600",
-    "driveUrl": "https://drive.google.com/file/d/1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf/view?usp=drivesdk",
-    "caption": "475164842 1356830075748822 5437923390166382806 n",
-    "date": "05/09/2026 09:08"
-  },
-  {
-    "id": "1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb",
-    "url": "https://lh3.googleusercontent.com/d/1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb=w600",
-    "driveUrl": "https://drive.google.com/file/d/1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb/view?usp=drivesdk",
-    "caption": "475116469 1356830739082089 1650045069745636096 n",
-    "date": "05/09/2026 09:08"
-  },
-  {
-    "id": "1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN",
-    "url": "https://lh3.googleusercontent.com/d/1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN=w600",
-    "driveUrl": "https://drive.google.com/file/d/1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN/view?usp=drivesdk",
-    "caption": "475272178 1356830555748774 2593652870081312031 n",
-    "date": "05/09/2026 09:08"
-  },
-  {
-    "id": "19f450ovKABWpZLF4ppEByERh3lBZMoxs",
-    "url": "https://lh3.googleusercontent.com/d/19f450ovKABWpZLF4ppEByERh3lBZMoxs=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/19f450ovKABWpZLF4ppEByERh3lBZMoxs=w600",
-    "driveUrl": "https://drive.google.com/file/d/19f450ovKABWpZLF4ppEByERh3lBZMoxs/view?usp=drivesdk",
-    "caption": "475065642 1356830552415441 2066059058356530555 n",
-    "date": "05/09/2026 09:07"
-  },
-  {
-    "id": "1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf",
-    "url": "https://lh3.googleusercontent.com/d/1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf=w600",
-    "driveUrl": "https://drive.google.com/file/d/1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf/view?usp=drivesdk",
-    "caption": "475112365 1356830565748773 2148331455199405320 n",
-    "date": "05/09/2026 09:07"
-  },
-  {
-    "id": "1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-",
-    "url": "https://lh3.googleusercontent.com/d/1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-=w600",
-    "driveUrl": "https://drive.google.com/file/d/1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-/view?usp=drivesdk",
-    "caption": "474915648 1356830665748763 7088442939443535675 n",
-    "date": "05/09/2026 09:06"
-  },
-  {
-    "id": "1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF",
-    "url": "https://lh3.googleusercontent.com/d/1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF=w600",
-    "driveUrl": "https://drive.google.com/file/d/1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF/view?usp=drivesdk",
-    "caption": "475134847 1356830729082090 6973331376706866691 n",
-    "date": "05/09/2026 09:06"
-  },
-  {
-    "id": "1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h",
-    "url": "https://lh3.googleusercontent.com/d/1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h=w600",
-    "driveUrl": "https://drive.google.com/file/d/1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h/view?usp=drivesdk",
-    "caption": "640949231 26726866320232674 2861436457150474237 n",
-    "date": "05/09/2026 09:06"
-  },
   {
     "id": "16qTHGfkz6rB0HrWsXMML3_K9Ji89fUaA",
     "url": "https://lh3.googleusercontent.com/d/16qTHGfkz6rB0HrWsXMML3_K9Ji89fUaA=w1600",
     "thumbnail": "https://lh3.googleusercontent.com/d/16qTHGfkz6rB0HrWsXMML3_K9Ji89fUaA=w600",
     "driveUrl": "https://drive.google.com/file/d/16qTHGfkz6rB0HrWsXMML3_K9Ji89fUaA/view?usp=drivesdk",
     "caption": "499270042 3806814892797839 2072592384911416816 n",
-    "date": "05/09/2026 09:06"
-  },
-  {
-    "id": "10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K",
-    "url": "https://lh3.googleusercontent.com/d/10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K=w600",
-    "driveUrl": "https://drive.google.com/file/d/10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K/view?usp=drivesdk",
-    "caption": "501748380 3818279548318040 4488756202888224625 n",
-    "date": "05/09/2026 09:06"
-  },
-  {
-    "id": "1H1WnZyWGa_IlJXB5K61fhVHva3j9Ayjh",
-    "url": "https://lh3.googleusercontent.com/d/1H1WnZyWGa_IlJXB5K61fhVHva3j9Ayjh=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1H1WnZyWGa_IlJXB5K61fhVHva3j9Ayjh=w600",
-    "driveUrl": "https://drive.google.com/file/d/1H1WnZyWGa_IlJXB5K61fhVHva3j9Ayjh/view?usp=drivesdk",
-    "caption": "500479710 3818279618318033 1462160208812744168 n",
-    "date": "05/09/2026 09:06"
-  },
-  {
-    "id": "1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO",
-    "url": "https://lh3.googleusercontent.com/d/1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO=w600",
-    "driveUrl": "https://drive.google.com/file/d/1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO/view?usp=drivesdk",
-    "caption": "502689037 3823147487831246 7655701400069318099 n",
-    "date": "05/09/2026 09:06"
-  },
-  {
-    "id": "1URalctfUl30SRVtpmboOz6lkaMYvAi4C",
-    "url": "https://lh3.googleusercontent.com/d/1URalctfUl30SRVtpmboOz6lkaMYvAi4C=w1600",
-    "thumbnail": "https://lh3.googleusercontent.com/d/1URalctfUl30SRVtpmboOz6lkaMYvAi4C=w600",
-    "driveUrl": "https://drive.google.com/file/d/1URalctfUl30SRVtpmboOz6lkaMYvAi4C/view?usp=drivesdk",
-    "caption": "507453999 24185686561024933 8941559406477211526 n",
-    "date": "05/09/2026 09:05"
+    "date": "05/09/2026 09:06",
+    "albumId": "dong-gop-k8a1",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
+    "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
     "id": "1jpkFZucnRceK3QHI-5oFxVDnU4R00vxP",
@@ -804,7 +231,10 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "thumbnail": "https://lh3.googleusercontent.com/d/1jpkFZucnRceK3QHI-5oFxVDnU4R00vxP=w600",
     "driveUrl": "https://drive.google.com/file/d/1jpkFZucnRceK3QHI-5oFxVDnU4R00vxP/view?usp=drivesdk",
     "caption": "490298270 2920829528090347 1483611416095165429 n",
-    "date": "05/09/2026 09:05"
+    "date": "05/09/2026 09:05",
+    "albumId": "dong-gop-k8a1",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
+    "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
     "id": "185bsXQ9hPYEfjl1yRRZKVkIVLoIPSam4",
@@ -812,7 +242,10 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "thumbnail": "https://lh3.googleusercontent.com/d/185bsXQ9hPYEfjl1yRRZKVkIVLoIPSam4=w600",
     "driveUrl": "https://drive.google.com/file/d/185bsXQ9hPYEfjl1yRRZKVkIVLoIPSam4/view?usp=drivesdk",
     "caption": "489906562 2920829544757012 1498041119239528231 n",
-    "date": "05/09/2026 09:04"
+    "date": "05/09/2026 09:04",
+    "albumId": "dong-gop-k8a1",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
+    "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
     "id": "15A2sSdUKbxxMcwIfpmpG28BSCRGrBHFx",
@@ -820,7 +253,10 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "thumbnail": "https://lh3.googleusercontent.com/d/15A2sSdUKbxxMcwIfpmpG28BSCRGrBHFx=w600",
     "driveUrl": "https://drive.google.com/file/d/15A2sSdUKbxxMcwIfpmpG28BSCRGrBHFx/view?usp=drivesdk",
     "caption": "490652438 2920829568090343 1972879535129963866 n",
-    "date": "05/09/2026 09:04"
+    "date": "05/09/2026 09:04",
+    "albumId": "dong-gop-k8a1",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
+    "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
     "id": "1gxY87iDXK-DM0woyAalC3THJGu6-0Npe",
@@ -828,7 +264,10 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "thumbnail": "https://lh3.googleusercontent.com/d/1gxY87iDXK-DM0woyAalC3THJGu6-0Npe=w600",
     "driveUrl": "https://drive.google.com/file/d/1gxY87iDXK-DM0woyAalC3THJGu6-0Npe/view?usp=drivesdk",
     "caption": "490101062 2920830661423567 2250418056820492208 n",
-    "date": "05/09/2026 09:04"
+    "date": "05/09/2026 09:04",
+    "albumId": "dong-gop-k8a1",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
+    "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
     "id": "16LvD1l6k3fjeKevsqAFH6dZ9bVGWLyf8",
@@ -836,7 +275,1517 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "thumbnail": "https://lh3.googleusercontent.com/d/16LvD1l6k3fjeKevsqAFH6dZ9bVGWLyf8=w600",
     "driveUrl": "https://drive.google.com/file/d/16LvD1l6k3fjeKevsqAFH6dZ9bVGWLyf8/view?usp=drivesdk",
     "caption": "489947984 2920829594757007 2288825474806937438 n",
-    "date": "05/09/2026 09:03"
+    "date": "05/09/2026 09:03",
+    "albumId": "dong-gop-k8a1",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
+    "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
+  },
+  {
+    "id": "1wAoa1gvTPWjFMhET5udFfDgVAbPfO-pW",
+    "url": "https://lh3.googleusercontent.com/d/1wAoa1gvTPWjFMhET5udFfDgVAbPfO-pW=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1wAoa1gvTPWjFMhET5udFfDgVAbPfO-pW=w600",
+    "driveUrl": "https://drive.google.com/file/d/1wAoa1gvTPWjFMhET5udFfDgVAbPfO-pW/view?usp=drivesdk",
+    "caption": "474871751 1356830585748771 7479293876746198285 n",
+    "date": "28/09/2026 14:57",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "17SzwC7EbpXf-AS_tqHuLIYUbOS516LSq",
+    "url": "https://lh3.googleusercontent.com/d/17SzwC7EbpXf-AS_tqHuLIYUbOS516LSq=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/17SzwC7EbpXf-AS_tqHuLIYUbOS516LSq=w600",
+    "driveUrl": "https://drive.google.com/file/d/17SzwC7EbpXf-AS_tqHuLIYUbOS516LSq/view?usp=drivesdk",
+    "caption": "475114259 1356829939082169 3046017748641983950 n",
+    "date": "28/09/2026 14:57",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1qEABJiATv9oNWItYr2FK95q2gE_qu0m_",
+    "url": "https://lh3.googleusercontent.com/d/1qEABJiATv9oNWItYr2FK95q2gE_qu0m_=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1qEABJiATv9oNWItYr2FK95q2gE_qu0m_=w600",
+    "driveUrl": "https://drive.google.com/file/d/1qEABJiATv9oNWItYr2FK95q2gE_qu0m_/view?usp=drivesdk",
+    "caption": "475164075 1356830695748760 8946071791161163477 n",
+    "date": "28/09/2026 14:56",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1EH05UjNOhu8hOCHTPqxAvZ4xpK7Vq8AH",
+    "url": "https://lh3.googleusercontent.com/d/1EH05UjNOhu8hOCHTPqxAvZ4xpK7Vq8AH=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1EH05UjNOhu8hOCHTPqxAvZ4xpK7Vq8AH=w600",
+    "driveUrl": "https://drive.google.com/file/d/1EH05UjNOhu8hOCHTPqxAvZ4xpK7Vq8AH/view?usp=drivesdk",
+    "caption": "475115050 1356830742415422 2641066426338130267 n",
+    "date": "28/09/2026 14:56",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1sCkpzQN4PtqTrjBv2tivgOcmabGo-bss",
+    "url": "https://lh3.googleusercontent.com/d/1sCkpzQN4PtqTrjBv2tivgOcmabGo-bss=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1sCkpzQN4PtqTrjBv2tivgOcmabGo-bss=w600",
+    "driveUrl": "https://drive.google.com/file/d/1sCkpzQN4PtqTrjBv2tivgOcmabGo-bss/view?usp=drivesdk",
+    "caption": "475060316 1356830655748764 7207174376143640475 n",
+    "date": "28/09/2026 14:56",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1PdKAD_AllwTywPC16PCQCQyINt5GK0Gu",
+    "url": "https://lh3.googleusercontent.com/d/1PdKAD_AllwTywPC16PCQCQyINt5GK0Gu=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1PdKAD_AllwTywPC16PCQCQyINt5GK0Gu=w600",
+    "driveUrl": "https://drive.google.com/file/d/1PdKAD_AllwTywPC16PCQCQyINt5GK0Gu/view?usp=drivesdk",
+    "caption": "475147427 1356830692415427 6421317411585214495 n",
+    "date": "28/09/2026 14:55",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1b73xpM6DvzESkW9orZNy_T8ZBFxInmL8",
+    "url": "https://lh3.googleusercontent.com/d/1b73xpM6DvzESkW9orZNy_T8ZBFxInmL8=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1b73xpM6DvzESkW9orZNy_T8ZBFxInmL8=w600",
+    "driveUrl": "https://drive.google.com/file/d/1b73xpM6DvzESkW9orZNy_T8ZBFxInmL8/view?usp=drivesdk",
+    "caption": "474885431 1356830752415421 5307508534759363325 n",
+    "date": "28/09/2026 14:55",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1ngm74eu-AsVsYE71l-tT_0V5mqTIkisW",
+    "url": "https://lh3.googleusercontent.com/d/1ngm74eu-AsVsYE71l-tT_0V5mqTIkisW=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1ngm74eu-AsVsYE71l-tT_0V5mqTIkisW=w600",
+    "driveUrl": "https://drive.google.com/file/d/1ngm74eu-AsVsYE71l-tT_0V5mqTIkisW/view?usp=drivesdk",
+    "caption": "475123268 1356830632415433 3698973179484619688 n",
+    "date": "28/09/2026 14:55",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1d0VgsAebYFKExFHVgQZrTk2sfcPLIRrc",
+    "url": "https://lh3.googleusercontent.com/d/1d0VgsAebYFKExFHVgQZrTk2sfcPLIRrc=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1d0VgsAebYFKExFHVgQZrTk2sfcPLIRrc=w600",
+    "driveUrl": "https://drive.google.com/file/d/1d0VgsAebYFKExFHVgQZrTk2sfcPLIRrc/view?usp=drivesdk",
+    "caption": "475172922 1356830652415431 8319688608764906255 n",
+    "date": "28/09/2026 14:55",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1tF0hRMMN9yBm7rTRhbna6U50-Lxzi1O7",
+    "url": "https://lh3.googleusercontent.com/d/1tF0hRMMN9yBm7rTRhbna6U50-Lxzi1O7=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1tF0hRMMN9yBm7rTRhbna6U50-Lxzi1O7=w600",
+    "driveUrl": "https://drive.google.com/file/d/1tF0hRMMN9yBm7rTRhbna6U50-Lxzi1O7/view?usp=drivesdk",
+    "caption": "475106532 1356830615748768 1558761998908294246 n",
+    "date": "28/09/2026 14:55",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1OkRX1kFHQGiVobnhzyds_DUiFjxZDuEI",
+    "url": "https://lh3.googleusercontent.com/d/1OkRX1kFHQGiVobnhzyds_DUiFjxZDuEI=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1OkRX1kFHQGiVobnhzyds_DUiFjxZDuEI=w600",
+    "driveUrl": "https://drive.google.com/file/d/1OkRX1kFHQGiVobnhzyds_DUiFjxZDuEI/view?usp=drivesdk",
+    "caption": "474920887 1356830725748757 2432317177434895658 n",
+    "date": "28/09/2026 14:55",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1A9Epvyc72NZPCohmDcKwwpwMPbVHXwj-",
+    "url": "https://lh3.googleusercontent.com/d/1A9Epvyc72NZPCohmDcKwwpwMPbVHXwj-=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1A9Epvyc72NZPCohmDcKwwpwMPbVHXwj-=w600",
+    "driveUrl": "https://drive.google.com/file/d/1A9Epvyc72NZPCohmDcKwwpwMPbVHXwj-/view?usp=drivesdk",
+    "caption": "475235403 1356830482415448 1255230655908895490 n",
+    "date": "28/09/2026 14:55",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1ESP6U0lR1t65yu69Fz1J2Sfmym_M-kAy",
+    "url": "https://lh3.googleusercontent.com/d/1ESP6U0lR1t65yu69Fz1J2Sfmym_M-kAy=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1ESP6U0lR1t65yu69Fz1J2Sfmym_M-kAy=w600",
+    "driveUrl": "https://drive.google.com/file/d/1ESP6U0lR1t65yu69Fz1J2Sfmym_M-kAy/view?usp=drivesdk",
+    "caption": "475065481 1356830722415424 5978859464277269402 n",
+    "date": "28/09/2026 14:54",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1Z1t8dQTecwv6ehmd2RdWfTCx3HHHl0fZ",
+    "url": "https://lh3.googleusercontent.com/d/1Z1t8dQTecwv6ehmd2RdWfTCx3HHHl0fZ=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Z1t8dQTecwv6ehmd2RdWfTCx3HHHl0fZ=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Z1t8dQTecwv6ehmd2RdWfTCx3HHHl0fZ/view?usp=drivesdk",
+    "caption": "475293007 1356829975748832 1830052831931879334 n",
+    "date": "28/09/2026 14:54",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1Br_T708V_ONjcbL2Md7e0UdLQLySBK4G",
+    "url": "https://lh3.googleusercontent.com/d/1Br_T708V_ONjcbL2Md7e0UdLQLySBK4G=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Br_T708V_ONjcbL2Md7e0UdLQLySBK4G=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Br_T708V_ONjcbL2Md7e0UdLQLySBK4G/view?usp=drivesdk",
+    "caption": "475112365 1356830565748773 2148331455199405320 n (1)",
+    "date": "28/09/2026 14:54",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1a6iDXLvVJD61xvFWnAuIckd2OSgaQ4S-",
+    "url": "https://lh3.googleusercontent.com/d/1a6iDXLvVJD61xvFWnAuIckd2OSgaQ4S-=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1a6iDXLvVJD61xvFWnAuIckd2OSgaQ4S-=w600",
+    "driveUrl": "https://drive.google.com/file/d/1a6iDXLvVJD61xvFWnAuIckd2OSgaQ4S-/view?usp=drivesdk",
+    "caption": "475287890 1356830649082098 8843586079652942965 n",
+    "date": "28/09/2026 14:54",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1HhrVSQ-7_xx2H5kPOXpL--JOapuFS0gp",
+    "url": "https://lh3.googleusercontent.com/d/1HhrVSQ-7_xx2H5kPOXpL--JOapuFS0gp=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1HhrVSQ-7_xx2H5kPOXpL--JOapuFS0gp=w600",
+    "driveUrl": "https://drive.google.com/file/d/1HhrVSQ-7_xx2H5kPOXpL--JOapuFS0gp/view?usp=drivesdk",
+    "caption": "474858910 1356830749082088 2812097126335684841 n",
+    "date": "28/09/2026 14:53",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1rFxt1-LbWAaUZiufW5gXaA6ktYL8qFB7",
+    "url": "https://lh3.googleusercontent.com/d/1rFxt1-LbWAaUZiufW5gXaA6ktYL8qFB7=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1rFxt1-LbWAaUZiufW5gXaA6ktYL8qFB7=w600",
+    "driveUrl": "https://drive.google.com/file/d/1rFxt1-LbWAaUZiufW5gXaA6ktYL8qFB7/view?usp=drivesdk",
+    "caption": "1656732400277 3024528935703027915 g8213875404109675727 a6dc8aa05a3dd897dbb4313e7acdbdb5",
+    "date": "28/09/2026 14:26",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1T3QKDkiDuuytFdOiqtBlN7-rpJ638mUS",
+    "url": "https://lh3.googleusercontent.com/d/1T3QKDkiDuuytFdOiqtBlN7-rpJ638mUS=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1T3QKDkiDuuytFdOiqtBlN7-rpJ638mUS=w600",
+    "driveUrl": "https://drive.google.com/file/d/1T3QKDkiDuuytFdOiqtBlN7-rpJ638mUS/view?usp=drivesdk",
+    "caption": "1656732400278 3024528935703027915 g8213875404109675727 da755d646ab47d045b2a09a04ef1b405",
+    "date": "28/09/2026 14:26",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1PQ2zJxRisCa0b0POcmqLNfvb5iiYOcwy",
+    "url": "https://lh3.googleusercontent.com/d/1PQ2zJxRisCa0b0POcmqLNfvb5iiYOcwy=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1PQ2zJxRisCa0b0POcmqLNfvb5iiYOcwy=w600",
+    "driveUrl": "https://drive.google.com/file/d/1PQ2zJxRisCa0b0POcmqLNfvb5iiYOcwy/view?usp=drivesdk",
+    "caption": "1656732400274 3024528935703027915 g8213875404109675727 4a4d1e323a2127c910a03a2611937506",
+    "date": "28/09/2026 14:26",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1uqgGX9gNxQp2PUMfYUCVySIz86fMIxMx",
+    "url": "https://lh3.googleusercontent.com/d/1uqgGX9gNxQp2PUMfYUCVySIz86fMIxMx=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1uqgGX9gNxQp2PUMfYUCVySIz86fMIxMx=w600",
+    "driveUrl": "https://drive.google.com/file/d/1uqgGX9gNxQp2PUMfYUCVySIz86fMIxMx/view?usp=drivesdk",
+    "caption": "1656746749554 6072186188646670454 g8213875404109675727 4e1e29648e7d6c146406fd5a0d2cdde0",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1akizwjshYrRFHJ9vDbS4yIROINnbstca",
+    "url": "https://lh3.googleusercontent.com/d/1akizwjshYrRFHJ9vDbS4yIROINnbstca=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1akizwjshYrRFHJ9vDbS4yIROINnbstca=w600",
+    "driveUrl": "https://drive.google.com/file/d/1akizwjshYrRFHJ9vDbS4yIROINnbstca/view?usp=drivesdk",
+    "caption": "1656745257607 6072186188646670454 g8213875404109675727 083f68621a575b2d100f30ceaa54fbbd",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1UwnpXK7mBdrTJoOVDAOXgArHVRpBQlLR",
+    "url": "https://lh3.googleusercontent.com/d/1UwnpXK7mBdrTJoOVDAOXgArHVRpBQlLR=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1UwnpXK7mBdrTJoOVDAOXgArHVRpBQlLR=w600",
+    "driveUrl": "https://drive.google.com/file/d/1UwnpXK7mBdrTJoOVDAOXgArHVRpBQlLR/view?usp=drivesdk",
+    "caption": "1656745257605 6072186188646670454 g8213875404109675727 73466ec62a3f1bfc27db127c599e1128",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1tAxjnRg-7lBpcfg2XVVf7l7ryw7Gi8XV",
+    "url": "https://lh3.googleusercontent.com/d/1tAxjnRg-7lBpcfg2XVVf7l7ryw7Gi8XV=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1tAxjnRg-7lBpcfg2XVVf7l7ryw7Gi8XV=w600",
+    "driveUrl": "https://drive.google.com/file/d/1tAxjnRg-7lBpcfg2XVVf7l7ryw7Gi8XV/view?usp=drivesdk",
+    "caption": "1656743753384 6858201427490636319 g8213875404109675727 fa318b21b12a41acca0822e39e1505da",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1fhJZE86zArcwu545fMmSWslYk-IpMcs4",
+    "url": "https://lh3.googleusercontent.com/d/1fhJZE86zArcwu545fMmSWslYk-IpMcs4=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1fhJZE86zArcwu545fMmSWslYk-IpMcs4=w600",
+    "driveUrl": "https://drive.google.com/file/d/1fhJZE86zArcwu545fMmSWslYk-IpMcs4/view?usp=drivesdk",
+    "caption": "1656743694864 1038475801886529371 g8213875404109675727 ea3d1316f16c9736ee56cb9c58b22a10",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1WEmRbaXsiVKW_E2pX1dn8yREyrEr0g6p",
+    "url": "https://lh3.googleusercontent.com/d/1WEmRbaXsiVKW_E2pX1dn8yREyrEr0g6p=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1WEmRbaXsiVKW_E2pX1dn8yREyrEr0g6p=w600",
+    "driveUrl": "https://drive.google.com/file/d/1WEmRbaXsiVKW_E2pX1dn8yREyrEr0g6p/view?usp=drivesdk",
+    "caption": "1656743694868 1038475801886529371 g8213875404109675727 301297c044309f305229af829fbc4cb6",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1hwFQL-W5YUSL5HSqG9YLpeMCIbO3jgxt",
+    "url": "https://lh3.googleusercontent.com/d/1hwFQL-W5YUSL5HSqG9YLpeMCIbO3jgxt=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1hwFQL-W5YUSL5HSqG9YLpeMCIbO3jgxt=w600",
+    "driveUrl": "https://drive.google.com/file/d/1hwFQL-W5YUSL5HSqG9YLpeMCIbO3jgxt/view?usp=drivesdk",
+    "caption": "1656743694874 1038475801886529371 g8213875404109675727 7ed92a16787d3509d3c431925759225e (1)",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1SzFLzLkOM8QRbT2DxGfim80t6gZdccD1",
+    "url": "https://lh3.googleusercontent.com/d/1SzFLzLkOM8QRbT2DxGfim80t6gZdccD1=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1SzFLzLkOM8QRbT2DxGfim80t6gZdccD1=w600",
+    "driveUrl": "https://drive.google.com/file/d/1SzFLzLkOM8QRbT2DxGfim80t6gZdccD1/view?usp=drivesdk",
+    "caption": "1656743694844 1038475801886529371 g8213875404109675727 35b403395509a417eedc61a0a1076021",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1Gy_GQYq_0_9papT4niZ3Tmm_ZCuil67g",
+    "url": "https://lh3.googleusercontent.com/d/1Gy_GQYq_0_9papT4niZ3Tmm_ZCuil67g=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Gy_GQYq_0_9papT4niZ3Tmm_ZCuil67g=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Gy_GQYq_0_9papT4niZ3Tmm_ZCuil67g/view?usp=drivesdk",
+    "caption": "1656743694874 1038475801886529371 g8213875404109675727 7ed92a16787d3509d3c431925759225e",
+    "date": "28/09/2026 14:25",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "19ut5rwXXdKCciQI6XWIii5m-qf8OD3zV",
+    "url": "https://lh3.googleusercontent.com/d/19ut5rwXXdKCciQI6XWIii5m-qf8OD3zV=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/19ut5rwXXdKCciQI6XWIii5m-qf8OD3zV=w600",
+    "driveUrl": "https://drive.google.com/file/d/19ut5rwXXdKCciQI6XWIii5m-qf8OD3zV/view?usp=drivesdk",
+    "caption": "1656773130990 5070538970915170412 g8213875404109675727 8b9e2730e83cdf370d9594bb598495e2",
+    "date": "28/09/2026 14:23",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1iAKfGfNRr1skgFZDOd2W2rUzFwtzbjnl",
+    "url": "https://lh3.googleusercontent.com/d/1iAKfGfNRr1skgFZDOd2W2rUzFwtzbjnl=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1iAKfGfNRr1skgFZDOd2W2rUzFwtzbjnl=w600",
+    "driveUrl": "https://drive.google.com/file/d/1iAKfGfNRr1skgFZDOd2W2rUzFwtzbjnl/view?usp=drivesdk",
+    "caption": "1656773130992 5070538970915170412 g8213875404109675727 bc25ae4755bac0bfaaa11748a662e33f",
+    "date": "28/09/2026 14:23",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1oPNHyoTljF8RbllDWJc4_l8jHk5HpH7j",
+    "url": "https://lh3.googleusercontent.com/d/1oPNHyoTljF8RbllDWJc4_l8jHk5HpH7j=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1oPNHyoTljF8RbllDWJc4_l8jHk5HpH7j=w600",
+    "driveUrl": "https://drive.google.com/file/d/1oPNHyoTljF8RbllDWJc4_l8jHk5HpH7j/view?usp=drivesdk",
+    "caption": "1656773130993 5070538970915170412 g8213875404109675727 9f40b21354c7c466bf76dd39571706bf",
+    "date": "28/09/2026 14:23",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1KOl0vSIXRbj1hclEbq1t983ZRqK6tYLt",
+    "url": "https://lh3.googleusercontent.com/d/1KOl0vSIXRbj1hclEbq1t983ZRqK6tYLt=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1KOl0vSIXRbj1hclEbq1t983ZRqK6tYLt=w600",
+    "driveUrl": "https://drive.google.com/file/d/1KOl0vSIXRbj1hclEbq1t983ZRqK6tYLt/view?usp=drivesdk",
+    "caption": "1656773130998 5070538970915170412 g8213875404109675727 d51d9ef0e31323df1c7a5774ff43cdb1",
+    "date": "28/09/2026 14:23",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1QxEv7zEQg6cwW_2UfgTp-TepnkEZf2Sq",
+    "url": "https://lh3.googleusercontent.com/d/1QxEv7zEQg6cwW_2UfgTp-TepnkEZf2Sq=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1QxEv7zEQg6cwW_2UfgTp-TepnkEZf2Sq=w600",
+    "driveUrl": "https://drive.google.com/file/d/1QxEv7zEQg6cwW_2UfgTp-TepnkEZf2Sq/view?usp=drivesdk",
+    "caption": "1656773130991 5070538970915170412 g8213875404109675727 fda93377bbb668f8c6ef2ffe7bc718b8",
+    "date": "28/09/2026 14:23",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1-BRRo_CEL7WOjc0S4x5RhoSW2bHpkSgi",
+    "url": "https://lh3.googleusercontent.com/d/1-BRRo_CEL7WOjc0S4x5RhoSW2bHpkSgi=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1-BRRo_CEL7WOjc0S4x5RhoSW2bHpkSgi=w600",
+    "driveUrl": "https://drive.google.com/file/d/1-BRRo_CEL7WOjc0S4x5RhoSW2bHpkSgi/view?usp=drivesdk",
+    "caption": "1656773227328 2735587425587831748 g8213875404109675727 4d9f07b9c0724f62f97aa1a0f3707237",
+    "date": "28/09/2026 14:23",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1JR85fOb4S_tbezvIU1g7jQM16MRTF6AF",
+    "url": "https://lh3.googleusercontent.com/d/1JR85fOb4S_tbezvIU1g7jQM16MRTF6AF=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1JR85fOb4S_tbezvIU1g7jQM16MRTF6AF=w600",
+    "driveUrl": "https://drive.google.com/file/d/1JR85fOb4S_tbezvIU1g7jQM16MRTF6AF/view?usp=drivesdk",
+    "caption": "1656773227333 2735587425587831748 g8213875404109675727 ce6968e945ab32b11f25d8eb4c50c8b2",
+    "date": "28/09/2026 14:22",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1Z7yGAwK0HPT62hI0D3n1FC0BaQo2ybCn",
+    "url": "https://lh3.googleusercontent.com/d/1Z7yGAwK0HPT62hI0D3n1FC0BaQo2ybCn=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Z7yGAwK0HPT62hI0D3n1FC0BaQo2ybCn=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Z7yGAwK0HPT62hI0D3n1FC0BaQo2ybCn/view?usp=drivesdk",
+    "caption": "1656773227331 2735587425587831748 g8213875404109675727 0169565407de4978cdc12d2d0ee8af00",
+    "date": "28/09/2026 14:22",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1j198NjA2z8BpH0MaWd8c_InKQWrwN4oc",
+    "url": "https://lh3.googleusercontent.com/d/1j198NjA2z8BpH0MaWd8c_InKQWrwN4oc=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1j198NjA2z8BpH0MaWd8c_InKQWrwN4oc=w600",
+    "driveUrl": "https://drive.google.com/file/d/1j198NjA2z8BpH0MaWd8c_InKQWrwN4oc/view?usp=drivesdk",
+    "caption": "1790045678609 7058842502343911364 g8213875404109675727 01387dba512345da205a843830c97afe",
+    "date": "28/09/2026 14:17",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1taPOyrKBJUGgAVKEsjrv4Bp3pwtq0WYb",
+    "url": "https://lh3.googleusercontent.com/d/1taPOyrKBJUGgAVKEsjrv4Bp3pwtq0WYb=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1taPOyrKBJUGgAVKEsjrv4Bp3pwtq0WYb=w600",
+    "driveUrl": "https://drive.google.com/file/d/1taPOyrKBJUGgAVKEsjrv4Bp3pwtq0WYb/view?usp=drivesdk",
+    "caption": "1790045678629 7058842502343911364 g8213875404109675727 ff01ea82f0bae96516c393429902516d",
+    "date": "28/09/2026 14:17",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1o_rebpZ-FDzB45CSOD0zdqeH_BoWcOjC",
+    "url": "https://lh3.googleusercontent.com/d/1o_rebpZ-FDzB45CSOD0zdqeH_BoWcOjC=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1o_rebpZ-FDzB45CSOD0zdqeH_BoWcOjC=w600",
+    "driveUrl": "https://drive.google.com/file/d/1o_rebpZ-FDzB45CSOD0zdqeH_BoWcOjC/view?usp=drivesdk",
+    "caption": "1790045678645 7058842502343911364 g8213875404109675727 99498ef4e35ccf524bf68cf02b631e76",
+    "date": "28/09/2026 14:17",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "14HFJ_Su2j0f35hMo_6PebMgpkIRRQCOy",
+    "url": "https://lh3.googleusercontent.com/d/14HFJ_Su2j0f35hMo_6PebMgpkIRRQCOy=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/14HFJ_Su2j0f35hMo_6PebMgpkIRRQCOy=w600",
+    "driveUrl": "https://drive.google.com/file/d/14HFJ_Su2j0f35hMo_6PebMgpkIRRQCOy/view?usp=drivesdk",
+    "caption": "1790045678671 7058842502343911364 g8213875404109675727 753adf75c3b947bef89ccbe4f193993c",
+    "date": "28/09/2026 14:17",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1_2cH87pqykb-t5uw7bqePEr5V2Btz6i-",
+    "url": "https://lh3.googleusercontent.com/d/1_2cH87pqykb-t5uw7bqePEr5V2Btz6i-=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1_2cH87pqykb-t5uw7bqePEr5V2Btz6i-=w600",
+    "driveUrl": "https://drive.google.com/file/d/1_2cH87pqykb-t5uw7bqePEr5V2Btz6i-/view?usp=drivesdk",
+    "caption": "1790045678659 7058842502343911364 g8213875404109675727 d4dcc0df4a5adf696c1985ea8f4d239d",
+    "date": "28/09/2026 14:17",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1vJSgydpG27OjHphpqYNW-hcGrsmzm9bi",
+    "url": "https://lh3.googleusercontent.com/d/1vJSgydpG27OjHphpqYNW-hcGrsmzm9bi=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1vJSgydpG27OjHphpqYNW-hcGrsmzm9bi=w600",
+    "driveUrl": "https://drive.google.com/file/d/1vJSgydpG27OjHphpqYNW-hcGrsmzm9bi/view?usp=drivesdk",
+    "caption": "1790045678681 7058842502343911364 g8213875404109675727 1880b49c30711a7ac98c732b7f364918",
+    "date": "28/09/2026 14:17",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1dbLpCT-eFb9sMGQh0LkinRMi7wLzGXYP",
+    "url": "https://lh3.googleusercontent.com/d/1dbLpCT-eFb9sMGQh0LkinRMi7wLzGXYP=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1dbLpCT-eFb9sMGQh0LkinRMi7wLzGXYP=w600",
+    "driveUrl": "https://drive.google.com/file/d/1dbLpCT-eFb9sMGQh0LkinRMi7wLzGXYP/view?usp=drivesdk",
+    "caption": "1790045678574 7058842502343911364 g8213875404109675727 eaf523ef4850ec012f5fc87eae2d8b2b",
+    "date": "28/09/2026 14:17",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg",
+    "url": "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w600",
+    "driveUrl": "https://drive.google.com/file/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg/view?usp=drivesdk",
+    "caption": "Hero Banner K8A1 1788595247751",
+    "date": "05/09/2026 15:00",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf",
+    "url": "https://lh3.googleusercontent.com/d/1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf=w600",
+    "driveUrl": "https://drive.google.com/file/d/1IyMW1SCsME0C-mQ6tGkEFH-_RizeCuBf/view?usp=drivesdk",
+    "caption": "475164842 1356830075748822 5437923390166382806 n",
+    "date": "05/09/2026 09:08",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb",
+    "url": "https://lh3.googleusercontent.com/d/1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Tk9X1Hg8SL0NuVz5w9Ae7h6kXeXJdyLb/view?usp=drivesdk",
+    "caption": "475116469 1356830739082089 1650045069745636096 n",
+    "date": "05/09/2026 09:08",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN",
+    "url": "https://lh3.googleusercontent.com/d/1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN=w600",
+    "driveUrl": "https://drive.google.com/file/d/1P8tJYeuh_1HQIWfQ5assg6xu08p0YZEN/view?usp=drivesdk",
+    "caption": "475272178 1356830555748774 2593652870081312031 n",
+    "date": "05/09/2026 09:08",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "19f450ovKABWpZLF4ppEByERh3lBZMoxs",
+    "url": "https://lh3.googleusercontent.com/d/19f450ovKABWpZLF4ppEByERh3lBZMoxs=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/19f450ovKABWpZLF4ppEByERh3lBZMoxs=w600",
+    "driveUrl": "https://drive.google.com/file/d/19f450ovKABWpZLF4ppEByERh3lBZMoxs/view?usp=drivesdk",
+    "caption": "475065642 1356830552415441 2066059058356530555 n",
+    "date": "05/09/2026 09:07",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf",
+    "url": "https://lh3.googleusercontent.com/d/1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf=w600",
+    "driveUrl": "https://drive.google.com/file/d/1HQRY48oZ8zntDXQtbrsF76k49yMAKyGf/view?usp=drivesdk",
+    "caption": "475112365 1356830565748773 2148331455199405320 n",
+    "date": "05/09/2026 09:07",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-",
+    "url": "https://lh3.googleusercontent.com/d/1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-=w600",
+    "driveUrl": "https://drive.google.com/file/d/1E4sa17GBSncH_kHl-sQYg9m9qCI1NQY-/view?usp=drivesdk",
+    "caption": "474915648 1356830665748763 7088442939443535675 n",
+    "date": "05/09/2026 09:06",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF",
+    "url": "https://lh3.googleusercontent.com/d/1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF=w600",
+    "driveUrl": "https://drive.google.com/file/d/1NfiNoGcXuesjH5SZxKmTNw98LEfJrkjF/view?usp=drivesdk",
+    "caption": "475134847 1356830729082090 6973331376706866691 n",
+    "date": "05/09/2026 09:06",
+    "albumId": "hoi-ngo-15-nam",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
+    "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
+  },
+  {
+    "id": "1U24l1yH6AIRnIKrmGmaHhfElfNlgXvSA",
+    "url": "https://lh3.googleusercontent.com/d/1U24l1yH6AIRnIKrmGmaHhfElfNlgXvSA=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1U24l1yH6AIRnIKrmGmaHhfElfNlgXvSA=w600",
+    "driveUrl": "https://drive.google.com/file/d/1U24l1yH6AIRnIKrmGmaHhfElfNlgXvSA/view?usp=drivesdk",
+    "caption": "2aOboR0DsVrb17DSjXsNFh9zyOxgw9WfaROWRDn6",
+    "date": "21/09/2026 21:53",
+    "albumId": "hoi-ngo-10-nam",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
+    "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
+  },
+  {
+    "id": "1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5",
+    "url": "https://lh3.googleusercontent.com/d/1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5=w600",
+    "driveUrl": "https://drive.google.com/file/d/1OrJVuLO-ADfvlO8Zi0Ad8_9jCwB7Nxq5/view?usp=drivesdk",
+    "caption": "503504170 2977749089065057 1459925905882967295 n",
+    "date": "05/09/2026 09:10",
+    "albumId": "hoi-ngo-10-nam",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
+    "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
+  },
+  {
+    "id": "1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa",
+    "url": "https://lh3.googleusercontent.com/d/1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa=w600",
+    "driveUrl": "https://drive.google.com/file/d/1sVcXm8RRGoyqKwCbe6dEtRwQMjTnJyqa/view?usp=drivesdk",
+    "caption": "503605997 2977749192398380 442522293639860588 n",
+    "date": "05/09/2026 09:09",
+    "albumId": "hoi-ngo-10-nam",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
+    "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
+  },
+  {
+    "id": "1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6",
+    "url": "https://lh3.googleusercontent.com/d/1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6=w600",
+    "driveUrl": "https://drive.google.com/file/d/1y-gMPp7z6TqY3txehcYgoEpL4TmxiMs6/view?usp=drivesdk",
+    "caption": "503828962 2977749182398381 1325996235817212040 n",
+    "date": "05/09/2026 09:09",
+    "albumId": "hoi-ngo-10-nam",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
+    "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
+  },
+  {
+    "id": "1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v",
+    "url": "https://lh3.googleusercontent.com/d/1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v=w600",
+    "driveUrl": "https://drive.google.com/file/d/1FNoMWHGzXTY19rSXd-xyZFxzeDRftG1v/view?usp=drivesdk",
+    "caption": "503504723 2977749309065035 1228763104923627602 n",
+    "date": "05/09/2026 09:09",
+    "albumId": "hoi-ngo-10-nam",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
+    "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
+  },
+  {
+    "id": "1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW",
+    "url": "https://lh3.googleusercontent.com/d/1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Dei70eQXWBxIxOGXNIE5nX3SfeHm-IRW/view?usp=drivesdk",
+    "caption": "503889696 2977750115731621 8515012779203325994 n",
+    "date": "05/09/2026 09:09",
+    "albumId": "hoi-ngo-10-nam",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
+    "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
+  },
+  {
+    "id": "1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g",
+    "url": "https://lh3.googleusercontent.com/d/1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g=w600",
+    "driveUrl": "https://drive.google.com/file/d/1lfg_kuf2M_B_UeWTAPcTukXG8ckXYR5g/view?usp=drivesdk",
+    "caption": "509261017 3393265960816629 6127474883787765388 n",
+    "date": "05/09/2026 09:08",
+    "albumId": "hoi-ngo-10-nam",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
+    "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
+  },
+  {
+    "id": "1Lj1AVNvTbkcEe-a7W9SMHSDzs9EUaBYn",
+    "url": "https://lh3.googleusercontent.com/d/1Lj1AVNvTbkcEe-a7W9SMHSDzs9EUaBYn=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Lj1AVNvTbkcEe-a7W9SMHSDzs9EUaBYn=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Lj1AVNvTbkcEe-a7W9SMHSDzs9EUaBYn/view?usp=drivesdk",
+    "caption": "2aOboR0Dqa5YLCoYqoNdORP4aHUsrxFqziWlHMNk",
+    "date": "21/09/2026 21:54",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1cLs9oKW1nYNyt4ZpzvC6IpDS4SBlI98T",
+    "url": "https://lh3.googleusercontent.com/d/1cLs9oKW1nYNyt4ZpzvC6IpDS4SBlI98T=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1cLs9oKW1nYNyt4ZpzvC6IpDS4SBlI98T=w600",
+    "driveUrl": "https://drive.google.com/file/d/1cLs9oKW1nYNyt4ZpzvC6IpDS4SBlI98T/view?usp=drivesdk",
+    "caption": "1789884839087 1176131752099263072 g8213875404109675727 2dacd7cce777f55d3a6765116b2413c9",
+    "date": "21/09/2026 13:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1bIUqUbQ4ST-lzCtYURyy1pmmlAvGBHu9",
+    "url": "https://lh3.googleusercontent.com/d/1bIUqUbQ4ST-lzCtYURyy1pmmlAvGBHu9=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1bIUqUbQ4ST-lzCtYURyy1pmmlAvGBHu9=w600",
+    "driveUrl": "https://drive.google.com/file/d/1bIUqUbQ4ST-lzCtYURyy1pmmlAvGBHu9/view?usp=drivesdk",
+    "caption": "1789886027056 1176131752099263072 g8213875404109675727 2cd6de75d1ed099f76513e72980c1578",
+    "date": "21/09/2026 13:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1QUC4zf_Ab6hXoZ8Ehtf2il-xUHEa8fKC",
+    "url": "https://lh3.googleusercontent.com/d/1QUC4zf_Ab6hXoZ8Ehtf2il-xUHEa8fKC=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1QUC4zf_Ab6hXoZ8Ehtf2il-xUHEa8fKC=w600",
+    "driveUrl": "https://drive.google.com/file/d/1QUC4zf_Ab6hXoZ8Ehtf2il-xUHEa8fKC/view?usp=drivesdk",
+    "caption": "1789886315834 1176131752099263072 g8213875404109675727 da5a1ea1f8fafe2742ff88555ba3c03e",
+    "date": "21/09/2026 13:10",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1Mh54EWyGIFKOPYIKOiQYqdlI5YywmwQ0",
+    "url": "https://lh3.googleusercontent.com/d/1Mh54EWyGIFKOPYIKOiQYqdlI5YywmwQ0=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Mh54EWyGIFKOPYIKOiQYqdlI5YywmwQ0=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Mh54EWyGIFKOPYIKOiQYqdlI5YywmwQ0/view?usp=drivesdk",
+    "caption": "1789886169797 1176131752099263072 g8213875404109675727 68642ec7075bab5187e65efcc7ea3b01",
+    "date": "21/09/2026 13:10",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1Z4IVgYLCZ2AgN3vSjjWNL7CCXj3Om8tB",
+    "url": "https://lh3.googleusercontent.com/d/1Z4IVgYLCZ2AgN3vSjjWNL7CCXj3Om8tB=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Z4IVgYLCZ2AgN3vSjjWNL7CCXj3Om8tB=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Z4IVgYLCZ2AgN3vSjjWNL7CCXj3Om8tB/view?usp=drivesdk",
+    "caption": "1789886366503 1176131752099263072 g8213875404109675727 f6eabe71abf246d3cb862750981ffbfb",
+    "date": "21/09/2026 13:09",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1naaS7MFXeDFN7qjQFwdsmGHhQq_8-oWn",
+    "url": "https://lh3.googleusercontent.com/d/1naaS7MFXeDFN7qjQFwdsmGHhQq_8-oWn=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1naaS7MFXeDFN7qjQFwdsmGHhQq_8-oWn=w600",
+    "driveUrl": "https://drive.google.com/file/d/1naaS7MFXeDFN7qjQFwdsmGHhQq_8-oWn/view?usp=drivesdk",
+    "caption": "1789886412161 1176131752099263072 g8213875404109675727 fd7c6b8c9e896c796be5f53cea312df6",
+    "date": "21/09/2026 13:09",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1AGnn1HGcJRzi28EsrklRsaYRYUHBk6vV",
+    "url": "https://lh3.googleusercontent.com/d/1AGnn1HGcJRzi28EsrklRsaYRYUHBk6vV=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1AGnn1HGcJRzi28EsrklRsaYRYUHBk6vV=w600",
+    "driveUrl": "https://drive.google.com/file/d/1AGnn1HGcJRzi28EsrklRsaYRYUHBk6vV/view?usp=drivesdk",
+    "caption": "1789463949175 2647631302199896716 g8213875404109675727 65e324102bc593332f3445c9028560ad",
+    "date": "15/09/2026 16:18",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1qE49Y77W-Y6tV8scPcPqoBlPxoJQzxzr",
+    "url": "https://lh3.googleusercontent.com/d/1qE49Y77W-Y6tV8scPcPqoBlPxoJQzxzr=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1qE49Y77W-Y6tV8scPcPqoBlPxoJQzxzr=w600",
+    "driveUrl": "https://drive.google.com/file/d/1qE49Y77W-Y6tV8scPcPqoBlPxoJQzxzr/view?usp=drivesdk",
+    "caption": "1789462217080 5070538970915170412 g8213875404109675727 2a151353c93e2fd6b3defcb451969241",
+    "date": "15/09/2026 15:50",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1tu1yt0wsGBbQ26yNTbGIDC-TQ7Dc-d-X",
+    "url": "https://lh3.googleusercontent.com/d/1tu1yt0wsGBbQ26yNTbGIDC-TQ7Dc-d-X=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1tu1yt0wsGBbQ26yNTbGIDC-TQ7Dc-d-X=w600",
+    "driveUrl": "https://drive.google.com/file/d/1tu1yt0wsGBbQ26yNTbGIDC-TQ7Dc-d-X/view?usp=drivesdk",
+    "caption": "1789461898042 5070538970915170412 g8213875404109675727 c52fbe4deb066b1d8f2830120c6b572b",
+    "date": "15/09/2026 15:44",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1jN5w0eYLL3canmi1geHDhEr2kNy9qJME",
+    "url": "https://lh3.googleusercontent.com/d/1jN5w0eYLL3canmi1geHDhEr2kNy9qJME=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1jN5w0eYLL3canmi1geHDhEr2kNy9qJME=w600",
+    "driveUrl": "https://drive.google.com/file/d/1jN5w0eYLL3canmi1geHDhEr2kNy9qJME/view?usp=drivesdk",
+    "caption": "1789436945354 1622280133582022065 521686868081986063 68d2f5e750f2c472799f8ca91ae1c88a",
+    "date": "15/09/2026 08:48",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "14huiGe6H0KkM-Rz53Yu0t0ucP-QU8_qr",
+    "url": "https://lh3.googleusercontent.com/d/14huiGe6H0KkM-Rz53Yu0t0ucP-QU8_qr=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/14huiGe6H0KkM-Rz53Yu0t0ucP-QU8_qr=w600",
+    "driveUrl": "https://drive.google.com/file/d/14huiGe6H0KkM-Rz53Yu0t0ucP-QU8_qr/view?usp=drivesdk",
+    "caption": "IMG",
+    "date": "15/09/2026 08:47",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD",
+    "url": "https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD/view?usp=drivesdk",
+    "caption": "1788824248451 3501496844115072933 g8213875404109675727 9527bee86c38f35b4561e6a754f06d46",
+    "date": "08/09/2026 08:17",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv",
+    "url": "https://lh3.googleusercontent.com/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv/view?usp=drivesdk",
+    "caption": "1788824248592 3501496844115072933 g8213875404109675727 ebf9663813a934ae04dd580a52fd3244",
+    "date": "08/09/2026 08:17",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1iXWP-WZniC5rcV0qevoymDvFxG41DXXX",
+    "url": "https://lh3.googleusercontent.com/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX=w600",
+    "driveUrl": "https://drive.google.com/file/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX/view?usp=drivesdk",
+    "caption": "1788824248732 3501496844115072933 g8213875404109675727 da08312a632de5f5bf4e6f53ad649388",
+    "date": "08/09/2026 08:17",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh",
+    "url": "https://lh3.googleusercontent.com/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh=w600",
+    "driveUrl": "https://drive.google.com/file/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh/view?usp=drivesdk",
+    "caption": "1788824248871 3501496844115072933 g8213875404109675727 23e6f269ae05048e27f12abbf107f266",
+    "date": "08/09/2026 08:17",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm",
+    "url": "https://lh3.googleusercontent.com/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm=w600",
+    "driveUrl": "https://drive.google.com/file/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm/view?usp=drivesdk",
+    "caption": "1788824249013 3501496844115072933 g8213875404109675727 04f464b9b04065b8e3aa43b6e41f7dd6",
+    "date": "08/09/2026 08:17",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb",
+    "url": "https://lh3.googleusercontent.com/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb=w600",
+    "driveUrl": "https://drive.google.com/file/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb/view?usp=drivesdk",
+    "caption": "1788824249209 3501496844115072933 g8213875404109675727 eb5473dac01488365f15e3dc53c1e935",
+    "date": "08/09/2026 08:17",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi",
+    "url": "https://lh3.googleusercontent.com/d/1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi=w600",
+    "driveUrl": "https://drive.google.com/file/d/1PdyvVtADltoTKFEJxE9tvg9eQqyPZoZi/view?usp=drivesdk",
+    "caption": "1788824248331 3501496844115072933 g8213875404109675727 065c7067d85cb59faf76157717165807",
+    "date": "08/09/2026 08:17",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo",
+    "url": "https://lh3.googleusercontent.com/d/1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo=w600",
+    "driveUrl": "https://drive.google.com/file/d/1yGjuN21tJ2DW7syA_H6Qr-7KSJuNOCXo/view?usp=drivesdk",
+    "caption": "2aOboQx0cIp0ytJctMR2mYgDpSIvagbVQ47zopO4",
+    "date": "07/09/2026 23:36",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx",
+    "url": "https://lh3.googleusercontent.com/d/1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx=w600",
+    "driveUrl": "https://drive.google.com/file/d/1peRhGo5OpuungLRfA7vPg_XF5ZumP6Sx/view?usp=drivesdk",
+    "caption": "2aOboQx0baKOoIURuyvahzXio9cEbiKEgfKnDCcq",
+    "date": "07/09/2026 21:39",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1",
+    "url": "https://lh3.googleusercontent.com/d/12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1=w600",
+    "driveUrl": "https://drive.google.com/file/d/12hYWeHGnHEE2w_SK6Epo_EkypNN3JVx1/view?usp=drivesdk",
+    "caption": "569594713 25427700770149816 2644678869832531622 n",
+    "date": "07/09/2026 14:29",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc",
+    "url": "https://lh3.googleusercontent.com/d/16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc=w600",
+    "driveUrl": "https://drive.google.com/file/d/16SjRZNq38EI29_YH6RA7djbmbfOC5Tbc/view?usp=drivesdk",
+    "caption": "568591301 25427700846816475 1126852120421423282 n",
+    "date": "07/09/2026 14:28",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q",
+    "url": "https://lh3.googleusercontent.com/d/1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q=w600",
+    "driveUrl": "https://drive.google.com/file/d/1XA2YUEoDtn3l7hF8WkK3cl2qkoD9yW5Q/view?usp=drivesdk",
+    "caption": "568521421 25427700783483148 7823683749895364541 n",
+    "date": "07/09/2026 14:28",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_",
+    "url": "https://lh3.googleusercontent.com/d/1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_=w600",
+    "driveUrl": "https://drive.google.com/file/d/1H096CF4zzNEHnqLFmf4kWY16ZXv8qNj_/view?usp=drivesdk",
+    "caption": "568711089 25427701150149778 8533686120286400563 n",
+    "date": "07/09/2026 14:28",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW",
+    "url": "https://lh3.googleusercontent.com/d/1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW=w600",
+    "driveUrl": "https://drive.google.com/file/d/1QiOHc2UiTC21vBT8fVrRo1EIX-LLXYNW/view?usp=drivesdk",
+    "caption": "568570760 25427700993483127 702110216661534225 n",
+    "date": "07/09/2026 14:28",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1_TEoL7kscr16madk1x_RFk-yYDgdqzR_",
+    "url": "https://lh3.googleusercontent.com/d/1_TEoL7kscr16madk1x_RFk-yYDgdqzR_=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1_TEoL7kscr16madk1x_RFk-yYDgdqzR_=w600",
+    "driveUrl": "https://drive.google.com/file/d/1_TEoL7kscr16madk1x_RFk-yYDgdqzR_/view?usp=drivesdk",
+    "caption": "568684012 25427701193483107 3841298913620152420 n",
+    "date": "07/09/2026 14:28",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1XHVCQdD8zry64VsaguH-qjiDL268sTLO",
+    "url": "https://lh3.googleusercontent.com/d/1XHVCQdD8zry64VsaguH-qjiDL268sTLO=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1XHVCQdD8zry64VsaguH-qjiDL268sTLO=w600",
+    "driveUrl": "https://drive.google.com/file/d/1XHVCQdD8zry64VsaguH-qjiDL268sTLO/view?usp=drivesdk",
+    "caption": "569034083 25427700956816464 1023055468056574601 n",
+    "date": "07/09/2026 14:27",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw",
+    "url": "https://lh3.googleusercontent.com/d/19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw=w600",
+    "driveUrl": "https://drive.google.com/file/d/19kNADaP1ON_IUFfLNmGpzEkOhL1FFVMw/view?usp=drivesdk",
+    "caption": "569407909 25427701183483108 3435695790737340030 n",
+    "date": "07/09/2026 14:27",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14",
+    "url": "https://lh3.googleusercontent.com/d/1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14=w600",
+    "driveUrl": "https://drive.google.com/file/d/1lkWz5F_4U-il89ChVGA3xiT_u6VEnk14/view?usp=drivesdk",
+    "caption": "568465914 25427700736816486 4586619359066166841 n",
+    "date": "07/09/2026 14:27",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74",
+    "url": "https://lh3.googleusercontent.com/d/1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74=w600",
+    "driveUrl": "https://drive.google.com/file/d/1GPulvYg_sAATwp0bBH7DTdXaDYaLEZ74/view?usp=drivesdk",
+    "caption": "568644863 25427701010149792 2103536203186524603 n",
+    "date": "07/09/2026 14:27",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ",
+    "url": "https://lh3.googleusercontent.com/d/1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ=w600",
+    "driveUrl": "https://drive.google.com/file/d/1bUwUn-aU2_3vh0Li9zz3xQGxCepNc-HQ/view?usp=drivesdk",
+    "caption": "568660519 25427701133483113 3101238401658299889 n",
+    "date": "07/09/2026 14:27",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO",
+    "url": "https://lh3.googleusercontent.com/d/14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO=w600",
+    "driveUrl": "https://drive.google.com/file/d/14m6tyk5AdU7qT_8DV4Au7mKYsnokXlYO/view?usp=drivesdk",
+    "caption": "568391428 25427700786816481 3815322867541178641 n",
+    "date": "07/09/2026 14:27",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1HaSseVibgreTddMgzBONxJgVlpkSTNd7",
+    "url": "https://lh3.googleusercontent.com/d/1HaSseVibgreTddMgzBONxJgVlpkSTNd7=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1HaSseVibgreTddMgzBONxJgVlpkSTNd7=w600",
+    "driveUrl": "https://drive.google.com/file/d/1HaSseVibgreTddMgzBONxJgVlpkSTNd7/view?usp=drivesdk",
+    "caption": "569045915 25427701130149780 6295153971260902112 n",
+    "date": "07/09/2026 14:26",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7",
+    "url": "https://lh3.googleusercontent.com/d/1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7=w600",
+    "driveUrl": "https://drive.google.com/file/d/1PHzGoaJVkVX-uJKODv25tp2pCKQR09d7/view?usp=drivesdk",
+    "caption": "568732066 25427701006816459 8741581285049397805 n",
+    "date": "07/09/2026 14:26",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX",
+    "url": "https://lh3.googleusercontent.com/d/1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX=w600",
+    "driveUrl": "https://drive.google.com/file/d/1LsKT7Ljbx_g31qUkQPOacv-agqnfgRcX/view?usp=drivesdk",
+    "caption": "568368382 25427701003483126 6337531773628394740 n",
+    "date": "07/09/2026 14:26",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA",
+    "url": "https://lh3.googleusercontent.com/d/1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA=w600",
+    "driveUrl": "https://drive.google.com/file/d/1GdpubsYWlncsRJ2RBjvglJIUPe-dzGsA/view?usp=drivesdk",
+    "caption": "568673263 25427700840149809 1166261907794601885 n",
+    "date": "07/09/2026 14:26",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt",
+    "url": "https://lh3.googleusercontent.com/d/11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt=w600",
+    "driveUrl": "https://drive.google.com/file/d/11VWTW8FFIk8S70TGeuSW6iPu-H_QoQyt/view?usp=drivesdk",
+    "caption": "568626605 25427701180149775 7581562842138321625 n",
+    "date": "07/09/2026 14:25",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt",
+    "url": "https://lh3.googleusercontent.com/d/1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt=w600",
+    "driveUrl": "https://drive.google.com/file/d/1yKLQQX_KSZmJ7g5sK1UTaWOtUEBELQVt/view?usp=drivesdk",
+    "caption": "568743815 25427700963483130 2635418458490161686 n",
+    "date": "07/09/2026 14:24",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1kEAtvZGkriNORGy8N6KL3h65TwYGQybD",
+    "url": "https://lh3.googleusercontent.com/d/1kEAtvZGkriNORGy8N6KL3h65TwYGQybD=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1kEAtvZGkriNORGy8N6KL3h65TwYGQybD=w600",
+    "driveUrl": "https://drive.google.com/file/d/1kEAtvZGkriNORGy8N6KL3h65TwYGQybD/view?usp=drivesdk",
+    "caption": "568679026 25427699210149972 7810656936267837094 n",
+    "date": "07/09/2026 14:24",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl",
+    "url": "https://lh3.googleusercontent.com/d/1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl=w600",
+    "driveUrl": "https://drive.google.com/file/d/1CbR0lVmvQ_cPtkdnJeW2dVIu1rYMaVMl/view?usp=drivesdk",
+    "caption": "569263239 25427700996816460 3729324044172904123 n",
+    "date": "07/09/2026 14:24",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx",
+    "url": "https://lh3.googleusercontent.com/d/1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx=w600",
+    "driveUrl": "https://drive.google.com/file/d/1nUBLpkR8SKMYEh0k2xWxV4ck4HLNtYcx/view?usp=drivesdk",
+    "caption": "568573499 25427700953483131 5327576891590810063 n",
+    "date": "07/09/2026 14:23",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP",
+    "url": "https://lh3.googleusercontent.com/d/13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP=w600",
+    "driveUrl": "https://drive.google.com/file/d/13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP/view?usp=drivesdk",
+    "caption": "568695090 25427700926816467 6488015068094102325 n",
+    "date": "07/09/2026 14:23",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_",
+    "url": "https://lh3.googleusercontent.com/d/10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_=w600",
+    "driveUrl": "https://drive.google.com/file/d/10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_/view?usp=drivesdk",
+    "caption": "569361841 25427700896816470 871589613218143097 n",
+    "date": "07/09/2026 14:23",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5",
+    "url": "https://lh3.googleusercontent.com/d/1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5=w600",
+    "driveUrl": "https://drive.google.com/file/d/1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5/view?usp=drivesdk",
+    "caption": "569275669 25427700886816471 1727293045959048178 n",
+    "date": "07/09/2026 14:23",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_",
+    "url": "https://lh3.googleusercontent.com/d/1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_=w600",
+    "driveUrl": "https://drive.google.com/file/d/1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_/view?usp=drivesdk",
+    "caption": "568636651 25427701116816448 7916458789377339898 n",
+    "date": "07/09/2026 14:23",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ",
+    "url": "https://lh3.googleusercontent.com/d/1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ=w600",
+    "driveUrl": "https://drive.google.com/file/d/1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ/view?usp=drivesdk",
+    "caption": "568630213 25427698856816674 2846856576979995986 n",
+    "date": "07/09/2026 14:23",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk",
+    "url": "https://lh3.googleusercontent.com/d/1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk=w600",
+    "driveUrl": "https://drive.google.com/file/d/1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk/view?usp=drivesdk",
+    "caption": "569279888 25427698850150008 885288553376472055 n",
+    "date": "07/09/2026 14:22",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD",
+    "url": "https://lh3.googleusercontent.com/d/17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD=w600",
+    "driveUrl": "https://drive.google.com/file/d/17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD/view?usp=drivesdk",
+    "caption": "568461253 25427698870150006 3328890851937873153 n",
+    "date": "07/09/2026 14:22",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS",
+    "url": "https://lh3.googleusercontent.com/d/1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS=w600",
+    "driveUrl": "https://drive.google.com/file/d/1-hYaSpZ2YuFQ6YegDouhnxs5UPzyLxDS/view?usp=drivesdk",
+    "caption": "568958945 25427698953483331 796230735043202253 n",
+    "date": "07/09/2026 14:22",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD",
+    "url": "https://lh3.googleusercontent.com/d/1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD=w600",
+    "driveUrl": "https://drive.google.com/file/d/1kitBBq66pBXRT_y9KlZ9kc1mjx1BqPyD/view?usp=drivesdk",
+    "caption": "568550900 25427698930150000 3725851553165042490 n",
+    "date": "07/09/2026 14:22",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC",
+    "url": "https://lh3.googleusercontent.com/d/1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC=w600",
+    "driveUrl": "https://drive.google.com/file/d/1W2oTKnff98-_a5rVr-XRBDTpyutkQqKC/view?usp=drivesdk",
+    "caption": "569414997 25427698846816675 5023155042365671726 n",
+    "date": "07/09/2026 14:20",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ",
+    "url": "https://lh3.googleusercontent.com/d/1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ=w600",
+    "driveUrl": "https://drive.google.com/file/d/1xKmYbaLFydr0VR26mARduTiMTq4s7bgJ/view?usp=drivesdk",
+    "caption": "569032834 25427698886816671 6964238627033919601 n",
+    "date": "07/09/2026 14:20",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N",
+    "url": "https://lh3.googleusercontent.com/d/1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N=w600",
+    "driveUrl": "https://drive.google.com/file/d/1fgIFHatftP7loK7bZBM6yOCJEWhDDx0N/view?usp=drivesdk",
+    "caption": "568580679 25427698980149995 2528942899829108465 n",
+    "date": "07/09/2026 14:20",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j",
+    "url": "https://lh3.googleusercontent.com/d/1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j=w600",
+    "driveUrl": "https://drive.google.com/file/d/1H-G7waxtCOiIEA_fqeujyRUXD8tVuD9j/view?usp=drivesdk",
+    "caption": "569014762 25427698990149994 6107575324795489823 n",
+    "date": "07/09/2026 14:20",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb",
+    "url": "https://lh3.googleusercontent.com/d/12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb=w600",
+    "driveUrl": "https://drive.google.com/file/d/12a5k7adTy9CxmOkpbB2k_A9vb8FDQ5fb/view?usp=drivesdk",
+    "caption": "568647261 25427699213483305 2404001179269260586 n",
+    "date": "07/09/2026 14:20",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L",
+    "url": "https://lh3.googleusercontent.com/d/1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L=w600",
+    "driveUrl": "https://drive.google.com/file/d/1GArsYh8IcMegJlFN2iTFrrLXMnn04x5L/view?usp=drivesdk",
+    "caption": "568477608 25427699000149993 7399702547866199340 n",
+    "date": "07/09/2026 14:20",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI",
+    "url": "https://lh3.googleusercontent.com/d/1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI=w600",
+    "driveUrl": "https://drive.google.com/file/d/1rhb4x-AqHEojQCuc6xnaEiyRKQhAI7fI/view?usp=drivesdk",
+    "caption": "568410051 25427698866816673 2671118570767665667 n",
+    "date": "07/09/2026 14:19",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B",
+    "url": "https://lh3.googleusercontent.com/d/1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B=w600",
+    "driveUrl": "https://drive.google.com/file/d/1DgLheotSEaY8Elguz6C-9ELv83ZWsk0B/view?usp=drivesdk",
+    "caption": "568916889 25427699006816659 3087752054251687335 n",
+    "date": "07/09/2026 14:19",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "15Y7EUSibVURczn5ACyHACR9R5wyze5Ar",
+    "url": "https://lh3.googleusercontent.com/d/15Y7EUSibVURczn5ACyHACR9R5wyze5Ar=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/15Y7EUSibVURczn5ACyHACR9R5wyze5Ar=w600",
+    "driveUrl": "https://drive.google.com/file/d/15Y7EUSibVURczn5ACyHACR9R5wyze5Ar/view?usp=drivesdk",
+    "caption": "568638419 25427698940149999 1402577002769121704 n",
+    "date": "07/09/2026 14:19",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1aY8eo6a1heLuw034pLpDQsYKMMfuLc51",
+    "url": "https://lh3.googleusercontent.com/d/1aY8eo6a1heLuw034pLpDQsYKMMfuLc51=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1aY8eo6a1heLuw034pLpDQsYKMMfuLc51=w600",
+    "driveUrl": "https://drive.google.com/file/d/1aY8eo6a1heLuw034pLpDQsYKMMfuLc51/view?usp=drivesdk",
+    "caption": "554971995 32660542940203212 2424085129544350643 n",
+    "date": "05/09/2026 09:15",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-",
+    "url": "https://lh3.googleusercontent.com/d/1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-=w600",
+    "driveUrl": "https://drive.google.com/file/d/1vnBrGEC8nLBJAxg_9PxK7phhOEHlL94-/view?usp=drivesdk",
+    "caption": "648357832 10226146414361480 3833201303384509491 n",
+    "date": "05/09/2026 09:15",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2",
+    "url": "https://lh3.googleusercontent.com/d/1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2=w600",
+    "driveUrl": "https://drive.google.com/file/d/1U8SINXpF1ylZgufQEvmavVzhhNkD_fD2/view?usp=drivesdk",
+    "caption": "506460880 29829890076657001 4142235106235955816 n",
+    "date": "05/09/2026 09:14",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o",
+    "url": "https://lh3.googleusercontent.com/d/1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o=w600",
+    "driveUrl": "https://drive.google.com/file/d/1MYnJ8FSiIFJ7PBXE02xPee9Ls_BOTt2o/view?usp=drivesdk",
+    "caption": "511009035 30602990642625346 2880448722037149222 n",
+    "date": "05/09/2026 09:13",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju",
+    "url": "https://lh3.googleusercontent.com/d/1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju=w600",
+    "driveUrl": "https://drive.google.com/file/d/1BX0d3-lLRGmAC6cMmzlh3x5jU4TFBOju/view?usp=drivesdk",
+    "caption": "511330109 3855424527936875 8908743723824579465 n",
+    "date": "05/09/2026 09:12",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE",
+    "url": "https://lh3.googleusercontent.com/d/1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE=w600",
+    "driveUrl": "https://drive.google.com/file/d/1q2hYgMI9dxvzLMwtlji3BiGQC8RNPUTE/view?usp=drivesdk",
+    "caption": "513896040 24325259480400973 6935572474755808817 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9",
+    "url": "https://lh3.googleusercontent.com/d/1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9=w600",
+    "driveUrl": "https://drive.google.com/file/d/1cMx_JjIqNrQ5pbUqPq20iSLjdvQYtvJ9/view?usp=drivesdk",
+    "caption": "514954212 24325259277067660 1271437142121605245 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX",
+    "url": "https://lh3.googleusercontent.com/d/1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX=w600",
+    "driveUrl": "https://drive.google.com/file/d/1f7-mNBmcPwOUILmRCMcNWaGTNB53-AiX/view?usp=drivesdk",
+    "caption": "515121447 24325259427067645 1046997780096707513 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ",
+    "url": "https://lh3.googleusercontent.com/d/1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ=w600",
+    "driveUrl": "https://drive.google.com/file/d/1kDcjDx3TsDAAVvD7WiVQrSaMvHR2B4zQ/view?usp=drivesdk",
+    "caption": "514405511 24325259380400983 3852819756365493424 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS",
+    "url": "https://lh3.googleusercontent.com/d/11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS=w600",
+    "driveUrl": "https://drive.google.com/file/d/11IHAtRXKJv5PNztmdEuGX3p34e7zMWrS/view?usp=drivesdk",
+    "caption": "514374652 24325259297067658 8532392626940600440 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ",
+    "url": "https://lh3.googleusercontent.com/d/1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ=w600",
+    "driveUrl": "https://drive.google.com/file/d/1LlaKj-K5AKiHwvt0rnh0BlXlnuklYJQZ/view?usp=drivesdk",
+    "caption": "513898701 24325259320400989 3468692801592186009 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE",
+    "url": "https://lh3.googleusercontent.com/d/15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE=w600",
+    "driveUrl": "https://drive.google.com/file/d/15c5vvg8SW44Zv9YyDCEb3ZNYSFWJRHjE/view?usp=drivesdk",
+    "caption": "514374655 24325259213734333 978284759044515201 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg",
+    "url": "https://lh3.googleusercontent.com/d/1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg=w600",
+    "driveUrl": "https://drive.google.com/file/d/1vyq_e7kQ7erqR67_xNZNQDDlqzMGjbJg/view?usp=drivesdk",
+    "caption": "515593345 24325259387067649 1247523544945188133 n",
+    "date": "05/09/2026 09:11",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ",
+    "url": "https://lh3.googleusercontent.com/d/1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ=w600",
+    "driveUrl": "https://drive.google.com/file/d/1oKY0PdU3uys-JJ-yQ1w9BcQlcRx6lLCQ/view?usp=drivesdk",
+    "caption": "566388636 24935157649469681 6276832814599423669 n",
+    "date": "05/09/2026 09:10",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h",
+    "url": "https://lh3.googleusercontent.com/d/1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h=w600",
+    "driveUrl": "https://drive.google.com/file/d/1UmuSDOZalvtoEuFjUVWQBME3__SlnA9h/view?usp=drivesdk",
+    "caption": "640949231 26726866320232674 2861436457150474237 n",
+    "date": "05/09/2026 09:06",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K",
+    "url": "https://lh3.googleusercontent.com/d/10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K=w600",
+    "driveUrl": "https://drive.google.com/file/d/10yxWan1g7TlbvA1WYiu-lQ8KJMW5zy3K/view?usp=drivesdk",
+    "caption": "501748380 3818279548318040 4488756202888224625 n",
+    "date": "05/09/2026 09:06",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO",
+    "url": "https://lh3.googleusercontent.com/d/1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO=w600",
+    "driveUrl": "https://drive.google.com/file/d/1c3pxxcTskjZqjjPkdVL7b3d6QdpWSDdO/view?usp=drivesdk",
+    "caption": "502689037 3823147487831246 7655701400069318099 n",
+    "date": "05/09/2026 09:06",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
+  },
+  {
+    "id": "1URalctfUl30SRVtpmboOz6lkaMYvAi4C",
+    "url": "https://lh3.googleusercontent.com/d/1URalctfUl30SRVtpmboOz6lkaMYvAi4C=w1600",
+    "thumbnail": "https://lh3.googleusercontent.com/d/1URalctfUl30SRVtpmboOz6lkaMYvAi4C=w600",
+    "driveUrl": "https://drive.google.com/file/d/1URalctfUl30SRVtpmboOz6lkaMYvAi4C/view?usp=drivesdk",
+    "caption": "507453999 24185686561024933 8941559406477211526 n",
+    "date": "05/09/2026 09:05",
+    "albumId": "thanh-xuan-2003-2006",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
+    "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   }
 ];
 
