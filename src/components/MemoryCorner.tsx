@@ -1315,6 +1315,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   </button>
                 </div>
               </div>
+            )}
+
             {/* THANH ĐIỀU HƯỚNG PHÂN LOẠI: LOẠI MEDIA (ẢNH/VIDEO) & THƯ MỤC CON */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 pb-1 relative z-10 border-b border-amber-200/60">
               {/* Bộ lọc Loại Media: Tất cả / Ảnh / Video */}
