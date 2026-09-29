@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, 
   Image as ImageIcon, 
@@ -39,11 +40,13 @@ import {
   Grid,
   Layers,
   ExternalLink,
-  ArrowLeft
+  ArrowLeft,
+  Palette
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { MemoryImage, MemoryVideo, PhotoAlbum } from '../types';
+import { MemoryImage, MemoryVideo, PhotoAlbum, SlideTransitionType } from '../types';
 import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, DEFAULT_ALBUMS, getPhotoAlbumId, getNostalgicPhotoCaption, sanitizeAlbums, normalizeAlbumId, formatDisplayDate } from '../data';
+import { ROTATING_TRANSITIONS, TRANSITION_PRESETS, TransitionConfig, SLIDE_TRANSITION_OPTIONS } from './StagePresentationHub';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
@@ -271,6 +274,99 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   const [isControlsVisible, setIsControlsVisible] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const hideControlsTimerRef = useRef<any>(null);
+
+  // 🌟 ĐỒNG BỘ HIỆU ỨNG CHUYỂN CẢNH VỚI MÀN LED SÂN KHẤU
+  const [slideshowTransition, setSlideshowTransition] = useState<SlideTransitionType>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_slideshow_transition') as SlideTransitionType;
+      if (saved && (saved === 'alternate' || saved in TRANSITION_PRESETS)) return saved;
+    } catch {}
+    return 'alternate';
+  });
+
+  const [enableKenBurns, setEnableKenBurns] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('k8a1_slideshow_kenburns') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const [photoFilter, setPhotoFilter] = useState<'original' | 'sepia' | 'film' | 'bw'>(() => {
+    try {
+      const saved = localStorage.getItem('k8a1_slideshow_filter') as any;
+      if (['original', 'sepia', 'film', 'bw'].includes(saved)) return saved;
+    } catch {}
+    return 'original';
+  });
+
+  const [kenBurnsStyle, setKenBurnsStyle] = useState<number>(0);
+  const [showEffectMenu, setShowEffectMenu] = useState<boolean>(false);
+  const [showFilterMenu, setShowFilterMenu] = useState<boolean>(false);
+
+  // Bộ lọc màu ảnh kỷ niệm theo phong cách hoài niệm (chuẩn xác 100% như Màn LED)
+  const getPhotoFilterStyle = useCallback(() => {
+    switch (photoFilter) {
+      case 'sepia':
+        return 'sepia(0.35) contrast(1.08) brightness(0.96) saturate(1.15)';
+      case 'film':
+        return 'contrast(1.2) brightness(0.92) saturate(0.82) hue-rotate(-6deg)';
+      case 'bw':
+        return 'grayscale(1) contrast(1.2) brightness(0.94)';
+      default:
+        return 'none';
+    }
+  }, [photoFilter]);
+
+  // Kiểu chuyển động Ken Burns pan & zoom 4 hướng (chuẩn xác 100% như Màn LED)
+  const getKenBurnsClass = useCallback(() => {
+    switch (kenBurnsStyle) {
+      case 0: return 'scale-110 translate-x-3 translate-y-2';
+      case 1: return 'scale-115 -translate-x-3 -translate-y-2';
+      case 2: return 'scale-110 -translate-x-2 translate-y-3';
+      case 3: return 'scale-115 translate-x-2 -translate-y-2';
+      default: return 'scale-110';
+    }
+  }, [kenBurnsStyle]);
+
+  // Cấu hình hiệu ứng chuyển cảnh cho ảnh hiện tại (tự động luân phiên nếu là 'alternate')
+  const currentTransitionConfig = useMemo<TransitionConfig>(() => {
+    if (slideshowTransition === 'none') {
+      return TRANSITION_PRESETS.none;
+    }
+    if (slideshowTransition === 'alternate') {
+      const idx = Math.abs(selectedImageIndex || 0);
+      const selectedKey = ROTATING_TRANSITIONS[idx % ROTATING_TRANSITIONS.length];
+      return TRANSITION_PRESETS[selectedKey] || TRANSITION_PRESETS.crossfade;
+    }
+    return TRANSITION_PRESETS[slideshowTransition] || TRANSITION_PRESETS.crossfade;
+  }, [slideshowTransition, selectedImageIndex]);
+
+  const handleSelectTransition = (type: SlideTransitionType) => {
+    setSlideshowTransition(type);
+    try {
+      localStorage.setItem('k8a1_slideshow_transition', type);
+    } catch {}
+    setShowEffectMenu(false);
+  };
+
+  const handleToggleKenBurns = () => {
+    setEnableKenBurns(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('k8a1_slideshow_kenburns', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleSelectFilter = (filter: 'original' | 'sepia' | 'film' | 'bw') => {
+    setPhotoFilter(filter);
+    try {
+      localStorage.setItem('k8a1_slideshow_filter', filter);
+    } catch {}
+    setShowFilterMenu(false);
+  };
 
   // ---------------------------------------------------------------------------
   // LOGIC THẢ TIM TƯƠNG TÁC (TÍNH TOÁN BASELINE & GIẢM 1 KHI BỎ THÍCH)
@@ -796,6 +892,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     stopSlideshow();
     setSelectedImageIndex(null);
     setZoomLevel(1);
+    setShowEffectMenu(false);
+    setShowFilterMenu(false);
   }, [stopSlideshow]);
 
   const startSlideshow = (startIndex = 0) => {
@@ -840,6 +938,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       if (prev === null) return null;
       return prev > 0 ? prev - 1 : filteredImages.length - 1;
     });
+    setKenBurnsStyle((prev) => (prev + 1) % 4);
     setZoomLevel(1);
     setSlideshowProgress(0);
   }, [filteredImages.length]);
@@ -849,6 +948,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       if (prev === null) return null;
       return prev < filteredImages.length - 1 ? prev + 1 : 0;
     });
+    setKenBurnsStyle((prev) => (prev + 1) % 4);
     setZoomLevel(1);
     setSlideshowProgress(0);
   }, [filteredImages.length]);
@@ -857,10 +957,16 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   const handleZoomOut = () => setZoomLevel((prev) => Math.max(Number((prev - 0.3).toFixed(1)), 1));
   const handleResetZoom = () => setZoomLevel(1);
 
-  // Vòng lặp đếm thời gian & auto-advance Slide Show
+  // Vòng lặp đếm thời gian & auto-advance Slide Show (đồng bộ với Màn LED)
   useEffect(() => {
     if (!isSlideshowActive || !isSlideshowPlaying || selectedImageIndex === null) {
       setSlideshowProgress(0);
+      return;
+    }
+
+    // Nếu slide hiện tại là Video -> Tạm dừng tự động chuyển để người xem thưởng thức trọn vẹn clip
+    const currentItem = filteredImages[selectedImageIndex];
+    if (currentItem?.mediaType === 'video') {
       return;
     }
 
@@ -877,18 +983,18 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     }, intervalStep);
 
     return () => clearInterval(timer);
-  }, [isSlideshowActive, isSlideshowPlaying, selectedImageIndex, slideshowSpeed, handleNext]);
+  }, [isSlideshowActive, isSlideshowPlaying, selectedImageIndex, slideshowSpeed, handleNext, filteredImages]);
 
   // Tự động ẩn thanh công cụ khi trình chiếu
   const handleUserActivity = useCallback(() => {
     setIsControlsVisible(true);
     if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
-    if (isSlideshowActive && isSlideshowPlaying) {
+    if (isSlideshowActive && isSlideshowPlaying && !showEffectMenu && !showFilterMenu) {
       hideControlsTimerRef.current = setTimeout(() => {
         setIsControlsVisible(false);
       }, 3500);
     }
-  }, [isSlideshowActive, isSlideshowPlaying]);
+  }, [isSlideshowActive, isSlideshowPlaying, showEffectMenu, showFilterMenu]);
 
   useEffect(() => {
     if (!isSlideshowActive || !isSlideshowPlaying) {
@@ -2137,9 +2243,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               </span>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* Nút Bật/Tắt Slide Show & Điều chỉnh tốc độ */}
-              <div className="flex items-center gap-1 mr-1">
+              <div className="flex items-center gap-1 mr-0.5 sm:mr-1">
                 <button
                   type="button"
                   onClick={toggleSlideshowPlay}
@@ -2189,11 +2295,132 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 )}
               </div>
 
+              {/* 🌟 BỘ CHỌN HIỆU ỨNG CHUYỂN CẢNH (ĐỒNG BỘ MÀN LED) */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEffectMenu(prev => !prev);
+                    setShowFilterMenu(false);
+                  }}
+                  className={`px-2 py-1.5 rounded-lg text-xs font-sans font-medium flex items-center gap-1 transition cursor-pointer border ${
+                    slideshowTransition !== 'alternate'
+                      ? 'bg-amber-500/25 border-amber-400 text-amber-200'
+                      : 'bg-white/10 border-white/15 text-white/90 hover:bg-white/20'
+                  }`}
+                  title="Hiệu ứng chuyển cảnh ảnh (chuẩn 100% như Màn LED)"
+                >
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden md:inline text-[11px] font-semibold">
+                    {SLIDE_TRANSITION_OPTIONS.find(t => t.id === slideshowTransition)?.shortLabel || 'Xen Kẽ'}
+                  </span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </button>
+
+                {showEffectMenu && (
+                  <div 
+                    className="absolute right-0 top-full mt-2 w-56 bg-slate-900/95 backdrop-blur-xl border border-amber-400/40 rounded-xl shadow-2xl p-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-150"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold border-b border-white/10 mb-1 flex items-center justify-between">
+                      <span>✨ Hiệu Ứng Chuyển Cảnh</span>
+                      <span className="text-[9px] text-amber-400/70 font-normal">Màn LED</span>
+                    </div>
+                    {SLIDE_TRANSITION_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleSelectTransition(opt.id as any)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer text-left ${
+                          slideshowTransition === opt.id
+                            ? 'bg-amber-400 text-slate-950 font-bold'
+                            : 'text-slate-200 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span>{opt.label.split(' ')[0]}</span>
+                          <span className="truncate">{opt.shortLabel}</span>
+                        </span>
+                        {slideshowTransition === opt.id && <CheckCircle2 className="w-3.5 h-3.5 text-slate-950 shrink-0 ml-1" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 🌟 NÚT BẬT/TẮT CHUYỂN ĐỘNG KEN BURNS (PAN & ZOOM) */}
+              <button
+                type="button"
+                onClick={handleToggleKenBurns}
+                className={`p-1.5 sm:px-2 sm:py-1.5 rounded-lg text-xs font-sans font-medium flex items-center gap-1 transition cursor-pointer border ${
+                  enableKenBurns
+                    ? 'bg-amber-400/20 border-amber-400/50 text-amber-300 shadow-xs'
+                    : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
+                }`}
+                title={enableKenBurns ? 'Chuyển động Ken Burns (Pan & Zoom mềm mại): ĐANG BẬT' : 'Ken Burns: ĐÃ TẮT'}
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${enableKenBurns ? 'text-amber-400 animate-pulse' : 'text-slate-500'}`} />
+                <span className="hidden lg:inline text-[11px]">Ken Burns</span>
+              </button>
+
+              {/* 🌟 BỘ LỌC MÀU HOÀI NIỆM (SEPIA / FILM / B&W / GỐC) */}
+              <div className="relative hidden xs:block">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFilterMenu(prev => !prev);
+                    setShowEffectMenu(false);
+                  }}
+                  className={`p-1.5 sm:px-2 sm:py-1.5 rounded-lg text-xs font-sans font-medium flex items-center gap-1 transition cursor-pointer border ${
+                    photoFilter !== 'original'
+                      ? 'bg-amber-500/25 border-amber-400 text-amber-200'
+                      : 'bg-white/10 border-white/15 text-white/80 hover:bg-white/20'
+                  }`}
+                  title="Bộ lọc màu kỷ niệm (giống Màn LED)"
+                >
+                  <Palette className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden xl:inline text-[11px]">
+                    {photoFilter === 'original' ? 'Màu Gốc' : photoFilter === 'sepia' ? 'Sepia' : photoFilter === 'film' ? 'Film' : 'Trắng Đen'}
+                  </span>
+                </button>
+
+                {showFilterMenu && (
+                  <div 
+                    className="absolute right-0 top-full mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-amber-400/40 rounded-xl shadow-2xl p-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-150"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold border-b border-white/10 mb-1">
+                      🎨 Bộ Lọc Hoài Niệm
+                    </div>
+                    {[
+                      { id: 'original', label: '🎨 Màu Gốc Tự Nhiên' },
+                      { id: 'sepia', label: '📜 Sepia Nắng Vàng' },
+                      { id: 'film', label: '🎞️ Tone Phim Cổ Điển' },
+                      { id: 'bw', label: '⚫ Trắng Đen Ký Ức' }
+                    ].map((flt) => (
+                      <button
+                        key={flt.id}
+                        type="button"
+                        onClick={() => handleSelectFilter(flt.id as any)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer text-left ${
+                          photoFilter === flt.id
+                            ? 'bg-amber-400 text-slate-950 font-bold'
+                            : 'text-slate-200 hover:bg-white/10'
+                        }`}
+                      >
+                        <span>{flt.label}</span>
+                        {photoFilter === flt.id && <CheckCircle2 className="w-3.5 h-3.5 text-slate-950 shrink-0 ml-1" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Nút Toàn Màn Hình Máy Chiếu */}
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="p-2 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title={isFullscreen ? 'Thu nhỏ cửa sổ (F)' : 'Toàn màn hình máy chiếu / LED (F)'}
               >
                 {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -2206,7 +2433,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 type="button"
                 onClick={handleZoomOut}
                 disabled={zoomLevel <= 1}
-                className="p-2 rounded text-white/80 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded text-white/80 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-colors cursor-pointer"
                 title="Thu nhỏ (-)"
               >
                 <ZoomOut className="w-4 h-4" />
@@ -2215,7 +2442,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <button
                 type="button"
                 onClick={handleResetZoom}
-                className="px-2 py-1 rounded text-white/80 hover:text-white hover:bg-white/10 text-[11px] font-mono transition-colors cursor-pointer hidden xs:inline-block"
+                className="px-2 py-1 rounded text-white/80 hover:text-white hover:bg-white/10 text-[11px] font-mono transition-colors cursor-pointer hidden sm:inline-block"
               >
                 {Math.round(zoomLevel * 100)}%
               </button>
@@ -2224,7 +2451,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 type="button"
                 onClick={handleZoomIn}
                 disabled={zoomLevel >= 3}
-                className="p-2 rounded text-white/80 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded text-white/80 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-colors cursor-pointer"
                 title="Phóng to (+)"
               >
                 <ZoomIn className="w-4 h-4" />
@@ -2235,7 +2462,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 target="_blank"
                 rel="noopener noreferrer"
                 download
-                className="p-2 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer inline-flex items-center"
+                className="p-1.5 sm:p-2 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer inline-flex items-center"
                 title="Mở ảnh gốc trong tab mới / Tải về"
               >
                 <Download className="w-4 h-4" />
@@ -2244,7 +2471,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <button
                 type="button"
                 onClick={closeFullscreen}
-                className="p-2 rounded bg-white/10 text-white hover:bg-rose-600 transition-colors ml-1 cursor-pointer"
+                className="p-1.5 sm:p-2 rounded bg-white/10 text-white hover:bg-rose-600 transition-colors ml-1 cursor-pointer"
                 title="Đóng (Esc)"
               >
                 <X className="w-4 h-4" />
@@ -2256,9 +2483,28 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           <div 
             className="flex-1 relative flex items-center justify-center overflow-hidden p-2 md:p-6"
             onClick={(e) => {
-              if (e.target === e.currentTarget) closeFullscreen();
+              if (e.target === e.currentTarget) {
+                setShowEffectMenu(false);
+                setShowFilterMenu(false);
+                closeFullscreen();
+              }
             }}
           >
+            {/* Nền mờ nghệ thuật ambient phía sau đồng bộ với Màn LED */}
+            {currentImage && (
+              <AnimatePresence mode="sync">
+                <motion.div 
+                  key={`bg-${currentImage.id || selectedImageIndex}`}
+                  className="absolute inset-0 bg-cover bg-center filter blur-3xl scale-125 brightness-[0.25] pointer-events-none"
+                  style={{ backgroundImage: `url(${currentImage.thumbnail || currentImage.url})` }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.55 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                />
+              </AnimatePresence>
+            )}
+
             <button
               type="button"
               onClick={(e) => {
@@ -2287,42 +2533,57 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <ChevronRight className="w-6 h-6" />
             </button>
 
-            {currentImage.mediaType === 'video' ? (
-              <div 
-                className="w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black relative z-20"
-                onClick={(e) => e.stopPropagation()}
+            <AnimatePresence mode="sync">
+              <motion.div
+                key={currentImage.id || `${selectedImageIndex}-${currentImage.url}`}
+                className={`absolute inset-0 flex items-center justify-center ${currentImage.mediaType === 'video' ? 'pointer-events-auto' : 'pointer-events-none'} transform-gpu will-change-[transform,opacity] p-2 md:p-6`}
+                initial={currentTransitionConfig.initial}
+                animate={currentTransitionConfig.animate}
+                exit={currentTransitionConfig.exit}
+                transition={currentTransitionConfig.transition}
               >
-                <iframe
-                  src={currentImage.videoPreviewUrl || `https://drive.google.com/file/d/${currentImage.id}/preview`}
-                  className="w-full h-full border-0"
-                  allow="autoplay; encrypted-media; fullscreen"
-                  allowFullScreen
-                  title={currentImage.caption || 'Video Kỷ Niệm K8A1'}
-                />
-              </div>
-            ) : (
-              <div 
-                className="max-w-full max-h-[72vh] sm:max-h-[78vh] flex items-center justify-center transition-transform duration-200 ease-out"
-                style={{
-                  transform: `scale(${zoomLevel})`,
-                  cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setZoomLevel(zoomLevel === 1 ? 1.8 : 1);
-                }}
-              >
-                <img
-                  src={currentImage.url}
-                  alt={currentImage.caption}
-                  className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain rounded-xl shadow-2xl border border-white/10 select-none transition-all duration-700 ease-out ${
-                    isSlideshowActive && isSlideshowPlaying ? 'scale-[1.02]' : 'scale-100'
-                  }`}
-                  referrerPolicy="no-referrer"
-                  draggable={false}
-                />
-              </div>
-            )}
+                {currentImage.mediaType === 'video' ? (
+                  <div 
+                    className="w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black relative z-20 pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <iframe
+                      src={currentImage.videoPreviewUrl || `https://drive.google.com/file/d/${currentImage.id}/preview`}
+                      className="w-full h-full border-0"
+                      allow="autoplay; encrypted-media; fullscreen"
+                      allowFullScreen
+                      title={currentImage.caption || 'Video Kỷ Niệm K8A1'}
+                    />
+                  </div>
+                ) : (
+                  <div 
+                    className="max-w-full max-h-[72vh] sm:max-h-[78vh] flex items-center justify-center pointer-events-auto transition-transform duration-200 ease-out"
+                    style={{
+                      transform: `scale(${zoomLevel})`,
+                      cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setZoomLevel(zoomLevel === 1 ? 1.8 : 1);
+                    }}
+                  >
+                    <img
+                      src={currentImage.url}
+                      alt={currentImage.caption}
+                      style={{
+                        filter: getPhotoFilterStyle(),
+                        transitionDuration: isSlideshowActive && isSlideshowPlaying && enableKenBurns && zoomLevel === 1 ? `${slideshowSpeed}ms` : '350ms'
+                      }}
+                      className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain rounded-xl shadow-2xl border border-white/10 select-none transition-transform ease-out ${
+                        isSlideshowActive && isSlideshowPlaying && enableKenBurns && zoomLevel === 1 ? getKenBurnsClass() : ''
+                      }`}
+                      referrerPolicy="no-referrer"
+                      draggable={false}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* Bottom Info Bar with mini thumbnail navigator */}

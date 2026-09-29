@@ -12,7 +12,7 @@ import MusicPlaylistModal from './MusicPlaylistModal';
 import { precacheMediaList, saveOfflineTrackFile, loadAllOfflineTracks } from '../utils/offlineStorage';
 
 // Họa tiết góc hoa văn cổ điển mạ vàng (Vintage Golden Corner Filigree)
-function VintageCorner({ position }: { position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' }) {
+export function VintageCorner({ position }: { position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' }) {
   const posClasses = {
     'top-left': 'top-2 left-2',
     'top-right': 'top-2 right-2 rotate-90',
@@ -51,7 +51,7 @@ function VintageCorner({ position }: { position: 'top-left' | 'top-right' | 'bot
 }
 
 // Hiệu ứng hạt bay hoài niệm (Hoa phượng đỏ rơi / Bụi phấn nắng vàng / Bụi sao sân khấu)
-function NostalgiaParticles({ type }: { type: 'petals' | 'chalk' | 'sparkles' | 'none' }) {
+export function NostalgiaParticles({ type }: { type: 'petals' | 'chalk' | 'sparkles' | 'none' }) {
   if (type === 'none') return null;
 
   if (type === 'petals') {
@@ -191,6 +191,16 @@ export const TRANSITION_PRESETS: Record<string, TransitionConfig> = {
     transition: { duration: 0.05 }
   }
 };
+
+export const SLIDE_TRANSITION_OPTIONS = [
+  { id: 'alternate', label: '🔄 Xen Kẽ Đa Dạng', shortLabel: 'Xen Kẽ', desc: 'Luân phiên 5 hiệu ứng điện ảnh (Mặc định)' },
+  { id: 'zoom', label: '🔍 Phóng Lớn Chiều Sâu', shortLabel: 'Zoom', desc: 'Zoom dissolve êm ái' },
+  { id: 'slide', label: '🎞️ Trượt Êm Lật Trang', shortLabel: 'Trượt', desc: 'Trượt nhẹ tựa lật album' },
+  { id: 'blur', label: '💫 Mờ Ảo Hoài Niệm', shortLabel: 'Mờ Ảo', desc: 'Ký ức nhạt nhòa rồi hiện rõ' },
+  { id: 'crossfade', label: '🌊 Hòa Tan Kinh Điển', shortLabel: 'Hòa Tan', desc: 'Tan biến êm dịu triển lãm' },
+  { id: 'scale', label: '✨ Tỏa Sáng Ký Ức', shortLabel: 'Tỏa Sáng', desc: 'Scale từ tâm hoài niệm' },
+  { id: 'none', label: '❌ Cắt Trực Tiếp', shortLabel: 'Không hiệu ứng', desc: 'Đổi ảnh không hiệu ứng' }
+] as const;
 
 interface TransitionPhotoProps {
   photo: MemoryImage;
@@ -1474,15 +1484,7 @@ export default function StagePresentationHub({
                   <span>Hiệu ứng chuyển cảnh ảnh kỷ niệm (Slide Transition):</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: 'alternate', label: '🔄 Xen Kẽ Đa Dạng', desc: 'Luân phiên 5 hiệu ứng điện ảnh (Mặc định)' },
-                    { id: 'zoom', label: '🔍 Phóng Lớn Chiều Sâu', desc: 'Zoom dissolve êm ái' },
-                    { id: 'slide', label: '🎞️ Trượt Êm Lật Trang', desc: 'Trượt nhẹ tựa lật album' },
-                    { id: 'blur', label: '💫 Mờ Ảo Hoài Niệm', desc: 'Ký ức nhạt nhòa rồi hiện rõ' },
-                    { id: 'crossfade', label: '🌊 Hòa Tan Kinh Điển', desc: 'Tan biến êm dịu triển lãm' },
-                    { id: 'scale', label: '✨ Tỏa Sáng Ký Ức', desc: 'Scale từ tâm hoài niệm' },
-                    { id: 'none', label: '❌ Cắt Trực Tiếp', desc: 'Đổi ảnh không hiệu ứng' }
-                  ].map((tr) => (
+                  {SLIDE_TRANSITION_OPTIONS.map((tr) => (
                     <button
                       key={tr.id}
                       type="button"
