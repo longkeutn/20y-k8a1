@@ -109,15 +109,19 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     return albumsList.find(a => normalizeAlbumId(a.id) === norm) || null;
   }, [albumsList, selectedAlbumId]);
 
-  // Thống kê ảnh theo từng Album
+  // Thống kê ảnh & video theo từng Album
   const albumStats = useMemo(() => {
-    const stats: Record<string, { count: number; coverUrl: string }> = {};
+    const stats: Record<string, { count: number; photoCount: number; videoCount: number; coverUrl: string }> = {};
     albumsList.forEach(alb => {
       const albNorm = normalizeAlbumId(alb.id);
-      const albPhotos = displayImages.filter(img => normalizeAlbumId(img.albumId || getPhotoAlbumId(img)) === albNorm);
+      const albMedia = displayImages.filter(img => normalizeAlbumId(img.albumId || getPhotoAlbumId(img)) === albNorm);
+      const photoCount = albMedia.filter(i => i.mediaType !== 'video').length;
+      const videoCount = albMedia.filter(i => i.mediaType === 'video').length;
       stats[alb.id] = {
-        count: albPhotos.length,
-        coverUrl: alb.coverPhotoUrl || (albPhotos[0] ? albPhotos[0].url : 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600')
+        count: albMedia.length,
+        photoCount,
+        videoCount,
+        coverUrl: alb.coverPhotoUrl || (albMedia[0] ? (albMedia[0].thumbnail || albMedia[0].url) : 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600')
       };
     });
     return stats;
@@ -186,7 +190,11 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
           driveUrl: p.driveUrl,
           albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
           albumName: p.albumName,
-          driveFolderId: p.driveFolderId
+          driveFolderId: p.driveFolderId,
+          mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
+          subfolderName: p.subfolderName || '',
+          subfolderId: p.subfolderId || '',
+          videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
         }));
         if (onAddImage) {
           onAddImage(driveImgs);
@@ -398,6 +406,36 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     return displayImages;
   }, [displayImages, selectedAlbumId]);
 
+  // Bộ lọc loại Media: Tất cả / Chỉ Ảnh / Chỉ Video
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'photo' | 'video'>('all');
+  // Bộ lọc Thư mục con (Subfolder Cấp 2)
+  const [subfolderFilter, setSubfolderFilter] = useState<string>('all');
+
+  // Tự động reset bộ lọc folder con và mediaType khi đổi Album
+  useEffect(() => {
+    setSubfolderFilter('all');
+    setMediaTypeFilter('all');
+  }, [selectedAlbumId]);
+
+  // Trích xuất danh sách các Thư mục con có trong Album hiện tại
+  const availableSubfolders = useMemo(() => {
+    const map = new Map<string, number>();
+    sourceImages.forEach(img => {
+      const name = (img.subfolderName || '').trim();
+      if (name) {
+        map.set(name, (map.get(name) || 0) + 1);
+      }
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [sourceImages]);
+
+  // Thống kê số lượng Ảnh vs Video trong nguồn hiện tại
+  const mediaTypeCounts = useMemo(() => {
+    const photos = sourceImages.filter(i => i.mediaType !== 'video').length;
+    const videos = sourceImages.filter(i => i.mediaType === 'video').length;
+    return { all: sourceImages.length, photos, videos };
+  }, [sourceImages]);
+
   // Danh sách ảnh đã xáo trộn ngẫu nhiên (Fisher-Yates Shuffle) hoặc sắp xếp
   const shuffledImages = useMemo(() => {
     if (!sourceImages || sourceImages.length === 0) return [];
@@ -431,17 +469,25 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
   // Lọc danh sách ảnh trên nguồn ảnh đã xáo trộn
   const filteredImages = useMemo(() => {
     return shuffledImages.filter(img => {
+      // Lọc theo loại media (Ảnh / Video)
+      if (mediaTypeFilter === 'photo' && img.mediaType === 'video') return false;
+      if (mediaTypeFilter === 'video' && img.mediaType !== 'video') return false;
+
+      // Lọc theo Thư mục con Cấp 2
+      if (subfolderFilter !== 'all' && (img.subfolderName || '').trim() !== subfolderFilter) return false;
+
       if (searchKeyword.trim()) {
         const kw = searchKeyword.toLowerCase();
         const matchCap = img.caption?.toLowerCase().includes(kw);
         const matchDate = img.date?.toLowerCase().includes(kw);
-        if (!matchCap && !matchDate) return false;
+        const matchSub = img.subfolderName?.toLowerCase().includes(kw);
+        if (!matchCap && !matchDate && !matchSub) return false;
       }
 
       if (activeFilter === 'all') return true;
       if (activeFilter === 'uploads') return !!img.isUserUploaded;
 
-      const text = `${img.caption || ''} ${img.date || ''}`.toLowerCase();
+      const text = `${img.caption || ''} ${img.date || ''} ${img.subfolderName || ''}`.toLowerCase();
       if (activeFilter === 'class') {
         return text.includes('lớp') || text.includes('học') || text.includes('thầy') || text.includes('cô') || text.includes('bàn') || text.includes('trường') || text.includes('kem');
       }
@@ -454,7 +500,36 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
       return true;
     });
-  }, [shuffledImages, activeFilter, searchKeyword]);
+  }, [shuffledImages, activeFilter, searchKeyword, mediaTypeFilter, subfolderFilter]);
+
+  // Tự động tạm dừng nhạc nền website khi xem video và khôi phục khi đóng
+  useEffect(() => {
+    if (selectedImageIndex !== null) {
+      const activeItem = filteredImages[selectedImageIndex];
+      if (activeItem && activeItem.mediaType === 'video') {
+        document.querySelectorAll('audio').forEach(a => {
+          if (!a.paused) {
+            (a as any)._wasPausedByVideo = true;
+            a.pause();
+          }
+        });
+      } else {
+        document.querySelectorAll('audio').forEach(a => {
+          if ((a as any)._wasPausedByVideo) {
+            a.play().catch(() => {});
+            (a as any)._wasPausedByVideo = false;
+          }
+        });
+      }
+    } else {
+      document.querySelectorAll('audio').forEach(a => {
+        if ((a as any)._wasPausedByVideo) {
+          a.play().catch(() => {});
+          (a as any)._wasPausedByVideo = false;
+        }
+      });
+    }
+  }, [selectedImageIndex, filteredImages]);
 
   // Đếm số lượng theo từng danh mục
   const countsByCategory = useMemo(() => {
@@ -1240,7 +1315,72 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   </button>
                 </div>
               </div>
-            )}
+            {/* THANH ĐIỀU HƯỚNG PHÂN LOẠI: LOẠI MEDIA (ẢNH/VIDEO) & THƯ MỤC CON */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 pb-1 relative z-10 border-b border-amber-200/60">
+              {/* Bộ lọc Loại Media: Tất cả / Ảnh / Video */}
+              <div className="inline-flex items-center bg-amber-950/10 p-1 rounded-xl border border-amber-300/60 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setMediaTypeFilter('all')}
+                  className={`px-3 py-1 rounded-lg text-xs font-sans font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    mediaTypeFilter === 'all'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-slate-700 hover:text-amber-900 hover:bg-amber-100/60'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Tất Cả ({mediaTypeCounts.all})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMediaTypeFilter('photo')}
+                  className={`px-3 py-1 rounded-lg text-xs font-sans font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    mediaTypeFilter === 'photo'
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'text-slate-700 hover:text-amber-900 hover:bg-amber-100/60'
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Ảnh ({mediaTypeCounts.photos})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMediaTypeFilter('video')}
+                  className={`px-3 py-1 rounded-lg text-xs font-sans font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    mediaTypeFilter === 'video'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'text-slate-700 hover:text-rose-700 hover:bg-rose-50'
+                  }`}
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  <span>Video ({mediaTypeCounts.videos})</span>
+                </button>
+              </div>
+
+              {/* Bộ lọc Thư mục con Cấp 2 (Nếu có) */}
+              {availableSubfolders.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                    <Folder className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="hidden sm:inline">Thư mục con:</span>
+                  </span>
+                  <select
+                    value={subfolderFilter}
+                    onChange={(e) => setSubfolderFilter(e.target.value)}
+                    className="px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs cursor-pointer max-w-[220px] truncate"
+                  >
+                    <option value="all">📂 Toàn bộ thư mục con ({availableSubfolders.reduce((acc, cur) => acc + cur.count, 0)})</option>
+                    {availableSubfolders.map(sub => (
+                      <option key={sub.name} value={sub.name}>
+                        📁 {sub.name} ({sub.count})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
 
         {/* BỘ LỌC CHỦ ĐỀ HOÀI NIỆM, SẮP XẾP & THANH TÌM KIẾM */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 relative z-10">
@@ -1456,6 +1596,15 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
 
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
+                      {/* Nút Play trung tâm nổi bật khi là Video */}
+                      {img.mediaType === 'video' && (
+                        <div className="absolute inset-0 flex items-center justify-center z-15 pointer-events-none">
+                          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-xl group-hover:scale-115 group-hover:bg-rose-500 transition-all duration-300 border-2 border-white/80">
+                            <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current translate-x-0.5" />
+                          </div>
+                        </div>
+                      )}
+
                       {/* Nút Thả Tim Tương Tác */}
                       <button
                         type="button"
@@ -1473,29 +1622,59 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                         <span className="font-mono font-bold text-[10px] sm:text-xs">{likes}</span>
                       </button>
 
-                      {/* Date Badge kiểu tem máy film */}
-                      {img.date && (
-                        <span className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 z-20 bg-amber-950/80 backdrop-blur-md text-amber-200 text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded border border-amber-500/30">
-                          {img.date}
-                        </span>
-                      )}
+                      {/* Media Badges: Video, Date, Thư mục con */}
+                      <div className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 z-20 flex flex-wrap items-center gap-1 max-w-[80%]">
+                        {img.mediaType === 'video' && (
+                          <span className="bg-rose-950/85 backdrop-blur-md text-rose-200 text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded font-bold border border-rose-400/40 flex items-center gap-1 shadow-xs">
+                            <Film className="w-3 h-3 text-rose-300" />
+                            <span>VIDEO</span>
+                          </span>
+                        )}
+                        {img.date && (
+                          <span className="bg-amber-950/80 backdrop-blur-md text-amber-200 text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded border border-amber-500/30">
+                            {img.date}
+                          </span>
+                        )}
+                        {img.subfolderName && (
+                          <span className="bg-black/75 backdrop-blur-md text-amber-300 text-[9px] sm:text-[10px] font-sans px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded border border-amber-400/30 flex items-center gap-1 shadow-xs max-w-[120px] truncate" title={`Thư mục: ${img.subfolderName}`}>
+                            <Folder className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                            <span className="truncate">{img.subfolderName}</span>
+                          </span>
+                        )}
+                      </div>
 
-                      {/* Nút Xem HD xuất hiện khi rê chuột */}
+                      {/* Nút Xem HD / Xem Video xuất hiện khi rê chuột */}
                       <div className="hidden sm:flex absolute bottom-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold items-center gap-1 border border-white/20 shadow">
-                        <Maximize2 className="w-3 h-3 text-amber-300" />
-                        <span>Phóng to</span>
+                        {img.mediaType === 'video' ? (
+                          <>
+                            <Play className="w-3 h-3 text-rose-400 fill-current" />
+                            <span>Phát Video</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3 h-3 text-amber-300" />
+                            <span>Phóng to</span>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     {/* Chân thẻ phong cách Polaroid */}
                     <div className="pt-1.5 sm:pt-2.5 px-0.5 sm:px-1 flex items-center justify-between text-[10px] sm:text-xs text-slate-500 font-serif">
                       <span className="text-[10px] sm:text-[11px] text-slate-400 font-sans italic truncate">
-                        {img.date || 'K8A1 (03–06)'}
+                        {img.subfolderName ? `📁 ${img.subfolderName}` : (img.date || 'K8A1 (03–06)')}
                       </span>
-                      <span className="text-[9px] sm:text-[10px] font-sans font-bold text-amber-800 uppercase tracking-wider bg-amber-100/70 px-1.5 py-0.5 sm:px-2 rounded shrink-0 flex items-center gap-0.5 sm:gap-1">
-                        <Maximize2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                        <span className="hidden xs:inline">Xem HD</span>
-                      </span>
+                      {img.mediaType === 'video' ? (
+                        <span className="text-[9px] sm:text-[10px] font-sans font-bold text-rose-800 uppercase tracking-wider bg-rose-100/80 px-1.5 py-0.5 sm:px-2 rounded shrink-0 flex items-center gap-0.5 sm:gap-1">
+                          <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current text-rose-600" />
+                          <span>Phát Video</span>
+                        </span>
+                      ) : (
+                        <span className="text-[9px] sm:text-[10px] font-sans font-bold text-amber-800 uppercase tracking-wider bg-amber-100/70 px-1.5 py-0.5 sm:px-2 rounded shrink-0 flex items-center gap-0.5 sm:gap-1">
+                          <Maximize2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          <span className="hidden xs:inline">Xem HD</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -2108,27 +2287,42 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <ChevronRight className="w-6 h-6" />
             </button>
 
-            <div 
-              className="max-w-full max-h-[72vh] sm:max-h-[78vh] flex items-center justify-center transition-transform duration-200 ease-out"
-              style={{
-                transform: `scale(${zoomLevel})`,
-                cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setZoomLevel(zoomLevel === 1 ? 1.8 : 1);
-              }}
-            >
-              <img
-                src={currentImage.url}
-                alt={currentImage.caption}
-                className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain rounded-xl shadow-2xl border border-white/10 select-none transition-all duration-700 ease-out ${
-                  isSlideshowActive && isSlideshowPlaying ? 'scale-[1.02]' : 'scale-100'
-                }`}
-                referrerPolicy="no-referrer"
-                draggable={false}
-              />
-            </div>
+            {currentImage.mediaType === 'video' ? (
+              <div 
+                className="w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black relative z-20"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <iframe
+                  src={currentImage.videoPreviewUrl || `https://drive.google.com/file/d/${currentImage.id}/preview`}
+                  className="w-full h-full border-0"
+                  allow="autoplay; encrypted-media; fullscreen"
+                  allowFullScreen
+                  title={currentImage.caption || 'Video Kỷ Niệm K8A1'}
+                />
+              </div>
+            ) : (
+              <div 
+                className="max-w-full max-h-[72vh] sm:max-h-[78vh] flex items-center justify-center transition-transform duration-200 ease-out"
+                style={{
+                  transform: `scale(${zoomLevel})`,
+                  cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoomLevel(zoomLevel === 1 ? 1.8 : 1);
+                }}
+              >
+                <img
+                  src={currentImage.url}
+                  alt={currentImage.caption}
+                  className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain rounded-xl shadow-2xl border border-white/10 select-none transition-all duration-700 ease-out ${
+                    isSlideshowActive && isSlideshowPlaying ? 'scale-[1.02]' : 'scale-100'
+                  }`}
+                  referrerPolicy="no-referrer"
+                  draggable={false}
+                />
+              </div>
+            )}
           </div>
 
           {/* Bottom Info Bar with mini thumbnail navigator */}
@@ -2136,8 +2330,22 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
           }`}>
             <div className="space-y-0.5 text-left">
+              <div className="flex items-center gap-2">
+                {currentImage.mediaType === 'video' && (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-mono font-bold flex items-center gap-1">
+                    <Film className="w-3 h-3" />
+                    <span>VIDEO CLIP</span>
+                  </span>
+                )}
+                {currentImage.subfolderName && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-amber-200 text-[10px] font-sans font-semibold flex items-center gap-1">
+                    <Folder className="w-3 h-3 text-amber-400" />
+                    <span>{currentImage.subfolderName}</span>
+                  </span>
+                )}
+              </div>
               <p className="text-sm md:text-base font-serif italic text-amber-200 font-medium leading-relaxed">
-                “{getNostalgicPhotoCaption(selectedImageIndex || 0, currentImage.caption)}”
+                “{currentImage.caption || getNostalgicPhotoCaption(selectedImageIndex || 0, currentImage.caption)}”
               </p>
               {currentImage.date && (
                 <p className="text-[11px] text-white/60 font-sans">

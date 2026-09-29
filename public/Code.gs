@@ -631,8 +631,13 @@ function doGet(e) {
     }
 
     // 4. Lấy ảnh thư viện Drive
-    if (action === 'get_photos') {
-      return handleResponse(getDrivePhotos());
+    if (action === 'get_photos' || action === 'get_drive_photos') {
+      var force = e && e.parameter && (e.parameter.refresh === 'true' || e.parameter.force === 'true');
+      return handleResponse(getDrivePhotos(force));
+    }
+    if (action === 'rescan_drive_photos' || action === 'refresh_drive_photos') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để quét lại Drive!' });
+      return handleResponse(getDrivePhotos(true));
     }
 
     // 4b. Lấy danh sách ảnh Backdrop sân khấu từ folder Drive
@@ -805,6 +810,11 @@ function doPost(e) {
 
     if (action === 'get_backdrops' || action === 'get_drive_backdrops') {
       return handleResponse(getDriveBackdrops());
+    }
+
+    if (action === 'rescan_drive_photos' || action === 'refresh_drive_photos') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để quét lại Drive!' });
+      return handleResponse(getDrivePhotos(true));
     }
 
     // 3. Quản lý danh bạ lớp K8A1 (Sheet: "Danh_Sach_Lop") -> Yêu cầu Admin/BLL
@@ -2132,7 +2142,37 @@ function getDriveAlbumsList() {
  * Lấy ảnh từ Google Drive: Quét toàn bộ các thư mục con Album + thư mục gốc
  * Tự động gán albumId, albumName, driveFolderId cho từng ảnh
  */
-function getDrivePhotos() {
+/**
+ * Tên Sheet lưu bộ đệm thư viện Media (Ảnh & Video) từ Google Drive
+ */
+const DRIVE_MEDIA_CACHE_SHEET = "Media_Drive_Cache";
+
+function getOrCreateMediaCacheSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(DRIVE_MEDIA_CACHE_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(DRIVE_MEDIA_CACHE_SHEET);
+    sheet.appendRow([
+      'File_ID',           // A (1)
+      'File_Name',         // B (2)
+      'Media_Type',        // C (3) - 'photo' | 'video'
+      'Album_ID',          // D (4)
+      'Album_Name',        // E (5)
+      'Subfolder_Name',    // F (6)
+      'Subfolder_ID',      // G (7)
+      'URL',               // H (8)
+      'Thumbnail',         // I (9)
+      'Drive_URL',         // J (10)
+      'Video_Preview_URL', // K (11)
+      'Date_Created',      // L (12)
+      'Last_Scanned'       // M (13)
+    ]);
+    sheet.getRange(1, 1, 1, 13).setFontWeight('bold').setBackground('#FAF3E0');
+  }
+  return sheet;
+}
+
+function getDrivePhotos(forceRefresh) {
   const root = getRootMemoryFolder();
   if (!root) {
     return { 
@@ -2142,11 +2182,54 @@ function getDrivePhotos() {
     };
   }
 
+  const cacheSheet = getOrCreateMediaCacheSheet();
+  const lastRow = cacheSheet.getLastRow();
+
+  // 1. Nếu không yêu cầu quét lại (forceRefresh = false) và cache đã có dữ liệu -> Đọc nhanh từ cache (dưới 0.2s)
+  if (!forceRefresh && lastRow > 1) {
+    try {
+      const rows = cacheSheet.getRange(2, 1, lastRow - 1, 13).getValues();
+      const cachedMedia = [];
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const fileId = String(r[0] || '').trim();
+        if (!fileId) continue;
+        const mediaType = String(r[2] || 'photo') === 'video' ? 'video' : 'photo';
+        cachedMedia.push({
+          id: fileId,
+          caption: String(r[1] || ''),
+          mediaType: mediaType,
+          albumId: String(r[3] || 'thanh-xuan-2003-2006'),
+          albumName: String(r[4] || ''),
+          subfolderName: String(r[5] || ''),
+          subfolderId: String(r[6] || ''),
+          url: String(r[7] || ('https://lh3.googleusercontent.com/d/' + fileId + (mediaType === 'video' ? '' : '=w1600'))),
+          thumbnail: String(r[8] || ('https://lh3.googleusercontent.com/d/' + fileId + '=w600')),
+          driveUrl: String(r[9] || ''),
+          videoPreviewUrl: String(r[10] || (mediaType === 'video' ? 'https://drive.google.com/file/d/' + fileId + '/preview' : '')),
+          date: String(r[11] || '')
+        });
+      }
+      if (cachedMedia.length > 0) {
+        return {
+          status: 'success',
+          data: cachedMedia,
+          total: cachedMedia.length,
+          fromCache: true,
+          rootFolderId: root.getId()
+        };
+      }
+    } catch (eCache) {
+      console.warn("Lỗi đọc cache Media_Drive_Cache: " + eCache.toString());
+    }
+  }
+
+  // 2. Quét thực tế trên Google Drive (Cấp 1: Album + Cấp 2: Folder con)
   try {
-    const photos = [];
+    const mediaList = [];
     const seenIds = {};
 
-    function scanFolder(folder, defaultAlbumId, defaultAlbumName) {
+    function scanFiles(folder, defaultAlbumId, defaultAlbumName, subfolderName, subfolderId) {
       try {
         const files = folder.getFiles();
         while (files.hasNext()) {
@@ -2156,35 +2239,66 @@ function getDrivePhotos() {
           if (seenIds[fileId]) continue;
           seenIds[fileId] = true;
 
+          const fileName = file.getName();
           const mimeType = file.getMimeType();
-          if (mimeType.indexOf('image/') === 0 || mimeType === 'application/octet-stream') {
-            photos.push({
+
+          const isVideo = mimeType.indexOf('video/') === 0 || /\.(mp4|mov|m4v|webm|avi|mkv|3gp)$/i.test(fileName);
+          const isImage = mimeType.indexOf('image/') === 0 || /\.(jpg|jpeg|png|gif|webp|heic|bmp)$/i.test(fileName) || (mimeType === 'application/octet-stream' && !isVideo);
+
+          if (!isImage && !isVideo) continue;
+
+          const cleanCaption = fileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+          const dateCreatedStr = formatDate(file.getDateCreated());
+          const driveUrl = file.getUrl();
+
+          if (isVideo) {
+            mediaList.push({
               id: fileId,
-              url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
-              thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
-              driveUrl: file.getUrl(),
-              caption: file.getName().replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
-              date: formatDate(file.getDateCreated()),
+              caption: cleanCaption,
+              mediaType: 'video',
               albumId: defaultAlbumId,
               albumName: defaultAlbumName,
+              subfolderName: subfolderName || '',
+              subfolderId: subfolderId || '',
+              url: 'https://lh3.googleusercontent.com/d/' + fileId,
+              thumbnail: 'https://drive.google.com/thumbnail?authuser=0&sz=w800&id=' + fileId,
+              driveUrl: driveUrl,
+              videoPreviewUrl: 'https://drive.google.com/file/d/' + fileId + '/preview',
+              date: dateCreatedStr,
+              driveFolderId: folder.getId()
+            });
+          } else {
+            mediaList.push({
+              id: fileId,
+              caption: cleanCaption,
+              mediaType: 'photo',
+              albumId: defaultAlbumId,
+              albumName: defaultAlbumName,
+              subfolderName: subfolderName || '',
+              subfolderId: subfolderId || '',
+              url: 'https://lh3.googleusercontent.com/d/' + fileId + '=w1600',
+              thumbnail: 'https://lh3.googleusercontent.com/d/' + fileId + '=w600',
+              driveUrl: driveUrl,
+              videoPreviewUrl: '',
+              date: dateCreatedStr,
               driveFolderId: folder.getId()
             });
           }
         }
       } catch (eScan) {
-        console.warn("Lỗi scan folder: " + eScan.toString());
+        console.warn("Lỗi scanFiles: " + eScan.toString());
       }
     }
 
-    // 1. Quét qua tất cả thư mục con (album)
+    // CẤP 1: Quét qua tất cả thư mục Album chính
     const subFolders = root.getFolders();
     while (subFolders.hasNext()) {
       const sub = subFolders.next();
       if (sub.isTrashed()) continue;
       const subName = sub.getName();
 
-      // Bỏ qua thư mục hệ thống & video
-      if (subName === 'Backdrops_SanKhau' || subName === 'ChungTu_QuyLop_K8A1' || subName === 'Avatar_Thanh_Vien' || subName === 'VIDEO') {
+      // Bỏ qua thư mục hệ thống
+      if (subName === 'Backdrops_SanKhau' || subName === 'ChungTu_QuyLop_K8A1' || subName === 'Avatar_Thanh_Vien') {
         continue;
       }
 
@@ -2206,20 +2320,62 @@ function getDrivePhotos() {
         }
       }
 
-      scanFolder(sub, matchedAlbumId, matchedAlbumTitle);
+      // Quét các file ở gốc của Album Cấp 1
+      scanFiles(sub, matchedAlbumId, matchedAlbumTitle, '', '');
+
+      // CẤP 2: Quét các thư mục con (subfolders) bên trong Album này
+      try {
+        const childFolders = sub.getFolders();
+        while (childFolders.hasNext()) {
+          const child = childFolders.next();
+          if (child.isTrashed()) continue;
+          scanFiles(child, matchedAlbumId, matchedAlbumTitle, child.getName(), child.getId());
+        }
+      } catch (eChild) {
+        console.warn("Lỗi scan child folders của " + subName + ": " + eChild.toString());
+      }
     }
 
-    // 2. Quét các ảnh nằm ở thư mục gốc (nếu có)
-    scanFolder(root, 'thanh-xuan-2003-2006', 'Thời Niên Thiếu (2003 — 2006)');
+    // Quét các file nằm ngay tại thư mục Root (nếu có)
+    scanFiles(root, 'thanh-xuan-2003-2006', 'Thời Niên Thiếu (2003 — 2006)', '', '');
+
+    // 3. Ghi đè vào Cache Sheet để các lần sau nạp siêu tốc
+    try {
+      if (cacheSheet.getLastRow() > 1) {
+        cacheSheet.getRange(2, 1, cacheSheet.getLastRow() - 1, 13).clearContent();
+      }
+      if (mediaList.length > 0) {
+        const nowStr = formatDate(new Date());
+        const rowsToInsert = mediaList.map(m => [
+          m.id,
+          m.caption,
+          m.mediaType,
+          m.albumId,
+          m.albumName,
+          m.subfolderName || '',
+          m.subfolderId || '',
+          m.url,
+          m.thumbnail,
+          m.driveUrl,
+          m.videoPreviewUrl || '',
+          m.date,
+          nowStr
+        ]);
+        cacheSheet.getRange(2, 1, rowsToInsert.length, 13).setValues(rowsToInsert);
+      }
+    } catch (eSaveCache) {
+      console.warn("Lỗi lưu Media_Drive_Cache: " + eSaveCache.toString());
+    }
 
     return { 
       status: 'success', 
-      data: photos,
-      total: photos.length,
+      data: mediaList,
+      total: mediaList.length,
+      fromCache: false,
       rootFolderId: root.getId()
     };
   } catch (e) {
-    return { status: 'success', data: [], error: e.toString() };
+    return { status: 'error', data: [], message: e.toString() };
   }
 }
 
@@ -2277,8 +2433,33 @@ function uploadPhotoToDrive(data) {
       date: formatDate(new Date()),
       albumId: albumId,
       albumName: albumTitle,
-      driveFolderId: targetFolder.getId()
+      driveFolderId: targetFolder.getId(),
+      mediaType: 'photo',
+      subfolderName: '',
+      subfolderId: ''
     };
+
+    // Tự động thêm vào bảng đệm Media_Drive_Cache nếu có
+    try {
+      const cacheSheet = getOrCreateMediaCacheSheet();
+      cacheSheet.appendRow([
+        fileId,
+        photoItem.caption,
+        'photo',
+        albumId,
+        albumTitle,
+        '',
+        '',
+        photoItem.url,
+        photoItem.thumbnail,
+        photoItem.driveUrl,
+        '',
+        photoItem.date,
+        formatDate(new Date())
+      ]);
+    } catch (eCacheSync) {
+      console.warn("Lỗi sync cache khi upload ảnh: " + eCacheSync.toString());
+    }
 
     return {
       status: 'success',

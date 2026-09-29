@@ -2127,7 +2127,11 @@ export default function App() {
                 driveUrl: p.driveUrl,
                 albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
                 albumName: p.albumName,
-                driveFolderId: p.driveFolderId
+                driveFolderId: p.driveFolderId,
+                mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
+                subfolderName: p.subfolderName || '',
+                subfolderId: p.subfolderId || '',
+                videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
               }));
 
               setImages((prev) => {
@@ -2332,7 +2336,11 @@ export default function App() {
               driveUrl: p.driveUrl,
               albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
               albumName: p.albumName,
-              driveFolderId: p.driveFolderId
+              driveFolderId: p.driveFolderId,
+              mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
+              subfolderName: p.subfolderName || '',
+              subfolderId: p.subfolderId || '',
+              videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
             }));
 
             setImages((prev) => {

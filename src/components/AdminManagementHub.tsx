@@ -3527,6 +3527,46 @@ export default function AdminManagementHub({
     }
   };
 
+  const [isRescanningDriveMedia, setIsRescanningDriveMedia] = useState<boolean>(false);
+
+  const handleRescanDrivePhotos = async () => {
+    if (!appsScriptUrl || !appsScriptUrl.trim()) {
+      alert('Vui lòng cấu hình URL Google Apps Script WebApp trước khi quét!');
+      return;
+    }
+    if (!confirm('Hệ thống sẽ duyệt quét lại toàn bộ ảnh & video trên Google Drive theo cấu trúc 2 cấp (Thư mục chính & Thư mục con), sau đó cập nhật bảng đệm Media_Drive_Cache.\n\nQuá trình này mất khoảng vài giây. Bạn có muốn tiếp tục?')) {
+      return;
+    }
+
+    setIsRescanningDriveMedia(true);
+    try {
+      const targetUrl = appsScriptUrl.trim();
+      const pin = getAdminPinToken();
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'rescan_drive_photos',
+          pin: pin
+        })
+      });
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        const count = data.count || (data.photos ? data.photos.length : 0);
+        alert(`🎉 Đã quét và cập nhật thành công ${count} tệp media (ảnh & video 2 cấp) từ Google Drive!`);
+        if (onRefreshData) {
+          onRefreshData();
+        }
+      } else {
+        alert('Có lỗi khi quét Drive: ' + (data?.message || 'Không thể quét tệp media'));
+      }
+    } catch (e: any) {
+      alert('Lỗi kết nối tới Google Apps Script: ' + (e?.message || e));
+    } finally {
+      setIsRescanningDriveMedia(false);
+    }
+  };
+
   const handleChangePhotoAlbum = (photo: MemoryImage, targetAlbumId: string) => {
     const targetAlbum = albumsState.find(a => a.id === targetAlbumId);
     const updated = images.map(p => p.id === photo.id ? {
@@ -7218,7 +7258,17 @@ export default function AdminManagementHub({
                 )}
 
                 {mediaSubTab === 'photos' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleRescanDrivePhotos}
+                      disabled={isRescanningDriveMedia}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-lg text-xs font-sans font-semibold transition cursor-pointer shadow-xs disabled:opacity-50"
+                      title="Quét lại toàn bộ ảnh & video 2 cấp (Album chính & Folder con) trên Google Drive"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRescanningDriveMedia ? 'animate-spin' : ''}`} />
+                      <span>{isRescanningDriveMedia ? 'Đang quét Drive...' : '🔄 Quét Lại Drive (2 Cấp)'}</span>
+                    </button>
                     <a
                       href={K8A1_DRIVE_FOLDER_URL}
                       target="_blank"
@@ -7492,6 +7542,17 @@ export default function AdminManagementHub({
                     </div>
 
                     <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleRescanDrivePhotos}
+                        disabled={isRescanningDriveMedia}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs disabled:opacity-50"
+                        title="Quét lại toàn bộ ảnh & video 2 cấp (Album chính & Folder con) trên Google Drive"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isRescanningDriveMedia ? 'animate-spin' : ''}`} />
+                        <span>{isRescanningDriveMedia ? 'Đang quét Drive...' : '🔄 Quét Lại Drive (2 Cấp)'}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={handleInitDriveAlbumFolders}

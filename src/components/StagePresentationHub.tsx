@@ -202,7 +202,7 @@ interface TransitionPhotoProps {
   className?: string;
 }
 
-// Component hiển thị ảnh chuyển cảnh mượt mà kèm Ken Burns pan/zoom
+// Component hiển thị ảnh/video chuyển cảnh mượt mà kèm Ken Burns pan/zoom
 function TransitionPhoto({
   photo,
   photoIndex,
@@ -213,25 +213,40 @@ function TransitionPhoto({
   className = "max-w-full max-h-full object-contain"
 }: TransitionPhotoProps) {
   if (!photo) return null;
+  const isVideo = photo.mediaType === 'video';
+  const videoUrl = photo.videoPreviewUrl || (photo.driveId ? `https://drive.google.com/file/d/${photo.driveId}/preview` : photo.url);
+
   return (
     <AnimatePresence mode="sync">
       <motion.div
         key={photo.id || `${photoIndex}-${photo.url}`}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none transform-gpu will-change-[transform,opacity]"
+        className={`absolute inset-0 flex items-center justify-center ${isVideo ? 'pointer-events-auto' : 'pointer-events-none'} transform-gpu will-change-[transform,opacity]`}
         initial={transitionConfig.initial}
         animate={transitionConfig.animate}
         exit={transitionConfig.exit}
         transition={transitionConfig.transition}
       >
-        <img
-          src={photo.url}
-          alt={photo.caption || "Ảnh kỷ niệm K8A1"}
-          style={{ 
-            filter: filterStyle,
-            transitionDuration: `${slideshowSpeed}ms`
-          }}
-          className={`${className} transition-transform ease-out ${kenBurnsClass}`}
-        />
+        {isVideo ? (
+          <div className="w-full h-full flex items-center justify-center bg-black/90 p-2 pointer-events-auto">
+            <iframe
+              src={videoUrl}
+              title={photo.caption || "Video kỷ niệm K8A1"}
+              className="w-full h-full border-0 rounded-2xl max-w-5xl aspect-video shadow-2xl"
+              allow="autoplay; encrypted-media; fullscreen"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <img
+            src={photo.url}
+            alt={photo.caption || "Ảnh kỷ niệm K8A1"}
+            style={{ 
+              filter: filterStyle,
+              transitionDuration: `${slideshowSpeed}ms`
+            }}
+            className={`${className} transition-transform ease-out ${kenBurnsClass}`}
+          />
+        )}
       </motion.div>
     </AnimatePresence>
   );
@@ -275,6 +290,16 @@ export default function StagePresentationHub({
   const [showCaption, setShowCaption] = useState<boolean>(stageSettings.showCaption !== false);
   const [showCheckinQr, setShowCheckinQr] = useState<boolean>(false);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('all');
+  const [includeVideosInSlideShow, setIncludeVideosInSlideShow] = useState<boolean>(() => {
+    if (stageSettings.includeVideosInSlideShow !== undefined) {
+      return stageSettings.includeVideosInSlideShow;
+    }
+    try {
+      return localStorage.getItem('k8a1_slideshow_include_videos') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const albumsList = useMemo(() => {
     return sanitizeAlbums(albums);
@@ -365,6 +390,11 @@ export default function StagePresentationHub({
     if (!memories || memories.length === 0) return [];
 
     let list = [...memories];
+    // Mặc định Slide Show chỉ phát ảnh (Photo) để đồng bộ hoàn hảo với nhạc nền.
+    // Nếu kích hoạt 'includeVideosInSlideShow', video sẽ được đưa vào trình chiếu.
+    if (!includeVideosInSlideShow) {
+      list = list.filter(m => m.mediaType !== 'video');
+    }
     if (selectedAlbumId !== 'all') {
       list = list.filter(m => normalizeAlbumId(m.albumId || getPhotoAlbumId(m)) === normalizeAlbumId(selectedAlbumId));
     }
@@ -381,7 +411,7 @@ export default function StagePresentationHub({
       [list[i], list[j]] = [list[j], list[i]];
     }
     return list;
-  }, [memories, selectedAlbumId, photoShuffleSeed]);
+  }, [memories, selectedAlbumId, photoShuffleSeed, includeVideosInSlideShow]);
 
   // Nạp toàn bộ các ca khúc offline đã lưu trong máy
   useEffect(() => {
@@ -488,13 +518,49 @@ export default function StagePresentationHub({
 
     if (!displayPhotos || displayPhotos.length <= 1) return;
 
+    // Nếu slide hiện tại là Video -> Tạm dừng tự động chuyển để người xem thưởng thức trọn vẹn clip
+    const currentItem = displayPhotos[photoIndex];
+    if (currentItem?.mediaType === 'video') {
+      return;
+    }
+
     const timer = setInterval(() => {
       setPhotoIndex((prev) => (prev + 1) % displayPhotos.length);
       setKenBurnsStyle((prev) => (prev + 1) % 4);
     }, slideshowSpeed);
 
     return () => clearInterval(timer);
-  }, [isOpen, currentScene, isPhotoPaused, displayPhotos, slideshowSpeed]);
+  }, [isOpen, currentScene, isPhotoPaused, displayPhotos, slideshowSpeed, photoIndex]);
+
+  // Tự động tạm dừng nhạc nền sân khấu khi slide hiện tại là video và khôi phục khi chuyển sang ảnh hoặc tắt
+  useEffect(() => {
+    if (!isOpen) return;
+    const currentItem = displayPhotos[photoIndex];
+    if (currentItem && currentItem.mediaType === 'video') {
+      document.querySelectorAll('audio').forEach(a => {
+        if (!a.paused) {
+          (a as any)._wasPausedByVideo = true;
+          a.pause();
+        }
+      });
+    } else {
+      document.querySelectorAll('audio').forEach(a => {
+        if ((a as any)._wasPausedByVideo) {
+          a.play().catch(() => {});
+          (a as any)._wasPausedByVideo = false;
+        }
+      });
+    }
+
+    return () => {
+      document.querySelectorAll('audio').forEach(a => {
+        if ((a as any)._wasPausedByVideo) {
+          a.play().catch(() => {});
+          (a as any)._wasPausedByVideo = false;
+        }
+      });
+    };
+  }, [isOpen, photoIndex, displayPhotos]);
 
   // Bộ đếm tự động ẩn thanh điều khiển sau 3.5s không rê chuột
   const resetIdleTimer = useCallback(() => {
@@ -780,7 +846,7 @@ export default function StagePresentationHub({
                 <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none pb-5 md:pb-7 pt-16 md:pt-24 px-4 md:px-8 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col items-center text-center">
                   <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/40 backdrop-blur-xs border border-amber-400/30 text-[10px] md:text-xs font-sans font-medium tracking-wider text-amber-300/90 mb-1.5 shadow-sm">
                     <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span>Ký Ức K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
+                    <span>Ký Ức K8A1 • {currentPhoto.mediaType === 'video' ? '🎬 Video' : 'Ảnh'} {photoIndex + 1}/{displayPhotos.length}</span>
                     <Sparkles className="w-3 h-3 text-amber-400" />
                   </div>
                   <AnimatePresence mode="wait">
@@ -907,7 +973,7 @@ export default function StagePresentationHub({
               {showCaption && photoFrameStyle !== 'polaroid' && (
                 <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none pb-4 md:pb-6 pt-12 md:pt-16 px-4 md:px-8 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col items-center text-center">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-xs border border-amber-400/30 text-[10px] md:text-xs font-sans font-medium tracking-wider text-amber-300/90 mb-1 shadow-sm">
-                    <span>Ký Niệm K8A1 • Ảnh {photoIndex + 1}/{displayPhotos.length}</span>
+                    <span>Ký Niệm K8A1 • {currentPhoto.mediaType === 'video' ? '🎬 Video' : 'Ảnh'} {photoIndex + 1}/{displayPhotos.length}</span>
                   </div>
                   <AnimatePresence mode="wait">
                     <motion.p
@@ -1497,6 +1563,33 @@ export default function StagePresentationHub({
                   />
                 </div>
 
+                {/* Tùy chọn phát Video lồng ghép vào Slide Show */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                  <div className="pr-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-slate-200">Lồng ghép Video trong Slide Show Sân Khấu</span>
+                      <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded font-mono font-bold border border-rose-500/30">
+                        🎬 VIDEO
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      Mặc định tắt (chỉ chiếu 100% Ảnh kỷ niệm kèm nhạc nền). Khi bật, các clip kỷ niệm sẽ được phát xen kẽ và tự động hạ/tắt nhạc nền.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={includeVideosInSlideShow}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setIncludeVideosInSlideShow(val);
+                      try {
+                        localStorage.setItem('k8a1_slideshow_include_videos', String(val));
+                      } catch {}
+                    }}
+                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer shrink-0"
+                  />
+                </div>
+
               </div>
 
               {/* Chọn Backdrop mặc định */}
@@ -1544,7 +1637,8 @@ export default function StagePresentationHub({
                       particleEffect,
                       photoFilter,
                       showCorners,
-                      transitionEffect
+                      transitionEffect,
+                      includeVideosInSlideShow
                     });
                   }
                   setShowSettingsModal(false);

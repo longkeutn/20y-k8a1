@@ -186,3 +186,42 @@
 - Thao tác đồng bộ hàng loạt hoặc sửa danh bạ yêu cầu mã PIN Quản trị viên (`isAdmin`).
 - Số điện thoại ở chế độ Guest tiếp tục được bảo mật (che mờ 3 số giữa).
 
+---
+
+## 6. MODULE THƯ VIỆN MEDIA ĐA TẦNG (ẢNH & VIDEO DRIVE) & TRÌNH PHÁT IN-APP
+
+### 6.1 Kiến Trúc Quét Thư Mục Google Drive 2 Cấp (2-Tier Folder Architecture)
+- **Cấu trúc Thư mục trên Google Drive:**
+  - **Cấp 0:** Thư mục gốc dự án: `K8A1_KyNiem_20Nam`.
+  - **Cấp 1:** 6 Thư mục Album chính (hoặc Album tùy chỉnh): `Thời Niên Thiếu (2003 - 2006)`, `Hội Ngộ 10 Năm`, `20 Năm Ngày Trở Về`...
+  - **Cấp 2:** Các Thư mục Con (Subfolders) nằm ngay bên dưới Folder Album chính (ví dụ: `01. Gala Tối`, `02. Flycam & Hậu trường`, `Ảnh nhóm tự chụp`...).
+- **Ràng buộc:** Chỉ quét tối đa 2 cấp (Cấp 1 & Cấp 2). Không quét cấp 3, 4 để triệt tiêu nguy cơ timeout của Google Apps Script.
+
+### 6.2 Nhận Diện Media Toàn Diện (Ảnh & Video)
+- **Ảnh (Photos):** Định dạng `image/*` hoặc `.jpg`, `.jpeg`, `.png`, `.webp`, `.heic`...
+  - `mediaType: 'photo'`
+  - Link ảnh: `https://lh3.googleusercontent.com/d/{id}=w1600`
+  - Thumbnail: `https://lh3.googleusercontent.com/d/{id}=w600`
+- **Video (Videos):** Định dạng `video/*` hoặc `.mp4`, `.mov` (iPhone), `.webm`, `.m4v`, `.avi`...
+  - `mediaType: 'video'`
+  - Thumbnail tự động từ Drive: `https://drive.google.com/thumbnail?authuser=0&sz=w800&id={id}` hoặc `https://lh3.googleusercontent.com/d/{id}=w600`
+  - Link phát nhúng: `https://drive.google.com/file/d/{id}/preview`
+- **Thông tin Folder Con:** Mỗi media (ảnh hoặc video) thuộc Cấp 2 được gắn thêm `subfolderName` và `subfolderId` để phục vụ phân loại trên WebApp.
+
+### 6.3 Cơ Chế Cache Tối Ưu Tốc Độ & Nút Re-Scan Chủ Động
+- Kết quả quét được lưu bộ đệm Smart Cache trong Google Sheet (hoặc Script Cache).
+- Người dùng vào WebApp tải ngầm siêu tốc dưới 0.5s từ Cache.
+- Admin Hub bổ sung nút: **`🔄 Quét lại toàn bộ Google Drive`** (`action: 'rescan_drive_photos'`) để làm mới ngay lập tức khi lớp vừa tải thêm ảnh/video lên Drive.
+
+### 6.4 Trình Phát Video In-App & Trải Nghiệm Người Dùng (UX)
+- **Lưới Album:** Video hiển thị thumbnail kèm Icon Play ▶️ tròn nổi bật, badge `🎬 VIDEO`, và nhãn tên folder con (nếu có).
+- **Lightbox / Fullscreen Player:**
+  - Nhúng trực tiếp Google Drive Preview Player (`iframe`), tự động tương thích mọi thiết bị di động & máy tính mà không phải chuyển sang tab mới.
+  - **Smart Audio Pause:** Tự động tạm dừng nhạc nền WebApp khi mở video để tránh chồng chéo âm thanh; khôi phục khi đóng video.
+- **Bộ lọc Album:** Có các tab chuyển đổi nhanh: `[Tất cả]`, `[📸 Ảnh]`, `[🎬 Video]` và Dropdown chọn Folder con.
+
+### 6.5 Trình Chiếu Sân Khấu / Màn Hình LED (Stage Presentation)
+- **Mặc định:** 100% chỉ chạy Slide Show **ẢNH** kết hợp nhạc nền trang trọng để đảm bảo nhịp điệu sân khấu êm ái, kiểm soát chính xác thời lượng (4-6s/ảnh).
+- **Tùy chọn Công tắc (Toggle):** Trong Cài đặt Trình chiếu có công tắc: `[ ] Cho phép phát Video trong Slide Show` (Mặc định = Tắt). Nếu Bật, video chỉ phát đoạn ngắn (15-30s) và tự động giảm/dừng nhạc nền trong lúc phát.
+
+

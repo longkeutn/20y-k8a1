@@ -191,6 +191,11 @@ export interface MemoryImage {
   albumName?: string;          // Tên album tương ứng để hiển thị nhanh
   driveFolderId?: string;      // ID thư mục Drive chứa file vật lý
   isCover?: boolean;           // Đánh dấu ảnh này làm bìa Album
+  mediaType?: 'photo' | 'video'; // Phân biệt Ảnh và Video (Mặc định: 'photo')
+  subfolderName?: string;      // Tên folder con Cấp 2 (vd: 'Gala tối', 'Flycam'...)
+  subfolderId?: string;        // ID folder con trên Drive
+  videoPreviewUrl?: string;    // Link preview nhúng Drive: https://drive.google.com/file/d/{id}/preview
+  duration?: string;           // Thời lượng video (nếu có)
 }
 
 export interface MemoryVideo {
@@ -261,6 +266,7 @@ export interface StageSettings {
   photoFilter?: 'original' | 'sepia' | 'film' | 'bw'; // Bộ lọc màu ảnh xưa
   showCorners?: boolean; // Họa tiết hoa văn 4 góc mạ vàng
   transitionEffect?: SlideTransitionType; // Hiệu ứng chuyển cảnh ảnh (mặc định 'alternate': xen kẽ kết hợp)
+  includeVideosInSlideShow?: boolean; // Tự chọn: Cho phép phát Video lồng ghép vào Slide Show sân khấu (Mặc định: false để giữ nhịp nhạc nền)
 }
 
 export interface ActivityToast {
