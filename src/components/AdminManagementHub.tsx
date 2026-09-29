@@ -3542,7 +3542,7 @@ export default function AdminManagementHub({
     try {
       const targetUrl = appsScriptUrl.trim();
       const pin = getAdminPinToken();
-      const res = await fetch(targetUrl, {
+      let res = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
@@ -3550,13 +3550,36 @@ export default function AdminManagementHub({
           pin: pin
         })
       });
-      const data = await res.json();
+      let data = await res.json().catch(() => null);
+
+      // Nếu Apps Script trả về không thành công, thử fallback qua GET action
+      if (!data || data.status !== 'success') {
+        const getUrl = `${targetUrl}?action=rescan_drive_photos&force=true&refresh=true&pin=${encodeURIComponent(pin)}`;
+        const fallbackRes = await fetch(getUrl).catch(() => null);
+        if (fallbackRes) {
+          const fallbackData = await fallbackRes.json().catch(() => null);
+          if (fallbackData && fallbackData.status === 'success') {
+            data = fallbackData;
+          }
+        }
+      }
+
       if (data && data.status === 'success') {
-        const count = data.count || (data.photos ? data.photos.length : 0);
+        const count = data.count || (data.data ? data.data.length : (data.total !== undefined ? data.total : (data.photos ? data.photos.length : 0)));
         alert(`🎉 Đã quét và cập nhật thành công ${count} tệp media (ảnh & video 2 cấp) từ Google Drive!`);
         if (onRefreshData) {
           onRefreshData();
         }
+      } else if (data && data.message === 'Hành động không hợp lệ!') {
+        alert(
+          '⚠️ Google Apps Script trên Google Drive chưa được cập nhật phiên bản mới nhất!\n\n' +
+          'Cách khắc phục (chỉ cần làm 1 lần):\n' +
+          '1. Mở file public/Code.gs trong thư mục web, copy toàn bộ nội dung.\n' +
+          '2. Mở trình duyệt vào Google Apps Script của lớp.\n' +
+          '3. Dán đè toàn bộ code vào file Code.gs của Apps Script.\n' +
+          '4. Nhấp "Triển khai" (Deploy) -> "Quản lý bản triển khai" (Manage deployments) -> bấm icon Bút chì (Sửa) -> chọn "Phiên bản mới" (New version) -> bấm "Triển khai" (Deploy).\n\n' +
+          'Sau khi Triển khai phiên bản mới xong, bạn bấm lại nút Quét Drive là sẽ thành công ngay!'
+        );
       } else {
         alert('Có lỗi khi quét Drive: ' + (data?.message || 'Không thể quét tệp media'));
       }
