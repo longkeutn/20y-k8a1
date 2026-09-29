@@ -2195,19 +2195,41 @@ function getDrivePhotos(forceRefresh) {
         const fileId = String(r[0] || '').trim();
         if (!fileId) continue;
         const mediaType = String(r[2] || 'photo') === 'video' ? 'video' : 'photo';
+        const rawSubName = String(r[5] || '').trim();
+        const isUntitledSub = !rawSubName || rawSubName.toLowerCase().indexOf('thư mục không có tiêu đề') >= 0 || rawSubName.toLowerCase().indexOf('untitled') >= 0;
+        const subfolderName = isUntitledSub ? '' : rawSubName;
+
+        let rawDate = r[11];
+        let dateStr = '';
+        if (rawDate instanceof Date) {
+          const pad = (n) => (n < 10 ? '0' + n : n);
+          dateStr = `${pad(rawDate.getDate())}/${pad(rawDate.getMonth() + 1)}/${rawDate.getFullYear()}`;
+        } else {
+          dateStr = String(rawDate || '').trim();
+          if (dateStr.indexOf('GMT') >= 0 || dateStr.indexOf('Indochina') >= 0) {
+            try {
+              const parsed = new Date(dateStr);
+              if (!isNaN(parsed.getTime())) {
+                const pad = (n) => (n < 10 ? '0' + n : n);
+                dateStr = `${pad(parsed.getDate())}/${pad(parsed.getMonth() + 1)}/${parsed.getFullYear()}`;
+              }
+            } catch (eD) {}
+          }
+        }
+
         cachedMedia.push({
           id: fileId,
           caption: String(r[1] || ''),
           mediaType: mediaType,
           albumId: String(r[3] || 'thanh-xuan-2003-2006'),
           albumName: String(r[4] || ''),
-          subfolderName: String(r[5] || ''),
-          subfolderId: String(r[6] || ''),
+          subfolderName: subfolderName,
+          subfolderId: isUntitledSub ? '' : String(r[6] || ''),
           url: String(r[7] || ('https://lh3.googleusercontent.com/d/' + fileId + (mediaType === 'video' ? '' : '=w1600'))),
           thumbnail: String(r[8] || ('https://lh3.googleusercontent.com/d/' + fileId + '=w600')),
           driveUrl: String(r[9] || ''),
           videoPreviewUrl: String(r[10] || (mediaType === 'video' ? 'https://drive.google.com/file/d/' + fileId + '/preview' : '')),
-          date: String(r[11] || '')
+          date: dateStr
         });
       }
       if (cachedMedia.length > 0) {
@@ -2248,7 +2270,11 @@ function getDrivePhotos(forceRefresh) {
           if (!isImage && !isVideo) continue;
 
           const cleanCaption = fileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-          const dateCreatedStr = formatDate(file.getDateCreated());
+          const rawCreated = file.getDateCreated();
+          const pad = (n) => (n < 10 ? '0' + n : n);
+          const dateCreatedStr = (rawCreated instanceof Date)
+            ? `${pad(rawCreated.getDate())}/${pad(rawCreated.getMonth() + 1)}/${rawCreated.getFullYear()}`
+            : formatDate(rawCreated);
           const driveUrl = file.getUrl();
 
           if (isVideo) {
@@ -2329,7 +2355,9 @@ function getDrivePhotos(forceRefresh) {
         while (childFolders.hasNext()) {
           const child = childFolders.next();
           if (child.isTrashed()) continue;
-          scanFiles(child, matchedAlbumId, matchedAlbumTitle, child.getName(), child.getId());
+          const rawChildName = (child.getName() || '').trim();
+          const isUntitled = !rawChildName || rawChildName.toLowerCase().indexOf('thư mục không có tiêu đề') >= 0 || rawChildName.toLowerCase().indexOf('untitled') >= 0;
+          scanFiles(child, matchedAlbumId, matchedAlbumTitle, isUntitled ? '' : rawChildName, isUntitled ? '' : child.getId());
         }
       } catch (eChild) {
         console.warn("Lỗi scan child folders của " + subName + ": " + eChild.toString());

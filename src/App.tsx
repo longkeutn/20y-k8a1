@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 
 import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement, PhotoAlbum } from './types';
-import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS, DEFAULT_ALBUMS, getPhotoAlbumId, sanitizeAlbums, normalizeAlbumId } from './data';
+import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS, DEFAULT_ALBUMS, getPhotoAlbumId, sanitizeAlbums, normalizeAlbumId, formatDisplayDate } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 import { parseMemberNote, serializeMemberNote } from './utils/memberUtils';
 
@@ -2085,18 +2085,26 @@ export default function App() {
 
         // 10. Ảnh Google Drive Photos
         if (Array.isArray(d.drivePhotos) && d.drivePhotos.length > 0) {
-          const driveImgs: MemoryImage[] = d.drivePhotos.map((p: any) => ({
-            id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-            url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
-            thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
-            caption: p.caption || 'Kỷ niệm Lớp K8A1',
-            date: p.date || '2006',
-            isUserUploaded: true,
-            driveUrl: p.driveUrl,
-            albumId: p.albumId || getPhotoAlbumId(p),
-            albumName: p.albumName,
-            driveFolderId: p.driveFolderId
-          }));
+          const driveImgs: MemoryImage[] = d.drivePhotos.map((p: any) => {
+            const rawSub = (p.subfolderName || '').trim();
+            const isUntitledSub = !rawSub || rawSub.toLowerCase().includes('thư mục không có tiêu đề') || rawSub.toLowerCase().includes('untitled');
+            return {
+              id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+              url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+              thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+              caption: p.caption || 'Kỷ niệm Lớp K8A1',
+              date: formatDisplayDate(p.date) || '2006',
+              isUserUploaded: true,
+              driveUrl: p.driveUrl,
+              albumId: p.albumId || getPhotoAlbumId(p),
+              albumName: p.albumName,
+              driveFolderId: p.driveFolderId,
+              mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
+              subfolderName: isUntitledSub ? '' : rawSub,
+              subfolderId: isUntitledSub ? '' : p.subfolderId,
+              videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
+            };
+          });
 
           setImages((prev) => {
             const driveIds = new Set(driveImgs.map(i => i.id));
@@ -2117,22 +2125,26 @@ export default function App() {
           try {
             const photoRes = await fetchSafeAppsScript(targetUrl, 'get_photos', '', 0, 18000);
             if (photoRes?.status === 'success' && Array.isArray(photoRes.data) && photoRes.data.length > 0) {
-              const driveImgs: MemoryImage[] = photoRes.data.map((p: any) => ({
-                id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-                url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
-                thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
-                caption: p.caption || 'Kỷ niệm Lớp K8A1',
-                date: p.date || '2006',
-                isUserUploaded: true,
-                driveUrl: p.driveUrl,
-                albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
-                albumName: p.albumName,
-                driveFolderId: p.driveFolderId,
-                mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
-                subfolderName: p.subfolderName || '',
-                subfolderId: p.subfolderId || '',
-                videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
-              }));
+              const driveImgs: MemoryImage[] = photoRes.data.map((p: any) => {
+                const rawSub = (p.subfolderName || '').trim();
+                const isUntitledSub = !rawSub || rawSub.toLowerCase().includes('thư mục không có tiêu đề') || rawSub.toLowerCase().includes('untitled');
+                return {
+                  id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                  url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+                  thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+                  caption: p.caption || 'Kỷ niệm Lớp K8A1',
+                  date: formatDisplayDate(p.date) || '2006',
+                  isUserUploaded: true,
+                  driveUrl: p.driveUrl,
+                  albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
+                  albumName: p.albumName,
+                  driveFolderId: p.driveFolderId,
+                  mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
+                  subfolderName: isUntitledSub ? '' : rawSub,
+                  subfolderId: isUntitledSub ? '' : p.subfolderId,
+                  videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
+                };
+              });
 
               setImages((prev) => {
                 const driveIds = new Set(driveImgs.map(i => i.id));
@@ -2326,22 +2338,26 @@ export default function App() {
         try {
           const photoRes = await fetchSafeAppsScript(targetUrl, 'get_photos', '', 0, 18000);
           if (photoRes?.status === 'success' && Array.isArray(photoRes.data) && photoRes.data.length > 0) {
-            const driveImgs: MemoryImage[] = photoRes.data.map((p: any) => ({
-              id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-              url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
-              thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
-              caption: p.caption || 'Kỷ niệm Lớp K8A1',
-              date: p.date || '2006',
-              isUserUploaded: true,
-              driveUrl: p.driveUrl,
-              albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
-              albumName: p.albumName,
-              driveFolderId: p.driveFolderId,
-              mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
-              subfolderName: p.subfolderName || '',
-              subfolderId: p.subfolderId || '',
-              videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
-            }));
+            const driveImgs: MemoryImage[] = photoRes.data.map((p: any) => {
+              const rawSub = (p.subfolderName || '').trim();
+              const isUntitledSub = !rawSub || rawSub.toLowerCase().includes('thư mục không có tiêu đề') || rawSub.toLowerCase().includes('untitled');
+              return {
+                id: p.id || `drive-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                url: p.url || `https://lh3.googleusercontent.com/d/${p.id}=w1600`,
+                thumbnail: p.thumbnail || `https://lh3.googleusercontent.com/d/${p.id}=w600`,
+                caption: p.caption || 'Kỷ niệm Lớp K8A1',
+                date: formatDisplayDate(p.date) || '2006',
+                isUserUploaded: true,
+                driveUrl: p.driveUrl,
+                albumId: normalizeAlbumId(p.albumId || getPhotoAlbumId(p)),
+                albumName: p.albumName,
+                driveFolderId: p.driveFolderId,
+                mediaType: p.mediaType || (p.mimeType?.includes('video') ? 'video' : 'photo'),
+                subfolderName: isUntitledSub ? '' : rawSub,
+                subfolderId: isUntitledSub ? '' : p.subfolderId,
+                videoPreviewUrl: p.videoPreviewUrl || (p.mediaType === 'video' ? `https://drive.google.com/file/d/${p.id}/preview` : undefined)
+              };
+            });
 
             setImages((prev) => {
               const driveIds = new Set(driveImgs.map(i => i.id));

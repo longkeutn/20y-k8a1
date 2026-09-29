@@ -3910,3 +3910,47 @@ export function autoAssignStudentTables(
 
 
 
+
+/**
+ * Định dạng thời gian hiển thị gọn gàng, đẹp mắt cho ảnh/video kỷ niệm
+ * Loại bỏ chuỗi ngày giờ dài thô kệch dạng 'Mon Sep 28 2026 22:29:00 GMT+0700...'
+ */
+export function formatDisplayDate(dateStr?: any): string {
+  if (!dateStr) return '';
+  if (dateStr instanceof Date) {
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    return pad(dateStr.getDate()) + '/' + pad(dateStr.getMonth() + 1) + '/' + dateStr.getFullYear();
+  }
+  const str = String(dateStr).trim();
+  if (!str) return '';
+
+  // Nếu là năm hoặc khoảng năm đơn thuần (ví dụ: '2006', '2003-2006', '2003 — 2006')
+  if (/^\d{4}(\s*[-—–]\s*\d{4})?$/.test(str)) {
+    return str;
+  }
+
+  // Nếu là chuỗi ngày dạng DD/MM/YYYY ngắn gọn (ví dụ: '28/09/2026')
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+    return str;
+  }
+
+  // Nếu là dạng có giờ '28/09/2026 14:25' -> lấy ngày '28/09/2026'
+  const dateMatch = str.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
+  if (dateMatch) {
+    return dateMatch[1];
+  }
+
+  // Nếu chứa ngày giờ dài dạng 'Mon Sep 28 2026 22:29:00 GMT+0700...' hoặc ISO
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    const year = d.getFullYear();
+    // Nếu là niên khóa 2003-2006 thì hiển thị năm
+    if (year >= 2003 && year <= 2006) {
+      return '' + year;
+    }
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + year;
+  }
+
+  return str.length > 15 ? '' : str;
+}

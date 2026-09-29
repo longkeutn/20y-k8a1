@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo, PhotoAlbum } from '../types';
-import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, DEFAULT_ALBUMS, getPhotoAlbumId, getNostalgicPhotoCaption, sanitizeAlbums, normalizeAlbumId } from '../data';
+import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, DEFAULT_ALBUMS, getPhotoAlbumId, getNostalgicPhotoCaption, sanitizeAlbums, normalizeAlbumId, formatDisplayDate } from '../data';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
@@ -417,12 +417,12 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     setMediaTypeFilter('all');
   }, [selectedAlbumId]);
 
-  // Trích xuất danh sách các Thư mục con có trong Album hiện tại
+  // Trích xuất danh sách các Thư mục con có trong Album hiện tại (loại trừ thư mục không đặt tên)
   const availableSubfolders = useMemo(() => {
     const map = new Map<string, number>();
     sourceImages.forEach(img => {
       const name = (img.subfolderName || '').trim();
-      if (name) {
+      if (name && !name.toLowerCase().includes('thư mục không có tiêu đề') && !name.toLowerCase().includes('untitled')) {
         map.set(name, (map.get(name) || 0) + 1);
       }
     });
@@ -1624,7 +1624,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                         <span className="font-mono font-bold text-[10px] sm:text-xs">{likes}</span>
                       </button>
 
-                      {/* Media Badges: Video, Date, Thư mục con */}
+                      {/* Media Badges: Video & Ngày tháng gọn gàng */}
                       <div className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 z-20 flex flex-wrap items-center gap-1 max-w-[80%]">
                         {img.mediaType === 'video' && (
                           <span className="bg-rose-950/85 backdrop-blur-md text-rose-200 text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded font-bold border border-rose-400/40 flex items-center gap-1 shadow-xs">
@@ -1632,15 +1632,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                             <span>VIDEO</span>
                           </span>
                         )}
-                        {img.date && (
+                        {img.date && formatDisplayDate(img.date) && (
                           <span className="bg-amber-950/80 backdrop-blur-md text-amber-200 text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded border border-amber-500/30">
-                            {img.date}
-                          </span>
-                        )}
-                        {img.subfolderName && (
-                          <span className="bg-black/75 backdrop-blur-md text-amber-300 text-[9px] sm:text-[10px] font-sans px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded border border-amber-400/30 flex items-center gap-1 shadow-xs max-w-[120px] truncate" title={`Thư mục: ${img.subfolderName}`}>
-                            <Folder className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                            <span className="truncate">{img.subfolderName}</span>
+                            {formatDisplayDate(img.date)}
                           </span>
                         )}
                       </div>
@@ -1664,7 +1658,11 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     {/* Chân thẻ phong cách Polaroid */}
                     <div className="pt-1.5 sm:pt-2.5 px-0.5 sm:px-1 flex items-center justify-between text-[10px] sm:text-xs text-slate-500 font-serif">
                       <span className="text-[10px] sm:text-[11px] text-slate-400 font-sans italic truncate">
-                        {img.subfolderName ? `📁 ${img.subfolderName}` : (img.date || 'K8A1 (03–06)')}
+                        {img.subfolderName && !img.subfolderName.toLowerCase().includes('thư mục không có tiêu đề') && !img.subfolderName.toLowerCase().includes('untitled')
+                          ? `📁 ${img.subfolderName}`
+                          : (img.caption && img.caption !== 'Kỷ niệm Lớp K8A1' && !img.caption.toLowerCase().includes('thư mục không có tiêu đề')
+                            ? img.caption
+                            : (formatDisplayDate(img.date) ? `K8A1 • ${formatDisplayDate(img.date)}` : 'K8A1 (2003 — 2006)'))}
                       </span>
                       {img.mediaType === 'video' ? (
                         <span className="text-[9px] sm:text-[10px] font-sans font-bold text-rose-800 uppercase tracking-wider bg-rose-100/80 px-1.5 py-0.5 sm:px-2 rounded shrink-0 flex items-center gap-0.5 sm:gap-1">
@@ -2339,7 +2337,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     <span>VIDEO CLIP</span>
                   </span>
                 )}
-                {currentImage.subfolderName && (
+                {currentImage.subfolderName && !currentImage.subfolderName.toLowerCase().includes('thư mục không có tiêu đề') && !currentImage.subfolderName.toLowerCase().includes('untitled') && (
                   <span className="px-2 py-0.5 rounded-full bg-white/15 text-amber-200 text-[10px] font-sans font-semibold flex items-center gap-1">
                     <Folder className="w-3 h-3 text-amber-400" />
                     <span>{currentImage.subfolderName}</span>
@@ -2349,9 +2347,9 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <p className="text-sm md:text-base font-serif italic text-amber-200 font-medium leading-relaxed">
                 “{currentImage.caption || getNostalgicPhotoCaption(selectedImageIndex || 0, currentImage.caption)}”
               </p>
-              {currentImage.date && (
+              {currentImage.date && formatDisplayDate(currentImage.date) && (
                 <p className="text-[11px] text-white/60 font-sans">
-                  Thời gian: {currentImage.date}
+                  Thời gian: {formatDisplayDate(currentImage.date)}
                 </p>
               )}
             </div>
