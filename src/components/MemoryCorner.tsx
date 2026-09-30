@@ -2596,19 +2596,28 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                       setZoomLevel(zoomLevel === 1 ? 1.8 : 1);
                     }}
                   >
-                    <img
-                      src={currentImage.url}
-                      alt={currentImage.caption}
-                      style={{
-                        filter: getPhotoFilterStyle(),
-                        transitionDuration: isSlideshowActive && isSlideshowPlaying && enableKenBurns && zoomLevel === 1 ? `${slideshowSpeed}ms` : '350ms'
-                      }}
-                      className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain rounded-xl shadow-2xl border border-white/10 select-none transition-transform ease-out ${
-                        isSlideshowActive && isSlideshowPlaying && enableKenBurns && zoomLevel === 1 ? getKenBurnsClass() : ''
-                      }`}
-                      referrerPolicy="no-referrer"
-                      draggable={false}
-                    />
+                    <div className="relative inline-block max-w-full max-h-[72vh] sm:max-h-[78vh] overflow-hidden rounded-xl">
+                      <img
+                        src={currentImage.url}
+                        alt={currentImage.caption}
+                        style={{
+                          filter: getPhotoFilterStyle(),
+                          transitionDuration: isSlideshowActive && isSlideshowPlaying && enableKenBurns && zoomLevel === 1 ? `${slideshowSpeed}ms` : '350ms'
+                        }}
+                        className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain rounded-xl shadow-2xl border border-white/10 select-none transition-transform ease-out ${
+                          isSlideshowActive && isSlideshowPlaying && enableKenBurns && zoomLevel === 1 ? getKenBurnsClass() : ''
+                        }`}
+                        referrerPolicy="no-referrer"
+                        draggable={false}
+                      />
+                      {/* Watermark bảo vệ bản quyền ảnh K8A1 */}
+                      <div className="absolute bottom-2.5 right-2.5 z-20 pointer-events-none select-none flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-amber-400/50 shadow-xl">
+                        <Sparkles className="w-3 h-3 text-amber-300 animate-pulse shrink-0" />
+                        <span className="text-[10px] sm:text-xs font-serif font-bold text-amber-200 tracking-wider drop-shadow-md">
+                          K8A1 THPT THÁI NGUYÊN • 20 NĂM NGÀY TRỞ VỀ
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </motion.div>

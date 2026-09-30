@@ -2710,19 +2710,6 @@ export default function App() {
         initialMusic={slideshowParams.music}
         initialTransition={slideshowParams.transition}
         playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
-        onExit={() => {
-          setSlideshowParams({ isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false, transition: 'alternate' });
-          const url = new URL(window.location.href);
-          url.searchParams.delete('mode');
-          url.searchParams.delete('view');
-          url.searchParams.delete('album');
-          url.searchParams.delete('folder');
-          url.searchParams.delete('speed');
-          url.searchParams.delete('music');
-          url.searchParams.delete('transition');
-          url.hash = '';
-          window.history.pushState({}, '', url.toString());
-        }}
       />
     );
   }

@@ -396,25 +396,47 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
             <AnimatePresence mode="sync">
               <motion.div
                 key={currentPhoto.id || `${currentIndex}-${currentPhoto.url}`}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none transform-gpu will-change-[transform,opacity] p-2 sm:p-6 md:p-8"
+                className="absolute inset-0 flex items-center justify-center pointer-events-none transform-gpu will-change-[transform,opacity] p-3 sm:p-6 md:p-8"
                 initial={currentTransitionConfig.initial}
                 animate={currentTransitionConfig.animate}
                 exit={currentTransitionConfig.exit}
                 transition={currentTransitionConfig.transition}
               >
-                <img 
-                  src={currentPhoto.url}
-                  alt={currentPhoto.caption || 'K8A1 Kỷ Niệm'}
-                  style={{
-                    transitionDuration: isPlaying ? `${speed}ms` : '350ms',
-                    WebkitTouchCallout: 'none',
-                    WebkitUserSelect: 'none',
-                    userSelect: 'none',
-                    pointerEvents: 'none'
-                  }}
-                  className={`max-w-full max-h-full object-contain pointer-events-none shadow-2xl rounded-lg transition-transform ease-out ${isPlaying ? getKenBurnsClass() : ''}`}
-                  draggable={false}
-                />
+                <div className="relative inline-block max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl pointer-events-none">
+                  <img 
+                    src={currentPhoto.url}
+                    alt={currentPhoto.caption || 'K8A1 Kỷ Niệm'}
+                    style={{
+                      transitionDuration: isPlaying ? `${speed}ms` : '350ms',
+                      WebkitTouchCallout: 'none',
+                      WebkitUserSelect: 'none',
+                      userSelect: 'none',
+                      pointerEvents: 'none'
+                    }}
+                    className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain pointer-events-none rounded-2xl transition-transform ease-out ${isPlaying ? getKenBurnsClass() : ''}`}
+                    draggable={false}
+                  />
+
+                  {/* 🛡️ WATERMARK ĐÓNG DẤU BẢN QUYỀN GÓC DƯỚI ẢNH (RÕ NÉT, NỔI BẬT) */}
+                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 pointer-events-none select-none flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-amber-400/60 shadow-2xl">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
+                    <span className="text-[11px] sm:text-xs font-serif font-bold text-amber-200 tracking-wider drop-shadow-md">
+                      K8A1 THPT THÁI NGUYÊN • 20 NĂM NGÀY TRỞ VỀ
+                    </span>
+                  </div>
+
+                  {/* 🛡️ WATERMARK CHÉO DẬP CHÌM BẢN QUYỀN (CHỐNG CHỤP MÀN HÌNH CẮT XÉN) */}
+                  <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none select-none opacity-20">
+                    <span className="text-xl sm:text-3xl md:text-4xl font-serif font-extrabold tracking-widest text-amber-100 uppercase drop-shadow-2xl -rotate-12 border-y-2 border-amber-200/40 py-2 px-6">
+                      K8A1 (2003 — 2006)
+                    </span>
+                  </div>
+
+                  {/* 🛡️ WATERMARK GÓC TRÊN TRANG TRỌNG */}
+                  <div className="absolute top-3 left-3 z-20 pointer-events-none select-none px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-xs text-[10px] font-mono font-medium text-white/90 border border-white/20">
+                    K8A1 MEMORY ARCHIVE
+                  </div>
+                </div>
               </motion.div>
             </AnimatePresence>
 
@@ -429,13 +451,6 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
               }}
               draggable={false}
             />
-
-            {/* DẤU MỜ BẢN QUYỀN (WATERMARK) TRANG TRỌNG K8A1 */}
-            <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-8 z-25 pointer-events-none opacity-45 hover:opacity-80 transition-opacity">
-              <span className="text-[10px] sm:text-xs font-mono font-medium tracking-wider text-amber-200/90 drop-shadow-md bg-black/40 px-2.5 py-1 rounded-full border border-amber-300/30">
-                K8A1 THPT Thái Nguyên • 20 Năm Ngày Trở Về
-              </span>
-            </div>
           </div>
         ) : (
           <div className="text-center p-8 text-slate-400">

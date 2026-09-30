@@ -77,10 +77,11 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     return albums.find(a => a.id === selectedAlbumId) || albums[0];
   }, [albums, selectedAlbumId]);
 
-  // Tạo URL chia sẻ an toàn (Sử dụng Hash Route chuẩn để hoạt động 100% trên Vercel và Zalo WebView)
+  // Tạo URL chia sẻ an toàn (Sử dụng URL chuẩn ?view=slideshow hoạt động 100% trên Zalo, Facebook và mọi trình duyệt)
   const shareUrl = useMemo(() => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app';
     const params = new URLSearchParams();
+    params.set('view', 'slideshow');
     params.set('album', selectedAlbumId);
     if (selectedSubfolder && selectedSubfolder !== 'all') {
       params.set('folder', selectedSubfolder);
@@ -94,7 +95,7 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     if (transitionEffect && transitionEffect !== 'alternate') {
       params.set('transition', transitionEffect);
     }
-    return `${baseUrl}/#/slideshow?${params.toString()}`;
+    return `${baseUrl}/?${params.toString()}`;
   }, [selectedAlbumId, selectedSubfolder, speed, isMusicEnabled, transitionEffect]);
 
   // Bản tin mẫu gửi Zalo
@@ -271,10 +272,10 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
           {/* 4. KHUNG LINK CHIA SẺ & BẢO MẬT */}
           <div className="space-y-2 pt-2 border-t border-slate-200">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">Link chia sẻ trực tiếp:</span>
+              <span className="text-xs font-bold text-slate-700">Link chia sẻ an toàn:</span>
               <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold font-mono">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>An toàn • Chống tải ảnh</span>
+                <span>Đã Đóng Dấu Watermark • Chống Tải</span>
               </div>
             </div>
 
@@ -283,15 +284,16 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
             </div>
 
             {/* Cảnh báo bảo mật thông minh */}
-            <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 space-y-1 leading-relaxed">
+            <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 space-y-1.5 leading-relaxed">
               <p className="font-bold flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>Cam kết bảo vệ tư liệu ảnh K8A1:</span>
               </p>
-              <ul className="list-disc list-inside space-y-0.5 text-emerald-800">
-                <li>Người nhận link <strong>chỉ xem được ảnh dạng trình chiếu</strong>.</li>
-                <li>Đã khóa chuột phải, chặn kéo thả và chặn phím tắt lưu ảnh.</li>
-                <li><strong>Tuyệt đối không lộ link Google Drive</strong> hay các menu riêng tư của web (danh bạ, quỹ lớp, quản trị).</li>
+              <ul className="list-disc list-inside space-y-1 text-emerald-800">
+                <li>Người nhận link <strong>chỉ xem được ảnh dạng trình chiếu rạp phim</strong>.</li>
+                <li><strong>Đã đóng dấu bản quyền Watermark K8A1 trực tiếp lên từng ảnh</strong> để chống chụp màn hình.</li>
+                <li>Đã khóa tải ảnh, chặn chuột phải, chặn kéo thả và chặn phím tắt lưu ảnh.</li>
+                <li><strong>Cô lập hoàn toàn khỏi trang web gốc</strong>: Người xem không thể xem Danh bạ lớp, Quỹ lớp, Thư mời hay link Google Drive.</li>
               </ul>
             </div>
           </div>
