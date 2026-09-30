@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, Copy, Check, Share2, Sparkles, Folder, ExternalLink, 
   ShieldCheck, Film, Music, Clock, Layers, Tv, QrCode, 
@@ -36,6 +37,18 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
   const [isCopiedShort, setIsCopiedShort] = useState<boolean>(false);
   const [isCopiedZalo, setIsCopiedZalo] = useState<boolean>(false);
   const [isDownloadingQr, setIsDownloadingQr] = useState<boolean>(false);
+
+  // Lắng nghe phím ESC để đóng modal nhanh
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Cập nhật khi props thay đổi
   useEffect(() => {
@@ -188,34 +201,43 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-[999999] flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-sm animate-fade-in font-sans"
+      onClick={onClose}
+    >
       <div 
-        className="bg-white rounded-2xl border border-amber-300 shadow-2xl max-w-xl w-full overflow-hidden text-left animate-scale-up"
+        className="bg-white rounded-2xl border border-amber-300 shadow-2xl max-w-xl w-full max-h-[92dvh] sm:max-h-[88vh] flex flex-col overflow-hidden text-left animate-scale-up"
         onClick={e => e.stopPropagation()}
       >
-        {/* HEADER MODAL */}
-        <div className="px-5 py-4 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
+        {/* HEADER MODAL - CỐ ĐỊNH Ở TRÊN CÙNG, KHÔNG BAO GIỜ BỊ CHE */}
+        <div className="shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-900 text-white flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
               <Film className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-amber-100 font-serif">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-amber-100 font-serif truncate">
                 Chia Sẻ Ký Ức & Chiếu Lên Smart TV
               </h3>
+              <p className="text-[11px] text-amber-200/80 truncate">
+                {currentAlbum?.title} • {matchingPhotosCount} ảnh
+              </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-amber-200 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl text-amber-200 hover:text-white hover:bg-white/15 transition cursor-pointer shrink-0 ml-2"
+            title="Đóng cửa sổ (Phím Esc)"
+            aria-label="Đóng cửa sổ"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* BODY TÙY CHỈNH */}
-        <div className="p-4 sm:p-5 space-y-4 max-h-[82vh] overflow-y-auto">
+        {/* BODY TÙY CHỈNH - CUỘN MƯỢT BÊN TRONG, KHÔNG BỊ TRÀN RA NGOÀI */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-4">
           {/* 1. CHỌN ALBUM */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
@@ -461,18 +483,28 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
           </div>
         </div>
 
-        {/* FOOTER ACTIONS */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-          <a
-            href={shareUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition"
-            title="Mở tab mới xem thử giao diện trình chiếu của người nhận"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Xem Thử Ngay</span>
-          </a>
+        {/* FOOTER ACTIONS - CỐ ĐỊNH Ở DƯỚI CÙNG, KHÔNG BAO GIỜ BỊ CHE */}
+        <div className="shrink-0 p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 shadow-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 border border-slate-300 transition cursor-pointer"
+            >
+              Đóng
+            </button>
+
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition"
+              title="Mở tab mới xem thử giao diện trình chiếu của người nhận"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Xem Thử</span>
+            </a>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
@@ -485,12 +517,12 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
               title="Copy mẫu tin nhắn Zalo kèm lời mời"
             >
               {isCopiedZalo ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{isCopiedZalo ? 'Đã Copy Mẫu Zalo!' : 'Copy Tin Nhắn Zalo'}</span>
+              <span>{isCopiedZalo ? 'Đã Copy Zalo!' : 'Copy Tin Zalo'}</span>
             </button>
 
             <button
               onClick={handleCopyLink}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm ${
+              className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm ${
                 isCopiedLink 
                   ? 'bg-emerald-600 text-white shadow-emerald-500/20' 
                   : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-amber-600/20'
@@ -504,4 +536,6 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

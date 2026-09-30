@@ -119,7 +119,7 @@ export default function CollapsibleSection({
         </button>
       </div>
 
-      <div className="animate-in fade-in zoom-in-[0.99] duration-200">
+      <div className="animate-in fade-in duration-200">
         {children}
       </div>
     </section>
