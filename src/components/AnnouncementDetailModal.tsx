@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Calendar, 
@@ -20,7 +20,12 @@ import {
   Compass,
   Tv,
   Smartphone,
-  Send
+  Send,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  Images,
+  Maximize2
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, ClassMember } from '../types';
 import { getGoogleCalendarUrl, downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
@@ -88,6 +93,7 @@ export default function AnnouncementDetailModal({
   const [copiedZalo, setCopiedZalo] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [hasLiked, setHasLiked] = useState(() => {
     if (!announcement) return false;
     try {
@@ -99,6 +105,39 @@ export default function AnnouncementDetailModal({
   const [likeCount, setLikeCount] = useState(() => announcement?.likesCount || 0);
   const [showCalendarMenu, setShowCalendarMenu] = useState(false);
   const [savedCalendar, setSavedCalendar] = useState(false);
+
+  // Tổng hợp tất cả ảnh của bài viết (từ images array và imageUrl)
+  const allImages = useMemo(() => {
+    if (!announcement) return [];
+    const list: string[] = [];
+    if (Array.isArray(announcement.images) && announcement.images.length > 0) {
+      announcement.images.forEach((img) => {
+        if (img && typeof img === 'string' && img.trim() && !list.includes(img.trim())) {
+          list.push(img.trim());
+        }
+      });
+    }
+    if (announcement.imageUrl && !list.includes(announcement.imageUrl.trim())) {
+      list.unshift(announcement.imageUrl.trim());
+    }
+    return list;
+  }, [announcement]);
+
+  // Phím tắt bàn phím điều hướng Lightbox (ESC, Left, Right)
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) => (prev !== null ? (prev > 0 ? prev - 1 : allImages.length - 1) : null));
+      }
+      if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev !== null ? (prev < allImages.length - 1 ? prev + 1 : 0) : null));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, allImages.length]);
 
   if (!isOpen || !announcement) return null;
 
@@ -293,15 +332,79 @@ ${shareUrl}
             </div>
           </div>
 
-          {/* HÌNH ẢNH MINH HỌA NẾU CÓ */}
-          {announcement.imageUrl && (
-            <div className="rounded-2xl overflow-hidden border-2 border-amber-200 shadow-md bg-slate-900/5 my-2">
+          {/* BỘ SƯU TẬP ẢNH MINH HỌA TRONG BÀI (HỖ TRỢ 1 ẢNH HOẶC NHIỀU ẢNH) */}
+          {allImages.length === 1 && (
+            <div 
+              onClick={() => setLightboxIndex(0)}
+              className="relative rounded-2xl overflow-hidden border-2 border-amber-200 shadow-md bg-slate-900/5 my-2.5 group cursor-zoom-in"
+              title="Bấm để xem ảnh phóng to"
+            >
               <img 
-                src={announcement.imageUrl} 
+                src={allImages[0]} 
                 alt={announcement.title} 
-                className="w-full max-h-[320px] object-cover hover:scale-101 transition duration-300"
+                className="w-full max-h-[340px] sm:max-h-[380px] object-cover group-hover:scale-101 transition duration-300"
                 onError={(e: any) => { e.target.style.display = 'none'; }}
               />
+              <div className="absolute bottom-2.5 right-2.5 bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium px-2.5 py-1 rounded-full flex items-center gap-1 opacity-80 group-hover:opacity-100 transition shadow">
+                <ZoomIn className="w-3.5 h-3.5" />
+                <span>Phóng to</span>
+              </div>
+            </div>
+          )}
+
+          {allImages.length > 1 && (
+            <div className="my-3 p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-amber-500/10 via-amber-400/5 to-amber-500/10 border-2 border-amber-300/80 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-serif font-bold text-amber-950">
+                  <Images className="w-4 h-4 text-amber-700" />
+                  <span>Bộ Sưu Tập Tư Liệu Kỷ Niệm ({allImages.length} bức ảnh)</span>
+                </div>
+                <span className="text-[11px] text-amber-800 font-sans italic hidden xs:inline">
+                  Bấm vào ảnh để xem toàn màn hình
+                </span>
+              </div>
+
+              {/* Ảnh tiêu điểm lớn nhất */}
+              <div 
+                onClick={() => setLightboxIndex(0)}
+                className="relative rounded-xl overflow-hidden border border-amber-300 shadow-sm bg-slate-900/5 group cursor-zoom-in"
+              >
+                <img 
+                  src={allImages[0]} 
+                  alt="Ảnh tiêu điểm" 
+                  className="w-full max-h-[300px] sm:max-h-[360px] object-cover group-hover:scale-101 transition duration-300"
+                />
+                <div className="absolute top-2.5 left-2.5 bg-amber-500 text-slate-950 font-bold text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Ảnh Tiêu Điểm</span>
+                </div>
+                <div className="absolute bottom-2.5 right-2.5 bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium px-2.5 py-1 rounded-full flex items-center gap-1 opacity-85 group-hover:opacity-100 transition shadow">
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>Xem toàn màn hình</span>
+                </div>
+              </div>
+
+              {/* Dải thumbnail lưới các ảnh tiếp theo */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-1.5 pt-0.5">
+                {allImages.slice(1).map((imgUrl, idx) => (
+                  <div
+                    key={idx + 1}
+                    onClick={() => setLightboxIndex(idx + 1)}
+                    className="relative aspect-4/3 rounded-lg overflow-hidden border border-amber-200 bg-slate-900/10 group cursor-zoom-in hover:border-amber-500 hover:shadow-sm transition"
+                    title={`Ảnh ${idx + 2}`}
+                  >
+                    <img 
+                      src={imgUrl} 
+                      alt={`Ảnh ${idx + 2}`} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition flex items-center justify-center">
+                      <ZoomIn className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 transition drop-shadow" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -486,6 +589,31 @@ ${shareUrl}
           {/* TOÀN VĂN NỘI DUNG CHI TIẾT */}
           <div className="space-y-3 pt-1 text-slate-800">
             {paragraphs.map((p, idx) => {
+              // Hỗ trợ hiển thị ảnh markdown dạng ![chú thích](url)
+              const imgMatch = p.trim().match(/^!\[(.*?)\]\((.*?)\)$/);
+              if (imgMatch) {
+                const caption = imgMatch[1];
+                const src = imgMatch[2];
+                return (
+                  <figure key={idx} className="my-3 rounded-2xl overflow-hidden border border-amber-300/80 shadow-md bg-white">
+                    <img 
+                      src={src} 
+                      alt={caption || 'Ảnh minh họa'} 
+                      className="w-full max-h-[380px] object-cover cursor-zoom-in hover:scale-101 transition duration-300"
+                      onClick={() => {
+                        const foundIdx = allImages.indexOf(src);
+                        setLightboxIndex(foundIdx >= 0 ? foundIdx : 0);
+                      }}
+                    />
+                    {caption && (
+                      <figcaption className="p-2.5 text-center text-xs text-amber-900 font-sans italic bg-amber-50/70 border-t border-amber-100">
+                        📷 {caption}
+                      </figcaption>
+                    )}
+                  </figure>
+                );
+              }
+
               // Hỗ trợ hiển thị gạch đầu dòng nếu có
               if (p.includes('•') || p.includes('- ')) {
                 const lines = p.split('\n');
@@ -731,6 +859,71 @@ ${shareUrl}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 🖼️ LIGHTBOX XEM PHÓNG TO ẢNH TOÀN MÀN HÌNH */}
+      {lightboxIndex !== null && allImages.length > 0 && (
+        <div 
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-200 select-none"
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Header Lightbox */}
+          <div className="absolute top-0 left-0 right-0 p-4 sm:p-5 flex items-center justify-between text-white z-10 bg-gradient-to-b from-black/80 to-transparent">
+            <span className="text-xs sm:text-sm font-mono font-bold bg-white/10 px-3 py-1 rounded-full border border-white/20">
+              Ảnh {lightboxIndex + 1} / {allImages.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setLightboxIndex(null)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/25 text-white transition cursor-pointer"
+              title="Đóng (ESC)"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Nút lùi ảnh */}
+          {allImages.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev !== null ? (prev > 0 ? prev - 1 : allImages.length - 1) : 0));
+              }}
+              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition cursor-pointer z-10 shadow-lg"
+              title="Ảnh trước (Phím mũi tên trái)"
+            >
+              <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+            </button>
+          )}
+
+          {/* Ảnh phóng to chính giữa */}
+          <div 
+            className="max-w-[92vw] max-h-[85vh] p-2 flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={allImages[lightboxIndex]} 
+              alt={`Ảnh ${lightboxIndex + 1}`} 
+              className="max-w-full max-h-[82vh] object-contain rounded-xl sm:rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200"
+            />
+          </div>
+
+          {/* Nút tiến ảnh */}
+          {allImages.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev !== null ? (prev < allImages.length - 1 ? prev + 1 : 0) : 0));
+              }}
+              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition cursor-pointer z-10 shadow-lg"
+              title="Ảnh tiếp theo (Phím mũi tên phải)"
+            >
+              <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+            </button>
+          )}
         </div>
       )}
     </div>

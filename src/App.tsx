@@ -466,12 +466,21 @@ export default function App() {
       if (saved) {
         let parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Đảm bảo nếu chưa có bản tin Báo cáo Tổng kết TB-REPORT-20Y thì bổ sung lên đầu trang
-          const hasReport = parsed.some((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam');
-          if (!hasReport) {
-            const reportItem = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
-            if (reportItem) {
-              parsed = [reportItem, ...parsed];
+          // Đảm bảo nếu chưa có bản tin Báo cáo Tổng kết TB-REPORT-20Y thì bổ sung lên đầu trang, nếu đã có thì cập nhật nội dung & bộ ảnh mới
+          const defReport = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
+          if (defReport) {
+            const reportIdx = parsed.findIndex((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam');
+            if (reportIdx === -1) {
+              parsed = [defReport, ...parsed];
+            } else {
+              parsed[reportIdx] = {
+                ...parsed[reportIdx],
+                title: defReport.title,
+                summary: defReport.summary,
+                content: defReport.content,
+                imageUrl: defReport.imageUrl,
+                images: (defReport.images && defReport.images.length > 0) ? defReport.images : parsed[reportIdx].images
+              };
             }
           }
           // Đảm bảo nếu chưa có bản tin bình chọn TB-05 thì bổ sung vào để trải nghiệm ngay
@@ -2231,9 +2240,21 @@ export default function App() {
         // 9. Bản tin Announcements
         if (Array.isArray(d.announcements) && d.announcements.length > 0) {
           let list = d.announcements;
-          if (!list.some((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam')) {
-            const reportItem = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
-            if (reportItem) list = [reportItem, ...list];
+          const defReport = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
+          if (defReport) {
+            const rIdx = list.findIndex((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam');
+            if (rIdx === -1) {
+              list = [defReport, ...list];
+            } else {
+              list[rIdx] = {
+                ...list[rIdx],
+                title: defReport.title,
+                summary: defReport.summary,
+                content: defReport.content,
+                imageUrl: defReport.imageUrl,
+                images: (defReport.images && defReport.images.length > 0) ? defReport.images : list[rIdx].images
+              };
+            }
           }
           setAnnouncements(list);
           try { localStorage.setItem('k8a1_announcements', JSON.stringify(list)); } catch (e) {}
@@ -2479,9 +2500,21 @@ export default function App() {
 
       if (announceRes.status === 'fulfilled' && announceRes.value?.status === 'success' && Array.isArray(announceRes.value.data) && announceRes.value.data.length > 0) {
         let list = announceRes.value.data;
-        if (!list.some((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam')) {
-          const reportItem = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
-          if (reportItem) list = [reportItem, ...list];
+        const defReport = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
+        if (defReport) {
+          const rIdx = list.findIndex((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam');
+          if (rIdx === -1) {
+            list = [defReport, ...list];
+          } else {
+            list[rIdx] = {
+              ...list[rIdx],
+              title: defReport.title,
+              summary: defReport.summary,
+              content: defReport.content,
+              imageUrl: defReport.imageUrl,
+              images: (defReport.images && defReport.images.length > 0) ? defReport.images : list[rIdx].images
+            };
+          }
         }
         setAnnouncements(list);
         try { localStorage.setItem('k8a1_announcements', JSON.stringify(list)); } catch (e) {}

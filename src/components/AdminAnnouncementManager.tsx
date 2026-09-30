@@ -26,10 +26,15 @@ import {
   AlertCircle,
   CheckCircle2,
   MessageSquare,
-  Vote
+  Vote,
+  Images,
+  Star,
+  PlusCircle,
+  FolderOpen
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, PollData, PollOption } from '../types';
 import { CATEGORY_STYLES } from './AnnouncementDetailModal';
+import { DEFAULT_MEMORIES } from '../data';
 
 // Các đích đến phổ biến trong webapp để gợi ý cho Ban Liên Lạc
 const QUICK_ACTION_TARGETS = [
@@ -113,6 +118,7 @@ export default function AdminAnnouncementManager({
     summary: string;
     content: string;
     imageUrl: string;
+    images: string[];
     actionUrl: string;
     actionLabel: string;
     isPinned: boolean;
@@ -129,6 +135,7 @@ export default function AdminAnnouncementManager({
     summary: '',
     content: '',
     imageUrl: '',
+    images: [],
     actionUrl: '#diem-danh',
     actionLabel: '🎫 Xem Chi Tiết',
     isPinned: false,
@@ -145,7 +152,10 @@ export default function AdminAnnouncementManager({
   });
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [newImageUrlsInput, setNewImageUrlsInput] = useState('');
+  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
 
   // Trạng thái thao tác nhanh
   const [copiedZaloId, setCopiedZaloId] = useState<string | null>(null);
@@ -203,6 +213,7 @@ export default function AdminAnnouncementManager({
       summary: '',
       content: '',
       imageUrl: '',
+      images: [],
       actionUrl: '#diem-danh',
       actionLabel: '🎫 Xem Chi Tiết',
       isPinned: announcements.length === 0, // Ghim mặc định nếu là tin đầu
@@ -217,18 +228,24 @@ export default function AdminAnnouncementManager({
       pollAllowMultiple: false,
       pollIsClosed: false,
     });
+    setNewImageUrlsInput('');
     setIsFormOpen(true);
   };
 
   // Mở form chỉnh sửa
   const handleOpenEditForm = (item: Announcement) => {
     setEditingId(item.id);
+    const existingImages = Array.isArray(item.images) && item.images.length > 0
+      ? [...item.images]
+      : (item.imageUrl ? [item.imageUrl] : []);
+
     setFormData({
       title: item.title || '',
       category: item.category || 'schedule',
       summary: item.summary || '',
       content: item.content || '',
-      imageUrl: item.imageUrl || '',
+      imageUrl: item.imageUrl || existingImages[0] || '',
+      images: existingImages,
       actionUrl: item.actionUrl || '',
       actionLabel: item.actionLabel || '',
       isPinned: !!item.isPinned,
@@ -245,17 +262,25 @@ export default function AdminAnnouncementManager({
       pollAllowMultiple: !!item.poll?.allowMultiple,
       pollIsClosed: !!item.poll?.isClosed,
     });
+    setNewImageUrlsInput('');
     setIsFormOpen(true);
   };
 
-  // Upload & nén ảnh
+  // Upload & nén ảnh đơn cho ảnh bìa
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       setIsUploadingImage(true);
       const compressedBase64 = await compressImage(file, 1200, 0.8);
-      setFormData((prev) => ({ ...prev, imageUrl: compressedBase64 }));
+      setFormData((prev) => {
+        const nextImages = prev.images.includes(compressedBase64) ? prev.images : [compressedBase64, ...prev.images];
+        return {
+          ...prev,
+          imageUrl: compressedBase64,
+          images: nextImages
+        };
+      });
     } catch (err) {
       console.error('Lỗi nén ảnh thông báo:', err);
       alert('Không thể tải ảnh. Vui lòng thử lại với file dung lượng nhỏ hơn.');
@@ -263,6 +288,106 @@ export default function AdminAnnouncementManager({
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  // Upload nhiều ảnh từ máy cùng lúc
+  const handleMultiFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      setIsUploadingImage(true);
+      const compressedList: string[] = [];
+      for (const file of files) {
+        const compressed = await compressImage(file, 1200, 0.8);
+        compressedList.push(compressed);
+      }
+      setFormData((prev) => {
+        const combined = [...prev.images, ...compressedList];
+        return {
+          ...prev,
+          images: combined,
+          imageUrl: prev.imageUrl || combined[0] || ''
+        };
+      });
+    } catch (err) {
+      console.error('Lỗi nén ảnh thông báo:', err);
+      alert('Không thể tải một số ảnh. Vui lòng thử lại với file dung lượng nhỏ hơn.');
+    } finally {
+      setIsUploadingImage(false);
+      if (multiFileInputRef.current) multiFileInputRef.current.value = '';
+    }
+  };
+
+  // Thêm một hoặc nhiều URL ảnh vào bài viết
+  const handleAddImageUrls = () => {
+    if (!newImageUrlsInput.trim()) return;
+    const urls = newImageUrlsInput
+      .split(/[\n,;]+/)
+      .map((u) => u.trim())
+      .filter((u) => u.length > 5);
+
+    if (urls.length === 0) {
+      alert('Vui lòng nhập đường dẫn URL ảnh hợp lệ (https://...)');
+      return;
+    }
+
+    setFormData((prev) => {
+      const combined = [...prev.images];
+      urls.forEach((u) => {
+        if (!combined.includes(u)) combined.push(u);
+      });
+      return {
+        ...prev,
+        images: combined,
+        imageUrl: prev.imageUrl || combined[0] || ''
+      };
+    });
+    setNewImageUrlsInput('');
+  };
+
+  // Xóa ảnh khỏi bài viết
+  const handleRemoveImage = (indexToRemove: number) => {
+    setFormData((prev) => {
+      const targetUrl = prev.images[indexToRemove];
+      const nextImages = prev.images.filter((_, idx) => idx !== indexToRemove);
+      let nextCover = prev.imageUrl;
+      if (prev.imageUrl === targetUrl) {
+        nextCover = nextImages[0] || '';
+      }
+      return {
+        ...prev,
+        images: nextImages,
+        imageUrl: nextCover
+      };
+    });
+  };
+
+  // Đặt làm ảnh đại diện chính (Cover)
+  const handleSetAsCover = (url: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageUrl: url
+    }));
+  };
+
+  // Chèn thẻ markdown ảnh vào nội dung văn bản
+  const handleInsertImageIntoContent = (url: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      content: prev.content ? `${prev.content}\n\n![Ảnh minh họa](${url})\n` : `![Ảnh minh họa](${url})\n`
+    }));
+  };
+
+  // Chọn ảnh nhanh từ kho kỷ niệm
+  const handleSelectFromLibrary = (url: string) => {
+    setFormData((prev) => {
+      const combined = prev.images.includes(url) ? prev.images : [...prev.images, url];
+      return {
+        ...prev,
+        images: combined,
+        imageUrl: prev.imageUrl || url
+      };
+    });
   };
 
   // Lưu thông báo (Tạo mới hoặc Sửa)
@@ -291,13 +416,16 @@ export default function AdminAnnouncementManager({
       }
     }
 
+    const cleanImages = formData.images.filter((img) => Boolean(img && img.trim()));
+
     const updatedAnnouncement: Announcement = {
       id: editingId || `TB-${Date.now()}`,
       title: formData.title.trim(),
       category: formData.category,
       summary: formData.summary.trim() || formData.title.trim(),
       content: formData.content.trim() || formData.summary.trim() || formData.title.trim(),
-      imageUrl: formData.imageUrl.trim() || undefined,
+      imageUrl: formData.imageUrl.trim() || (cleanImages.length > 0 ? cleanImages[0] : undefined),
+      images: cleanImages.length > 0 ? cleanImages : undefined,
       actionUrl: formData.actionUrl.trim() || undefined,
       actionLabel: formData.actionLabel.trim() || undefined,
       isPinned: formData.isPinned,
@@ -306,6 +434,8 @@ export default function AdminAnnouncementManager({
       status: formData.status,
       likesCount: editingId ? (announcements.find((a) => a.id === editingId)?.likesCount || 0) : 0,
       poll: pollData,
+      metrics: editingId ? announcements.find((a) => a.id === editingId)?.metrics : undefined,
+      slug: editingId ? announcements.find((a) => a.id === editingId)?.slug : undefined,
     };
 
     onSaveAnnouncement(updatedAnnouncement);
@@ -874,15 +1004,23 @@ ${webUrl}
                 />
               </div>
 
-              {/* ẢNH MINH HỌA */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Ảnh minh họa (Tùy chọn)</span>
-                  </label>
+              {/* =============================================================== */}
+              {/* BỘ CÔNG CỤ QUẢN LÝ NHIỀU ẢNH & ALBUM BẢN TIN (MULTI-IMAGES) */}
+              {/* =============================================================== */}
+              <div className="p-3 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <Images className="w-4 h-4 text-amber-600" />
+                    <label className="text-xs sm:text-sm font-bold text-slate-800">
+                      Hình ảnh bài viết & Album minh họa
+                    </label>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold">
+                      {formData.images.length} ảnh
+                    </span>
+                  </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Input ẩn upload 1 ảnh làm bìa */}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -890,41 +1028,208 @@ ${webUrl}
                       onChange={handleFileChange}
                       className="hidden"
                     />
+
+                    {/* Input ẩn upload nhiều ảnh cùng lúc */}
+                    <input
+                      ref={multiFileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleMultiFilesChange}
+                      className="hidden"
+                    />
+
+                    {/* Nút upload nhiều ảnh từ máy */}
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => multiFileInputRef.current?.click()}
                       disabled={isUploadingImage}
-                      className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition shadow-xs active:scale-95"
+                      title="Chọn nhiều ảnh từ máy tính hoặc điện thoại để tải lên cùng lúc"
                     >
-                      <Upload className="w-3 h-3 text-slate-500" />
-                      <span>{isUploadingImage ? 'Đang nén ảnh...' : 'Tải ảnh từ máy'}</span>
+                      <Upload className="w-3.5 h-3.5 text-slate-950" />
+                      <span>{isUploadingImage ? 'Đang nén ảnh...' : 'Tải nhiều ảnh từ máy'}</span>
+                    </button>
+
+                    {/* Nút chọn ảnh từ kho kỷ niệm K8A1 */}
+                    <button
+                      type="button"
+                      onClick={() => setShowLibraryPicker((prev) => !prev)}
+                      className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition shadow-xs"
+                      title="Chọn nhanh từ kho ảnh kỷ niệm lớp K8A1"
+                    >
+                      <FolderOpen className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{showLibraryPicker ? 'Đóng kho ảnh' : 'Kho ảnh K8A1'}</span>
                     </button>
                   </div>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="Dán URL ảnh hoặc dùng nút tải ảnh từ máy ở trên..."
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:border-amber-500 bg-white"
-                />
-
-                {formData.imageUrl && (
-                  <div className="relative inline-block mt-2 rounded-lg overflow-hidden border border-slate-300 max-w-[200px] max-h-[120px]">
-                    <img
-                      src={formData.imageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
+                {/* HÀNG NHẬP / DÁN NHIỀU LINK ẢNH CÙNG LÚC */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-slate-600 font-medium">
+                    <span>Dán đường dẫn URL ảnh (Hỗ trợ 1 hoặc nhiều link, mỗi dòng 1 link):</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Dán link ảnh https://... (hoặc nhiều link cách nhau bằng enter)"
+                      value={newImageUrlsInput}
+                      onChange={(e) => setNewImageUrlsInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddImageUrls();
+                        }
+                      }}
+                      className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-amber-500 bg-white"
                     />
                     <button
                       type="button"
-                      onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                      className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80"
-                      title="Gỡ ảnh"
+                      onClick={handleAddImageUrls}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition shrink-0"
                     >
-                      <X className="w-3 h-3" />
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Thêm ảnh</span>
                     </button>
+                  </div>
+                </div>
+
+                {/* POPUP CHỌN ẢNH TỪ KHO KỶ NIỆM K8A1 */}
+                {showLibraryPicker && (
+                  <div className="p-3 bg-white rounded-xl border-2 border-amber-300 shadow-md space-y-2 animate-in fade-in zoom-in-95">
+                    <div className="flex items-center justify-between border-b border-amber-100 pb-1.5">
+                      <span className="text-xs font-bold text-amber-950">
+                        📸 Chọn ảnh từ Thư viện Kỷ niệm 20 Năm K8A1 (Bấm vào ảnh để thêm):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowLibraryPicker(false)}
+                        className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
+                      >
+                        Đóng
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-1 scrollbar-thin">
+                      {DEFAULT_MEMORIES.slice(0, 24).map((mem) => {
+                        const isAdded = formData.images.includes(mem.url);
+                        return (
+                          <div
+                            key={mem.id}
+                            onClick={() => handleSelectFromLibrary(mem.url)}
+                            className={`relative aspect-square rounded-lg overflow-hidden border cursor-pointer group transition ${
+                              isAdded
+                                ? 'border-emerald-500 ring-2 ring-emerald-400'
+                                : 'border-slate-200 hover:border-amber-400 hover:scale-105'
+                            }`}
+                            title={mem.caption || 'Chọn ảnh này'}
+                          >
+                            <img
+                              src={mem.thumbnail || mem.url}
+                              alt={mem.caption || 'Kỷ niệm K8A1'}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            {isAdded && (
+                              <div className="absolute inset-0 bg-emerald-600/40 flex items-center justify-center">
+                                <Check className="w-4 h-4 text-white drop-shadow" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* DANH SÁCH THUMBNAIL CÁC ẢNH ĐÃ CHỌN TRONG BÀI VIẾT */}
+                {formData.images.length > 0 ? (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-xs text-slate-700 font-semibold">
+                      <span>Danh sách ảnh đã thêm vào bài ({formData.images.length}):</span>
+                      <span className="text-[11px] text-slate-500 italic">
+                        ⭐ Click nút sao để chọn làm Ảnh Bìa (Cover)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                      {formData.images.map((imgUrl, index) => {
+                        const isCover = formData.imageUrl === imgUrl || (!formData.imageUrl && index === 0);
+                        return (
+                          <div
+                            key={index}
+                            className={`relative group bg-white rounded-xl border overflow-hidden p-1.5 transition ${
+                              isCover
+                                ? 'border-amber-500 ring-2 ring-amber-400/50 shadow-sm'
+                                : 'border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            {/* Khung ảnh */}
+                            <div className="relative aspect-4/3 rounded-lg overflow-hidden bg-slate-100">
+                              <img
+                                src={imgUrl}
+                                alt={`Ảnh ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e: any) => {
+                                  e.target.src = 'https://placehold.co/400x300?text=Loi+Anh';
+                                }}
+                              />
+
+                              {/* Huy hiệu ảnh bìa */}
+                              {isCover ? (
+                                <span className="absolute top-1 left-1 bg-amber-500 text-slate-950 font-sans font-bold text-[9px] px-1.5 py-0.5 rounded shadow">
+                                  ⭐ Ảnh Bìa
+                                </span>
+                              ) : (
+                                <span className="absolute top-1 left-1 bg-black/60 text-white font-mono text-[9px] px-1.5 py-0.5 rounded">
+                                  #{index + 1}
+                                </span>
+                              )}
+
+                              {/* Nút xóa ảnh */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute top-1 right-1 p-1 bg-rose-600/80 hover:bg-rose-700 text-white rounded-full transition cursor-pointer shadow"
+                                title="Xóa ảnh này khỏi bài"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            {/* Cụm nút hành động cho từng ảnh */}
+                            <div className="flex items-center justify-between gap-1 mt-1.5 pt-1 border-t border-slate-100">
+                              <button
+                                type="button"
+                                onClick={() => handleSetAsCover(imgUrl)}
+                                className={`flex-1 py-1 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 cursor-pointer transition ${
+                                  isCover
+                                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-800'
+                                }`}
+                                title="Đặt ảnh này làm ảnh bìa chính"
+                              >
+                                <Star className={`w-3 h-3 ${isCover ? 'fill-amber-600 text-amber-600' : 'text-slate-400'}`} />
+                                <span>{isCover ? 'Ảnh Bìa' : 'Làm bìa'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleInsertImageIntoContent(imgUrl, `Ảnh minh họa #${index + 1}`)}
+                                className="py-1 px-2 rounded text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 transition cursor-pointer flex items-center gap-0.5"
+                                title="Chèn cú pháp markdown ảnh này vào nội dung văn bản bài viết"
+                              >
+                                <span>Chèn vào bài</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 text-center border border-dashed border-slate-300 rounded-xl bg-white text-slate-500 text-xs">
+                    Chưa có ảnh nào được thêm vào bài viết. Hãy dán link ảnh hoặc bấm "Tải nhiều ảnh từ máy" ở trên.
                   </div>
                 )}
               </div>

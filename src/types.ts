@@ -389,7 +389,8 @@ export interface Announcement {
   category: AnnouncementCategory;
   summary: string;
   content: string;
-  imageUrl?: string;
+  imageUrl?: string;               // Ảnh đại diện chính (Cover Image)
+  images?: string[];               // Danh sách nhiều ảnh minh họa / Bộ sưu tập ảnh trong bài
   actionUrl?: string;
   actionLabel?: string;
   isPinned?: boolean;

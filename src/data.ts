@@ -3204,51 +3204,86 @@ export const DEFAULT_ANNOUNCEMENTS: import('./types').Announcement[] = [
   {
     id: "TB-REPORT-20Y",
     slug: "tong-ket-20-nam",
-    title: "🏆 DẤU ẤN 20 NĂM: Báo Cáo Tổng Kết & Số Hóa Toàn Diện Đại Lễ K8A1 THPT Thái Nguyên",
+    title: "🏆 DẤU ẤN 2 DECADES: Ký Sự Đại Lễ 20 Năm & Kỳ Tích Số Hóa Hội Khóa K8A1",
     category: "report",
-    summary: "Bản báo cáo tổng kết chính thức từ BTC K8A1: Nhìn lại hành trình 20 Năm Ngày Trở Về với 4 con số kỷ lục, 5 trụ cột công nghệ 4.0 tiên phong và những khoảnh khắc lịch sử của ngày 27/09/2026.",
-    content: `BÁO CÁO TỔNG KẾT & DẤU ẤN ĐẠI LỄ 20 NĂM NGÀY TRỞ VỀ
-TẬP THỂ K8A1 NIÊN KHÓA 2003 — 2006 | TRƯỜNG THPT THÁI NGUYÊN
+    summary: "Bản ký sự & báo cáo tổng kết chính thức: Nhìn lại hành trình 2 thập kỷ tri kỷ với 24 giờ hội ngộ xúc động nghẹn ngào, 4 con số kỷ lục lịch sử và 5 kỳ tích công nghệ 4.0 tiên phong của ngày 27/09/2026.",
+    content: `BÁO CÁO TỔNG KẾT & KÝ SỰ ĐẠI LỄ 20 NĂM NGÀY TRỞ VỀ
+"HÀNH TRÌNH 2 THẬP KỶ — MỘT ĐỜI TRI KỶ & DẤU ẤN TIÊN PHONG SỐ HÓA K8A1"
+TẬP THỂ CỰU HỌC SINH NIÊN KHÓA 2003 — 2006 | TRƯỜNG THPT THÁI NGUYÊN
 (Ngày hội tụ lịch sử: Chủ Nhật, 27/09/2026)
 
-Kính gửi: Các Thầy Cô giáo kính mến, cùng toàn thể 50 bạn cựu học sinh K8A1 thân thương!
+Kính gửi: Các Thầy Cô giáo kính yêu — những người lái đò tận tụy đã nâng bước thanh xuân của chúng em;
+Cùng toàn thể 50 trái tim K8A1 thân thương từ khắp bốn phương trời!
 
-Hai mươi năm – một chặng đường với biết bao đổi thay của cuộc sống, nhưng tình bạn tuổi học trò K8A1 dưới mái trường THPT Thái Nguyên vẫn luôn là ngọn lửa ấm áp và vẹn nguyên nhất. Ngày 27/09/2026 vừa qua, Đại lễ "20 Năm Ngày Trở Về" của lớp chúng ta đã diễn ra đại thành công, đong đầy cảm xúc và để lại những dấu ấn rực rỡ chưa từng có.
+Hai mươi năm — hai phần mười thế kỷ đã trôi qua kể từ mùa hè rực lửa hoa phượng vĩ năm 2006, khi 50 cô cậu học trò lớp K8A1 bước ra khỏi cánh cổng trường THPT Thái Nguyên mang theo bao hoài bão tuổi trẻ. Hai mươi năm ấy, cuộc đời mỗi người đã có biết bao đổi thay, ai cũng xuôi ngược với sự nghiệp, gia đình và những bộn bề thăng trầm của đời sống. Nhưng có một điều kỳ diệu chưa bao giờ nhạt phai: ngọn lửa tình bạn vô tư, trong sáng của K8A1 vẫn luôn âm ỉ cháy, chờ ngày bùng lên thành một khúc hoan ca rực rỡ.
 
-Ban Tổ Chức trân trọng công bố Bản Báo Cáo Tổng Kết và ghi nhận những thành quả mang tính đột phá của ngày đại lễ:
+Và ngày Chủ Nhật, 27/09/2026 vừa qua, khúc hoan ca ấy đã cất lên vang dội trong ngày Đại lễ "20 Năm Ngày Trở Về". Đó không đơn thuần là một buổi họp lớp — đó là ngày của những giọt nước mắt nghẹn ngào trong vòng tay Thầy Cô, là những cái ôm siết chặt xóa nhòa mọi khoảng cách thời gian, là tiếng cười hồn nhiên không vướng bận danh vọng, và là sự thăng hoa của một tập thể xuất sắc đã tự tay kiến tạo nên một kỳ tích hội khóa chưa từng có trong lịch sử trường THPT Thái Nguyên.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. BỐN CON SỐ KỶ LỤC CỦA ĐẠI LỄ K8A1
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• 100% CẤP THẺ HỌC SINH SỐ HÓA: 100% thành viên tham dự được sở hữu chiếc "Thẻ Học Sinh K8A1 Digital (Student Pass)" mang dấu ấn cá nhân kèm mã vạch nhận diện riêng.
-• 0.8 GIÂY QUÉT QR CHECK-IN: Công nghệ đón tiếp tự động hóa giúp các bạn chỉ cần 1 chạm tại cổng tiệc là màn hình lập tức chào đón đích danh và chỉ định sơ đồ bàn tiệc chính xác, không còn cảnh chen chúc tìm chỗ.
-• 500+ TƯ LIỆU SỐ HÓA & BẢO MẬT: Hơn 500 bức ảnh và clip tư liệu trải dài suốt 20 năm (từ thuở cắp sách 2003–2006, 10 năm, 15 năm và đại lễ 20 năm) được lưu trữ vĩnh viễn với 5 tầng bảo mật chống tải trộm và đóng dấu bản quyền Watermark K8A1 sắc nét.
-• 100% MINH BẠCH TÀI CHÍNH: Toàn bộ nguồn thu đóng góp, tài trợ và các khoản chi tiệc, quà tặng Thầy Cô, đồng phục áo polo... được số hóa và kiểm toán công khai từng nghìn đồng qua biểu đồ trực quan.
+Thay mặt Ban Tổ Chức, chúng tôi trân trọng công bố Bản Báo Cáo Tổng Kết & Ký Sự Dấu Ấn Đại Lễ 20 Năm:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2. NĂM TRỤ CỘT CÔNG NGHỆ 4.0 TIÊN PHONG
+I. KÝ SỰ 24 GIỜ HUY HOÀNG — KHI KỶ NIỆM HÓA VĨNH CỬU
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Để mang lại một đại lễ chuyên nghiệp đẳng cấp hàng đầu, BTC K8A1 đã tự nghiên cứu và phát triển trọn bộ Hệ sinh thái WebApp độc quyền:
-① BẢN ĐỒ 3D HỘI TỤ TOÀN CẦU: Trực quan hóa hành trình của 50 người bạn từ khắp các tỉnh thành trong cả nước và từ nước ngoài cùng hướng về tọa độ ngôi trường THPT Thái Nguyên dấu yêu.
-② THẺ HỌC SINH SỐ & ĐIỂM DANH QR: Chuyển đổi số khâu lễ tân, giúp khâu đón tiếp diễn ra trang trọng, nhanh chóng và tạo kỷ niệm đáng nhớ cho từng bạn.
-③ TRUNG TÂM ĐIỀU KHIỂN MÀN LED & SMART TV TỰ ĐỘNG: Toàn bộ hình ảnh kỷ niệm được phát trên màn LED đại tiệc với hiệu ứng chuyển động Ken Burns điện ảnh, tích hợp hòa âm thông minh (tự động nhường âm thanh khi phát video clip kỷ niệm).
-④ BẢO VỆ TƯ LIỆU 5 TẦNG & WATERMARK ĐỘC QUYỀN: Tư liệu ảnh và video của lớp được bảo vệ an toàn tuyệt đối khỏi nguy cơ bị tải lậu hay sao chép trái phép.
-⑤ TRÌNH CHIẾU KHÔNG DÂY LÊN SMART TV: Tính năng chia sẻ link siêu ngắn và mã QR Code cho phép bất kỳ ai cũng có thể mở slide ảnh kỷ niệm của lớp lên Smart TV phòng khách gia đình chỉ sau 2 giây.
+🌅 08:30 SÁNG — TRỞ VỀ MIỀN KÝ ỨC DƯỚI BÓNG TRƯỜNG XƯA:
+Khoảnh khắc đoàn xe chở các bạn tề tựu trước cổng trường THPT Thái Nguyên, dường như thời gian 20 năm đã ngừng lại. Những tà áo polo đồng phục K8A1 mang màu xanh hy vọng nổi bật giữa sân trường ngập nắng mùa thu. 
+
+Xúc động và thiêng liêng nhất là giây phút đón chào các Thầy Cô giáo chủ nhiệm và bộ môn kính yêu. Mái tóc Thầy Cô nay đã pha sương theo năm tháng, nhưng ánh mắt trìu mến dõi theo đàn con thơ ngày nào vẫn ấm áp nguyên vẹn. Những đóa hoa tươi thắm, những lời tri ân từ đáy lòng và những giọt nước mắt lăn dài trên má đã làm rung động cả không gian trường cũ. Tiếng chuông trường như lại vang vọng, đưa 50 con người trở về trọn vẹn với tuổi 18 tinh khôi.
+
+🥂 11:30 TRƯA — ĐẠI TIỆC HỘI NGỘ BÙNG NỔ TẠI THE PRIME:
+Nếu buổi sáng là sự lắng đọng và biết ơn, thì buổi trưa tại trung tâm The Prime là một đại dương cảm xúc bùng cháy. Mọi chức danh xã hội, mọi vị thế ngoài đời sống đều được trút bỏ ngoài cánh cửa; bên trong chỉ còn lại "mày - tao", những câu chuyện nghịch ngợm thuở cắp sách, những biệt danh gắn bó một thời và những chén rượu nồng ấm tình bằng hữu. 
+
+Sân khấu lớn lung linh với màn LED khổng lồ trình chiếu những thước phim tư liệu 20 năm chuyển động sống động, tiếng nhạc hòa quyện khiến ai nấy đều rưng rưng tự hào vì mình là một phần của đại gia đình K8A1.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-3. LỜI TRI ÂN VÀ SỨ MỆNH GẮN KẾT BỀN LÂU
+II. BỐN CON SỐ KỶ LỤC CỦA ĐẠI LỄ K8A1
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Thành công to lớn của ngày hội 20 năm hôm nay đến từ sự ủng hộ nhiệt thành của 50 trái tim K8A1, sự quan tâm dìu dắt của Ban Giám hiệu, các cô giáo chủ nhiệm và các thầy cô giáo bộ môn kính yêu. 
+Không chỉ thành công về mặt cảm xúc, Đại lễ K8A1 20 Năm còn xác lập 4 con số kỷ lục mang tính định chuẩn cho phong trào cựu học sinh:
 
-Ban Tổ Chức K8A1 xin gửi lời cảm ơn chân thành nhất tới từng thành viên đã không quản ngại khoảng cách địa lý, công việc bận rộn để trở về sum vầy bên nhau. 
+• 100% CẤP THẺ HỌC SINH SỐ HÓA (STUDENT PASS): 100% thành viên tham dự được trao tặng chiếc Thẻ Học Sinh K8A1 Digital độc bản với ảnh chân dung, niên khóa và mã vạch nhận diện cá nhân hóa — một kỷ vật thanh xuân được số hóa vĩnh viễn trên điện thoại.
 
-Đồng thời, với tinh thần tự hào là cựu học sinh trường THPT Thái Nguyên, Ban Tổ Chức K8A1 sẵn lòng chia sẻ kinh nghiệm tổ chức, kịch bản chương trình cũng như giải pháp số hóa sự kiện cho các lớp bạn cùng khóa K8 và các thế hệ khóa sau để phong trào ngày càng lớn mạnh!
+• 0.8 GIÂY QUÉT QR CHECK-IN ĐÓN TIẾP: Lần đầu tiên, quy trình lễ tân họp lớp được tự động hóa hoàn toàn. Chỉ một thao tác quét mã tại cổng tiệc, hệ thống tức thì nhận diện danh tính, phát lời chào vinh danh trên màn hình và điều hướng bàn tiệc chính xác mà không một giây chen chúc.
+
+• 500+ TƯ LIỆU SỐ HÓA HD & BẢO MẬT 5 TẦNG: Hơn nửa nghìn bức ảnh và video clip quý giá trải dài 4 mốc son (2003–2006, 10 năm, 15 năm và đại lễ 20 năm) được lưu trữ trên nền tảng đám mây tốc độ cao, tích hợp công nghệ đóng dấu bản quyền Watermark độc quyền và bảo mật 5 tầng chống tải lậu.
+
+• 100% MINH BẠCH TÀI CHÍNH TỪNG NGHÌN ĐỒNG: Toàn bộ ngân sách thu chi từ nguồn đóng góp của các thành viên, các khoản tài trợ danh dự cho đến chi phí quà tặng Thầy Cô, tiệc mừng, áo lớp... được quyết toán số hóa theo thời gian thực với biểu đồ trực quan, rõ ràng, tạo niềm tin tuyệt đối.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+III. NĂM TRỤ CỘT CÔNG NGHỆ 4.0 TIÊN PHONG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Để tổ chức một sự kiện tầm vóc sánh ngang các hội thảo chuyên nghiệp, Ban Tổ Chức K8A1 đã tự phát triển trọn vẹn Hệ sinh thái WebApp độc quyền với 5 công nghệ mũi nhọn:
+
+① BẢN ĐỒ 3D HỘI TỤ TOÀN CẦU: Trực quan hóa tọa độ của 50 cựu học sinh từ Hà Nội, TP.HCM, Đà Nẵng, các tỉnh thành trên cả nước và cả bạn bè định cư ở nước ngoài cùng hướng về mái trường THPT Thái Nguyên.
+② THẺ HỌC SINH DIGITAL & ĐIỂM DANH QR: Chuyển đổi số toàn diện khâu đón tiếp, biến kỷ niệm thành trải nghiệm công nghệ đáng nhớ.
+③ TRUNG TÂM ĐIỀU KHIỂN MÀN LED & HÒA ÂM ĐIỆN ẢNH: Toàn bộ tư liệu ký ức được phát sóng với hiệu ứng Ken Burns điện ảnh, tích hợp tính năng tự động ngắt hòa âm để nhường âm thanh khi phát các video clip kỷ niệm của lớp.
+④ HỆ THỐNG BẢO VỆ TƯ LIỆU 5 TẦNG & WATERMARK K8A1: Bảo vệ hình ảnh cá nhân và gia đình của các bạn khỏi nguy cơ bị sao chép hoặc phát tán ngoài ý muốn.
+⑤ TRÌNH CHIẾU KHÔNG DÂY LÊN SMART TV GIA ĐÌNH: Tính năng chia sẻ link ngắn và mã QR cho phép bất kỳ thành viên nào cũng có thể chiếu toàn bộ slide ảnh lớp lên TV phòng khách nhà mình chỉ sau 2 giây.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IV. LỜI TRI ÂN TỪ TRÁI TIM & SỨ MỆNH KẾT NỐI VĨNH CỬU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Thành công rực rỡ của ngày hội hôm nay được thắp sáng bởi tình yêu thương và sự đồng lòng của 50 trái tim K8A1; sự tận tâm, dẫn dắt của các Thầy Cô giáo kính yêu; và sự cống hiến không mệt mỏi của Ban Tổ Chức suốt nhiều tháng chuẩn bị.
+
+Hai mươi năm đã qua chỉ là một chặng nghỉ chân để chúng ta cùng nhìn lại, tiếp thêm cho nhau sức mạnh và niềm tin trên con đường phía trước. K8A1 sẽ tiếp tục bước tới những cột mốc 25 năm, 30 năm với lời hứa sắt son: "Một ngày là K8A1 — Một đời là tri kỷ!".
+
+Đồng thời, với lòng tự hào và tri ân mái trường THPT Thái Nguyên, Ban Tổ Chức K8A1 sẵn lòng chia sẻ trọn bộ kịch bản, kinh nghiệm tổ chức cũng như chuyển giao giải pháp WebApp số hóa cho các lớp bạn cùng khóa K8 và các thế hệ khóa sau, chung tay làm rạng danh truyền thống nhà trường!
 
 K8A1 — 20 NĂM MỘT CHẶNG ĐƯỜNG, MỘT ĐỜI TÌNH BẠN!
 Trân trọng,
-BAN TỔ CHỨC ĐẠI LỄ 20 NĂM K8A1`,
+BAN TỔ CHỨC ĐẠI LỄ 20 NĂM K8A1
+Niên khóa 2003 — 2006 | THPT Thái Nguyên`,
     actionUrl: "#lich-trinh",
     actionLabel: "🏆 Khám Phá Dấu Ấn Kỷ Niệm 20 Năm",
+    imageUrl: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
+    images: [
+      "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
+      "https://lh3.googleusercontent.com/d/13zT4aOkSxA64WvjMdnWYnvmQ3ymd8_tP=w1600",
+      "https://lh3.googleusercontent.com/d/10XawSSwZY4SN1VxEiqwu1xTdVDrnHSJ_=w1600",
+      "https://lh3.googleusercontent.com/d/1YdNfE3eTp-tFMziZGrXAKBiFGGizxqU5=w1600",
+      "https://lh3.googleusercontent.com/d/1TcNE9texOQ_bc3pHFQ5v1GkkC3fmvwa_=w1600",
+      "https://lh3.googleusercontent.com/d/1moPfah4fJ65JDeLb2tmsgcUS8wLwKkYJ=w1600",
+      "https://lh3.googleusercontent.com/d/1vJNgqD0H1kakbcso-8l2HsmHaea0OTuk=w1600",
+      "https://lh3.googleusercontent.com/d/17nTPfS_55_e6fRYJWB9H4XZ3PUtZJlCD=w1600"
+    ],
     isPinned: true,
     createdAt: "28/09/2026 18:00",
     author: "Ban Tổ Chức Đại Lễ 20 Năm K8A1",
