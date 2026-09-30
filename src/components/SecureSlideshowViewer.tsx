@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, Pause, ChevronLeft, ChevronRight, Maximize, Minimize, 
   Volume2, VolumeX, Shield, Sparkles, Folder, Image as ImageIcon,
-  Clock, X, Check, Layers, ChevronDown, CheckCircle2
+  Clock, X, Check, Layers, ChevronDown, CheckCircle2,
+  Shuffle, LayoutGrid, Search, Film
 } from 'lucide-react';
 import { MemoryImage, PhotoAlbum, MusicTrack, SlideTransitionType } from '../types';
 import { DEFAULT_PLAYLIST } from '../data';
@@ -89,6 +90,14 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
   const [kenBurnsStyle, setKenBurnsStyle] = useState<number>(0);
   const [slideshowProgress, setSlideshowProgress] = useState<number>(0);
 
+  // Chế độ phát ngẫu nhiên (Shuffle) & Danh sách chọn ảnh (Gallery Modal)
+  const [isShuffle, setIsShuffle] = useState<boolean>(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState<boolean>(false);
+  const [gallerySearch, setGallerySearch] = useState<string>('');
+  const playHistoryRef = useRef<number[]>([]);
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const thumbnailsScrollRef = useRef<HTMLDivElement | null>(null);
+
   // Âm thanh nền
   const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(initialMusic);
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
@@ -99,6 +108,17 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+
+  // Danh sách ảnh lọc trong Gallery Grid
+  const galleryPhotos = useMemo(() => {
+    if (!gallerySearch.trim()) return filteredPhotos;
+    const q = gallerySearch.toLowerCase().trim();
+    return filteredPhotos.filter(p => 
+      (p.caption || '').toLowerCase().includes(q) ||
+      (p.subfolderName || '').toLowerCase().includes(q) ||
+      (p.date || '').toLowerCase().includes(q)
+    );
+  }, [filteredPhotos, gallerySearch]);
 
   // Kiểu chuyển động Ken Burns pan & zoom 4 hướng (chuẩn xác 100% như Màn LED & Web)
   const getKenBurnsClass = useCallback(() => {
@@ -124,36 +144,70 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
     return TRANSITION_PRESETS[slideshowTransition] || TRANSITION_PRESETS.crossfade;
   }, [slideshowTransition, currentIndex]);
 
-  // Điều khiển ẩn/hiện thanh công cụ sau 3.5 giây không chạm
+  // Điều khiển ẩn/hiện thanh công cụ sau 4 giây không chạm
   const resetControlsTimer = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
+      if (isPlaying && !isGalleryOpen) {
         setShowControls(false);
         setShowTransitionMenu(false);
       }
-    }, 3500);
-  }, [isPlaying]);
+    }, 4000);
+  }, [isPlaying, isGalleryOpen]);
 
-  // Chuyển ảnh tiếp theo / trước đó
+  // Chuyển ảnh tiếp theo (Hỗ trợ phát Tuần tự hoặc Ngẫu nhiên Shuffle)
   const handleNext = useCallback(() => {
     resetControlsTimer();
-    setCurrentIndex(prev => (prev + 1) % filteredPhotos.length);
+    setCurrentIndex(prev => {
+      if (filteredPhotos.length <= 1) return prev;
+      playHistoryRef.current.push(prev);
+      if (playHistoryRef.current.length > 50) playHistoryRef.current.shift();
+
+      if (isShuffle) {
+        let nextIdx = Math.floor(Math.random() * filteredPhotos.length);
+        if (nextIdx === prev) {
+          nextIdx = (nextIdx + 1) % filteredPhotos.length;
+        }
+        return nextIdx;
+      }
+      return (prev + 1) % filteredPhotos.length;
+    });
     setKenBurnsStyle(prev => (prev + 1) % 4);
     setSlideshowProgress(0);
-  }, [filteredPhotos.length, resetControlsTimer]);
+  }, [filteredPhotos.length, isShuffle, resetControlsTimer]);
 
+  // Chuyển ảnh trước đó
   const handlePrev = useCallback(() => {
     resetControlsTimer();
-    setCurrentIndex(prev => (prev - 1 + filteredPhotos.length) % filteredPhotos.length);
+    setCurrentIndex(prev => {
+      if (filteredPhotos.length <= 1) return prev;
+      if (isShuffle && playHistoryRef.current.length > 0) {
+        const lastIdx = playHistoryRef.current.pop();
+        if (lastIdx !== undefined && lastIdx >= 0 && lastIdx < filteredPhotos.length) {
+          return lastIdx;
+        }
+      }
+      return (prev - 1 + filteredPhotos.length) % filteredPhotos.length;
+    });
     setKenBurnsStyle(prev => (prev + 1) % 4);
     setSlideshowProgress(0);
-  }, [filteredPhotos.length, resetControlsTimer]);
+  }, [filteredPhotos.length, isShuffle, resetControlsTimer]);
+
+  // Tự động cuộn thanh filmstrip thumbnails đến ảnh đang xem
+  useEffect(() => {
+    if (thumbnailRefs.current[currentIndex]) {
+      thumbnailRefs.current[currentIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  }, [currentIndex]);
 
   // Vòng lặp đếm thời gian & auto-advance Slide Show (chuẩn xác từng 50ms)
   useEffect(() => {
-    if (!isPlaying || filteredPhotos.length <= 1) {
+    if (!isPlaying || filteredPhotos.length <= 1 || isGalleryOpen) {
       setSlideshowProgress(0);
       return;
     }
@@ -169,7 +223,7 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       });
     }, intervalStep);
     return () => clearInterval(timer);
-  }, [isPlaying, filteredPhotos.length, speed, handleNext]);
+  }, [isPlaying, filteredPhotos.length, speed, handleNext, isGalleryOpen]);
 
   // Quản lý âm thanh nền
   useEffect(() => {
@@ -246,6 +300,23 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
         return;
       }
 
+      // Phím thoát các modal
+      if (e.key === 'Escape') {
+        if (isGalleryOpen) {
+          e.preventDefault();
+          setIsGalleryOpen(false);
+          return;
+        }
+        if (showTransitionMenu) {
+          e.preventDefault();
+          setShowTransitionMenu(false);
+          return;
+        }
+        if (onExit) {
+          onExit();
+        }
+      }
+
       // Phím điều hướng trình chiếu
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
@@ -253,8 +324,6 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         handlePrev();
-      } else if (e.key === 'Escape' && onExit) {
-        onExit();
       }
     };
 
@@ -267,7 +336,7 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       window.removeEventListener('dragstart', handleDragStart);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [triggerShieldAlert, handleNext, handlePrev, onExit]);
+  }, [triggerShieldAlert, handleNext, handlePrev, onExit, isGalleryOpen, showTransitionMenu]);
 
   // Xử lý vuốt chạm trên thiết bị di động (Mobile Touch Swipe)
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -319,7 +388,7 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       )}
 
       {/* 🎬 THANH TIẾN ĐỘ SLIDESHOW (Top Edge - Đồng bộ Web & Màn LED) */}
-      {isPlaying && (
+      {isPlaying && !isGalleryOpen && (
         <div className="absolute top-0 inset-x-0 h-1 bg-white/10 z-40 pointer-events-none">
           <div 
             className="h-full bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 transition-all duration-75 ease-linear shadow-xs"
@@ -357,12 +426,26 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
           </div>
         </div>
 
-        {/* Nút thoát & Phím tắt */}
+        {/* Nút Danh sách tất cả ảnh & Chế độ trình chiếu */}
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] text-amber-200/90 font-mono">
+          <button
+            type="button"
+            onClick={() => {
+              resetControlsTimer();
+              setIsGalleryOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-xs text-amber-200 font-bold transition cursor-pointer shadow-sm"
+            title="Mở toàn bộ danh sách ảnh để chọn xem"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Tất Cả Ảnh ({totalPhotos})</span>
+          </button>
+
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] text-amber-200/90 font-mono">
             <Shield className="w-3 h-3 text-emerald-400" />
-            <span>Chế độ trình chiếu an toàn</span>
+            <span>Chế độ an toàn</span>
           </div>
+
           {onExit && (
             <button
               onClick={onExit}
@@ -413,7 +496,7 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
                       userSelect: 'none',
                       pointerEvents: 'none'
                     }}
-                    className={`max-w-full max-h-[72vh] sm:max-h-[78vh] object-contain pointer-events-none rounded-2xl transition-transform ease-out ${isPlaying ? getKenBurnsClass() : ''}`}
+                    className={`max-w-full max-h-[70vh] sm:max-h-[74vh] object-contain pointer-events-none rounded-2xl transition-transform ease-out ${isPlaying ? getKenBurnsClass() : ''}`}
                     draggable={false}
                   />
 
@@ -485,10 +568,79 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       </div>
 
       {/* ===================================================================== */}
+      {/* 2.5. THANH FILMSTRIP THUMBNAILS (CUỘN NGANG CHỌN ẢNH NHANH)            */}
+      {/* ===================================================================== */}
+      {filteredPhotos.length > 1 && (
+        <div 
+          className={`absolute bottom-20 sm:bottom-24 inset-x-0 z-30 px-3 sm:px-6 transition-all duration-300 pointer-events-auto ${
+            showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'
+          }`}
+        >
+          <div className="max-w-4xl mx-auto bg-black/75 backdrop-blur-md p-1.5 sm:p-2 rounded-2xl border border-white/15 shadow-2xl flex items-center gap-1.5 sm:gap-2">
+            {/* Nút mở toàn bộ lưới ảnh */}
+            <button
+              type="button"
+              onClick={() => {
+                resetControlsTimer();
+                setIsGalleryOpen(true);
+              }}
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-[11px] font-bold shrink-0 transition cursor-pointer"
+              title="Mở toàn bộ danh sách ảnh dạng lưới"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Tất Cả ({totalPhotos})</span>
+            </button>
+
+            <div className="w-px h-6 bg-white/20 shrink-0" />
+
+            {/* Dải cuộn ảnh ngang Filmstrip */}
+            <div 
+              ref={thumbnailsScrollRef}
+              className="flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth flex-1"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {filteredPhotos.map((photo, idx) => {
+                const isSelected = idx === currentIndex;
+                return (
+                  <button
+                    key={photo.id || idx}
+                    ref={el => { thumbnailRefs.current[idx] = el; }}
+                    type="button"
+                    onClick={() => {
+                      resetControlsTimer();
+                      setCurrentIndex(idx);
+                      setKenBurnsStyle(prev => (prev + 1) % 4);
+                      setSlideshowProgress(0);
+                    }}
+                    className={`relative w-11 h-8 sm:w-14 sm:h-10 rounded-lg overflow-hidden shrink-0 transition-all cursor-pointer border ${
+                      isSelected 
+                        ? 'border-amber-400 ring-2 ring-amber-400/70 scale-105 shadow-lg opacity-100' 
+                        : 'border-white/20 opacity-55 hover:opacity-90 hover:scale-100'
+                    }`}
+                    title={`#${idx + 1}: ${photo.caption || 'Ảnh kỷ niệm'}`}
+                  >
+                    <img 
+                      src={photo.thumbnail || photo.url} 
+                      alt="" 
+                      className="w-full h-full object-cover pointer-events-none" 
+                      loading="lazy"
+                    />
+                    <span className="absolute bottom-0 inset-x-0 bg-black/75 text-[9px] font-mono text-center text-white/90 leading-tight">
+                      #{idx + 1}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
       {/* 3. THANH ĐIỀU KHIỂN DƯỚI CÙNG (AUTO-HIDE)                              */}
       {/* ===================================================================== */}
       <div 
-        className={`absolute bottom-0 inset-x-0 z-30 p-4 sm:p-6 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-opacity duration-500 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-auto ${
+        className={`absolute bottom-0 inset-x-0 z-30 p-3 sm:p-5 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-500 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-auto ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -509,8 +661,8 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
           </div>
         </div>
 
-        {/* Cụm nút Play / Pause / Tốc độ / Hiệu ứng chuyển cảnh / Nhạc / Toàn màn hình */}
-        <div className="flex items-center gap-2 sm:gap-2.5 bg-black/70 px-3 sm:px-4 py-2 rounded-full border border-white/10 backdrop-blur-md shadow-xl flex-wrap justify-center">
+        {/* Cụm nút Play / Shuffle / Tốc độ / Hiệu ứng / Nhạc / Lưới ảnh / Toàn màn hình */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 bg-black/75 px-3 sm:px-4 py-2 rounded-full border border-white/10 backdrop-blur-md shadow-xl flex-wrap justify-center">
           {/* Nút Play / Pause */}
           <button
             onClick={() => {
@@ -523,10 +675,35 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
           </button>
 
+          {/* Nút Xáo Trộn Ngẫu Nhiên (Shuffle) */}
+          <button
+            type="button"
+            onClick={() => {
+              resetControlsTimer();
+              setIsShuffle(!isShuffle);
+            }}
+            className={`p-1.5 rounded-full transition cursor-pointer border ${
+              isShuffle 
+                ? 'bg-amber-400/30 text-amber-300 border-amber-400/70 shadow-sm' 
+                : 'text-slate-400 hover:text-white border-transparent'
+            }`}
+            title={isShuffle ? 'Đang phát ngẫu nhiên (Bấm để phát theo thứ tự)' : 'Bật phát ngẫu nhiên (Shuffle)'}
+          >
+            <Shuffle className="w-4 h-4" />
+          </button>
+
           {/* Bộ đếm ảnh: 1 / 48 */}
-          <span className="text-xs font-mono font-semibold text-slate-300 px-1 sm:px-2">
+          <button
+            type="button"
+            onClick={() => {
+              resetControlsTimer();
+              setIsGalleryOpen(true);
+            }}
+            className="text-xs font-mono font-semibold text-slate-300 hover:text-amber-300 px-1 sm:px-2 transition cursor-pointer"
+            title="Bấm để xem danh sách toàn bộ ảnh"
+          >
             {currentIndex + 1} <span className="text-slate-500">/</span> {totalPhotos}
-          </span>
+          </button>
 
           <div className="w-px h-4 bg-white/20" />
 
@@ -613,6 +790,19 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
 
           <div className="w-px h-4 bg-white/20" />
 
+          {/* Nút Xem Danh Sách Tất Cả Ảnh (Mở Lưới Chọn Ảnh) */}
+          <button
+            type="button"
+            onClick={() => {
+              resetControlsTimer();
+              setIsGalleryOpen(true);
+            }}
+            className="p-1.5 rounded-full text-slate-300 hover:text-amber-300 hover:bg-white/10 transition cursor-pointer"
+            title="Xem danh sách tất cả ảnh (Mở lưới chọn ảnh)"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+
           {/* Bật / Tắt nhạc nền (Nếu có playlist) */}
           {playlist && playlist.length > 0 && (
             <button
@@ -641,7 +831,152 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* 4. THÔNG BÁO BẢO MẬT (KHI CỐ TÌNH CHUỘT PHẢI HOẶC LƯU)               */}
+      {/* 4. MODAL LƯỚI TOÀN BỘ ẢNH KỶ NIỆM (ALL PHOTOS GALLERY GRID)           */}
+      {/* ===================================================================== */}
+      {isGalleryOpen && (
+        <div 
+          className="fixed inset-0 z-[1000000] bg-black/90 backdrop-blur-xl flex flex-col justify-between pointer-events-auto"
+          onClick={() => setIsGalleryOpen(false)}
+        >
+          {/* Header Modal Lưới Ảnh */}
+          <div 
+            className="p-4 sm:p-5 border-b border-white/10 bg-slate-900/95 flex items-center justify-between gap-3 shrink-0"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
+                <LayoutGrid className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-sm sm:text-base font-bold text-amber-100 font-serif">
+                  Danh Sách Tất Cả Ảnh Kỷ Niệm
+                </h2>
+                <p className="text-xs text-slate-400">
+                  {albumMeta.albumTitle} • Tổng cộng {totalPhotos} bức ảnh (Bấm vào ảnh bất kỳ để phát)
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsShuffle(true);
+                  const randomIdx = Math.floor(Math.random() * filteredPhotos.length);
+                  setCurrentIndex(randomIdx);
+                  setSlideshowProgress(0);
+                  setIsGalleryOpen(false);
+                }}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold transition cursor-pointer"
+                title="Bật xáo trộn ngẫu nhiên và phát ngay"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                <span>Phát Ngẫu Nhiên</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsGalleryOpen(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                title="Đóng danh sách ảnh (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Ô tìm kiếm nhanh */}
+          <div 
+            className="p-3 bg-slate-900/60 border-b border-white/5 flex items-center justify-between gap-3 shrink-0"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="relative flex-1 max-w-md mx-auto">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={gallerySearch}
+                onChange={e => setGallerySearch(e.target.value)}
+                placeholder="Tìm ảnh theo chú thích, thư mục..."
+                className="w-full pl-9 pr-4 py-1.5 bg-white/10 border border-white/15 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+              />
+              {gallerySearch && (
+                <button
+                  type="button"
+                  onClick={() => setGallerySearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Lưới danh sách toàn bộ ảnh */}
+          <div 
+            className="flex-1 overflow-y-auto p-4 sm:p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 max-w-6xl mx-auto">
+              {galleryPhotos.map((photo) => {
+                const originalIndex = filteredPhotos.findIndex(p => p.id === photo.id);
+                const isSelected = originalIndex === currentIndex;
+                return (
+                  <div
+                    key={photo.id || originalIndex}
+                    onClick={() => {
+                      setCurrentIndex(originalIndex >= 0 ? originalIndex : 0);
+                      setKenBurnsStyle(prev => (prev + 1) % 4);
+                      setSlideshowProgress(0);
+                      setIsGalleryOpen(false);
+                    }}
+                    className={`group relative aspect-4/3 rounded-xl overflow-hidden cursor-pointer border transition-all duration-200 transform hover:-translate-y-1 shadow-md ${
+                      isSelected 
+                        ? 'border-amber-400 ring-2 ring-amber-400/80 shadow-amber-500/20' 
+                        : 'border-white/10 hover:border-amber-300/60'
+                    }`}
+                  >
+                    <img 
+                      src={photo.thumbnail || photo.url} 
+                      alt={photo.caption || ''} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+                    
+                    {/* Badge số thứ tự */}
+                    <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-[10px] font-mono font-bold text-amber-200 border border-white/10">
+                      #{originalIndex + 1}
+                    </span>
+
+                    {/* Badge đang xem */}
+                    {isSelected && (
+                      <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-amber-500 text-[10px] font-sans font-bold text-slate-950 flex items-center gap-1 shadow-md animate-pulse">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        <span>Đang chiếu</span>
+                      </span>
+                    )}
+
+                    {/* Chú thích ảnh */}
+                    {photo.caption && (
+                      <p className="absolute bottom-2 inset-x-2 text-[11px] text-white/90 line-clamp-1 font-sans text-left">
+                        {photo.caption}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {galleryPhotos.length === 0 && (
+              <div className="text-center py-12 text-slate-400">
+                <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-30 text-amber-400" />
+                <p className="text-xs">Không tìm thấy bức ảnh nào phù hợp từ khóa.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* 5. THÔNG BÁO BẢO MẬT (KHI CỐ TÌNH CHUỘT PHẢI HOẶC LƯU)               */}
       {/* ===================================================================== */}
       {shieldNotice && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[1000000] px-4 py-2.5 rounded-xl bg-slate-900/95 border border-amber-400/80 text-amber-200 text-xs sm:text-sm font-medium shadow-2xl backdrop-blur-md flex items-center gap-2 animate-bounce">
