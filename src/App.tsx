@@ -58,6 +58,7 @@ import SelfCheckinPage from './components/SelfCheckinPage';
 import AdminManagementHub from './components/AdminManagementHub';
 import StagePresentationHub from './components/StagePresentationHub';
 import PinAuthModal from './components/PinAuthModal';
+import { SecureSlideshowViewer } from './components/SecureSlideshowViewer';
 import ReceiptUploadModal from './components/ReceiptUploadModal';
 import ClassCharterModal from './components/ClassCharterModal';
 import RoleGuideModal from './components/RoleGuideModal';
@@ -981,9 +982,45 @@ export default function App() {
     return window.location.search.includes('mode=checkin') || window.location.hash === '#checkin';
   });
 
+  // Chế độ xem Trình Chiếu Ký Ức An Toàn độc lập khi mở link chia sẻ (#/slideshow hoặc ?mode=slideshow / ?view=slideshow)
+  const parseSlideshowUrlParams = () => {
+    if (typeof window === 'undefined') return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false };
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+
+    const isSlideshow = 
+      hash.startsWith('#/slideshow') || 
+      hash.startsWith('#slideshow') || 
+      search.includes('view=slideshow') || 
+      search.includes('mode=slideshow');
+
+    if (!isSlideshow) {
+      return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false };
+    }
+
+    const params = new URLSearchParams(search);
+    if (hash.includes('?')) {
+      const hashParams = new URLSearchParams(hash.substring(hash.indexOf('?')));
+      hashParams.forEach((val, key) => {
+        params.set(key, val);
+      });
+    }
+
+    return {
+      isActive: true,
+      albumId: params.get('album') || 'all',
+      subfolder: params.get('folder') || params.get('subfolder') || 'all',
+      speed: params.get('speed') ? Number(params.get('speed')) : 5000,
+      music: params.get('music') === '1' || params.get('music') === 'true'
+    };
+  };
+
+  const [slideshowParams, setSlideshowParams] = useState(parseSlideshowUrlParams);
+
   useEffect(() => {
     const handleUrlChange = () => {
       setIsCheckinMode(window.location.search.includes('mode=checkin') || window.location.hash === '#checkin');
+      setSlideshowParams(parseSlideshowUrlParams());
     };
     window.addEventListener('popstate', handleUrlChange);
     window.addEventListener('hashchange', handleUrlChange);
@@ -2653,6 +2690,29 @@ export default function App() {
           setIsCheckinMode(false);
           const url = new URL(window.location.href);
           url.searchParams.delete('mode');
+          url.hash = '';
+          window.history.pushState({}, '', url.toString());
+        }}
+      />
+    );
+  }
+
+  // Render trang riêng Trình Chiếu Ký Ức An Toàn khi mở link chia sẻ Album / Folder con (#/slideshow hoặc ?mode=slideshow)
+  if (slideshowParams.isActive) {
+    return (
+      <SecureSlideshowViewer
+        images={images}
+        albums={eventConfig.albums || DEFAULT_ALBUMS}
+        targetAlbumId={slideshowParams.albumId}
+        targetSubfolder={slideshowParams.subfolder}
+        initialSpeed={slideshowParams.speed}
+        initialMusic={slideshowParams.music}
+        playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
+        onExit={() => {
+          setSlideshowParams({ isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false });
+          const url = new URL(window.location.href);
+          url.searchParams.delete('mode');
+          url.searchParams.delete('view');
           url.hash = '';
           window.history.pushState({}, '', url.toString());
         }}

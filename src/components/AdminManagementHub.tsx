@@ -88,8 +88,10 @@ import {
   ArrowUp,
   ArrowDown,
   Layers,
-  PlaySquare
+  PlaySquare,
+  Share2
 } from 'lucide-react';
+import { ShareSlideshowModal } from './ShareSlideshowModal';
 import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, VenueMediaItem, EventConfig, BlockVisibilityConfig, ClassMember, MemberNoteMetadata, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, BackdropItem, MusicTrack, StageSettings, StagePresentationScene, Announcement, PhotoAlbum } from '../types';
 import { 
   parseMemberNote, 
@@ -431,6 +433,17 @@ export default function AdminManagementHub({
   const [albumFormDriveId, setAlbumFormDriveId] = useState('');
   const [albumFormDriveUrl, setAlbumFormDriveUrl] = useState('');
   const [albumFormOrder, setAlbumFormOrder] = useState<number>(1);
+
+  // Modal Chia Sẻ Trình Chiếu Ký Ức An Toàn
+  const [isShareSlideshowModalOpen, setIsShareSlideshowModalOpen] = useState(false);
+  const [shareSlideshowAlbumId, setShareSlideshowAlbumId] = useState('thanh-xuan-2003-2006');
+  const [shareSlideshowSubfolder, setShareSlideshowSubfolder] = useState('all');
+
+  const handleOpenShareSlideshow = (albumId?: string, subfolder?: string) => {
+    setShareSlideshowAlbumId(albumId || 'thanh-xuan-2003-2006');
+    setShareSlideshowSubfolder(subfolder || 'all');
+    setIsShareSlideshowModalOpen(true);
+  };
 
   // Bộ lọc Album trong Sub-tab Thư Viện Kỷ Yếu (Photos)
   const [adminPhotoAlbumFilter, setAdminPhotoAlbumFilter] = useState<string>('all');
@@ -7684,6 +7697,14 @@ export default function AdminManagementHub({
                               <div className="flex items-center gap-1">
                                 <button
                                   type="button"
+                                  onClick={() => handleOpenShareSlideshow(alb.id)}
+                                  className="p-1 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded transition cursor-pointer"
+                                  title="Tạo link chia sẻ trình chiếu an toàn cho Album này"
+                                >
+                                  <Share2 className="w-3.5 h-3.5 text-amber-600" />
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => handleOpenEditAlbum(alb)}
                                   className="p-1 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded transition cursor-pointer"
                                   title="Chỉnh sửa Album"
@@ -13721,6 +13742,16 @@ export default function AdminManagementHub({
           </div>
         )}
       </AnimatePresence>
+
+      {/* 🎬 MODAL TẠO LINK CHIA SẺ TRÌNH CHIẾU AN TOÀN */}
+      <ShareSlideshowModal
+        isOpen={isShareSlideshowModalOpen}
+        onClose={() => setIsShareSlideshowModalOpen(false)}
+        albums={albumsList}
+        images={images}
+        defaultAlbumId={shareSlideshowAlbumId}
+        defaultSubfolder={shareSlideshowSubfolder}
+      />
 
       {/* =================================================================== */}
     </div>

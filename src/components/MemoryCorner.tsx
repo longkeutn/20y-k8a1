@@ -41,12 +41,14 @@ import {
   Layers,
   ExternalLink,
   ArrowLeft,
-  Palette
+  Palette,
+  Share2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MemoryImage, MemoryVideo, PhotoAlbum, SlideTransitionType } from '../types';
 import { DEFAULT_VIDEOS, DEFAULT_MEMORIES, DEFAULT_ALBUMS, getPhotoAlbumId, getNostalgicPhotoCaption, sanitizeAlbums, normalizeAlbumId, formatDisplayDate } from '../data';
 import { ROTATING_TRANSITIONS, TRANSITION_PRESETS, TransitionConfig, SLIDE_TRANSITION_OPTIONS } from './StagePresentationHub';
+import { ShareSlideshowModal } from './ShareSlideshowModal';
 
 interface MemoryCornerProps {
   appsScriptUrl?: string;
@@ -512,6 +514,17 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
     setSubfolderFilter('all');
     setMediaTypeFilter('all');
   }, [selectedAlbumId]);
+
+  // Trạng thái Modal Tạo Link Trình Chiếu Ký Ức An Toàn
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [shareDefaultAlbum, setShareDefaultAlbum] = useState<string>('thanh-xuan-2003-2006');
+  const [shareDefaultSubfolder, setShareDefaultSubfolder] = useState<string>('all');
+
+  const handleOpenShareSlideshow = useCallback((albumId?: string, subfolder?: string) => {
+    setShareDefaultAlbum(albumId || selectedAlbumId || 'thanh-xuan-2003-2006');
+    setShareDefaultSubfolder(subfolder || (subfolderFilter !== 'all' ? subfolderFilter : 'all'));
+    setIsShareModalOpen(true);
+  }, [selectedAlbumId, subfolderFilter]);
 
   // Trích xuất danh sách các Thư mục con có trong Album hiện tại (loại trừ thư mục không đặt tên)
   const availableSubfolders = useMemo(() => {
@@ -1355,6 +1368,18 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                             <Play className="w-3.5 h-3.5" />
                           </button>
 
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenShareSlideshow(alb.id, 'all');
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
+                            title="Tạo link chia sẻ trình chiếu an toàn cho Album này"
+                          >
+                            <Share2 className="w-3.5 h-3.5 text-amber-600" />
+                          </button>
+
                           {alb.driveFolderUrl && (
                             <a
                               href={alb.driveFolderUrl}
@@ -1407,6 +1432,15 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
                     <span>Chiếu Slide Album Này</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenShareSlideshow(currentAlbum.id, subfolderFilter !== 'all' ? subfolderFilter : 'all')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
+                    title="Tạo link chia sẻ trình chiếu an toàn cho Album này"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Chia Sẻ Trình Chiếu</span>
                   </button>
                   <button
                     type="button"
@@ -1486,6 +1520,15 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                       </option>
                     ))}
                   </select>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenShareSlideshow(selectedAlbumId || undefined, subfolderFilter !== 'all' ? subfolderFilter : 'all')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                    title={subfolderFilter !== 'all' ? `Tạo link chia sẻ trình chiếu riêng cho thư mục "${subfolderFilter}"` : 'Tạo link chia sẻ trình chiếu Album này'}
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-amber-700" />
+                    <span className="hidden sm:inline">Chia Sẻ Trình Chiếu</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -2708,7 +2751,15 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             <span>💰 Xem Sổ Quỹ Lớp</span>
           </button>
         </div>
-      </div>
+      {/* 🎬 MODAL TẠO LINK CHIA SẺ TRÌNH CHIẾU AN TOÀN (ALBUM & FOLDER CON) */}
+      <ShareSlideshowModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        albums={albums}
+        images={images}
+        defaultAlbumId={shareDefaultAlbum}
+        defaultSubfolder={shareDefaultSubfolder}
+      />
 
     </div>
   );
