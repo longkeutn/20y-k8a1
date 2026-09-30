@@ -464,14 +464,22 @@ export default function App() {
     try {
       const saved = localStorage.getItem('k8a1_announcements');
       if (saved) {
-        const parsed = JSON.parse(saved);
+        let parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Đảm bảo nếu chưa có bản tin Báo cáo Tổng kết TB-REPORT-20Y thì bổ sung lên đầu trang
+          const hasReport = parsed.some((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam');
+          if (!hasReport) {
+            const reportItem = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
+            if (reportItem) {
+              parsed = [reportItem, ...parsed];
+            }
+          }
           // Đảm bảo nếu chưa có bản tin bình chọn TB-05 thì bổ sung vào để trải nghiệm ngay
           const hasPoll = parsed.some((a: Announcement) => a.id === 'TB-05' || a.poll);
           if (!hasPoll) {
             const tb05 = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-05');
             if (tb05) {
-              return [tb05, ...parsed];
+              parsed = [...parsed, tb05];
             }
           }
           return parsed;
@@ -483,6 +491,78 @@ export default function App() {
 
   // Modal xem chi tiết bài viết thông báo
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+
+  // Mở bài viết thông báo & đồng bộ URL (?news=slug-or-id)
+  const handleOpenAnnouncement = (item: Announcement) => {
+    setSelectedAnnouncement(item);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('news', item.slug || item.id);
+      window.history.pushState({ news: item.slug || item.id }, '', url.toString());
+    } catch (e) {}
+  };
+
+  // Đóng bài viết thông báo & xóa param ?news khỏi URL mà không reload trang
+  const handleCloseAnnouncement = () => {
+    setSelectedAnnouncement(null);
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('news') || url.searchParams.has('post') || url.searchParams.has('announcement')) {
+        url.searchParams.delete('news');
+        url.searchParams.delete('post');
+        url.searchParams.delete('announcement');
+        window.history.pushState({}, '', url.toString());
+      }
+    } catch (e) {}
+  };
+
+  // Tự động nhận diện và mở bài viết từ deep link (?news=tong-ket-20-nam, ?post=..., ?announcement=...)
+  useEffect(() => {
+    const parseTargetNews = () => {
+      if (typeof window === 'undefined') return null;
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+      const params = new URLSearchParams(search);
+      if (hash.includes('?')) {
+        const hashParams = new URLSearchParams(hash.substring(hash.indexOf('?')));
+        hashParams.forEach((v, k) => params.set(k, v));
+      }
+      return params.get('news') || params.get('post') || params.get('announcement');
+    };
+
+    const targetParam = parseTargetNews();
+    if (targetParam && announcements.length > 0) {
+      const clean = decodeURIComponent(targetParam).trim().toLowerCase();
+      const match = announcements.find(a => 
+        (a.slug && a.slug.toLowerCase() === clean) ||
+        a.id.toLowerCase() === clean
+      );
+      if (match) {
+        setSelectedAnnouncement(match);
+      }
+    }
+
+    const handlePopState = () => {
+      const popParam = parseTargetNews();
+      if (popParam && announcements.length > 0) {
+        const clean = decodeURIComponent(popParam).trim().toLowerCase();
+        const match = announcements.find(a => 
+          (a.slug && a.slug.toLowerCase() === clean) ||
+          a.id.toLowerCase() === clean
+        );
+        if (match) {
+          setSelectedAnnouncement(match);
+          return;
+        }
+      }
+      if (!popParam) {
+        setSelectedAnnouncement(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [announcements]);
 
   const handleLikeAnnouncement = (id: string) => {
     setAnnouncements(prev => {
@@ -2150,8 +2230,13 @@ export default function App() {
 
         // 9. Bản tin Announcements
         if (Array.isArray(d.announcements) && d.announcements.length > 0) {
-          setAnnouncements(d.announcements);
-          try { localStorage.setItem('k8a1_announcements', JSON.stringify(d.announcements)); } catch (e) {}
+          let list = d.announcements;
+          if (!list.some((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam')) {
+            const reportItem = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
+            if (reportItem) list = [reportItem, ...list];
+          }
+          setAnnouncements(list);
+          try { localStorage.setItem('k8a1_announcements', JSON.stringify(list)); } catch (e) {}
         }
 
         // 10. Ảnh Google Drive Photos
@@ -2393,8 +2478,13 @@ export default function App() {
       }
 
       if (announceRes.status === 'fulfilled' && announceRes.value?.status === 'success' && Array.isArray(announceRes.value.data) && announceRes.value.data.length > 0) {
-        setAnnouncements(announceRes.value.data);
-        try { localStorage.setItem('k8a1_announcements', JSON.stringify(announceRes.value.data)); } catch (e) {}
+        let list = announceRes.value.data;
+        if (!list.some((a: Announcement) => a.id === 'TB-REPORT-20Y' || a.slug === 'tong-ket-20-nam')) {
+          const reportItem = DEFAULT_ANNOUNCEMENTS.find(a => a.id === 'TB-REPORT-20Y');
+          if (reportItem) list = [reportItem, ...list];
+        }
+        setAnnouncements(list);
+        try { localStorage.setItem('k8a1_announcements', JSON.stringify(list)); } catch (e) {}
       }
 
       setSyncStatus('live');
@@ -2868,7 +2958,7 @@ export default function App() {
               <NotificationBell
                 announcements={announcements}
                 eventConfig={eventConfig}
-                onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
+                onSelectAnnouncement={handleOpenAnnouncement}
                 onScrollToNewsFeed={() => scrollToBlock('ban-tin')}
               />
             )}
@@ -3380,7 +3470,7 @@ export default function App() {
                 <ClassNewsFeed
                   announcements={announcements}
                   eventConfig={eventConfig}
-                  onSelectAnnouncement={(item) => setSelectedAnnouncement(item)}
+                  onSelectAnnouncement={handleOpenAnnouncement}
                   onNavigateAction={(targetId) => scrollToBlock(targetId)}
                   onVote={handleVoteAnnouncement}
                   activeMember={activeMember}
@@ -4155,10 +4245,10 @@ export default function App() {
       {/* 📰 MODAL XEM CHI TIẾT BÀI VIẾT BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 */}
       <AnnouncementDetailModal
         isOpen={!!selectedAnnouncement}
-        onClose={() => setSelectedAnnouncement(null)}
+        onClose={handleCloseAnnouncement}
         announcement={selectedAnnouncement}
         onNavigateAction={(targetId) => {
-          setSelectedAnnouncement(null);
+          handleCloseAnnouncement();
           scrollToBlock(targetId);
         }}
         onLike={(id) => handleLikeAnnouncement(id)}

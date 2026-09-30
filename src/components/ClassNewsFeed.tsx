@@ -10,7 +10,9 @@ import {
   ChevronRight,
   Flame,
   ArrowRight,
-  Vote
+  Vote,
+  Share2,
+  Check
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, EventConfig, ClassMember } from '../types';
 import AnnouncementDetailModal from './AnnouncementDetailModal';
@@ -26,6 +28,7 @@ interface ClassNewsFeedProps {
 }
 
 const DARK_CATEGORY_STYLES: Record<AnnouncementCategory, { label: string; badgeClass: string; icon: string }> = {
+  report: { label: 'Báo Cáo', badgeClass: 'bg-amber-500/30 text-amber-200 border-amber-400 font-bold shadow-xs', icon: '🏆' },
   urgent: { label: 'Khẩn Cấp', badgeClass: 'bg-rose-500/25 text-rose-300 border-rose-500/50', icon: '🔥' },
   schedule: { label: 'Lịch Trình', badgeClass: 'bg-amber-500/25 text-amber-300 border-amber-500/50', icon: '📋' },
   shirts: { label: 'Áo Lớp', badgeClass: 'bg-sky-500/25 text-sky-300 border-sky-500/50', icon: '👕' },
@@ -45,6 +48,7 @@ export default function ClassNewsFeed({
 }: ClassNewsFeedProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [internalSelectedAnnouncement, setInternalSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [copiedCardId, setCopiedCardId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleCardClick = (item: Announcement) => {
@@ -53,6 +57,18 @@ export default function ClassNewsFeed({
     } else {
       setInternalSelectedAnnouncement(item);
     }
+  };
+
+  const handleQuickShare = (e: React.MouseEvent, item: Announcement) => {
+    e.stopPropagation();
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app';
+    const path = typeof window !== 'undefined' ? window.location.pathname || '/' : '/';
+    const url = `${origin}${path}?news=${encodeURIComponent(item.slug || item.id)}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url);
+    }
+    setCopiedCardId(item.id);
+    setTimeout(() => setCopiedCardId(null), 2500);
   };
 
   const handleScroll = (dir: 'left' | 'right') => {
@@ -91,6 +107,7 @@ export default function ClassNewsFeed({
 
   const categories: { id: string; label: string; icon: string }[] = [
     { id: 'all', label: 'Tất Cả', icon: '✨' },
+    { id: 'report', label: 'Báo Cáo', icon: '🏆' },
     { id: 'urgent', label: 'Khẩn Cấp', icon: '🔥' },
     { id: 'poll', label: 'Bình Chọn', icon: '🗳️' },
     { id: 'schedule', label: 'Lịch Trình', icon: '📋' },
@@ -275,23 +292,45 @@ export default function ClassNewsFeed({
                       {item.title}
                     </h3>
 
-                    {/* TÁC GIẢ & LƯỢT THÍCH / BÌNH CHỌN */}
+                    {/* TÁC GIẢ & LƯỢT THÍCH / BÌNH CHỌN / CHIA SẺ */}
                     <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5 font-sans">
-                      <span className="truncate max-w-[110px] text-slate-300">
+                      <span className="truncate max-w-[100px] text-slate-300">
                         {item.author || 'Ban Liên Lạc'}
                       </span>
 
-                      {item.poll ? (
-                        <span className="inline-flex items-center gap-1 text-amber-300 font-bold bg-amber-400/20 px-1.5 py-0.5 rounded border border-amber-400/30">
-                          <Vote className="w-2.5 h-2.5 text-amber-300" />
-                          <span>{(item.poll.options || []).reduce((s, o) => s + (o.votes?.length || 0), 0)} phiếu</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-0.5 text-rose-400 font-mono shrink-0">
-                          <Heart className="w-2.5 h-2.5 fill-rose-400" />
-                          <span>{item.likesCount || 0}</span>
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleQuickShare(e, item)}
+                          className={`p-1 rounded transition cursor-pointer flex items-center gap-0.5 ${
+                            copiedCardId === item.id 
+                              ? 'text-emerald-300 bg-emerald-500/25 ring-1 ring-emerald-400/40' 
+                              : 'text-slate-400 hover:text-amber-300 hover:bg-white/10'
+                          }`}
+                          title="Sao chép liên kết chia sẻ trực tiếp"
+                        >
+                          {copiedCardId === item.id ? (
+                            <>
+                              <Check className="w-2.5 h-2.5 text-emerald-400" />
+                              <span className="text-[9px] font-bold text-emerald-300">Đã chép</span>
+                            </>
+                          ) : (
+                            <Share2 className="w-2.5 h-2.5" />
+                          )}
+                        </button>
+
+                        {item.poll ? (
+                          <span className="inline-flex items-center gap-1 text-amber-300 font-bold bg-amber-400/20 px-1.5 py-0.5 rounded border border-amber-400/30">
+                            <Vote className="w-2.5 h-2.5 text-amber-300" />
+                            <span>{(item.poll.options || []).reduce((s, o) => s + (o.votes?.length || 0), 0)}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-rose-400 font-mono shrink-0">
+                            <Heart className="w-2.5 h-2.5 fill-rose-400" />
+                            <span>{item.likesCount || 0}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </article>

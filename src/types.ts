@@ -364,7 +364,7 @@ export interface BlockVisibilityConfig {
 // =============================================================================
 // MODULE THÔNG BÁO & BẢN TIN HOẠT ĐỘNG CHÍNH THỨC K8A1
 // =============================================================================
-export type AnnouncementCategory = 'urgent' | 'schedule' | 'shirts' | 'fund' | 'activity' | 'poll';
+export type AnnouncementCategory = 'report' | 'urgent' | 'schedule' | 'shirts' | 'fund' | 'activity' | 'poll';
 
 // Phương án trong cuộc bình chọn / khảo sát ý kiến
 export interface PollOption {
@@ -384,6 +384,7 @@ export interface PollData {
 
 export interface Announcement {
   id: string;
+  slug?: string;                   // Đường dẫn ngắn gọn chia sẻ: 'tong-ket-20-nam'...
   title: string;
   category: AnnouncementCategory;
   summary: string;
@@ -397,6 +398,7 @@ export interface Announcement {
   status?: 'published' | 'draft' | 'archived';
   likesCount?: number;
   poll?: PollData;                 // Khảo sát & Bình chọn tương tác trực tiếp
+  metrics?: Array<{ label: string; value: string; desc?: string }>; // Chỉ số thống kê nổi bật
 }
 
 export type ExpenseCategory = 

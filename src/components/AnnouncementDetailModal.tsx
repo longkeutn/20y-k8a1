@@ -12,7 +12,15 @@ import {
   ExternalLink,
   Sparkles,
   Copy,
-  Download
+  Download,
+  QrCode,
+  Check,
+  Award,
+  ShieldCheck,
+  Compass,
+  Tv,
+  Smartphone,
+  Send
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, ClassMember } from '../types';
 import { getGoogleCalendarUrl, downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
@@ -24,11 +32,17 @@ interface AnnouncementDetailModalProps {
   announcement: Announcement | null;
   onNavigateAction?: (targetId: string) => void;
   onVote?: (announcementId: string, optionId: string, voterName: string) => void;
+  onLike?: (id: string) => void;
   activeMember?: ClassMember | null;
   classRoster?: ClassMember[];
 }
 
 export const CATEGORY_STYLES: Record<AnnouncementCategory, { label: string; badgeClass: string; icon: string }> = {
+  report: {
+    label: 'Báo Cáo Tổng Kết',
+    badgeClass: 'bg-gradient-to-r from-amber-500/25 to-yellow-500/30 text-amber-950 border-amber-400 ring-1 ring-amber-400/40 font-black shadow-xs',
+    icon: '🏆'
+  },
   urgent: {
     label: 'Khẩn Cấp',
     badgeClass: 'bg-rose-500/15 text-rose-700 border-rose-300 ring-1 ring-rose-400/30',
@@ -67,10 +81,13 @@ export default function AnnouncementDetailModal({
   announcement,
   onNavigateAction,
   onVote,
+  onLike,
   activeMember,
   classRoster = []
 }: AnnouncementDetailModalProps) {
   const [copiedZalo, setCopiedZalo] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [hasLiked, setHasLiked] = useState(() => {
     if (!announcement) return false;
     try {
@@ -126,10 +143,47 @@ export default function AnnouncementDetailModal({
         localStorage.removeItem(`k8a1_announcement_like_${announcement.id}`);
       }
     } catch {}
+    if (next && onLike) {
+      onLike(announcement.id);
+    }
+  };
+
+  const getShareUrl = () => {
+    if (typeof window === 'undefined') return 'https://k8a1.vercel.app';
+    const origin = window.location.origin;
+    const path = window.location.pathname || '/';
+    const key = announcement.slug || announcement.id;
+    return `${origin}${path}?news=${encodeURIComponent(key)}`;
+  };
+
+  const handleCopyLink = () => {
+    const url = getShareUrl();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url);
+    }
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
+
+  const handleNativeShare = async () => {
+    const shareUrl = getShareUrl();
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `[K8A1 20 Năm] ${announcement.title}`,
+          text: announcement.summary,
+          url: shareUrl
+        });
+        return;
+      } catch (err) {
+        // Fallback to share modal if cancelled or unsupported
+      }
+    }
+    setShowShareModal(true);
   };
 
   const handleCopyZaloMessage = () => {
-    const webUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : 'https://k8a1.vercel.app';
+    const shareUrl = getShareUrl();
     const message = `📢 [THÔNG BÁO TỪ BAN LIÊN LẠC K8A1] 📢
 ━━━━━━━━━━━━━━━━━━━━━━
 📌 Tiêu đề: ${announcement.title}
@@ -139,8 +193,8 @@ export default function AnnouncementDetailModal({
 📝 Tóm tắt:
 ${announcement.summary}
 
-👉 Các bạn xem chi tiết thông báo và cùng thảo luận tại WebApp 20 Năm:
-${webUrl}#ban-tin
+👉 Xem trực tiếp bản tin chi tiết tại:
+${shareUrl}
 ━━━━━━━━━━━━━━━━━━━━━━`;
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -196,15 +250,27 @@ ${webUrl}#ban-tin
             )}
           </div>
 
-          {/* Nút đóng */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-amber-100 transition cursor-pointer shrink-0"
-            title="Đóng (ESC)"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Cụm nút công cụ Header: Nút Chia sẻ nhanh & Đóng */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleNativeShare}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-sans font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 border border-amber-300 transition cursor-pointer active:scale-95"
+              title="Chia sẻ bản tin này"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-700" />
+              <span className="hidden xs:inline">Chia Sẻ</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-amber-100 transition cursor-pointer"
+              title="Đóng (ESC)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* NỘI DUNG CUỘN ĐƯỢC CỦA BÀI BÁO */}
@@ -243,6 +309,108 @@ ${webUrl}#ban-tin
           {announcement.summary && (
             <div className="p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border-l-4 border-amber-500 text-amber-950 font-serif italic text-sm sm:text-[15px] leading-relaxed shadow-xs">
               “{announcement.summary}”
+            </div>
+          )}
+
+          {/* KHỐI 4 CHỈ SỐ KỶ LỤC NỔI BẬT NẾU CÓ METRICS */}
+          {announcement.metrics && announcement.metrics.length > 0 && (
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/15 via-amber-400/10 to-amber-600/15 border-2 border-amber-400/60 shadow-xs space-y-2.5 my-3">
+              <div className="flex items-center gap-2 border-b border-amber-300/40 pb-2">
+                <Sparkles className="w-4 h-4 text-amber-700" />
+                <h4 className="font-serif font-bold text-amber-950 text-xs sm:text-sm uppercase tracking-wider">
+                  4 Chỉ Số Dấu Ấn Kỷ Lục Của Đại Lễ K8A1
+                </h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {announcement.metrics.map((m, idx) => (
+                  <div key={idx} className="bg-white/85 backdrop-blur-xs rounded-xl p-2.5 sm:p-3 border border-amber-200/80 shadow-xs flex flex-col items-center text-center">
+                    <span className="text-xl sm:text-2xl font-black font-mono text-amber-700 tracking-tight">
+                      {m.value}
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 mt-0.5 line-clamp-1">
+                      {m.label}
+                    </span>
+                    {m.desc && (
+                      <span className="text-[10px] text-slate-500 mt-1 line-clamp-2 leading-tight">
+                        {m.desc}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* KHỐI 5 TRỤ CỘT CÔNG NGHỆ 4.0 ĐỘC QUYỀN (CHO BÀI BÁO CÁO REPORT) */}
+          {announcement.category === 'report' && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-white border-2 border-amber-400/80 shadow-xl space-y-3.5 my-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-400 shrink-0" />
+                  <h4 className="font-serif font-bold text-amber-300 text-xs sm:text-sm uppercase tracking-wide">
+                    5 Trụ Cột Công Nghệ 4.0 Tiên Phong Của K8A1
+                  </h4>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                  Hệ Sinh Thái WebApp
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/50 transition">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold mb-1">
+                    <Compass className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>1. Bản Đồ 3D Hội Tụ Toàn Cầu</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Trực quan hóa vị trí của 50 cựu học sinh từ khắp các tỉnh thành và quốc tế cùng kết nối về trường cũ.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/50 transition">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold mb-1">
+                    <User className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>2. Thẻ Học Sinh Số & Check-in QR</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Đón tiếp tự động 0.8 giây, nhận diện danh tính và hướng dẫn sơ đồ bàn tiệc thông minh.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/50 transition">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold mb-1">
+                    <Tv className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>3. Trung Tâm Màn LED & Smart TV</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Chuyển động Ken Burns điện ảnh, hòa âm thông minh tự động nhường âm thanh khi chiếu video kỷ niệm.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-amber-400/50 transition">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold mb-1">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>4. Bảo Vệ Tư Liệu 5 Tầng & Watermark</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Chống tải trộm, giữ trọn vẹn bản quyền hình ảnh kỷ niệm riêng tư của toàn bộ thành viên.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-transparent border border-amber-400/40 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="text-xs font-bold text-amber-200">5. Trình Chiếu Không Dây Lên Smart TV Phòng Khách</span>
+                </div>
+                <span className="text-[10px] text-amber-300 font-mono bg-amber-500/20 px-2 py-0.5 rounded">Mã 1-Chạm</span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-center">
+                <p className="text-xs text-amber-200/90 font-medium">
+                  🤝 <strong className="text-amber-300">Tinh thần K8A1:</strong> Ban Tổ Chức sẵn lòng chia sẻ kinh nghiệm và hỗ trợ giải pháp số hóa cho các lớp bạn cùng khóa K8 và các thế hệ sau!
+                </p>
+              </div>
             </div>
           )}
 
@@ -366,6 +534,41 @@ ${webUrl}#ban-tin
               <span>{likeCount}</span>
             </button>
 
+            {/* Nút Sao Chép Link Trực Tiếp (Deep Link) */}
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-bold transition-all cursor-pointer border ${
+                copiedLink
+                  ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                  : 'bg-white text-slate-700 hover:text-amber-800 hover:bg-amber-50 border-amber-300/80'
+              }`}
+              title="Sao chép liên kết trực tiếp tới bản tin này"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  <span>Đã chép link!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Copy Link</span>
+                </>
+              )}
+            </button>
+
+            {/* Nút Hiển Thị Mã QR Code */}
+            <button
+              type="button"
+              onClick={() => setShowShareModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans font-bold transition-all cursor-pointer border bg-white text-slate-700 hover:text-amber-800 hover:bg-amber-50 border-amber-300/80"
+              title="Hiển thị mã QR để quét xem nhanh trên điện thoại hoặc Smart TV"
+            >
+              <QrCode className="w-3.5 h-3.5 text-amber-700" />
+              <span>Mã QR</span>
+            </button>
+
             {/* Nút 1-Chạm Soạn tin gửi Zalo */}
             <button
               type="button"
@@ -384,7 +587,7 @@ ${webUrl}#ban-tin
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-blue-600" />
+                  <Send className="w-3.5 h-3.5 text-blue-600" />
                   <span>Bắn Zalo</span>
                 </>
               )}
@@ -449,6 +652,87 @@ ${webUrl}#ban-tin
           )}
         </div>
       </div>
+
+      {/* POPUP MODAL MÃ QR & LIÊN KẾT CHIA SẺ TRỰC TIẾP */}
+      {showShareModal && (
+        <div 
+          className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setShowShareModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border-2 border-amber-300 text-slate-800 space-y-4 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-amber-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-700 flex items-center justify-center">
+                  <QrCode className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base">Mã QR Bản Tin K8A1</h3>
+                  <p className="text-[11px] text-slate-500 font-sans">Quét để xem trực tiếp trên mọi thiết bị</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowShareModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-3 bg-gradient-to-b from-amber-50 to-white rounded-2xl border border-amber-200/80">
+              <div className="bg-white p-2.5 rounded-2xl shadow-md border border-amber-200">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${encodeURIComponent(getShareUrl())}`}
+                  alt="QR Code Link"
+                  className="w-44 h-44 rounded-xl"
+                  loading="lazy"
+                />
+              </div>
+              <p className="text-[11px] text-amber-900 font-medium text-center mt-2.5">
+                Quét bằng camera điện thoại, Zalo hoặc mở trên Smart TV
+              </p>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Liên kết xem trực tiếp:</label>
+              <div className="flex items-center gap-1.5 p-1.5 pl-3 rounded-xl bg-slate-100 border border-slate-200">
+                <span className="text-[11px] font-mono text-slate-700 truncate select-all flex-1">
+                  {getShareUrl()}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedLink ? 'Đã chép' : 'Chép'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={handleCopyZaloMessage}
+                className="flex-1 py-2 px-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-sans font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{copiedZalo ? 'Đã sao chép Zalo!' : 'Soạn tin Zalo'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowShareModal(false)}
+                className="py-2 px-4 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-sans font-bold text-xs transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
