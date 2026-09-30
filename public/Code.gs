@@ -2185,8 +2185,21 @@ function getDrivePhotos(forceRefresh) {
   const cacheSheet = getOrCreateMediaCacheSheet();
   const lastRow = cacheSheet.getLastRow();
 
-  // 1. Nếu không yêu cầu quét lại (forceRefresh = false) và cache đã có dữ liệu -> Đọc nhanh từ cache (dưới 0.2s)
-  if (!forceRefresh && lastRow > 1) {
+  // 1. Kiểm tra thời hạn bộ nhớ đệm (Cache TTL: 30 phút tự động quét mới nếu có truy cập)
+  let isCacheExpired = false;
+  try {
+    const lastScanStr = PropertiesService.getScriptProperties().getProperty('LAST_DRIVE_SCAN_TIME');
+    if (lastScanStr) {
+      const lastScan = parseInt(lastScanStr, 10);
+      const CACHE_TTL_MS = 30 * 60 * 1000; // 30 phút
+      if (!isNaN(lastScan) && lastScan > 0 && (Date.now() - lastScan > CACHE_TTL_MS)) {
+        isCacheExpired = true;
+      }
+    }
+  } catch (eProp) {}
+
+  // Nếu không yêu cầu quét lại (forceRefresh = false), cache chưa hết hạn và cache đã có dữ liệu -> Đọc nhanh từ cache (dưới 0.2s)
+  if (!forceRefresh && !isCacheExpired && lastRow > 1) {
     try {
       const rows = cacheSheet.getRange(2, 1, lastRow - 1, 13).getValues();
       const cachedMedia = [];
@@ -2391,9 +2404,9 @@ function getDrivePhotos(forceRefresh) {
         ]);
         cacheSheet.getRange(2, 1, rowsToInsert.length, 13).setValues(rowsToInsert);
       }
-    } catch (eSaveCache) {
-      console.warn("Lỗi lưu Media_Drive_Cache: " + eSaveCache.toString());
-    }
+    try {
+      PropertiesService.getScriptProperties().setProperty('LAST_DRIVE_SCAN_TIME', String(Date.now()));
+    } catch (eScanTime) {}
 
     return { 
       status: 'success', 
@@ -2405,6 +2418,19 @@ function getDrivePhotos(forceRefresh) {
   } catch (e) {
     return { status: 'error', data: [], message: e.toString() };
   }
+}
+
+/**
+ * Hàm kích hoạt tự động theo thời gian (Time-driven Trigger)
+ * Bạn có thể tạo 1 Trigger trong Google Apps Script chạy hàm này mỗi 15 - 30 phút hoặc 1 giờ:
+ * Khi bạn thả thêm ảnh/video mới vào Google Drive, hàm này tự chạy ngầm để quét & cập nhật bảng Media_Drive_Cache
+ * mà Admin KHÔNG CẦN phải vào WebApp bấm nút thủ công!
+ */
+function autoScanDrivePhotos() {
+  console.log("⏰ Bắt đầu quét tự động Media Drive K8A1 theo lịch định kỳ...");
+  const result = getDrivePhotos(true);
+  console.log("✅ Quét tự động hoàn tất. Trạng thái:", result.status, "- Tổng số media:", result.total || 0);
+  return result;
 }
 
 /**
