@@ -1,5 +1,5 @@
 import { PhotoAlbum, MemoryImage } from '../types';
-import { DEFAULT_ALBUMS, normalizeAlbumId } from '../data';
+import { DEFAULT_ALBUMS, DEFAULT_MEMORIES, normalizeAlbumId, getPhotoAlbumId } from '../data';
 
 /**
  * Danh sách mã định danh album ngắn dạng số (1 - 6)
@@ -32,9 +32,10 @@ export function generateSlideshowShortCode(
   albumId: string,
   subfolderName?: string,
   albums: PhotoAlbum[] = DEFAULT_ALBUMS,
-  images: MemoryImage[] = []
+  images: MemoryImage[] = DEFAULT_MEMORIES
 ): string {
   const normAlbumId = normalizeAlbumId(albumId);
+  const mediaList = images && images.length > 0 ? images : DEFAULT_MEMORIES;
   
   // Tìm số thứ tự album (1-indexed)
   let albumNum = REVERSE_ALBUM_SHORT_CODE_MAP[normAlbumId];
@@ -50,8 +51,9 @@ export function generateSlideshowShortCode(
 
   // Nếu có folder con, tìm thứ tự của folder con trong album đó
   const subfoldersList: string[] = [];
-  images.forEach(img => {
-    if (normalizeAlbumId(img.albumId) === normAlbumId) {
+  mediaList.forEach(img => {
+    const imgAlbum = normalizeAlbumId(img.albumId || getPhotoAlbumId(img));
+    if (imgAlbum === normAlbumId) {
       const rawSub = (img.subfolderName || '').trim();
       if (rawSub && !rawSub.toLowerCase().includes('thư mục không có tiêu đề') && !subfoldersList.includes(rawSub)) {
         subfoldersList.push(rawSub);
@@ -77,7 +79,7 @@ export function generateSlideshowShortCode(
 export function resolveSlideshowShortCode(
   code: string,
   albums: PhotoAlbum[] = DEFAULT_ALBUMS,
-  images: MemoryImage[] = []
+  images: MemoryImage[] = DEFAULT_MEMORIES
 ): { albumId: string; subfolder: string } {
   if (!code || !code.trim()) {
     return { albumId: 'thanh-xuan-2003-2006', subfolder: 'all' };
@@ -111,9 +113,13 @@ export function resolveSlideshowShortCode(
     const subNum = parseInt(parts[1], 10);
     if (!isNaN(subNum) && subNum >= 1) {
       // Tìm danh sách folder con của album này
+      const mediaList = images && images.length > 0 ? images : DEFAULT_MEMORIES;
       const subfoldersList: string[] = [];
-      images.forEach(img => {
-        if (normalizeAlbumId(img.albumId) === normalizeAlbumId(targetAlbumId)) {
+      const normTarget = normalizeAlbumId(targetAlbumId);
+
+      mediaList.forEach(img => {
+        const imgAlbum = normalizeAlbumId(img.albumId || getPhotoAlbumId(img));
+        if (imgAlbum === normTarget) {
           const rawSub = (img.subfolderName || '').trim();
           if (rawSub && !rawSub.toLowerCase().includes('thư mục không có tiêu đề') && !subfoldersList.includes(rawSub)) {
             subfoldersList.push(rawSub);

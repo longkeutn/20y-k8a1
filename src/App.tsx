@@ -1020,6 +1020,11 @@ export default function App() {
 
     let resolvedAlbum = params.get('album') || 'all';
     let resolvedSubfolder = params.get('folder') || params.get('subfolder') || 'all';
+    if (resolvedSubfolder && resolvedSubfolder !== 'all') {
+      try {
+        resolvedSubfolder = decodeURIComponent(resolvedSubfolder).trim();
+      } catch (e) {}
+    }
 
     // Nếu mở bằng mã số Smart TV ngắn (ví dụ: '1', '2', '1.2'...), tự động map sang Album & Folder tương ứng
     if (shortCode) {
@@ -1028,12 +1033,18 @@ export default function App() {
       resolvedSubfolder = resolved.subfolder;
     }
 
+    // Nhạc nền: Mặc định BẬT (true) trừ khi người dùng chủ động tắt trong link (music=0 hoặc music=false)
+    const hasMusicParam = params.has('music');
+    const musicEnabled = hasMusicParam 
+      ? (params.get('music') === '1' || params.get('music') === 'true')
+      : true;
+
     return {
       isActive: true,
       albumId: resolvedAlbum,
       subfolder: resolvedSubfolder,
       speed: params.get('speed') ? Number(params.get('speed')) : 5000,
-      music: params.get('music') === '1' || params.get('music') === 'true',
+      music: musicEnabled,
       transition: (params.get('transition') as SlideTransitionType) || 'alternate'
     };
   };

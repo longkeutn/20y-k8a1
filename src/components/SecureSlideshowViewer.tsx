@@ -7,7 +7,8 @@ import {
   Shuffle, LayoutGrid, Search, Film, Tv, Smartphone, QrCode, Copy
 } from 'lucide-react';
 import { MemoryImage, PhotoAlbum, MusicTrack, SlideTransitionType } from '../types';
-import { DEFAULT_PLAYLIST } from '../data';
+import { DEFAULT_PLAYLIST, normalizeAlbumId, getPhotoAlbumId } from '../data';
+import AudioPlayer from './AudioPlayer';
 import { 
   ROTATING_TRANSITIONS, 
   TRANSITION_PRESETS, 
@@ -34,35 +35,38 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
   targetAlbumId,
   targetSubfolder,
   initialSpeed = 5000,
-  initialMusic = false,
+  initialMusic = true,
   initialTransition = 'alternate',
   playlist = DEFAULT_PLAYLIST,
   onExit
 }) => {
-  // 1. Lọc danh sách ảnh theo Album và Folder con chỉ định
+  // 1. Lọc danh sách kỷ niệm (Ảnh & Video) theo Album và Folder con chỉ định
   const filteredPhotos = useMemo(() => {
-    let result = images.filter(img => img.mediaType !== 'video'); // Mặc định trình chiếu 100% ảnh
+    let result = [...images];
 
     if (targetAlbumId && targetAlbumId !== 'all') {
-      const targetId = targetAlbumId.toLowerCase().trim();
-      result = result.filter(img => (img.albumId || '').toLowerCase().trim() === targetId);
-    }
-
-    if (targetSubfolder && targetSubfolder !== 'all' && targetSubfolder !== '') {
-      const cleanTargetSub = targetSubfolder.toLowerCase().trim();
+      const normTarget = normalizeAlbumId(targetAlbumId);
       result = result.filter(img => {
-        const sub = (img.subfolderName || '').toLowerCase().trim();
-        return sub === cleanTargetSub || sub.includes(cleanTargetSub);
+        const imgAlb = normalizeAlbumId(img.albumId || getPhotoAlbumId(img));
+        return imgAlb === normTarget;
       });
     }
 
-    // Nếu không khớp ảnh nào do sai lệch ID, fallback về toàn bộ ảnh trong album hoặc toàn bộ thư viện
-    if (result.length === 0) {
-      if (targetAlbumId && targetAlbumId !== 'all') {
-        const fallbackAlbum = images.filter(img => (img.albumId || '').toLowerCase() === targetAlbumId.toLowerCase() && img.mediaType !== 'video');
-        if (fallbackAlbum.length > 0) return fallbackAlbum;
-      }
-      return images.filter(img => img.mediaType !== 'video');
+    if (targetSubfolder && targetSubfolder !== 'all' && targetSubfolder.trim() !== '') {
+      let cleanTargetSub = targetSubfolder.trim().toLowerCase();
+      try {
+        cleanTargetSub = decodeURIComponent(cleanTargetSub).trim().toLowerCase();
+      } catch (e) {}
+
+      result = result.filter(img => {
+        const rawSub = (img.subfolderName || '').trim().toLowerCase();
+        if (!rawSub) return false;
+        return (
+          rawSub === cleanTargetSub ||
+          rawSub.includes(cleanTargetSub) ||
+          cleanTargetSub.includes(rawSub)
+        );
+      });
     }
 
     return result;
@@ -70,7 +74,8 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
 
   // Thông tin tiêu đề hiển thị
   const albumMeta = useMemo(() => {
-    const alb = albums.find(a => a.id === targetAlbumId);
+    const normTarget = normalizeAlbumId(targetAlbumId || '');
+    const alb = albums.find(a => normalizeAlbumId(a.id) === normTarget);
     return {
       albumTitle: alb ? alb.title : 'Kho Kỷ Niệm K8A1',
       subfolderTitle: targetSubfolder && targetSubfolder !== 'all' ? targetSubfolder : ''
@@ -120,8 +125,8 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
 
   // Âm thanh nền
   const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(initialMusic);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentTrackTitle, setCurrentTrackTitle] = useState<string>('Mong Ước Kỷ Niệm Xưa');
+  const [currentTrackArtist, setCurrentTrackArtist] = useState<string>('Tam Ca 3A');
 
   // Tham chiếu DOM & Touch Swiping
   const containerRef = useRef<HTMLDivElement>(null);
@@ -227,7 +232,9 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
 
   // Vòng lặp đếm thời gian & auto-advance Slide Show (chuẩn xác từng 50ms)
   useEffect(() => {
-    if (!isPlaying || filteredPhotos.length <= 1 || isGalleryOpen) {
+    const currentItem = filteredPhotos[currentIndex];
+    // Nếu slide hiện tại là Video -> Tạm dừng tự động chuyển ảnh để người xem thưởng thức trọn vẹn clip
+    if (!isPlaying || filteredPhotos.length <= 1 || isGalleryOpen || currentItem?.mediaType === 'video') {
       setSlideshowProgress(0);
       return;
     }
@@ -243,20 +250,59 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       });
     }, intervalStep);
     return () => clearInterval(timer);
-  }, [isPlaying, filteredPhotos.length, speed, handleNext, isGalleryOpen]);
+  }, [isPlaying, filteredPhotos, speed, handleNext, isGalleryOpen, currentIndex]);
 
-  // Quản lý âm thanh nền
+  // Lắng nghe sự kiện đổi bài hát từ AudioPlayer để cập nhật tên bài hát
   useEffect(() => {
-    if (!audioRef.current) return;
-    if (isMusicEnabled) {
-      audioRef.current.play().catch(() => {
-        // Trình duyệt chặn autoplay âm thanh
-        setIsMusicEnabled(false);
-      });
-    } else {
-      audioRef.current.pause();
+    const handleTrackChanged = (e: any) => {
+      if (e.detail?.track) {
+        setCurrentTrackTitle(e.detail.track.title || 'Nhạc kỷ niệm K8A1');
+        setCurrentTrackArtist(e.detail.track.artist || '');
+      }
+    };
+    window.addEventListener('k8a1-track-changed', handleTrackChanged);
+    return () => window.removeEventListener('k8a1-track-changed', handleTrackChanged);
+  }, []);
+
+  // Quản lý phát nhạc nền & Tự động mở khóa Autoplay
+  useEffect(() => {
+    if (!isMusicEnabled) {
+      window.dispatchEvent(new CustomEvent('pause-bg-music'));
+      return;
     }
-  }, [isMusicEnabled, currentTrackIndex]);
+
+    const currentItem = filteredPhotos[currentIndex];
+    // Nếu slide hiện tại là Video -> Tạm dừng nhạc nền để không chèn âm thanh video
+    if (currentItem?.mediaType === 'video') {
+      window.dispatchEvent(new CustomEvent('pause-bg-music'));
+      return;
+    }
+
+    // Gửi lệnh phát nhạc nền
+    window.dispatchEvent(new CustomEvent('k8a1-play-music'));
+
+    // Lắng nghe tương tác đầu tiên của người dùng để mở khóa autoplay
+    const handleFirstUserInteraction = () => {
+      window.dispatchEvent(new CustomEvent('k8a1-play-music'));
+    };
+
+    window.addEventListener('click', handleFirstUserInteraction, { once: true, passive: true });
+    window.addEventListener('touchstart', handleFirstUserInteraction, { once: true, passive: true });
+    window.addEventListener('keydown', handleFirstUserInteraction, { once: true, passive: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstUserInteraction);
+      window.removeEventListener('touchstart', handleFirstUserInteraction);
+      window.removeEventListener('keydown', handleFirstUserInteraction);
+    };
+  }, [isMusicEnabled, currentIndex, filteredPhotos]);
+
+  // Tạm dừng nhạc nền khi đóng trình chiếu
+  useEffect(() => {
+    return () => {
+      window.dispatchEvent(new CustomEvent('pause-bg-music'));
+    };
+  }, []);
 
   useEffect(() => {
     resetControlsTimer();
@@ -384,6 +430,15 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
 
   const currentPhoto = filteredPhotos[currentIndex];
   const totalPhotos = filteredPhotos.length;
+  const videoCount = useMemo(() => filteredPhotos.filter(p => p.mediaType === 'video').length, [filteredPhotos]);
+  const photoCount = totalPhotos - videoCount;
+  const mediaCountLabel = useMemo(() => {
+    const parts = [];
+    if (photoCount > 0) parts.push(`${photoCount} ảnh`);
+    if (videoCount > 0) parts.push(`${videoCount} video`);
+    if (parts.length === 0) return '0 mục';
+    return parts.join(' • ');
+  }, [photoCount, videoCount]);
 
   return (
     <div 
@@ -397,15 +452,11 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       className="fixed inset-0 z-[999999] bg-black text-white select-none overflow-hidden flex flex-col justify-between font-sans"
       style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
     >
-      {/* ẨN AUDIO PLAYER CHO NHẠC NỀN */}
-      {playlist && playlist.length > 0 && (
-        <audio 
-          ref={audioRef}
-          src={playlist[currentTrackIndex]?.url}
-          loop={playlist.length === 1}
-          onEnded={() => setCurrentTrackIndex(prev => (prev + 1) % playlist.length)}
-        />
-      )}
+      {/* 🎵 TRÌNH PHÁT NHẠC NỀN CHUYÊN DỤNG (HỖ TRỢ YOUTUBE, GOOGLE DRIVE, MP3 & OFFLINE) */}
+      <AudioPlayer 
+        variant="hidden" 
+        playlist={playlist && playlist.length > 0 ? playlist : DEFAULT_PLAYLIST} 
+      />
 
       {/* 🎬 THANH TIẾN ĐỘ SLIDESHOW (Top Edge - Đồng bộ Web & Màn LED) */}
       {isPlaying && !isGalleryOpen && (
@@ -508,70 +559,87 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
               transition={{ duration: 1.2 }}
             />
 
-            {/* Hiển thị ảnh kèm hiệu ứng chuyển cảnh mượt mà & Ken Burns */}
+            {/* Hiển thị ảnh/video kèm hiệu ứng chuyển cảnh mượt mà & Ken Burns */}
             <AnimatePresence mode="sync">
               <motion.div
                 key={currentPhoto.id || `${currentIndex}-${currentPhoto.url}`}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none transform-gpu will-change-[transform,opacity] p-3 sm:p-6 md:p-8"
+                className={`absolute inset-0 flex items-center justify-center ${currentPhoto.mediaType === 'video' ? 'pointer-events-auto' : 'pointer-events-none'} transform-gpu will-change-[transform,opacity] p-3 sm:p-6 md:p-8`}
                 initial={currentTransitionConfig.initial}
                 animate={currentTransitionConfig.animate}
                 exit={currentTransitionConfig.exit}
                 transition={currentTransitionConfig.transition}
               >
-                <div className="relative inline-block max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl pointer-events-none">
-                  <img 
-                    src={currentPhoto.url}
-                    alt={currentPhoto.caption || 'K8A1 Kỷ Niệm'}
-                    style={{
-                      transitionDuration: isPlaying ? `${speed}ms` : '350ms',
-                      WebkitTouchCallout: 'none',
-                      WebkitUserSelect: 'none',
-                      userSelect: 'none',
-                      pointerEvents: 'none'
-                    }}
-                    className={`max-w-full max-h-[70vh] sm:max-h-[74vh] object-contain pointer-events-none rounded-2xl transition-transform ease-out ${isPlaying ? getKenBurnsClass() : ''}`}
-                    draggable={false}
-                  />
-
-                  {/* 🛡️ WATERMARK ĐÓNG DẤU BẢN QUYỀN GÓC DƯỚI ẢNH (RÕ NÉT, NỔI BẬT) */}
-                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 pointer-events-none select-none flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-amber-400/60 shadow-2xl">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
-                    <span className="text-[11px] sm:text-xs font-serif font-bold text-amber-200 tracking-wider drop-shadow-md">
-                      K8A1 THPT THÁI NGUYÊN • 20 NĂM NGÀY TRỞ VỀ
-                    </span>
+                {currentPhoto.mediaType === 'video' ? (
+                  <div 
+                    className="w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-amber-400/40 bg-black relative z-20 pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <iframe
+                      src={currentPhoto.videoPreviewUrl || `https://drive.google.com/file/d/${currentPhoto.id}/preview`}
+                      className="w-full h-full border-0"
+                      allow="autoplay; encrypted-media; fullscreen"
+                      allowFullScreen
+                      title={currentPhoto.caption || 'Video Kỷ Niệm K8A1'}
+                    />
                   </div>
+                ) : (
+                  <div className="relative inline-block max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl pointer-events-none">
+                    <img 
+                      src={currentPhoto.url}
+                      alt={currentPhoto.caption || 'K8A1 Kỷ Niệm'}
+                      style={{
+                        transitionDuration: isPlaying ? `${speed}ms` : '350ms',
+                        WebkitTouchCallout: 'none',
+                        WebkitUserSelect: 'none',
+                        userSelect: 'none',
+                        pointerEvents: 'none'
+                      }}
+                      className={`max-w-full max-h-[70vh] sm:max-h-[74vh] object-contain pointer-events-none rounded-2xl transition-transform ease-out ${isPlaying ? getKenBurnsClass() : ''}`}
+                      draggable={false}
+                    />
 
-                  {/* 🛡️ WATERMARK CHÉO DẬP CHÌM BẢN QUYỀN (CHỐNG CHỤP MÀN HÌNH CẮT XÉN) */}
-                  <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none select-none opacity-20">
-                    <span className="text-xl sm:text-3xl md:text-4xl font-serif font-extrabold tracking-widest text-amber-100 uppercase drop-shadow-2xl -rotate-12 border-y-2 border-amber-200/40 py-2 px-6">
-                      K8A1 (2003 — 2006)
-                    </span>
-                  </div>
+                    {/* 🛡️ WATERMARK ĐÓNG DẤU BẢN QUYỀN GÓC DƯỚI ẢNH (RÕ NÉT, NỔI BẬT) */}
+                    <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 pointer-events-none select-none flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-amber-400/60 shadow-2xl">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
+                      <span className="text-[11px] sm:text-xs font-serif font-bold text-amber-200 tracking-wider drop-shadow-md">
+                        K8A1 THPT THÁI NGUYÊN • 20 NĂM NGÀY TRỞ VỀ
+                      </span>
+                    </div>
 
-                  {/* 🛡️ WATERMARK GÓC TRÊN TRANG TRỌNG */}
-                  <div className="absolute top-3 left-3 z-20 pointer-events-none select-none px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-xs text-[10px] font-mono font-medium text-white/90 border border-white/20">
-                    K8A1 MEMORY ARCHIVE
+                    {/* 🛡️ WATERMARK CHÉO DẬP CHÌM BẢN QUYỀN (CHỐNG CHỤP MÀN HÌNH CẮT XÉN) */}
+                    <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none select-none opacity-20">
+                      <span className="text-xl sm:text-3xl md:text-4xl font-serif font-extrabold tracking-widest text-amber-100 uppercase drop-shadow-2xl -rotate-12 border-y-2 border-amber-200/40 py-2 px-6">
+                        K8A1 (2003 — 2006)
+                      </span>
+                    </div>
+
+                    {/* 🛡️ WATERMARK GÓC TRÊN TRANG TRỌNG */}
+                    <div className="absolute top-3 left-3 z-20 pointer-events-none select-none px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-xs text-[10px] font-mono font-medium text-white/90 border border-white/20">
+                      K8A1 MEMORY ARCHIVE
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             </AnimatePresence>
 
-            {/* 🛡️ LỚP KÍNH BẢO VỆ VÔ HÌNH (INVISIBLE SHIELD OVERLAY) */}
+            {/* 🛡️ LỚP KÍNH BẢO VỆ VÔ HÌNH (INVISIBLE SHIELD OVERLAY) CHO ẢNH */}
             {/* Khi người dùng click, chuột phải hoặc tap vào màn hình chỉ chạm vào lớp div trong suốt này */}
-            <div 
-              className="absolute inset-0 z-20 cursor-default bg-transparent"
-              onClick={resetControlsTimer}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                triggerShieldAlert('🛡️ Tư liệu kỷ niệm của lớp K8A1: Tính năng tải ảnh đã được khóa an toàn!');
-              }}
-              draggable={false}
-            />
+            {currentPhoto.mediaType !== 'video' && (
+              <div 
+                className="absolute inset-0 z-20 cursor-default bg-transparent"
+                onClick={resetControlsTimer}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  triggerShieldAlert('🛡️ Tư liệu kỷ niệm của lớp K8A1: Tính năng tải ảnh đã được khóa an toàn!');
+                }}
+                draggable={false}
+              />
+            )}
           </div>
         ) : (
           <div className="text-center p-8 text-slate-400">
             <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-40 text-amber-400" />
-            <p className="text-sm">Chưa có hình ảnh nào trong mục này.</p>
+            <p className="text-sm font-serif text-amber-200">Không tìm thấy tư liệu nào trong thư mục này.</p>
           </div>
         )}
 
@@ -658,6 +726,11 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
                       className="w-full h-full object-cover pointer-events-none" 
                       loading="lazy"
                     />
+                    {photo.mediaType === 'video' && (
+                      <span className="absolute top-0.5 right-0.5 p-0.5 rounded bg-black/80 text-amber-300 z-10 shadow-xs">
+                        <Film className="w-2.5 h-2.5" />
+                      </span>
+                    )}
                     <span className="absolute bottom-0 inset-x-0 bg-black/75 text-[9px] font-mono text-center text-white/90 leading-tight">
                       #{idx + 1}
                     </span>
@@ -685,6 +758,12 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
             </p>
           )}
           <div className="flex items-center justify-center sm:justify-start gap-2 text-[11px] text-slate-400 mt-0.5">
+            {currentPhoto?.mediaType === 'video' && (
+              <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-400/40 text-[10px] flex items-center gap-1">
+                <Film className="w-3 h-3" />
+                <span>Video Kỷ Niệm</span>
+              </span>
+            )}
             {currentPhoto?.subfolderName && (
               <span className="text-amber-300 font-semibold">📁 {currentPhoto.subfolderName}</span>
             )}
@@ -841,14 +920,27 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
             <button
               onClick={() => {
                 resetControlsTimer();
-                setIsMusicEnabled(!isMusicEnabled);
+                setIsMusicEnabled(prev => {
+                  const next = !prev;
+                  if (next) {
+                    window.dispatchEvent(new CustomEvent('k8a1-play-music'));
+                  } else {
+                    window.dispatchEvent(new CustomEvent('pause-bg-music'));
+                  }
+                  return next;
+                });
               }}
-              className={`p-1.5 rounded-full transition cursor-pointer ${
+              className={`p-1.5 rounded-full transition cursor-pointer flex items-center gap-1.5 ${
                 isMusicEnabled ? 'text-amber-400 bg-amber-400/20' : 'text-slate-400 hover:text-white'
               }`}
-              title={isMusicEnabled ? 'Tắt nhạc nền' : 'Bật nhạc nền'}
+              title={isMusicEnabled ? `Đang phát: ${currentTrackTitle} - ${currentTrackArtist} (Bấm để tắt nhạc)` : 'Bật nhạc nền'}
             >
-              {isMusicEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {isMusicEnabled ? <Volume2 className="w-4 h-4 animate-pulse" /> : <VolumeX className="w-4 h-4" />}
+              {isMusicEnabled && (
+                <span className="hidden lg:inline text-[10px] font-sans font-medium text-amber-200/90 max-w-[130px] truncate">
+                  {currentTrackTitle}
+                </span>
+              )}
             </button>
           )}
 
@@ -895,10 +987,10 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
               </div>
               <div className="text-left">
                 <h2 className="text-sm sm:text-base font-bold text-amber-100 font-serif">
-                  Danh Sách Tất Cả Ảnh Kỷ Niệm
+                  Danh Sách Tất Cả Kỷ Niệm
                 </h2>
                 <p className="text-xs text-slate-400">
-                  {albumMeta.albumTitle} • Tổng cộng {totalPhotos} bức ảnh (Bấm vào ảnh bất kỳ để phát)
+                  {albumMeta.albumTitle} • Tổng cộng {mediaCountLabel} (Bấm vào mục bất kỳ để phát)
                 </p>
               </div>
             </div>
@@ -992,6 +1084,14 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
                     <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-[10px] font-mono font-bold text-amber-200 border border-white/10">
                       #{originalIndex + 1}
                     </span>
+
+                    {/* Badge Video */}
+                    {photo.mediaType === 'video' && (
+                      <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-[10px] text-amber-300 font-semibold flex items-center gap-1 z-10 border border-amber-400/30">
+                        <Film className="w-3 h-3" />
+                        <span>Video</span>
+                      </span>
+                    )}
 
                     {/* Badge đang xem */}
                     {isSelected && (

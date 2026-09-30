@@ -8,6 +8,7 @@ import {
 import { PhotoAlbum, MemoryImage, SlideTransitionType } from '../types';
 import { SLIDE_TRANSITION_OPTIONS } from './StagePresentationHub';
 import { generateSlideshowShortCode } from '../utils/slideshowShortCode';
+import { normalizeAlbumId, getPhotoAlbumId } from '../data';
 
 interface ShareSlideshowModalProps {
   isOpen: boolean;
@@ -56,41 +57,69 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     if (defaultSubfolder) setSelectedSubfolder(defaultSubfolder);
   }, [defaultAlbumId, defaultSubfolder, isOpen]);
 
-  // Danh sách các thư mục con (subfolders) thuộc album đang chọn
+  // Danh sách các thư mục con (subfolders) thuộc album đang chọn (Hỗ trợ cả Ảnh và Video)
   const availableSubfolders = useMemo(() => {
-    const subMap = new Map<string, number>();
+    const subMap = new Map<string, { total: number; photos: number; videos: number }>();
+    const normSelected = normalizeAlbumId(selectedAlbumId);
+
     images.forEach(img => {
-      if ((img.albumId || '').toLowerCase() === selectedAlbumId.toLowerCase()) {
+      const imgAlbum = normalizeAlbumId(img.albumId || getPhotoAlbumId(img));
+      if (imgAlbum === normSelected) {
         const rawSub = (img.subfolderName || '').trim();
         if (
           rawSub && 
           !rawSub.toLowerCase().includes('thư mục không có tiêu đề') && 
           !rawSub.toLowerCase().includes('untitled')
         ) {
-          subMap.set(rawSub, (subMap.get(rawSub) || 0) + 1);
+          const item = subMap.get(rawSub) || { total: 0, photos: 0, videos: 0 };
+          item.total += 1;
+          if (img.mediaType === 'video') {
+            item.videos += 1;
+          } else {
+            item.photos += 1;
+          }
+          subMap.set(rawSub, item);
         }
       }
     });
 
-    return Array.from(subMap.entries()).map(([name, count]) => ({
+    return Array.from(subMap.entries()).map(([name, s]) => ({
       name,
-      count
+      count: s.total,
+      photos: s.photos,
+      videos: s.videos
     }));
   }, [images, selectedAlbumId]);
 
-  // Tổng số ảnh theo bộ lọc đang chọn
-  const matchingPhotosCount = useMemo(() => {
-    return images.filter(img => {
-      if (img.mediaType === 'video') return false;
-      const matchAlbum = (img.albumId || '').toLowerCase() === selectedAlbumId.toLowerCase();
-      if (!matchAlbum) return false;
-      if (selectedSubfolder !== 'all') {
+  // Thống kê số lượng Ảnh & Video theo bộ lọc đang chọn
+  const matchingMedia = useMemo(() => {
+    const normSelected = normalizeAlbumId(selectedAlbumId);
+    const targetSub = selectedSubfolder !== 'all' ? selectedSubfolder.trim().toLowerCase() : null;
+
+    const matched = images.filter(img => {
+      const imgAlbum = normalizeAlbumId(img.albumId || getPhotoAlbumId(img));
+      if (imgAlbum !== normSelected) return false;
+      if (targetSub) {
         const sub = (img.subfolderName || '').trim().toLowerCase();
-        return sub === selectedSubfolder.trim().toLowerCase();
+        return sub === targetSub || sub.includes(targetSub) || targetSub.includes(sub);
       }
       return true;
-    }).length;
+    });
+
+    const photos = matched.filter(i => i.mediaType !== 'video').length;
+    const videos = matched.filter(i => i.mediaType === 'video').length;
+    return { total: matched.length, photos, videos };
   }, [images, selectedAlbumId, selectedSubfolder]);
+
+  const matchingPhotosCount = matchingMedia.total;
+
+  const mediaLabel = useMemo(() => {
+    const parts = [];
+    if (matchingMedia.photos > 0) parts.push(`${matchingMedia.photos} ảnh`);
+    if (matchingMedia.videos > 0) parts.push(`${matchingMedia.videos} video`);
+    if (parts.length === 0) return '0 mục';
+    return parts.join(' • ');
+  }, [matchingMedia]);
 
   const currentAlbum = useMemo(() => {
     return albums.find(a => a.id === selectedAlbumId) || albums[0];
@@ -141,12 +170,12 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
       : '';
     return `📸 K8A1 THPT THÁI NGUYÊN (2003 — 2006)
 ✨ Thân mời các bạn cùng ngắm lại những khoảnh khắc kỷ niệm:
-📂 Album: ${currentAlbum?.title || 'Kỷ Niệm K8A1'}${folderText} (${matchingPhotosCount} bức ảnh)
+📂 Album: ${currentAlbum?.title || 'Kỷ Niệm K8A1'}${folderText} (${mediaLabel})
 🎬 Xem trình chiếu ảnh tại đây:
 👉 ${shareUrl}
 
 (Chế độ xem trình chiếu tự động • Chúc các bạn có những phút giây hoài niệm thật đẹp!)`;
-  }, [currentAlbum, selectedSubfolder, matchingPhotosCount, shareUrl]);
+  }, [currentAlbum, selectedSubfolder, mediaLabel, shareUrl]);
 
   const handleCopyLink = async () => {
     try {
@@ -221,7 +250,7 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
                 Chia Sẻ Ký Ức & Chiếu Lên Smart TV
               </h3>
               <p className="text-[11px] text-amber-200/80 truncate">
-                {currentAlbum?.title} • {matchingPhotosCount} ảnh
+                {currentAlbum?.title} • {mediaLabel}
               </p>
             </div>
           </div>
@@ -267,7 +296,7 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
                 <span>2. Chọn Thư mục con (Folder con):</span>
               </label>
               <span className="text-[11px] font-semibold text-emerald-700 font-mono">
-                {matchingPhotosCount} bức ảnh sẵn sàng
+                {mediaLabel} sẵn sàng
               </span>
             </div>
             
@@ -280,11 +309,17 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
                 <option value="all">
                   ✨ Toàn bộ Album này (Tất cả {availableSubfolders.length} thư mục con)
                 </option>
-                {availableSubfolders.map(sub => (
-                  <option key={sub.name} value={sub.name}>
-                    📁 {sub.name} ({sub.count} ảnh)
-                  </option>
-                ))}
+                {availableSubfolders.map(sub => {
+                  const parts = [];
+                  if (sub.photos > 0) parts.push(`${sub.photos} ảnh`);
+                  if (sub.videos > 0) parts.push(`${sub.videos} video`);
+                  const countLabel = parts.join(', ') || `${sub.count} mục`;
+                  return (
+                    <option key={sub.name} value={sub.name}>
+                      📁 {sub.name} ({countLabel})
+                    </option>
+                  );
+                })}
               </select>
             ) : (
               <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800">
