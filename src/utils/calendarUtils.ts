@@ -14,10 +14,10 @@ export interface CalendarEventDetails {
 
 export const OFFICIAL_K8A1_REUNION_EVENT: CalendarEventDetails = {
   title: 'Hội Khóa 20 Năm Lớp K8A1 (2003 - 2006) - THPT Thái Nguyên',
-  description: 'Đại lễ Kỷ Niệm 20 Năm Ngày Trở Về của Tập thể Lớp K8A1 THPT Thái Nguyên.\n\nLỊCH TRÌNH NGÀY 27/09/2026:\n- 08:30: Tập trung cổng Trường THPT Thái Nguyên, tri ân Thầy Cô và chụp ảnh kỷ niệm.\n- 11:00: Đại tiệc hội ngộ, giao lưu và chiếu ký sự 20 năm tại Trung tâm Sự kiện The Prime.\n\nChi tiết lịch trình, danh sách bạn bè và bản đồ tại WebApp K8A1.',
-  location: 'Trường THPT Thái Nguyên & Trung tâm Sự kiện The Prime, TP. Thái Nguyên',
-  startDate: new Date('2026-09-27T08:30:00+07:00'),
-  endDate: new Date('2026-09-27T15:30:00+07:00'),
+  description: 'Đại lễ Kỷ Niệm 20 Năm Ngày Trở Về của Tập thể Lớp K8A1 THPT Thái Nguyên.\n\nLỊCH TRÌNH NGÀY 27/09/2026 (07:30 - 12:30):\n- 07:30 - 09:00: Có mặt tại Trường THPT Thái Nguyên, đón cô chủ nhiệm & chụp ảnh lưu niệm (Concept 1 Áo đồng phục K8A1 & Concept 2 Thanh xuân trở lại).\n- 09:15 - 12:30: Check-in đón Thầy Cô, Gala Hội ngộ 20 năm, tri ân và tiệc mừng tại XHotel / X - Restaurant.\n\nChi tiết lịch trình, danh sách bạn bè và bản đồ tại WebApp K8A1.',
+  location: 'Trường THPT Thái Nguyên & XHotel / X - Restaurant, TP. Thái Nguyên',
+  startDate: new Date('2026-09-27T07:30:00+07:00'),
+  endDate: new Date('2026-09-27T12:30:00+07:00'),
   url: typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app'
 };
 
@@ -34,7 +34,7 @@ export function getGoogleCalendarUrl(event: CalendarEventDetails = OFFICIAL_K8A1
   const title = encodeURIComponent(event.title);
   const webUrl = event.url || (typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app');
   const details = encodeURIComponent(`${event.description}\n\n🌐 WebApp Lớp: ${webUrl}`);
-  const location = encodeURIComponent(event.location || 'Trường THPT Thái Nguyên & Trung tâm Sự kiện The Prime, TP. Thái Nguyên');
+  const location = encodeURIComponent(event.location || 'Trường THPT Thái Nguyên & XHotel / X - Restaurant, TP. Thái Nguyên');
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}&details=${details}&location=${location}`;
 }
 
