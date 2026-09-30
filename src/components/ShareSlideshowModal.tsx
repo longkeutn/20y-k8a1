@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, Copy, Check, Share2, Sparkles, Folder, ExternalLink, 
-  ShieldCheck, Film, Play, Music, Clock, Layers
+  ShieldCheck, Film, Music, Clock, Layers, Tv, QrCode, 
+  Download, Smartphone, CheckCircle2
 } from 'lucide-react';
 import { PhotoAlbum, MemoryImage, SlideTransitionType } from '../types';
 import { SLIDE_TRANSITION_OPTIONS } from './StagePresentationHub';
+import { generateSlideshowShortCode } from '../utils/slideshowShortCode';
 
 interface ShareSlideshowModalProps {
   isOpen: boolean;
@@ -28,8 +30,12 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
   const [speed, setSpeed] = useState<number>(5000);
   const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(true);
   const [transitionEffect, setTransitionEffect] = useState<SlideTransitionType>('alternate');
+  const [activeTab, setActiveTab] = useState<'zalo' | 'tv'>('zalo');
+  
   const [isCopiedLink, setIsCopiedLink] = useState<boolean>(false);
+  const [isCopiedShort, setIsCopiedShort] = useState<boolean>(false);
   const [isCopiedZalo, setIsCopiedZalo] = useState<boolean>(false);
+  const [isDownloadingQr, setIsDownloadingQr] = useState<boolean>(false);
 
   // Cập nhật khi props thay đổi
   useEffect(() => {
@@ -77,7 +83,7 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     return albums.find(a => a.id === selectedAlbumId) || albums[0];
   }, [albums, selectedAlbumId]);
 
-  // Tạo URL chia sẻ an toàn (Sử dụng URL chuẩn ?view=slideshow hoạt động 100% trên Zalo, Facebook và mọi trình duyệt)
+  // 1. Tạo URL chia sẻ chuẩn (Gửi Zalo/Facebook có thẻ xem trước và không bị chặn)
   const shareUrl = useMemo(() => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app';
     const params = new URLSearchParams();
@@ -97,6 +103,23 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     }
     return `${baseUrl}/?${params.toString()}`;
   }, [selectedAlbumId, selectedSubfolder, speed, isMusicEnabled, transitionEffect]);
+
+  // 2. Tạo Mã số ngắn (Short Code) & Link siêu ngắn cho Smart TV
+  const shortCode = useMemo(() => {
+    return generateSlideshowShortCode(selectedAlbumId, selectedSubfolder, albums, images);
+  }, [selectedAlbumId, selectedSubfolder, albums, images]);
+
+  const shortTvUrl = useMemo(() => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app';
+    return `${baseUrl}/?s=${shortCode}`;
+  }, [shortCode]);
+
+  // 3. Đường link ảnh Mã QR Code sắc nét từ qrserver
+  const qrImageUrl = useMemo(() => {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=${encodeURIComponent(
+      shortTvUrl
+    )}&color=0b1329&bgcolor=ffffff&margin=1`;
+  }, [shortTvUrl]);
 
   // Bản tin mẫu gửi Zalo
   const zaloMessage = useMemo(() => {
@@ -122,6 +145,16 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     }
   };
 
+  const handleCopyShortLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shortTvUrl);
+      setIsCopiedShort(true);
+      setTimeout(() => setIsCopiedShort(false), 2500);
+    } catch {
+      alert('Đã copy link TV: ' + shortTvUrl);
+    }
+  };
+
   const handleCopyZalo = async () => {
     try {
       await navigator.clipboard.writeText(zaloMessage);
@@ -132,12 +165,33 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     }
   };
 
+  // Tải ảnh mã QR về máy để gửi vào Zalo hoặc in ấn
+  const handleDownloadQr = async () => {
+    setIsDownloadingQr(true);
+    try {
+      const response = await fetch(qrImageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `K8A1_QR_TrinhChieu_Album_${shortCode}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.open(qrImageUrl, '_blank');
+    } finally {
+      setIsDownloadingQr(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in font-sans">
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans">
       <div 
-        className="bg-white rounded-2xl border border-amber-300 shadow-2xl max-w-lg w-full overflow-hidden text-left animate-scale-up"
+        className="bg-white rounded-2xl border border-amber-300 shadow-2xl max-w-xl w-full overflow-hidden text-left animate-scale-up"
         onClick={e => e.stopPropagation()}
       >
         {/* HEADER MODAL */}
@@ -148,7 +202,7 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-amber-100 font-serif">
-                Tạo Link Trình Chiếu Ký Ức An Toàn
+                Chia Sẻ Ký Ức & Chiếu Lên Smart TV
               </h3>
             </div>
           </div>
@@ -161,7 +215,7 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
         </div>
 
         {/* BODY TÙY CHỈNH */}
-        <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+        <div className="p-4 sm:p-5 space-y-4 max-h-[82vh] overflow-y-auto">
           {/* 1. CHỌN ALBUM */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
@@ -175,9 +229,9 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
               }}
               className="w-full px-3 py-2 bg-slate-50 border border-amber-300 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
             >
-              {albums.map(alb => (
+              {albums.map((alb, idx) => (
                 <option key={alb.id} value={alb.id}>
-                  {alb.title} {alb.period ? `(${alb.period})` : ''}
+                  #{idx + 1} • {alb.title} {alb.period ? `(${alb.period})` : ''}
                 </option>
               ))}
             </select>
@@ -269,33 +323,141 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
             </div>
           </div>
 
-          {/* 4. KHUNG LINK CHIA SẺ & BẢO MẬT */}
-          <div className="space-y-2 pt-2 border-t border-slate-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">Link chia sẻ an toàn:</span>
-              <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold font-mono">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Đã Đóng Dấu Watermark • Chống Tải</span>
+          {/* 4. CHUYỂN ĐỔI CHẾ ĐỘ CHIA SẺ (ZALO vs SMART TV & QR CODE) */}
+          <div className="pt-2 border-t border-slate-200">
+            <div className="flex rounded-xl bg-slate-100 p-1 mb-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('zalo')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'zalo'
+                    ? 'bg-white text-amber-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>1. Gửi Zalo & Mạng Xã Hội</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('tv')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'tv'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Tv className="w-3.5 h-3.5" />
+                <span>2. Chiếu Smart TV & Mã QR</span>
+              </button>
+            </div>
+
+            {/* TAB 1: GỬI ZALO / MẠNG XÃ HỘI */}
+            {activeTab === 'zalo' && (
+              <div className="space-y-3 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">Link chia sẻ an toàn chính chủ:</span>
+                  <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold font-mono">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Đã Đóng Dấu Watermark • Chống Tải</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-mono text-[11px] text-slate-800 break-all select-all flex items-center justify-between gap-2">
+                  <span className="truncate">{shareUrl}</span>
+                </div>
+
+                {/* Cam kết bảo mật thông minh */}
+                <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 space-y-1.5 leading-relaxed">
+                  <p className="font-bold flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Cam kết bảo vệ tư liệu ảnh K8A1:</span>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-emerald-800">
+                    <li>Người nhận link <strong>chỉ xem được ảnh dạng trình chiếu rạp phim</strong>.</li>
+                    <li><strong>Đã đóng dấu bản quyền Watermark K8A1 trực tiếp lên từng ảnh</strong>.</li>
+                    <li>Đã khóa tải ảnh, chặn chuột phải, chặn kéo thả và chặn phím tắt lưu ảnh.</li>
+                    <li><strong>Cô lập hoàn toàn khỏi trang web gốc</strong>: Người xem không thể xem Quỹ lớp, Danh bạ hay link Google Drive.</li>
+                  </ul>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="p-2.5 bg-slate-100 border border-slate-300 rounded-xl font-mono text-[11px] text-slate-800 break-all select-all flex items-center justify-between gap-2">
-              <span className="truncate">{shareUrl}</span>
-            </div>
+            {/* TAB 2: SMART TV & MÃ QR CODE */}
+            {activeTab === 'tv' && (
+              <div className="space-y-3 animate-fade-in">
+                {/* Khung Mã QR và Thông tin TV */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-3.5 bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-200 rounded-2xl">
+                  {/* Ảnh Mã QR */}
+                  <div className="relative group shrink-0 bg-white p-2 rounded-xl border border-amber-300 shadow-md">
+                    <img 
+                      src={qrImageUrl} 
+                      alt="Mã QR Trình Chiếu K8A1" 
+                      className="w-32 h-32 sm:w-36 sm:h-36 object-contain"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-slate-900/85 text-amber-200 text-[10px] text-center font-mono py-0.5 rounded-b-lg">
+                      Mã TV: #{shortCode}
+                    </div>
+                  </div>
 
-            {/* Cảnh báo bảo mật thông minh */}
-            <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 space-y-1.5 leading-relaxed">
-              <p className="font-bold flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Cam kết bảo vệ tư liệu ảnh K8A1:</span>
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-emerald-800">
-                <li>Người nhận link <strong>chỉ xem được ảnh dạng trình chiếu rạp phim</strong>.</li>
-                <li><strong>Đã đóng dấu bản quyền Watermark K8A1 trực tiếp lên từng ảnh</strong> để chống chụp màn hình.</li>
-                <li>Đã khóa tải ảnh, chặn chuột phải, chặn kéo thả và chặn phím tắt lưu ảnh.</li>
-                <li><strong>Cô lập hoàn toàn khỏi trang web gốc</strong>: Người xem không thể xem Danh bạ lớp, Quỹ lớp, Thư mời hay link Google Drive.</li>
-              </ul>
-            </div>
+                  {/* Thông tin link ngắn & nút tải QR */}
+                  <div className="flex-1 space-y-2 text-left w-full">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-amber-800 font-mono tracking-wider">
+                        Đường dẫn siêu ngắn cho Smart TV:
+                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="text"
+                          readOnly
+                          value={shortTvUrl}
+                          className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCopyShortLink}
+                          className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shrink-0 transition cursor-pointer"
+                          title="Sao chép link ngắn"
+                        >
+                          {isCopiedShort ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadQr}
+                      disabled={isDownloadingQr}
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-amber-100/70 border border-amber-400 text-amber-900 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-amber-700" />
+                      <span>{isDownloadingQr ? 'Đang tải QR...' : 'Tải Ảnh Mã QR Về Máy'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hướng dẫn kết nối Smart TV 2 cách */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-700">
+                  <p className="font-bold text-slate-900 flex items-center gap-1">
+                    <Smartphone className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Cách phát lên Smart TV cực nhanh:</span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] leading-relaxed">
+                    <div className="p-2 bg-white rounded-lg border border-slate-200">
+                      <p className="font-semibold text-amber-800 mb-0.5">🍎 Dành cho iPhone / iPad:</p>
+                      <p>Mở slide trên điện thoại ➔ Vuốt góc trên màn hình ➔ Bấm <strong>Phản chiếu màn hình (AirPlay)</strong> ➔ Chọn Smart TV.</p>
+                    </div>
+                    <div className="p-2 bg-white rounded-lg border border-slate-200">
+                      <p className="font-semibold text-blue-800 mb-0.5">🤖 Dành cho Samsung / Android:</p>
+                      <p>Mở slide trên điện thoại ➔ Vuốt thanh công cụ xuống ➔ Chọn <strong>Smart View</strong> hoặc <strong>Truyền màn hình</strong> ➔ Chọn TV.</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 italic">
+                    💡 Hoặc dùng điều khiển Smart TV mở ứng dụng Trình duyệt web và gõ link ngắn: <strong className="font-mono text-slate-700">{shortTvUrl}</strong>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

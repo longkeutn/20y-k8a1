@@ -4,7 +4,7 @@ import {
   Play, Pause, ChevronLeft, ChevronRight, Maximize, Minimize, 
   Volume2, VolumeX, Shield, Sparkles, Folder, Image as ImageIcon,
   Clock, X, Check, Layers, ChevronDown, CheckCircle2,
-  Shuffle, LayoutGrid, Search, Film
+  Shuffle, LayoutGrid, Search, Film, Tv, Smartphone, QrCode, Copy
 } from 'lucide-react';
 import { MemoryImage, PhotoAlbum, MusicTrack, SlideTransitionType } from '../types';
 import { DEFAULT_PLAYLIST } from '../data';
@@ -14,6 +14,7 @@ import {
   TransitionConfig, 
   SLIDE_TRANSITION_OPTIONS 
 } from './StagePresentationHub';
+import { generateSlideshowShortCode } from '../utils/slideshowShortCode';
 
 interface SecureSlideshowViewerProps {
   images: MemoryImage[];
@@ -97,6 +98,25 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
   const playHistoryRef = useRef<number[]>([]);
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const thumbnailsScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Hướng dẫn kết nối Smart TV & Mã QR Code
+  const [isTvGuideOpen, setIsTvGuideOpen] = useState<boolean>(false);
+  const [isCopiedTvLink, setIsCopiedTvLink] = useState<boolean>(false);
+
+  const tvShortCode = useMemo(() => {
+    return generateSlideshowShortCode(targetAlbumId || 'all', targetSubfolder, albums, images);
+  }, [targetAlbumId, targetSubfolder, albums, images]);
+
+  const tvShortUrl = useMemo(() => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://k8a1.vercel.app';
+    return `${baseUrl}/?s=${tvShortCode}`;
+  }, [tvShortCode]);
+
+  const tvQrImageUrl = useMemo(() => {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=420x420&data=${encodeURIComponent(
+      tvShortUrl
+    )}&color=0b1329&bgcolor=ffffff&margin=1`;
+  }, [tvShortUrl]);
 
   // Âm thanh nền
   const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(initialMusic);
@@ -441,7 +461,20 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
             <span>Tất Cả Ảnh ({totalPhotos})</span>
           </button>
 
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] text-amber-200/90 font-mono">
+          <button
+            type="button"
+            onClick={() => {
+              resetControlsTimer();
+              setIsTvGuideOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs text-white font-medium transition cursor-pointer shadow-sm"
+            title="Hướng dẫn chiếu lên Smart TV phòng khách"
+          >
+            <Tv className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Chiếu TV</span>
+          </button>
+
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] text-amber-200/90 font-mono">
             <Shield className="w-3 h-3 text-emerald-400" />
             <span>Chế độ an toàn</span>
           </div>
@@ -819,6 +852,19 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
             </button>
           )}
 
+          {/* Nút Chiếu Lên Smart TV */}
+          <button
+            type="button"
+            onClick={() => {
+              resetControlsTimer();
+              setIsTvGuideOpen(true);
+            }}
+            className="p-1.5 rounded-full text-slate-300 hover:text-amber-300 hover:bg-white/10 transition cursor-pointer"
+            title="Chiếu lên Smart TV phòng khách"
+          >
+            <Tv className="w-4 h-4" />
+          </button>
+
           {/* Nút Toàn Màn Hình */}
           <button
             onClick={toggleFullscreen}
@@ -971,6 +1017,148 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
                 <p className="text-xs">Không tìm thấy bức ảnh nào phù hợp từ khóa.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* 4.5. MODAL HƯỚNG DẪN CHIẾU LÊN SMART TV & MÃ QR CODE                  */}
+      {/* ===================================================================== */}
+      {isTvGuideOpen && (
+        <div 
+          className="fixed inset-0 z-[1000000] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 pointer-events-auto animate-fade-in"
+          onClick={() => setIsTvGuideOpen(false)}
+        >
+          <div 
+            className="bg-slate-900 border border-amber-400/50 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl text-left animate-scale-up"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header Modal TV */}
+            <div className="p-4 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
+                  <Tv className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-amber-100 font-serif">
+                    Chiếu Ký Ức Lên Smart TV Phòng Khách
+                  </h3>
+                  <p className="text-[11px] text-amber-200/80">
+                    Phát toàn màn hình, chuyển cảnh mượt & âm thanh nổi
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTvGuideOpen(false)}
+                className="p-1.5 rounded-lg text-amber-200 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Nội dung kết nối TV */}
+            <div className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Box Mã QR và Link ngắn */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 p-3.5 bg-slate-950/70 border border-amber-400/30 rounded-2xl">
+                <div className="bg-white p-2 rounded-xl border border-amber-300 shadow-md shrink-0">
+                  <img 
+                    src={tvQrImageUrl} 
+                    alt="Mã QR TV" 
+                    className="w-28 h-28 sm:w-32 sm:h-32 object-contain"
+                  />
+                  <div className="text-center font-mono text-[10px] text-slate-900 font-bold mt-1">
+                    Mã TV: #{tvShortCode}
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-2 text-left w-full">
+                  <p className="text-xs text-amber-200 font-medium">
+                    Quét mã QR bằng điện thoại để xem ngay hoặc bấm link siêu ngắn dưới đây trên TV:
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <input 
+                      type="text"
+                      readOnly
+                      value={tvShortUrl}
+                      className="w-full px-2.5 py-1.5 bg-slate-800 border border-white/20 rounded-lg text-xs font-mono text-amber-100 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(tvShortUrl);
+                          setIsCopiedTvLink(true);
+                          setTimeout(() => setIsCopiedTvLink(false), 2000);
+                        } catch {
+                          alert('Đã copy: ' + tvShortUrl);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer"
+                      title="Sao chép link TV"
+                    >
+                      {isCopiedTvLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    💡 Remote TV chỉ cần gõ: <span className="text-amber-300 font-mono font-bold">{tvShortUrl.replace('https://', '')}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Hướng dẫn 2 bước chiếu không dây (Khuyên dùng) */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  <span>Cách 1: Chiếu không dây 1 chạm từ Điện thoại (Tiện nhất)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-800/80 border border-white/10 space-y-1">
+                    <p className="font-bold text-amber-200 flex items-center gap-1">
+                      <span>🍎 iPhone / iPad</span>
+                    </p>
+                    <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-1">
+                      <li>Vuốt mở <strong>Trung tâm điều khiển</strong>.</li>
+                      <li>Bấm <strong>Phản chiếu màn hình</strong> (AirPlay).</li>
+                      <li>Chọn Smart TV phòng khách của bạn.</li>
+                    </ol>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-800/80 border border-white/10 space-y-1">
+                    <p className="font-bold text-amber-200 flex items-center gap-1">
+                      <span>🤖 Samsung / Android</span>
+                    </p>
+                    <ol className="list-decimal list-inside text-slate-300 text-[11px] space-y-1">
+                      <li>Vuốt thanh thông báo từ trên xuống.</li>
+                      <li>Bấm <strong>Smart View</strong> hoặc <strong>Truyền</strong>.</li>
+                      <li>Chọn Smart TV để kết nối.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cách 2: Mở trực tiếp bằng trình duyệt trên TV */}
+              <div className="p-3 rounded-xl bg-slate-800/50 border border-white/10 text-xs space-y-1 text-slate-300">
+                <p className="font-bold text-slate-200">
+                  🌐 Cách 2: Mở trực tiếp trên Trình duyệt Smart TV (Bằng remote)
+                </p>
+                <p className="text-[11px] leading-relaxed text-slate-400">
+                  Mở ứng dụng <strong>Internet</strong> / <strong>Trình duyệt</strong> trên TV ➔ Nhập link ngắn <strong className="text-amber-300 font-mono">{tvShortUrl}</strong> ➔ Bấm nút Toàn Màn Hình để phát tự động.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer Modal TV */}
+            <div className="p-3 bg-slate-950 border-t border-white/10 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsTvGuideOpen(false)}
+                className="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition cursor-pointer"
+              >
+                Đã Hiểu
+              </button>
+            </div>
           </div>
         </div>
       )}

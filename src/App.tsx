@@ -59,6 +59,7 @@ import AdminManagementHub from './components/AdminManagementHub';
 import StagePresentationHub from './components/StagePresentationHub';
 import PinAuthModal from './components/PinAuthModal';
 import { SecureSlideshowViewer } from './components/SecureSlideshowViewer';
+import { resolveSlideshowShortCode } from './utils/slideshowShortCode';
 import ReceiptUploadModal from './components/ReceiptUploadModal';
 import ClassCharterModal from './components/ClassCharterModal';
 import RoleGuideModal from './components/RoleGuideModal';
@@ -982,21 +983,12 @@ export default function App() {
     return window.location.search.includes('mode=checkin') || window.location.hash === '#checkin';
   });
 
-  // Chế độ xem Trình Chiếu Ký Ức An Toàn độc lập khi mở link chia sẻ (#/slideshow hoặc ?mode=slideshow / ?view=slideshow)
+  // Chế độ xem Trình Chiếu Ký Ức An Toàn độc lập khi mở link chia sẻ (#/slideshow hoặc ?mode=slideshow / ?view=slideshow hoặc ?s=1 / /s/1 trên Smart TV)
   const parseSlideshowUrlParams = () => {
-    if (typeof window === 'undefined') return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false };
+    if (typeof window === 'undefined') return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false, transition: 'alternate' as SlideTransitionType };
+    const pathname = window.location.pathname || '';
     const hash = window.location.hash || '';
     const search = window.location.search || '';
-
-    const isSlideshow = 
-      hash.startsWith('#/slideshow') || 
-      hash.startsWith('#slideshow') || 
-      search.includes('view=slideshow') || 
-      search.includes('mode=slideshow');
-
-    if (!isSlideshow) {
-      return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false, transition: 'alternate' as SlideTransitionType };
-    }
 
     const params = new URLSearchParams(search);
     if (hash.includes('?')) {
@@ -1006,10 +998,40 @@ export default function App() {
       });
     }
 
+    // Nhận diện mã số ngắn Smart TV (?s=..., ?tv=..., /s/..., hoặc /tv)
+    const shortParam = params.get('s') || params.get('tv');
+    let shortCode = shortParam ? shortParam.trim() : '';
+    if (!shortCode && pathname.startsWith('/s/')) {
+      shortCode = decodeURIComponent(pathname.replace('/s/', '').trim());
+    } else if (!shortCode && (pathname === '/tv' || pathname === '/tv/')) {
+      shortCode = '1';
+    }
+
+    const isSlideshow = 
+      Boolean(shortCode) ||
+      hash.startsWith('#/slideshow') || 
+      hash.startsWith('#slideshow') || 
+      search.includes('view=slideshow') || 
+      search.includes('mode=slideshow');
+
+    if (!isSlideshow) {
+      return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false, transition: 'alternate' as SlideTransitionType };
+    }
+
+    let resolvedAlbum = params.get('album') || 'all';
+    let resolvedSubfolder = params.get('folder') || params.get('subfolder') || 'all';
+
+    // Nếu mở bằng mã số Smart TV ngắn (ví dụ: '1', '2', '1.2'...), tự động map sang Album & Folder tương ứng
+    if (shortCode) {
+      const resolved = resolveSlideshowShortCode(shortCode);
+      resolvedAlbum = resolved.albumId;
+      resolvedSubfolder = resolved.subfolder;
+    }
+
     return {
       isActive: true,
-      albumId: params.get('album') || 'all',
-      subfolder: params.get('folder') || params.get('subfolder') || 'all',
+      albumId: resolvedAlbum,
+      subfolder: resolvedSubfolder,
       speed: params.get('speed') ? Number(params.get('speed')) : 5000,
       music: params.get('music') === '1' || params.get('music') === 'true',
       transition: (params.get('transition') as SlideTransitionType) || 'alternate'
