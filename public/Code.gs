@@ -2404,9 +2404,12 @@ function getDrivePhotos(forceRefresh) {
         ]);
         cacheSheet.getRange(2, 1, rowsToInsert.length, 13).setValues(rowsToInsert);
       }
-    try {
-      PropertiesService.getScriptProperties().setProperty('LAST_DRIVE_SCAN_TIME', String(Date.now()));
-    } catch (eScanTime) {}
+      try {
+        PropertiesService.getScriptProperties().setProperty('LAST_DRIVE_SCAN_TIME', String(Date.now()));
+      } catch (eScanTime) {}
+    } catch (eSaveCache) {
+      console.warn("Lỗi lưu Media_Drive_Cache: " + eSaveCache.toString());
+    }
 
     return { 
       status: 'success', 
