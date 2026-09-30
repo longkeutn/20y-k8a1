@@ -2751,6 +2751,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
             <span>💰 Xem Sổ Quỹ Lớp</span>
           </button>
         </div>
+      </div>
+
       {/* 🎬 MODAL TẠO LINK CHIA SẺ TRÌNH CHIẾU AN TOÀN (ALBUM & FOLDER CON) */}
       <ShareSlideshowModal
         isOpen={isShareModalOpen}
