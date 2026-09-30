@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, Pause, ChevronLeft, ChevronRight, Maximize, Minimize, 
   Volume2, VolumeX, Shield, Sparkles, Folder, Image as ImageIcon,
-  Clock, X, Check
+  Clock, X, Check, Layers, ChevronDown, CheckCircle2
 } from 'lucide-react';
-import { MemoryImage, PhotoAlbum, MusicTrack } from '../types';
+import { MemoryImage, PhotoAlbum, MusicTrack, SlideTransitionType } from '../types';
 import { DEFAULT_PLAYLIST } from '../data';
+import { 
+  ROTATING_TRANSITIONS, 
+  TRANSITION_PRESETS, 
+  TransitionConfig, 
+  SLIDE_TRANSITION_OPTIONS 
+} from './StagePresentationHub';
 
 interface SecureSlideshowViewerProps {
   images: MemoryImage[];
@@ -14,6 +21,7 @@ interface SecureSlideshowViewerProps {
   targetSubfolder?: string;
   initialSpeed?: number;
   initialMusic?: boolean;
+  initialTransition?: SlideTransitionType;
   playlist?: MusicTrack[];
   onExit?: () => void;
 }
@@ -25,6 +33,7 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
   targetSubfolder,
   initialSpeed = 5000,
   initialMusic = false,
+  initialTransition = 'alternate',
   playlist = DEFAULT_PLAYLIST,
   onExit
 }) => {
@@ -74,6 +83,12 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
   const [showControls, setShowControls] = useState<boolean>(true);
   const [shieldNotice, setShieldNotice] = useState<string | null>(null);
 
+  // Hiệu ứng chuyển cảnh & Ken Burns (đồng bộ 100% logic Web & Màn LED)
+  const [slideshowTransition, setSlideshowTransition] = useState<SlideTransitionType>(initialTransition || 'alternate');
+  const [showTransitionMenu, setShowTransitionMenu] = useState<boolean>(false);
+  const [kenBurnsStyle, setKenBurnsStyle] = useState<number>(0);
+  const [slideshowProgress, setSlideshowProgress] = useState<number>(0);
+
   // Âm thanh nền
   const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(initialMusic);
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
@@ -85,14 +100,76 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
-  // Tự động chuyển ảnh định kỳ
+  // Kiểu chuyển động Ken Burns pan & zoom 4 hướng (chuẩn xác 100% như Màn LED & Web)
+  const getKenBurnsClass = useCallback(() => {
+    switch (kenBurnsStyle) {
+      case 0: return 'scale-110 translate-x-3 translate-y-2';
+      case 1: return 'scale-115 -translate-x-3 -translate-y-2';
+      case 2: return 'scale-110 -translate-x-2 translate-y-3';
+      case 3: return 'scale-115 translate-x-2 -translate-y-2';
+      default: return 'scale-110';
+    }
+  }, [kenBurnsStyle]);
+
+  // Cấu hình hiệu ứng chuyển cảnh cho ảnh hiện tại (tự động luân phiên nếu là 'alternate')
+  const currentTransitionConfig = useMemo<TransitionConfig>(() => {
+    if (slideshowTransition === 'none') {
+      return TRANSITION_PRESETS.none;
+    }
+    if (slideshowTransition === 'alternate') {
+      const idx = Math.abs(currentIndex || 0);
+      const selectedKey = ROTATING_TRANSITIONS[idx % ROTATING_TRANSITIONS.length];
+      return TRANSITION_PRESETS[selectedKey] || TRANSITION_PRESETS.crossfade;
+    }
+    return TRANSITION_PRESETS[slideshowTransition] || TRANSITION_PRESETS.crossfade;
+  }, [slideshowTransition, currentIndex]);
+
+  // Điều khiển ẩn/hiện thanh công cụ sau 3.5 giây không chạm
+  const resetControlsTimer = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+        setShowTransitionMenu(false);
+      }
+    }, 3500);
+  }, [isPlaying]);
+
+  // Chuyển ảnh tiếp theo / trước đó
+  const handleNext = useCallback(() => {
+    resetControlsTimer();
+    setCurrentIndex(prev => (prev + 1) % filteredPhotos.length);
+    setKenBurnsStyle(prev => (prev + 1) % 4);
+    setSlideshowProgress(0);
+  }, [filteredPhotos.length, resetControlsTimer]);
+
+  const handlePrev = useCallback(() => {
+    resetControlsTimer();
+    setCurrentIndex(prev => (prev - 1 + filteredPhotos.length) % filteredPhotos.length);
+    setKenBurnsStyle(prev => (prev + 1) % 4);
+    setSlideshowProgress(0);
+  }, [filteredPhotos.length, resetControlsTimer]);
+
+  // Vòng lặp đếm thời gian & auto-advance Slide Show (chuẩn xác từng 50ms)
   useEffect(() => {
-    if (!isPlaying || filteredPhotos.length <= 1) return;
+    if (!isPlaying || filteredPhotos.length <= 1) {
+      setSlideshowProgress(0);
+      return;
+    }
+    const intervalStep = 50;
     const timer = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % filteredPhotos.length);
-    }, speed);
+      setSlideshowProgress(prev => {
+        const next = prev + (intervalStep / speed) * 100;
+        if (next >= 100) {
+          handleNext();
+          return 0;
+        }
+        return next;
+      });
+    }, intervalStep);
     return () => clearInterval(timer);
-  }, [isPlaying, filteredPhotos.length, speed]);
+  }, [isPlaying, filteredPhotos.length, speed, handleNext]);
 
   // Quản lý âm thanh nền
   useEffect(() => {
@@ -107,34 +184,12 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
     }
   }, [isMusicEnabled, currentTrackIndex]);
 
-  // Điều khiển ẩn/hiện thanh công cụ sau 3.5 giây không chạm
-  const resetControlsTimer = useCallback(() => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 3500);
-  }, [isPlaying]);
-
   useEffect(() => {
     resetControlsTimer();
     return () => {
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
   }, [resetControlsTimer]);
-
-  // Chuyển ảnh tiếp theo / trước đó
-  const handleNext = useCallback(() => {
-    resetControlsTimer();
-    setCurrentIndex(prev => (prev + 1) % filteredPhotos.length);
-  }, [filteredPhotos.length, resetControlsTimer]);
-
-  const handlePrev = useCallback(() => {
-    resetControlsTimer();
-    setCurrentIndex(prev => (prev - 1 + filteredPhotos.length) % filteredPhotos.length);
-  }, [filteredPhotos.length, resetControlsTimer]);
 
   // Bật/tắt toàn màn hình
   const toggleFullscreen = () => {
@@ -247,6 +302,9 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       onMouseMove={resetControlsTimer}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onClick={() => {
+        if (showTransitionMenu) setShowTransitionMenu(false);
+      }}
       className="fixed inset-0 z-[999999] bg-black text-white select-none overflow-hidden flex flex-col justify-between font-sans"
       style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
     >
@@ -258,6 +316,16 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
           loop={playlist.length === 1}
           onEnded={() => setCurrentTrackIndex(prev => (prev + 1) % playlist.length)}
         />
+      )}
+
+      {/* 🎬 THANH TIẾN ĐỘ SLIDESHOW (Top Edge - Đồng bộ Web & Màn LED) */}
+      {isPlaying && (
+        <div className="absolute top-0 inset-x-0 h-1 bg-white/10 z-40 pointer-events-none">
+          <div 
+            className="h-full bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 transition-all duration-75 ease-linear shadow-xs"
+            style={{ width: `${slideshowProgress}%` }}
+          />
+        </div>
       )}
 
       {/* ===================================================================== */}
@@ -313,20 +381,42 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
       <div className="relative flex-1 w-full h-full flex items-center justify-center overflow-hidden">
         {currentPhoto ? (
           <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-6 md:p-8">
-            {/* Ảnh kỷ niệm với hiệu ứng Ken Burns nhẹ nhàng */}
-            <img 
-              key={currentPhoto.id || currentIndex}
-              src={currentPhoto.url}
-              alt={currentPhoto.caption || 'K8A1 Kỷ Niệm'}
-              className="max-w-full max-h-full object-contain pointer-events-none transition-all duration-1000 ease-out shadow-2xl rounded-lg"
-              style={{
-                WebkitTouchCallout: 'none',
-                WebkitUserSelect: 'none',
-                userSelect: 'none',
-                pointerEvents: 'none'
-              }}
-              draggable={false}
+            {/* Ambient Blurred Background (Glow điện ảnh đồng bộ Web & Màn LED) */}
+            <motion.div 
+              key={`bg-${currentPhoto.id || currentIndex}`}
+              className="absolute inset-0 bg-cover bg-center filter blur-3xl scale-125 brightness-[0.25] pointer-events-none"
+              style={{ backgroundImage: `url(${currentPhoto.thumbnail || currentPhoto.url})` }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.55 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2 }}
             />
+
+            {/* Hiển thị ảnh kèm hiệu ứng chuyển cảnh mượt mà & Ken Burns */}
+            <AnimatePresence mode="sync">
+              <motion.div
+                key={currentPhoto.id || `${currentIndex}-${currentPhoto.url}`}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none transform-gpu will-change-[transform,opacity] p-2 sm:p-6 md:p-8"
+                initial={currentTransitionConfig.initial}
+                animate={currentTransitionConfig.animate}
+                exit={currentTransitionConfig.exit}
+                transition={currentTransitionConfig.transition}
+              >
+                <img 
+                  src={currentPhoto.url}
+                  alt={currentPhoto.caption || 'K8A1 Kỷ Niệm'}
+                  style={{
+                    transitionDuration: isPlaying ? `${speed}ms` : '350ms',
+                    WebkitTouchCallout: 'none',
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none',
+                    pointerEvents: 'none'
+                  }}
+                  className={`max-w-full max-h-full object-contain pointer-events-none shadow-2xl rounded-lg transition-transform ease-out ${isPlaying ? getKenBurnsClass() : ''}`}
+                  draggable={false}
+                />
+              </motion.div>
+            </AnimatePresence>
 
             {/* 🛡️ LỚP KÍNH BẢO VỆ VÔ HÌNH (INVISIBLE SHIELD OVERLAY) */}
             {/* Khi người dùng click, chuột phải hoặc tap vào màn hình chỉ chạm vào lớp div trong suốt này */}
@@ -404,8 +494,8 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
           </div>
         </div>
 
-        {/* Cụm nút Play / Pause / Tốc độ / Nhạc / Toàn màn hình */}
-        <div className="flex items-center gap-2 sm:gap-3 bg-black/60 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md shadow-xl">
+        {/* Cụm nút Play / Pause / Tốc độ / Hiệu ứng chuyển cảnh / Nhạc / Toàn màn hình */}
+        <div className="flex items-center gap-2 sm:gap-2.5 bg-black/70 px-3 sm:px-4 py-2 rounded-full border border-white/10 backdrop-blur-md shadow-xl flex-wrap justify-center">
           {/* Nút Play / Pause */}
           <button
             onClick={() => {
@@ -419,7 +509,7 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
           </button>
 
           {/* Bộ đếm ảnh: 1 / 48 */}
-          <span className="text-xs font-mono font-semibold text-slate-300 px-2">
+          <span className="text-xs font-mono font-semibold text-slate-300 px-1 sm:px-2">
             {currentIndex + 1} <span className="text-slate-500">/</span> {totalPhotos}
           </span>
 
@@ -433,6 +523,7 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
                 onClick={() => {
                   resetControlsTimer();
                   setSpeed(s);
+                  setSlideshowProgress(0);
                 }}
                 className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition cursor-pointer ${
                   speed === s 
@@ -444,6 +535,65 @@ export const SecureSlideshowViewer: React.FC<SecureSlideshowViewerProps> = ({
                 {s / 1000}s
               </button>
             ))}
+          </div>
+
+          <div className="w-px h-4 bg-white/20" />
+
+          {/* CHỌN HIỆU ỨNG CHUYỂN CẢNH (ĐỒNG BỘ 100% WEB & MÀN LED) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetControlsTimer();
+                setShowTransitionMenu(!showTransitionMenu);
+              }}
+              className={`px-2 py-1 rounded-lg text-xs font-sans font-medium flex items-center gap-1 transition cursor-pointer border ${
+                slideshowTransition !== 'alternate'
+                  ? 'bg-amber-500/25 border-amber-400 text-amber-200'
+                  : 'bg-white/10 border-white/15 text-white/90 hover:bg-white/20'
+              }`}
+              title="Chọn hiệu ứng chuyển cảnh ảnh (Đồng bộ Web & Màn LED)"
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline text-[11px] font-semibold">
+                {SLIDE_TRANSITION_OPTIONS.find(t => t.id === slideshowTransition)?.shortLabel || 'Xen Kẽ'}
+              </span>
+              <ChevronDown className="w-3 h-3 opacity-70" />
+            </button>
+
+            {showTransitionMenu && (
+              <div 
+                className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-52 bg-slate-900/95 backdrop-blur-md border border-white/20 rounded-xl p-1.5 shadow-2xl z-50 space-y-0.5"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="px-2 py-1 text-[10px] font-bold text-amber-300 font-mono border-b border-white/10 mb-1">
+                  HIỆU ỨNG ĐIỆN ẢNH
+                </div>
+                {SLIDE_TRANSITION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setSlideshowTransition(opt.id as SlideTransitionType);
+                      setShowTransitionMenu(false);
+                      resetControlsTimer();
+                    }}
+                    className={`w-full px-2 py-1.5 rounded-lg text-xs flex items-center justify-between transition cursor-pointer text-left ${
+                      slideshowTransition === opt.id
+                        ? 'bg-amber-400 text-slate-950 font-bold'
+                        : 'text-slate-200 hover:bg-white/10'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-semibold">{opt.label}</p>
+                      <p className="text-[10px] text-slate-400">{opt.desc}</p>
+                    </div>
+                    {slideshowTransition === opt.id && <CheckCircle2 className="w-3.5 h-3.5 text-slate-950 shrink-0 ml-1" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="w-px h-4 bg-white/20" />

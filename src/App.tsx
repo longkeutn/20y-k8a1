@@ -35,7 +35,7 @@ import {
   Minimize2
 } from 'lucide-react';
 
-import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement, PhotoAlbum } from './types';
+import { UserRole, RsvpData, MemoryImage, MemoryVideo, WishData, ActivityToast, VenueMediaItem, EventConfig, ClassMember, ExpenseItem, ExpenseCategory, IncomeItem, IncomeCategory, TeacherData, TeacherInvitationStatus, Announcement, PhotoAlbum, SlideTransitionType } from './types';
 import { INITIAL_RSVP_LIST, INITIAL_WISHES_LIST, DEFAULT_MEMORIES, DEFAULT_VIDEOS, DEFAULT_EVENT_CONFIG, DEFAULT_BACKDROPS, DEFAULT_PLAYLIST, DEFAULT_STAGE_SETTINGS, DEFAULT_APPS_SCRIPT_URL, CLASS_ROSTER_K8A1, normalizeImageUrl, formatDateTimeVi, formatDateOnlyVi, isOfficialBLLMember, isPhoneMatch, isVietnameseNameMatch, TEACHERS_LIST, normalizeShirtSize, purgeOldCacheIfOutdated, DEFAULT_ANNOUNCEMENTS, DEFAULT_ALBUMS, getPhotoAlbumId, sanitizeAlbums, normalizeAlbumId, formatDisplayDate } from './data';
 import { DEFAULT_VENUE_MEDIA } from './components/AlumniConvergenceMap';
 import { parseMemberNote, serializeMemberNote } from './utils/memberUtils';
@@ -995,7 +995,7 @@ export default function App() {
       search.includes('mode=slideshow');
 
     if (!isSlideshow) {
-      return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false };
+      return { isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false, transition: 'alternate' as SlideTransitionType };
     }
 
     const params = new URLSearchParams(search);
@@ -1011,7 +1011,8 @@ export default function App() {
       albumId: params.get('album') || 'all',
       subfolder: params.get('folder') || params.get('subfolder') || 'all',
       speed: params.get('speed') ? Number(params.get('speed')) : 5000,
-      music: params.get('music') === '1' || params.get('music') === 'true'
+      music: params.get('music') === '1' || params.get('music') === 'true',
+      transition: (params.get('transition') as SlideTransitionType) || 'alternate'
     };
   };
 
@@ -2707,12 +2708,18 @@ export default function App() {
         targetSubfolder={slideshowParams.subfolder}
         initialSpeed={slideshowParams.speed}
         initialMusic={slideshowParams.music}
+        initialTransition={slideshowParams.transition}
         playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
         onExit={() => {
-          setSlideshowParams({ isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false });
+          setSlideshowParams({ isActive: false, albumId: 'all', subfolder: 'all', speed: 5000, music: false, transition: 'alternate' });
           const url = new URL(window.location.href);
           url.searchParams.delete('mode');
           url.searchParams.delete('view');
+          url.searchParams.delete('album');
+          url.searchParams.delete('folder');
+          url.searchParams.delete('speed');
+          url.searchParams.delete('music');
+          url.searchParams.delete('transition');
           url.hash = '';
           window.history.pushState({}, '', url.toString());
         }}

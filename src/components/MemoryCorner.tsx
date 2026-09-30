@@ -39,7 +39,6 @@ import {
   FolderOpen,
   Grid,
   Layers,
-  ExternalLink,
   ArrowLeft,
   Palette,
   Share2
@@ -1379,19 +1378,6 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                           >
                             <Share2 className="w-3.5 h-3.5 text-amber-600" />
                           </button>
-
-                          {alb.driveFolderUrl && (
-                            <a
-                              href={alb.driveFolderUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
-                              title="Mở thư mục trên Google Drive"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          )}
                         </div>
                       </div>
                     </div>

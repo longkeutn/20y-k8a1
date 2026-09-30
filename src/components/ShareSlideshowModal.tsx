@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, Copy, Check, Share2, Sparkles, Folder, ExternalLink, 
-  ShieldCheck, Film, Play, Music, Clock
+  ShieldCheck, Film, Play, Music, Clock, Layers
 } from 'lucide-react';
-import { PhotoAlbum, MemoryImage } from '../types';
+import { PhotoAlbum, MemoryImage, SlideTransitionType } from '../types';
+import { SLIDE_TRANSITION_OPTIONS } from './StagePresentationHub';
 
 interface ShareSlideshowModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
   const [selectedSubfolder, setSelectedSubfolder] = useState<string>(defaultSubfolder || 'all');
   const [speed, setSpeed] = useState<number>(5000);
   const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(true);
+  const [transitionEffect, setTransitionEffect] = useState<SlideTransitionType>('alternate');
   const [isCopiedLink, setIsCopiedLink] = useState<boolean>(false);
   const [isCopiedZalo, setIsCopiedZalo] = useState<boolean>(false);
 
@@ -89,8 +91,11 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
     if (isMusicEnabled) {
       params.set('music', '1');
     }
+    if (transitionEffect && transitionEffect !== 'alternate') {
+      params.set('transition', transitionEffect);
+    }
     return `${baseUrl}/#/slideshow?${params.toString()}`;
-  }, [selectedAlbumId, selectedSubfolder, speed, isMusicEnabled]);
+  }, [selectedAlbumId, selectedSubfolder, speed, isMusicEnabled, transitionEffect]);
 
   // Bản tin mẫu gửi Zalo
   const zaloMessage = useMemo(() => {
@@ -144,9 +149,6 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
               <h3 className="text-base font-bold text-amber-100 font-serif">
                 Tạo Link Trình Chiếu Ký Ức An Toàn
               </h3>
-              <p className="text-[11px] text-amber-200/80">
-                Chia sẻ riêng từng Album & Folder con • Chống tải ảnh & Giấu link gốc
-              </p>
             </div>
           </div>
           <button
@@ -244,6 +246,24 @@ export const ShareSlideshowModal: React.FC<ShareSlideshowModalProps> = ({
               >
                 <option value="yes">Bật sẵn nhạc nền</option>
                 <option value="no">Tắt nhạc (Im lặng)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1 col-span-2">
+              <label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
+                <Layers className="w-3 h-3 text-amber-600" />
+                <span>Hiệu ứng chuyển cảnh ảnh (Đồng bộ Màn LED & Web):</span>
+              </label>
+              <select
+                value={transitionEffect}
+                onChange={(e) => setTransitionEffect(e.target.value as SlideTransitionType)}
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800"
+              >
+                {SLIDE_TRANSITION_OPTIONS.map(opt => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label} — {opt.desc}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
