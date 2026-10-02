@@ -2295,7 +2295,8 @@ export default function App() {
 
           setImages((prev) => {
             const driveIds = new Set(driveImgs.map(i => i.id));
-            const localOnly = prev.filter(i => !driveIds.has(i.id));
+            // Chỉ giữ ảnh DEFAULT_MEMORIES (không phải user upload) — ảnh user upload không còn trên Drive coi như đã xóa
+            const localOnly = prev.filter(i => !driveIds.has(i.id) && !i.isUserUploaded);
             const merged = [...driveImgs, ...localOnly];
             try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
             return merged;
@@ -2335,7 +2336,8 @@ export default function App() {
 
               setImages((prev) => {
                 const driveIds = new Set(driveImgs.map(i => i.id));
-                const localOnly = prev.filter(i => !driveIds.has(i.id));
+                // Chỉ giữ DEFAULT_MEMORIES — ảnh user upload không còn trên Drive = đã xóa
+                const localOnly = prev.filter(i => !driveIds.has(i.id) && !i.isUserUploaded);
                 const merged = [...driveImgs, ...localOnly];
                 try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
                 return merged;
@@ -2565,7 +2567,8 @@ export default function App() {
 
             setImages((prev) => {
               const driveIds = new Set(driveImgs.map(i => i.id));
-              const localOnly = prev.filter(i => !driveIds.has(i.id));
+              // Chỉ giữ DEFAULT_MEMORIES — ảnh user upload không còn trên Drive = đã xóa
+              const localOnly = prev.filter(i => !driveIds.has(i.id) && !i.isUserUploaded);
               const merged = [...driveImgs, ...localOnly];
               try { localStorage.setItem('uploaded_images', JSON.stringify(merged)); } catch (e) {}
               return merged;
