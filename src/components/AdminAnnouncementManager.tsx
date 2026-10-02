@@ -91,6 +91,7 @@ interface AdminAnnouncementManagerProps {
   onPreviewAnnouncement?: (announcement: Announcement) => void;
   currentAuthorName?: string;
   isAuthorized?: boolean;
+  images?: MemoryImage[]; // NEW
 }
 
 export default function AdminAnnouncementManager({
@@ -100,6 +101,7 @@ export default function AdminAnnouncementManager({
   onPreviewAnnouncement,
   currentAuthorName = 'Ban Liên Lạc K8A1',
   isAuthorized = true,
+  images = [], // NEW
 }: AdminAnnouncementManagerProps) {
   // Bộ lọc & Tìm kiếm
   const [searchTerm, setSearchTerm] = useState('');
@@ -154,8 +156,33 @@ export default function AdminAnnouncementManager({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [newImageUrlsInput, setNewImageUrlsInput] = useState('');
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
+  const [libraryFilter, setLibraryFilter] = useState<string>('all'); // NEW: State bộ lọc kho ảnh
   const fileInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Computed data cho kho ảnh
+  const libraryImages = useMemo(() => {
+    return images.length > 0 ? images : DEFAULT_MEMORIES;
+  }, [images]);
+
+  const availableFolders = useMemo(() => {
+    const folders = new Set<string>();
+    libraryImages.forEach(img => {
+      const folderName = img.subfolderName || img.albumName;
+      if (folderName) {
+        folders.add(folderName);
+      }
+    });
+    return Array.from(folders).sort();
+  }, [libraryImages]);
+
+  const filteredLibraryImages = useMemo(() => {
+    if (libraryFilter === 'all') return libraryImages;
+    return libraryImages.filter(img => {
+      const folderName = img.subfolderName || img.albumName;
+      return folderName === libraryFilter;
+    });
+  }, [libraryImages, libraryFilter]);
 
   // Trạng thái thao tác nhanh
   const [copiedZaloId, setCopiedZaloId] = useState<string | null>(null);
@@ -1097,32 +1124,44 @@ ${webUrl}
                 {/* POPUP CHỌN ẢNH TỪ KHO KỶ NIỆM K8A1 */}
                 {showLibraryPicker && (
                   <div className="p-3 bg-white rounded-xl border-2 border-amber-300 shadow-md space-y-2 animate-in fade-in zoom-in-95">
-                    <div className="flex items-center justify-between border-b border-amber-100 pb-1.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-100 pb-2 gap-2">
                       <span className="text-xs font-bold text-amber-950">
-                        📸 Chọn ảnh từ Thư viện Kỷ niệm 20 Năm K8A1 (Bấm vào ảnh để thêm):
+                        📸 Chọn ảnh từ Thư viện ({filteredLibraryImages.length}):
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowLibraryPicker(false)}
-                        className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
-                      >
-                        Đóng
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={libraryFilter}
+                          onChange={(e) => setLibraryFilter(e.target.value)}
+                          className="text-xs border border-amber-200 rounded-lg px-2 py-1 outline-none focus:border-amber-500 bg-amber-50/50 max-w-[150px] sm:max-w-[200px] truncate"
+                        >
+                          <option value="all">Tất cả thư mục</option>
+                          {availableFolders.map(folder => (
+                            <option key={folder} value={folder}>{folder}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setShowLibraryPicker(false)}
+                          className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer shrink-0"
+                        >
+                          Đóng
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-48 overflow-y-auto p-1 scrollbar-thin">
-                      {DEFAULT_MEMORIES.slice(0, 24).map((mem) => {
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-60 overflow-y-auto p-1 scrollbar-thin">
+                      {filteredLibraryImages.map((mem) => {
                         const isAdded = formData.images.includes(mem.url);
                         return (
                           <div
-                            key={mem.id}
+                            key={mem.id || mem.url}
                             onClick={() => handleSelectFromLibrary(mem.url)}
                             className={`relative aspect-square rounded-lg overflow-hidden border cursor-pointer group transition ${
                               isAdded
                                 ? 'border-emerald-500 ring-2 ring-emerald-400'
                                 : 'border-slate-200 hover:border-amber-400 hover:scale-105'
                             }`}
-                            title={mem.caption || 'Chọn ảnh này'}
+                            title={mem.caption || mem.subfolderName || mem.albumName || 'Chọn ảnh này'}
                           >
                             <img
                               src={mem.thumbnail || mem.url}
@@ -1138,6 +1177,11 @@ ${webUrl}
                           </div>
                         );
                       })}
+                      {filteredLibraryImages.length === 0 && (
+                        <div className="col-span-full py-4 text-center text-xs text-slate-400">
+                          Thư mục này chưa có ảnh.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

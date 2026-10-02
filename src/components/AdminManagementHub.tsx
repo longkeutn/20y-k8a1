@@ -7139,6 +7139,7 @@ export default function AdminManagementHub({
               onDeleteAnnouncement={(id) => onDeleteAnnouncement?.(id)}
               currentAuthorName={getDefaultAuditorName()}
               isAuthorized={isAuthorized}
+              images={images}
             />
           )}
 
