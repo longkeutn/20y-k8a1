@@ -245,6 +245,7 @@ export default function App() {
     albums: sanitizeAlbums(cfg?.albums),
     showAnnouncements: parseBooleanSafe(cfg?.showAnnouncements, DEFAULT_EVENT_CONFIG.showAnnouncements !== false),
     blockVisibility: cfg?.blockVisibility ? {
+      hero: cfg.blockVisibility.hero !== false,
       countdown: cfg.blockVisibility.countdown !== false,
       gatheringCounter: cfg.blockVisibility.gatheringCounter !== false,
       announcements: cfg.blockVisibility.announcements !== false,
@@ -256,6 +257,7 @@ export default function App() {
       teachers: cfg.blockVisibility.teachers !== false,
       memories: cfg.blockVisibility.memories !== false,
     } : (DEFAULT_EVENT_CONFIG.blockVisibility || {
+      hero: true,
       countdown: true,
       gatheringCounter: true,
       announcements: true,
