@@ -1215,6 +1215,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <span>Trình Chiếu Slide Show</span>
             </button>
 
+            {onAddImage && (
             <button
               type="button"
               onClick={() => {
@@ -1226,6 +1227,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <Upload className="w-3.5 h-3.5" />
               <span>Góp Thêm Ảnh</span>
             </button>
+            )}
           </div>
         </div>
 
@@ -1428,6 +1430,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     <Share2 className="w-3.5 h-3.5" />
                     <span>Chia Sẻ Trình Chiếu</span>
                   </button>
+                  {onAddImage && (
                   <button
                     type="button"
                     onClick={() => {
@@ -1439,6 +1442,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     <Upload className="w-3.5 h-3.5" />
                     <span>+ Góp Ảnh Vào Album</span>
                   </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1815,7 +1819,8 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 );
               })}
 
-              {/* Ô Thẻ Góp Thêm Ảnh Kỷ Niệm Ở Cuối Grid */}
+              {/* Ô Thẻ Góp Thêm Ảnh Kỷ Niệm Ở Cuối Grid — Ẩn khi Hậu Sự Kiện */}
+              {onAddImage && (
               <div 
                 onClick={() => setIsPhotoUploadModalOpen(true)}
                 className="col-span-2 sm:col-span-1 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/60 p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 border-dashed border-amber-400/80 hover:border-amber-600 flex flex-col items-center justify-center text-center space-y-2 sm:space-y-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer group min-h-[140px] sm:min-h-[260px]"
@@ -1836,6 +1841,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                   <span>Tải Thêm Ảnh Lên</span>
                 </span>
               </div>
+              )}
 
             </div>
 
@@ -1879,7 +1885,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
       {/* ======================================================== */}
       {/* 📸 MODAL GÓP ẢNH KỶ NIỆM (CHO PHÉP CHỌN & UPLOAD NHIỀU ẢNH) */}
       {/* ======================================================== */}
-      {isPhotoUploadModalOpen && (
+      {onAddImage && isPhotoUploadModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-lg sm:max-w-xl w-full p-5 sm:p-7 shadow-2xl border border-amber-200 relative text-left space-y-4 my-8">
             
