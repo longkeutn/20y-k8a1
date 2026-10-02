@@ -1002,6 +1002,10 @@ export default function App() {
   // Xác thực quyền Ban Liên Lạc / Admin (Chỉ BLL / Thủ quỹ / Admin đã đăng nhập bằng mã PIN hợp lệ trong phiên này)
   const isBLLOrAdmin = currentUserRole === 'admin' || currentUserRole === 'bll' || currentUserRole === 'treasurer';
 
+  // Chế độ Hậu Sự Kiện: Khóa quyền ghi (đăng ký, upload, gửi lời chúc) cho guest — BLL/Admin/Thủ Quỹ vẫn toàn quyền
+  const isPostEvent = eventConfig.isPostEvent === true;
+  const isReadOnlyGuest = isPostEvent && !isBLLOrAdmin;
+
   // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
   const [isZaloShareModalOpen, setIsZaloShareModalOpen] = useState(false);
@@ -3055,7 +3059,8 @@ export default function App() {
               />
             </div>
 
-            {/* Primary Action Button Duy Nhất: Điểm Danh */}
+            {/* Primary Action Button Duy Nhất: Điểm Danh — Ẩn khi Hậu Sự Kiện (guest read-only) */}
+            {!isReadOnlyGuest && (
             <a 
               href="#diem-danh" 
               onClick={(e) => {
@@ -3068,6 +3073,7 @@ export default function App() {
               <CheckCircle className="w-3.5 h-3.5 text-amber-200 shrink-0" />
               <span>Điểm Danh</span>
             </a>
+            )}
 
             {/* Discrete Mini Admin Button */}
             <button
@@ -3302,6 +3308,7 @@ export default function App() {
           {/* Primary Action Buttons & Quick Jump Pills in Hero */}
           <div className="pt-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
+              {!isReadOnlyGuest && (
               <button
                 type="button"
                 onClick={() => {
@@ -3312,6 +3319,7 @@ export default function App() {
                 <CheckCircle className="w-4 h-4 text-amber-200" />
                 <span>Xác Nhận Tham Dự Ngay</span>
               </button>
+              )}
 
               <button
                 type="button"
@@ -3642,6 +3650,7 @@ export default function App() {
                   {/* Primary CTA & Signature */}
                   <div className="pt-4 border-t border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-3">
+                      {!isReadOnlyGuest && (
                       <button
                         onClick={() => {
                           scrollToBlock('diem-danh');
@@ -3651,6 +3660,7 @@ export default function App() {
                         <CheckCircle className="w-4 h-4 text-amber-400" />
                         <span>Xác Nhận Tham Dự Ngay</span>
                       </button>
+                      )}
                     </div>
 
                     <div className="text-left sm:text-right space-y-0.5">
@@ -3701,7 +3711,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 6. 🎟️ ĐIỂM DANH TRỰC TUYẾN                             */}
             {/* ======================================================== */}
-            {eventConfig.blockVisibility?.rsvpForm !== false && (
+            {!isReadOnlyGuest && eventConfig.blockVisibility?.rsvpForm !== false && (
               <CollapsibleSection
                 id="diem-danh"
                 title="Báo Danh & Điểm Danh Trực Tuyến"
@@ -3728,7 +3738,7 @@ export default function App() {
                   onSelectActiveMember={handleSelectActiveMember}
                   onAddRsvp={handleAddRsvp} 
                   onOpenPassModal={handleOpenPass}
-                  onOpenReceiptModal={handleOpenReceiptModal}
+                  onOpenReceiptModal={isReadOnlyGuest ? undefined : handleOpenReceiptModal}
                 />
               </CollapsibleSection>
             )}
@@ -3766,7 +3776,7 @@ export default function App() {
                   onRefresh={handleRefreshData}
                   isRefreshing={isRefreshing}
                   onOpenPassModal={handleOpenPass}
-                  onOpenReceiptModal={handleOpenReceiptModal}
+                  onOpenReceiptModal={isReadOnlyGuest ? undefined : handleOpenReceiptModal}
                   onUpdateEventConfig={handleUpdateEventConfig}
                   isBLLOrAdmin={isBLLOrAdmin}
                 />
@@ -3818,7 +3828,7 @@ export default function App() {
                   currentUserRole={currentUserRole}
                   onDeleteIncome={handleDeleteIncome}
                   onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
-                  onOpenReceiptModal={handleOpenReceiptModal}
+                  onOpenReceiptModal={isReadOnlyGuest ? undefined : handleOpenReceiptModal}
                   onOpenCharterModal={() => setIsCharterModalOpen(true)}
                   onUpdateRsvpList={handleUpdateRsvpList}
                 />
@@ -3888,7 +3898,7 @@ export default function App() {
                   images={images} 
                   videos={videos} 
                   albums={sanitizeAlbums(eventConfig.albums || DEFAULT_ALBUMS)}
-                  onAddImage={handleAddImage}
+                  onAddImage={isReadOnlyGuest ? undefined : handleAddImage}
                   onOpenStagePresentation={isBLLOrAdmin ? () => setIsStagePresentationOpen(true) : undefined}
                 />
               </CollapsibleSection>

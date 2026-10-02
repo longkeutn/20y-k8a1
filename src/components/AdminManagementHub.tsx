@@ -9608,6 +9608,58 @@ export default function AdminManagementHub({
                       </div>
                     </div>
 
+                    {/* 🔐 TOGGLE CHẾ ĐỘ HẬU SỰ KIỆN (CHỈ ADMIN) */}
+                    <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                      eventConfigForm.isPostEvent
+                        ? 'bg-amber-50 border-amber-400/80 shadow-sm'
+                        : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className={`p-2 rounded-lg ${eventConfigForm.isPostEvent ? 'bg-amber-200/70 text-amber-800' : 'bg-slate-200 text-slate-500'}`}>
+                          <Shield className="w-5 h-5" />
+                        </span>
+                        <div className="min-w-0">
+                          <h5 className="font-sans font-bold text-slate-900 text-sm flex items-center gap-2 flex-wrap">
+                            <span>🔐 Chế Độ Hậu Sự Kiện</span>
+                            {eventConfigForm.isPostEvent ? (
+                              <span className="text-[10px] bg-amber-600 text-white px-2 py-0.5 rounded-full font-bold">ĐANG BẬT</span>
+                            ) : (
+                              <span className="text-[10px] bg-slate-400 text-white px-2 py-0.5 rounded-full font-bold">TẮT</span>
+                            )}
+                          </h5>
+                          <p className="text-[11px] text-slate-500 font-sans leading-snug mt-0.5">
+                            {eventConfigForm.isPostEvent
+                              ? 'Khách xem web chỉ được XEM — không đăng ký, upload ảnh hay gửi biên lai. BLL / Thủ Quỹ / Admin vẫn toàn quyền sau khi nhập PIN.'
+                              : 'Web đang ở chế độ sự kiện — mọi người có thể đăng ký, upload ảnh, gửi lời chúc.'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="shrink-0 ml-3">
+                        {isAdmin ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEventConfigForm({
+                                ...eventConfigForm,
+                                isPostEvent: !eventConfigForm.isPostEvent
+                              });
+                            }}
+                            className={`relative inline-flex h-7 w-[52px] items-center rounded-full transition-colors duration-200 focus:outline-none cursor-pointer ${
+                              eventConfigForm.isPostEvent ? 'bg-amber-500' : 'bg-slate-300'
+                            }`}
+                            title={eventConfigForm.isPostEvent ? 'Tắt chế độ hậu sự kiện' : 'Bật chế độ hậu sự kiện'}
+                          >
+                            <span className={`inline-block w-5 h-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                              eventConfigForm.isPostEvent ? 'translate-x-[27px]' : 'translate-x-[3px]'
+                            }`} />
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-sans italic">Chỉ Admin</span>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       {[
                         {

@@ -3194,7 +3194,8 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     fundBankTransfer: true,
     teachers: true,
     memories: true,
-  }
+  },
+  isPostEvent: true, // Sự kiện 20 năm đã tổ chức xong — Khóa quyền ghi cho guest
 };
 
 // =============================================================================

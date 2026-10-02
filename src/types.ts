@@ -345,6 +345,7 @@ export interface EventConfig {
   albums?: PhotoAlbum[]; // Danh sách các Album / Folder ảnh kỷ niệm
   showAnnouncements?: boolean; // Bật / Tắt hiển thị khối Thông báo & Bản tin lên Web
   blockVisibility?: BlockVisibilityConfig; // Cấu hình Ẩn/Hiện linh hoạt 10 khối nội dung
+  isPostEvent?: boolean; // Chế độ Hậu Sự Kiện — Khóa quyền ghi cho guest, chỉ BLL/Admin/Thủ Quỹ mới thao tác được
 }
 
 // Cấu hình Bật / Tắt (Ẩn / Hiện) linh hoạt từng khối nội dung trên trang chủ
