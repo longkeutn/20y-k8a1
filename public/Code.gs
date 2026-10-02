@@ -4022,6 +4022,7 @@ function getSecuritySheet() {
     sheet.appendRow(['admin_pin', 'K8A1_ADMIN', new Date(), 'Mã PIN Admin toàn quyền (Vui lòng đổi mã mới)']);
     sheet.appendRow(['treasurer_pin', 'K8A1_TC', new Date(), 'Mã PIN Thủ Quỹ đối soát và chi tiêu (Vui lòng đổi mã mới)']);
     sheet.appendRow(['bll_pin', 'K8A1_BLL', new Date(), 'Mã PIN Ban Liên Lạc (Vui lòng đổi mã mới)']);
+    sheet.appendRow(['member_pin', 'K8A1_TV', new Date(), 'Mã PIN Thành Viên — Upload ảnh Góc Kỷ Niệm (Vui lòng đổi mã mới)']);
     sheet.appendRow(['failed_attempts', '0', new Date(), 'Số lần nhập sai liên tiếp']);
     sheet.appendRow(['locked_until', '0', new Date(), 'Thời điểm mở khóa (mili giây)']);
   }
@@ -4041,6 +4042,7 @@ function verifySecurityPin(data) {
       admin_pin: '',
       treasurer_pin: '',
       bll_pin: '',
+      member_pin: '',
       failed_attempts: 0,
       locked_until: 0
     };
@@ -4075,6 +4077,8 @@ function verifySecurityPin(data) {
       matchedRole = 'treasurer';
     } else if (pin === String(pins.bll_pin).trim()) {
       matchedRole = 'bll';
+    } else if (pin === String(pins.member_pin).trim()) {
+      matchedRole = 'member';
     }
 
     if (matchedRole) {
@@ -4118,7 +4122,7 @@ function updateSecurityPins(data) {
     const currentAdminPin = String(data.currentAdminPin || '').trim();
     const sheet = getSecuritySheet();
     const rows = sheet.getDataRange().getValues();
-    let pins = { admin_pin: '', treasurer_pin: '', bll_pin: '' };
+    let pins = { admin_pin: '', treasurer_pin: '', bll_pin: '', member_pin: '' };
     let rowMap = {};
 
     for (let i = 1; i < rows.length; i++) {
@@ -4143,6 +4147,13 @@ function updateSecurityPins(data) {
     }
     if (data.newBllPin && String(data.newBllPin).trim().length === 4) {
       if (rowMap['bll_pin']) sheet.getRange(rowMap['bll_pin'], 2, 1, 2).setValues([[String(data.newBllPin).trim(), now]]);
+    }
+    if (data.newMemberPin && String(data.newMemberPin).trim().length === 4) {
+      if (rowMap['member_pin']) {
+        sheet.getRange(rowMap['member_pin'], 2, 1, 2).setValues([[String(data.newMemberPin).trim(), now]]);
+      } else {
+        sheet.appendRow(['member_pin', String(data.newMemberPin).trim(), now, 'Mã PIN Thành Viên']);
+      }
     }
 
     return { status: 'success', message: 'Đã cập nhật và đồng bộ mã PIN mới lên Google Sheets thành công!' };

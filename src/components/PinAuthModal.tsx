@@ -7,7 +7,7 @@ import { verifyPinViaBackend } from '../data';
 interface PinAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (role: 'admin' | 'bll' | 'treasurer') => void;
+  onSuccess: (role: 'admin' | 'bll' | 'treasurer' | 'member') => void;
   appsScriptUrl?: string;
   adminPin?: string;
   bllPin?: string;

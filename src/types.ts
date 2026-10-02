@@ -1,4 +1,4 @@
-export type UserRole = 'guest' | 'bll' | 'treasurer' | 'admin';
+export type UserRole = 'guest' | 'member' | 'bll' | 'treasurer' | 'admin';
 
 export interface MemberNoteMetadata {
   avatarUrl?: string;       // Link ảnh thẻ / avatar trên Google Drive (thư mục con Avatar_Thanh_Vien)

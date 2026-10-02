@@ -3557,7 +3557,7 @@ export async function verifyPinViaBackend(
  * Cập nhật và đồng bộ mã PIN bảo mật lên Google Sheets
  */
 export async function updatePinsViaBackend(
-  payload: { currentAdminPin: string; newAdminPin?: string; newTreasurerPin?: string; newBllPin?: string },
+  payload: { currentAdminPin: string; newAdminPin?: string; newTreasurerPin?: string; newBllPin?: string; newMemberPin?: string },
   appsScriptUrl?: string
 ): Promise<{ success: boolean; message: string }> {
   const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''

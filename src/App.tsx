@@ -407,7 +407,7 @@ export default function App() {
     try {
       const saved = sessionStorage.getItem('user_role');
       const pinToken = sessionStorage.getItem('admin_pin_token');
-      if ((saved === 'admin' || saved === 'treasurer' || saved === 'bll') && pinToken) {
+      if ((saved === 'admin' || saved === 'treasurer' || saved === 'bll' || saved === 'member') && pinToken) {
         return saved as UserRole;
       }
       return 'guest';
@@ -1004,7 +1004,10 @@ export default function App() {
 
   // Chế độ Hậu Sự Kiện: Khóa quyền ghi (đăng ký, upload, gửi lời chúc) cho guest — BLL/Admin/Thủ Quỹ vẫn toàn quyền
   const isPostEvent = eventConfig.isPostEvent === true;
-  const isReadOnlyGuest = isPostEvent && !isBLLOrAdmin;
+  // Guest thuần (chưa nhập PIN): khóa mọi thao tác ghi
+  const isReadOnlyGuest = isPostEvent && currentUserRole === 'guest';
+  // Khóa chức năng sự kiện (RSVP, biên lai, điểm danh) cho cả guest + member (sự kiện đã xong), chỉ BLL/Admin mở
+  const isEventActionsBlocked = isPostEvent && !isBLLOrAdmin;
 
   // Quản lý Modal chọn danh tính thành viên K8A1 (Global Modal tại Root App)
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
@@ -3060,7 +3063,7 @@ export default function App() {
             </div>
 
             {/* Primary Action Button Duy Nhất: Điểm Danh — Ẩn khi Hậu Sự Kiện (guest read-only) */}
-            {!isReadOnlyGuest && (
+            {!isEventActionsBlocked && (
             <a 
               href="#diem-danh" 
               onClick={(e) => {
@@ -3308,7 +3311,7 @@ export default function App() {
           {/* Primary Action Buttons & Quick Jump Pills in Hero */}
           <div className="pt-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              {!isReadOnlyGuest && (
+              {!isEventActionsBlocked && (
               <button
                 type="button"
                 onClick={() => {
@@ -3650,7 +3653,7 @@ export default function App() {
                   {/* Primary CTA & Signature */}
                   <div className="pt-4 border-t border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                     <div className="flex items-center gap-3">
-                      {!isReadOnlyGuest && (
+                      {!isEventActionsBlocked && (
                       <button
                         onClick={() => {
                           scrollToBlock('diem-danh');
@@ -3711,7 +3714,7 @@ export default function App() {
             {/* ======================================================== */}
             {/* 6. 🎟️ ĐIỂM DANH TRỰC TUYẾN                             */}
             {/* ======================================================== */}
-            {!isReadOnlyGuest && eventConfig.blockVisibility?.rsvpForm !== false && (
+            {!isEventActionsBlocked && eventConfig.blockVisibility?.rsvpForm !== false && (
               <CollapsibleSection
                 id="diem-danh"
                 title="Báo Danh & Điểm Danh Trực Tuyến"
@@ -3738,7 +3741,7 @@ export default function App() {
                   onSelectActiveMember={handleSelectActiveMember}
                   onAddRsvp={handleAddRsvp} 
                   onOpenPassModal={handleOpenPass}
-                  onOpenReceiptModal={isReadOnlyGuest ? undefined : handleOpenReceiptModal}
+                  onOpenReceiptModal={isEventActionsBlocked ? undefined : handleOpenReceiptModal}
                 />
               </CollapsibleSection>
             )}
@@ -3776,7 +3779,7 @@ export default function App() {
                   onRefresh={handleRefreshData}
                   isRefreshing={isRefreshing}
                   onOpenPassModal={handleOpenPass}
-                  onOpenReceiptModal={isReadOnlyGuest ? undefined : handleOpenReceiptModal}
+                  onOpenReceiptModal={isEventActionsBlocked ? undefined : handleOpenReceiptModal}
                   onUpdateEventConfig={handleUpdateEventConfig}
                   isBLLOrAdmin={isBLLOrAdmin}
                 />
@@ -3828,7 +3831,7 @@ export default function App() {
                   currentUserRole={currentUserRole}
                   onDeleteIncome={handleDeleteIncome}
                   onRefreshData={() => hydrateAllData(activeAppsScriptUrl)}
-                  onOpenReceiptModal={isReadOnlyGuest ? undefined : handleOpenReceiptModal}
+                  onOpenReceiptModal={isEventActionsBlocked ? undefined : handleOpenReceiptModal}
                   onOpenCharterModal={() => setIsCharterModalOpen(true)}
                   onUpdateRsvpList={handleUpdateRsvpList}
                 />

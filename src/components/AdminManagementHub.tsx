@@ -509,6 +509,7 @@ export default function AdminManagementHub({
   const [newAdminPin, setNewAdminPin] = useState('');
   const [newTreasurerPin, setNewTreasurerPin] = useState('');
   const [newBllPin, setNewBllPin] = useState('');
+  const [newMemberPin, setNewMemberPin] = useState('');
   const [isUpdatingPins, setIsUpdatingPins] = useState(false);
   const [scriptUrlInput, setScriptUrlInput] = useState(appsScriptUrl);
   const [copiedScriptCode, setCopiedScriptCode] = useState(false);
@@ -4023,7 +4024,7 @@ export default function AdminManagementHub({
       alert('Vui lòng nhập mã PIN Admin hiện tại để xác minh quyền quản trị!');
       return;
     }
-    if (!newAdminPin && !newTreasurerPin && !newBllPin) {
+    if (!newAdminPin && !newTreasurerPin && !newBllPin && !newMemberPin) {
       alert('Vui lòng nhập ít nhất một mã PIN mới cần thay đổi!');
       return;
     }
@@ -4039,6 +4040,10 @@ export default function AdminManagementHub({
       alert('Mã PIN Ban Liên Lạc mới phải đúng 4 chữ số!');
       return;
     }
+    if (newMemberPin && !/^\d{4}$/.test(newMemberPin)) {
+      alert('Mã PIN Thành Viên mới phải đúng 4 chữ số!');
+      return;
+    }
 
     setIsUpdatingPins(true);
     try {
@@ -4046,7 +4051,8 @@ export default function AdminManagementHub({
         currentAdminPin: currentAdminPinConfirm,
         newAdminPin: newAdminPin || undefined,
         newTreasurerPin: newTreasurerPin || undefined,
-        newBllPin: newBllPin || undefined
+        newBllPin: newBllPin || undefined,
+        newMemberPin: newMemberPin || undefined
       }, appsScriptUrl);
 
       if (res.success) {
@@ -4056,6 +4062,7 @@ export default function AdminManagementHub({
         setNewAdminPin('');
         setNewTreasurerPin('');
         setNewBllPin('');
+        setNewMemberPin('');
       } else {
         alert('Cập nhật thất bại: ' + res.message);
       }
@@ -9247,7 +9254,7 @@ export default function AdminManagementHub({
 
                     {isAdmin ? (
                       <div className="space-y-4 text-xs">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                           <div className="space-y-1.5">
                             <label className="font-bold text-slate-700 flex items-center justify-between">
                               <span>👑 Mã PIN Admin:</span>
@@ -9294,6 +9301,22 @@ export default function AdminManagementHub({
                               className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-indigo-500"
                             />
                             <p className="text-[10px] text-slate-500">Giám sát, điểm danh, xuất CSV</p>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="font-bold text-slate-700 flex items-center justify-between">
+                              <span>👥 Mã PIN Thành Viên:</span>
+                              <span className="font-mono text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 font-bold text-[10px]">••••</span>
+                            </label>
+                            <input
+                              type="password"
+                              maxLength={4}
+                              value={newMemberPin}
+                              onChange={(e) => setNewMemberPin(e.target.value.replace(/\D/g, ''))}
+                              placeholder="Nhập 4 số PIN Thành Viên mới..."
+                              className="w-full px-3 py-2 bg-[#FAF8F5] border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:border-sky-500"
+                            />
+                            <p className="text-[10px] text-slate-500">Upload ảnh Góc Kỷ Niệm</p>
                           </div>
                         </div>
 
