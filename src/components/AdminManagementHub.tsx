@@ -9694,7 +9694,7 @@ export default function AdminManagementHub({
                           name: '0. Khối Cover Banner & Thông Điệp Trên Cùng',
                           badge: 'Vị trí trang trọng nhất',
                           description: 'Khu vực ảnh bìa Cinematic to nhất ở trên cùng chứa tên lớp, năm khóa và nút tham dự.',
-                          icon: <Image className="w-4 h-4 text-rose-500" />
+                          icon: <ImageIcon className="w-4 h-4 text-rose-500" />
                         },
                         {
                           key: 'countdown' as const,
