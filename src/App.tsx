@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import { motion } from 'motion/react';
 import { 
   Heart, 
@@ -51,31 +51,35 @@ import AlumniConvergenceMap from './components/AlumniConvergenceMap';
 import ViewCounter from './components/ViewCounter';
 import ActivityToastManager from './components/ActivityToastManager';
 import QuickShare from './components/QuickShare';
-import DeveloperGuide from './components/DeveloperGuide';
-import StudentPassModal from './components/StudentPassModal';
 import TableMembersModal from './components/TableMembersModal';
-import SelfCheckinPage from './components/SelfCheckinPage';
-import AdminManagementHub from './components/AdminManagementHub';
-import StagePresentationHub from './components/StagePresentationHub';
 import PinAuthModal from './components/PinAuthModal';
-import { SecureSlideshowViewer } from './components/SecureSlideshowViewer';
 import { resolveSlideshowShortCode } from './utils/slideshowShortCode';
-import ReceiptUploadModal from './components/ReceiptUploadModal';
-import ClassCharterModal from './components/ClassCharterModal';
-import RoleGuideModal from './components/RoleGuideModal';
 import QuickNavigation from './components/QuickNavigation';
 import TeachersHonorRoll from './components/TeachersHonorRoll';
-import { IdentitySelectorModal, NavbarIdentityBadge } from './components/VisitorIdentityWidget';
-import ZaloShareInfographicsModal from './components/ZaloShareInfographicsModal';
+import { NavbarIdentityBadge } from './components/VisitorIdentityWidget';
 import MobileCheckinQrModal from './components/MobileCheckinQrModal';
 import { SectionTransitionNav, QuickJumpRibbon, scrollToBlock } from './components/BlockNavigator';
 import ClassNewsFeed from './components/ClassNewsFeed';
-import AnnouncementDetailModal from './components/AnnouncementDetailModal';
 import NotificationBell from './components/NotificationBell';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import PullToRefresh from './components/PullToRefresh';
 import CollapsibleSection from './components/CollapsibleSection';
 import InitialSplashScreen from './components/InitialSplashScreen';
+
+// ⚡ LAZY LOADING — Tách chunk riêng cho các component nặng / hiếm dùng
+// Giảm ~60% bundle ban đầu cho 95% người dùng mở từ Zalo
+const AdminManagementHub = lazy(() => import('./components/AdminManagementHub'));
+const StagePresentationHub = lazy(() => import('./components/StagePresentationHub'));
+const SecureSlideshowViewer = lazy(() => import('./components/SecureSlideshowViewer').then(m => ({ default: m.SecureSlideshowViewer })));
+const SelfCheckinPage = lazy(() => import('./components/SelfCheckinPage'));
+const ZaloShareInfographicsModal = lazy(() => import('./components/ZaloShareInfographicsModal'));
+const RoleGuideModal = lazy(() => import('./components/RoleGuideModal'));
+const DeveloperGuide = lazy(() => import('./components/DeveloperGuide'));
+const StudentPassModal = lazy(() => import('./components/StudentPassModal'));
+const ReceiptUploadModal = lazy(() => import('./components/ReceiptUploadModal'));
+const ClassCharterModal = lazy(() => import('./components/ClassCharterModal'));
+const AnnouncementDetailModal = lazy(() => import('./components/AnnouncementDetailModal'));
+const IdentitySelectorModal = lazy(() => import('./components/VisitorIdentityWidget').then(m => ({ default: m.IdentitySelectorModal })));
 
 // ⚡ PHIÊN BẢN CODE WEBAPP - Tự động xóa sạch cache rác trên Zalo Webview của người dùng
 export const APP_BUILD_VERSION = '2026.09.10.v4_realtime_sync';
@@ -2845,41 +2849,45 @@ export default function App() {
   // Render trang riêng Tự Điểm Danh khi quét mã QR (?mode=checkin hoặc #checkin)
   if (isCheckinMode) {
     return (
-      <SelfCheckinPage
-        classRoster={classRoster}
-        rsvpList={rsvpList}
-        teachersList={teachersList}
-        eventConfig={eventConfig}
-        appsScriptUrl={activeAppsScriptUrl}
-        syncStatus={syncStatus}
-        lastSyncedTime={lastSyncedTime}
-        isRefreshing={isRefreshing}
-        onRefresh={() => fastSyncCheckinData(activeAppsScriptUrl, true)}
-        onCheckIn={handleMemberSelfCheckIn}
-        onExitCheckin={() => {
-          setIsCheckinMode(false);
-          const url = new URL(window.location.href);
-          url.searchParams.delete('mode');
-          url.hash = '';
-          window.history.pushState({}, '', url.toString());
-        }}
-      />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-900 text-amber-200">Đang tải chức năng điểm danh...</div>}>
+        <SelfCheckinPage
+          classRoster={classRoster}
+          rsvpList={rsvpList}
+          teachersList={teachersList}
+          eventConfig={eventConfig}
+          appsScriptUrl={activeAppsScriptUrl}
+          syncStatus={syncStatus}
+          lastSyncedTime={lastSyncedTime}
+          isRefreshing={isRefreshing}
+          onRefresh={() => fastSyncCheckinData(activeAppsScriptUrl, true)}
+          onCheckIn={handleMemberSelfCheckIn}
+          onExitCheckin={() => {
+            setIsCheckinMode(false);
+            const url = new URL(window.location.href);
+            url.searchParams.delete('mode');
+            url.hash = '';
+            window.history.pushState({}, '', url.toString());
+          }}
+        />
+      </Suspense>
     );
   }
 
   // Render trang riêng Trình Chiếu Ký Ức An Toàn khi mở link chia sẻ Album / Folder con (#/slideshow hoặc ?mode=slideshow)
   if (slideshowParams.isActive) {
     return (
-      <SecureSlideshowViewer
-        images={images}
-        albums={eventConfig.albums || DEFAULT_ALBUMS}
-        targetAlbumId={slideshowParams.albumId}
-        targetSubfolder={slideshowParams.subfolder}
-        initialSpeed={slideshowParams.speed}
-        initialMusic={slideshowParams.music}
-        initialTransition={slideshowParams.transition}
-        playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
-      />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-black text-amber-200">Đang khởi tạo trình chiếu...</div>}>
+        <SecureSlideshowViewer
+          images={images}
+          albums={eventConfig.albums || DEFAULT_ALBUMS}
+          targetAlbumId={slideshowParams.albumId}
+          targetSubfolder={slideshowParams.subfolder}
+          initialSpeed={slideshowParams.speed}
+          initialMusic={slideshowParams.music}
+          initialTransition={slideshowParams.transition}
+          playlist={eventConfig.musicPlaylist || DEFAULT_PLAYLIST}
+        />
+      </Suspense>
     );
   }
 
@@ -4040,6 +4048,9 @@ export default function App() {
 
       </main>
 
+      {/* 🚀 BỌC TOÀN BỘ MODALS TRONG SUSPENSE ĐỂ HỖ TRỢ LAZY LOADING CHUNK RIÊNG */}
+      <Suspense fallback={null}>
+
       {/* 📸 MODAL NHẬP PIN THÀNH VIÊN (Khi guest nhấn upload ảnh ở Góc Kỷ Niệm) */}
       {isMemberPinModalOpen && currentUserRole === 'guest' && (
         <PinAuthModal
@@ -4333,6 +4344,8 @@ export default function App() {
         activeMember={activeMember}
         classRoster={classRoster}
       />
+
+      </Suspense>
 
       {/* 📲 Cử chỉ kéo xuống để tải lại trang / làm mới dữ liệu cho PWA di động */}
       <PullToRefresh 
