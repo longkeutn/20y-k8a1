@@ -747,7 +747,7 @@ function doPost(e) {
     }
 
     const action = postData.action || 'rsvp';
-    const pin = postData.pin || postData.adminPin || postData.authPin || '';
+    const pin = postData.pin || postData.adminPin || postData.authPin || postData.currentAdminPin || '';
     const isAdmin = checkAdminAuthPin(pin);
 
     // 🛡️ CƠ CHẾ KHÓA ĐỒNG THỜI (LOCKSERVICE): Chống Race Condition khi nhiều người cùng thao tác
