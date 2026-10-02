@@ -56,6 +56,7 @@ interface MemoryCornerProps {
   albums?: PhotoAlbum[];
   onAddImage?: (newImage: MemoryImage | MemoryImage[]) => void;
   onOpenStagePresentation?: () => void;
+  onRequestMemberAuth?: () => void; // Gọi khi guest chưa nhập PIN nhấn nút upload — hiện bảng nhập PIN thành viên
 }
 
 // Chuẩn hóa link video YouTube hoặc Google Drive sang Embed URL
@@ -88,7 +89,7 @@ const INITIAL_VIDEOS: MemoryVideo[] = DEFAULT_VIDEOS;
 
 type FilterCategory = 'all' | 'class' | 'activity' | 'graduation' | 'uploads';
 
-export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, albums = DEFAULT_ALBUMS, onAddImage, onOpenStagePresentation }: MemoryCornerProps) {
+export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_VIDEOS, albums = DEFAULT_ALBUMS, onAddImage, onOpenStagePresentation, onRequestMemberAuth }: MemoryCornerProps) {
   // Đảm bảo luôn có ít nhất 87 ảnh từ DEFAULT_MEMORIES nếu prop images rỗng hoặc chưa nạp xong
   const displayImages = useMemo(() => {
     if (Array.isArray(images) && images.length > 0) {
@@ -1215,12 +1216,16 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
               <span>Trình Chiếu Slide Show</span>
             </button>
 
-            {onAddImage && (
+            {(onAddImage || onRequestMemberAuth) && (
             <button
               type="button"
               onClick={() => {
-                setUploadAlbumId(selectedAlbumId ? normalizeAlbumId(selectedAlbumId) : 'dong-gop-k8a1');
-                setIsPhotoUploadModalOpen(true);
+                if (onAddImage) {
+                  setUploadAlbumId(selectedAlbumId ? normalizeAlbumId(selectedAlbumId) : 'dong-gop-k8a1');
+                  setIsPhotoUploadModalOpen(true);
+                } else if (onRequestMemberAuth) {
+                  onRequestMemberAuth();
+                }
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
             >
@@ -1430,12 +1435,16 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     <Share2 className="w-3.5 h-3.5" />
                     <span>Chia Sẻ Trình Chiếu</span>
                   </button>
-                  {onAddImage && (
+                  {(onAddImage || onRequestMemberAuth) && (
                   <button
                     type="button"
                     onClick={() => {
-                      setUploadAlbumId(currentAlbum.id);
-                      setIsPhotoUploadModalOpen(true);
+                      if (onAddImage) {
+                        setUploadAlbumId(currentAlbum.id);
+                        setIsPhotoUploadModalOpen(true);
+                      } else if (onRequestMemberAuth) {
+                        onRequestMemberAuth();
+                      }
                     }}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
                   >
@@ -1819,10 +1828,16 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                 );
               })}
 
-              {/* Ô Thẻ Góp Thêm Ảnh Kỷ Niệm Ở Cuối Grid — Ẩn khi Hậu Sự Kiện */}
-              {onAddImage && (
+              {/* Ô Thẻ Góp Thêm Ảnh Kỷ Niệm Ở Cuối Grid — Guest nhấn sẽ hiện bảng nhập PIN */}
+              {(onAddImage || onRequestMemberAuth) && (
               <div 
-                onClick={() => setIsPhotoUploadModalOpen(true)}
+                onClick={() => {
+                  if (onAddImage) {
+                    setIsPhotoUploadModalOpen(true);
+                  } else if (onRequestMemberAuth) {
+                    onRequestMemberAuth();
+                  }
+                }}
                 className="col-span-2 sm:col-span-1 bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/60 p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 border-dashed border-amber-400/80 hover:border-amber-600 flex flex-col items-center justify-center text-center space-y-2 sm:space-y-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer group min-h-[140px] sm:min-h-[260px]"
               >
                 <div className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">

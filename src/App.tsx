@@ -421,6 +421,9 @@ export default function App() {
   const [adminHubInitialTab, setAdminHubInitialTab] = useState<'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation'>('members');
   const [adminHubInitialMediaSubTab, setAdminHubInitialMediaSubTab] = useState<'venue' | 'banner' | 'videos' | 'photos'>('venue');
 
+  // Modal nhập PIN thành viên (khi guest nhấn nút upload ảnh ở Góc Kỷ Niệm)
+  const [isMemberPinModalOpen, setIsMemberPinModalOpen] = useState(false);
+
   const handleOpenAdminHub = (
     tab: 'members' | 'fund' | 'teachers' | 'news' | 'wishes' | 'media' | 'settings' | 'presentation' = 'members',
     subTab: 'venue' | 'banner' | 'videos' | 'photos' = 'venue'
@@ -3903,6 +3906,7 @@ export default function App() {
                   albums={sanitizeAlbums(eventConfig.albums || DEFAULT_ALBUMS)}
                   onAddImage={isReadOnlyGuest ? undefined : handleAddImage}
                   onOpenStagePresentation={isBLLOrAdmin ? () => setIsStagePresentationOpen(true) : undefined}
+                  onRequestMemberAuth={isReadOnlyGuest ? () => setIsMemberPinModalOpen(true) : undefined}
                 />
               </CollapsibleSection>
             )}
@@ -4032,6 +4036,26 @@ export default function App() {
         )}
 
       </main>
+
+      {/* 📸 MODAL NHẬP PIN THÀNH VIÊN (Khi guest nhấn upload ảnh ở Góc Kỷ Niệm) */}
+      {isMemberPinModalOpen && currentUserRole === 'guest' && (
+        <PinAuthModal
+          isOpen={true}
+          onClose={() => setIsMemberPinModalOpen(false)}
+          appsScriptUrl={activeAppsScriptUrl}
+          customTitle="Góp Ảnh Kỷ Niệm K8A1"
+          customSubtitle={
+            <span>
+              Nhập <strong className="text-amber-300">mã PIN thành viên</strong> do Ban Liên Lạc cấp để tải ảnh lên
+            </span>
+          }
+          onSuccess={(role) => {
+            setCurrentUserRole(role);
+            sessionStorage.setItem('user_role', role);
+            setIsMemberPinModalOpen(false);
+          }}
+        />
+      )}
 
       {/* 👑 XÁC THỰC MÃ PIN QUẢN TRỊ (BẢO MẬT QUA GOOGLE APPS SCRIPT BACKEND) */}
       {isAdminHubOpen && !isBLLOrAdmin && (

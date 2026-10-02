@@ -12,13 +12,17 @@ interface PinAuthModalProps {
   adminPin?: string;
   bllPin?: string;
   treasurerPin?: string;
+  customTitle?: string;       // Tiêu đề tùy chỉnh (mặc định: "Xác Thực Mã PIN Quản Trị")
+  customSubtitle?: React.ReactNode; // Phụ đề tùy chỉnh
 }
 
 export default function PinAuthModal({
   isOpen,
   onClose,
   onSuccess,
-  appsScriptUrl
+  appsScriptUrl,
+  customTitle,
+  customSubtitle
 }: PinAuthModalProps) {
   const [enteredPin, setEnteredPin] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
@@ -169,11 +173,15 @@ export default function PinAuthModal({
             </div>
             <div>
               <h3 className="text-lg sm:text-xl font-serif font-bold text-amber-200 tracking-tight">
-                {isVerifying ? 'Đang Xác Thực Mã PIN...' : 'Xác Thực Mã PIN Quản Trị'}
+                {isVerifying ? 'Đang Xác Thực Mã PIN...' : (customTitle || 'Xác Thực Mã PIN Quản Trị')}
               </h3>
-              <p className="text-[11px] sm:text-xs text-slate-300 font-sans mt-0.5">
-                Dành riêng cho <strong className="text-amber-300">Admin</strong>, <strong className="text-emerald-300">Thủ Quỹ</strong> & <strong className="text-amber-300">Ban Liên Lạc</strong>
-              </p>
+              {customSubtitle ? (
+                <div className="text-[11px] sm:text-xs text-slate-300 font-sans mt-0.5">{customSubtitle}</div>
+              ) : (
+                <p className="text-[11px] sm:text-xs text-slate-300 font-sans mt-0.5">
+                  Dành riêng cho <strong className="text-amber-300">Admin</strong>, <strong className="text-emerald-300">Thủ Quỹ</strong> & <strong className="text-amber-300">Ban Liên Lạc</strong>
+                </p>
+              )}
             </div>
           </div>
 
