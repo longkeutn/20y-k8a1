@@ -350,10 +350,11 @@ export interface EventConfig {
 
 // Cấu hình Bật / Tắt (Ẩn / Hiện) linh hoạt từng khối nội dung trên trang chủ
 export interface BlockVisibilityConfig {
+  hero?: boolean;                  // Khối Hero Banner to ở trên cùng (mặc định: true)
   countdown?: boolean;             // Module Đếm ngược thời gian (mặc định: true)
   gatheringCounter?: boolean;      // Tình hình bạn bè điểm danh (mặc định: true)
   announcements?: boolean;         // Bản tin, Thông báo & Bình chọn (mặc định: true)
-  invitationLetter?: boolean;      // Bức thư ngỏ & Thiệp mời dạ tiệc (mặc định: true)
+  invitationLetter?: boolean;      // Bức thư ngỏ & Thiệp mời dự tiệc (mặc định: true)
   venueMap?: boolean;              // Địa điểm & Bản đồ hội tụ (mặc định: true)
   rsvpForm?: boolean;              // Phiếu báo danh & Điểm danh (mặc định: true)
   confirmedAttendees?: boolean;    // Bảng vàng bạn bè & Áo Polo (mặc định: true)

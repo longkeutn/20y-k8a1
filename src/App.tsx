@@ -3166,6 +3166,7 @@ export default function App() {
       {/* ======================================================== */}
       {/* 🌟 PHÂN VÙNG 1: CINEMATIC FULL-WIDTH HERO COVER BANNER */}
       {/* ======================================================== */}
+      {eventConfig.blockVisibility?.hero !== false && (
       <section id="hero" className="w-full relative overflow-hidden bg-[#161B26] scroll-mt-[calc(3.5rem+env(safe-area-inset-top,0px))]">
         
         {/* 1. Full-Width Background Panoramic Photo or Branded Dynamic Theme */}
@@ -3378,6 +3379,7 @@ export default function App() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Main Container */}
       <main className="w-full max-w-4xl px-3 sm:px-4 -mt-6 sm:-mt-8 md:-mt-10 relative z-20 space-y-6 sm:space-y-8">

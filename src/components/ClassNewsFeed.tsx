@@ -120,7 +120,7 @@ export default function ClassNewsFeed({
     return (
       <article
         onClick={() => handleCardClick(item)}
-        className="w-full bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 hover:border-amber-400/60 rounded-xl p-3 sm:p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 group relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1"
+        className="w-full bg-[#1E293B]/60 hover:bg-[#1E293B] backdrop-blur-md border border-slate-700 hover:border-amber-500/70 rounded-xl p-3 sm:p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 group relative overflow-hidden shadow-sm hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] hover:-translate-y-1.5"
       >
         {/* HEADER: Phân loại & Ngày */}
         <div className="flex items-center justify-between gap-2">
@@ -197,11 +197,17 @@ export default function ClassNewsFeed({
   return (
     <section 
       id="ban-tin" 
-      className="w-screen relative left-1/2 -translate-x-1/2 overflow-hidden scroll-mt-20 my-3 sm:my-5 bg-[#0B132B]/98 text-white border-y-2 border-amber-500/40 shadow-2xl backdrop-blur-md"
+      className="w-screen relative left-1/2 -translate-x-1/2 overflow-hidden scroll-mt-20 my-3 sm:my-5 bg-[#0A0F1C] text-white border-y-[3px] border-amber-500/50 shadow-[0_0_40px_rgba(245,158,11,0.15)]"
     >
-      <div className="h-1 w-full bg-gradient-to-r from-amber-700 via-amber-300 to-amber-700 opacity-90" />
+      {/* Nền Texture Tạp Chí */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+      
+      {/* Ánh sáng hắt glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-amber-500/20 blur-[100px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-5 sm:space-y-6">
+      <div className="h-1.5 w-full bg-gradient-to-r from-amber-900 via-amber-400 to-amber-900 opacity-90 shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-5 sm:space-y-6 relative z-10">
         
         {/* HEADER & LỌC */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
@@ -265,7 +271,7 @@ export default function ClassNewsFeed({
             {pinnedItem && selectedCategory === 'all' && (
               <article 
                 onClick={() => handleCardClick(pinnedItem)}
-                className="w-full bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-amber-500/40 hover:border-amber-400 rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer group shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col md:flex-row relative"
+                className="w-full bg-gradient-to-br from-[#1E293B] to-[#0B1221] border-2 border-amber-500/50 hover:border-amber-400 rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer group shadow-[0_8px_30px_rgba(245,158,11,0.15)] hover:shadow-[0_8px_40px_rgba(245,158,11,0.3)] transition-all duration-500 flex flex-col md:flex-row relative hover:-translate-y-1"
               >
                 <div className="absolute top-3 left-3 z-20">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white font-sans font-bold text-xs shadow-lg animate-pulse">

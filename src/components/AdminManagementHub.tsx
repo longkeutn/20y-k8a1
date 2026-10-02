@@ -3762,6 +3762,7 @@ export default function AdminManagementHub({
   // ---------------------------------------------------------------------------
   const handleToggleBlockVisibility = (key: keyof BlockVisibilityConfig, checked: boolean) => {
     const currentVis: BlockVisibilityConfig = eventConfigForm.blockVisibility || {
+      hero: true,
       countdown: true,
       gatheringCounter: true,
       announcements: true,
@@ -3786,6 +3787,7 @@ export default function AdminManagementHub({
 
   const handleSetAllBlocksVisibility = (allVisible: boolean) => {
     const updatedVis: BlockVisibilityConfig = {
+      hero: allVisible,
       countdown: allVisible,
       gatheringCounter: allVisible,
       announcements: allVisible,
@@ -9607,6 +9609,7 @@ export default function AdminManagementHub({
                           type="button"
                           onClick={() => {
                             const coreVis: BlockVisibilityConfig = {
+                              hero: true,
                               countdown: true,
                               gatheringCounter: false,
                               announcements: true,
@@ -9686,6 +9689,13 @@ export default function AdminManagementHub({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                       {[
+                        {
+                          key: 'hero' as const,
+                          name: '0. Khối Cover Banner & Thông Điệp Trên Cùng',
+                          badge: 'Vị trí trang trọng nhất',
+                          description: 'Khu vực ảnh bìa Cinematic to nhất ở trên cùng chứa tên lớp, năm khóa và nút tham dự.',
+                          icon: <Image className="w-4 h-4 text-rose-500" />
+                        },
                         {
                           key: 'countdown' as const,
                           name: '1. Đồng Hồ Đếm Ngược Ngày Hội Ngộ',
