@@ -939,6 +939,7 @@ function doPost(e) {
     }
 
     if (action === 'init_album_folders') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để khởi tạo thư mục album!' });
       return handleResponse(initAllAlbumFoldersOnDrive());
     }
 
@@ -970,16 +971,19 @@ function doPost(e) {
     }
 
     if (action === 'cancel_checkin') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để hủy điểm danh!' });
       postData.cancelCheckIn = true;
       postData.checkedIn = false;
       return handleResponse(updateRSVP(postData));
     }
 
     if (action === 'assign_tables' || action === 'save_tables') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để phân bàn tiệc!' });
       return handleResponse(batchAssignTables(postData));
     }
 
     if (action === 'update_fund' || action === 'update_rsvp') {
+      if (!isAdmin) return handleResponse({ status: 'error', code: 'UNAUTHORIZED', message: 'Yêu cầu mã PIN quản trị viên để cập nhật quỹ / điểm danh!' });
       return handleResponse(updateRSVP(postData));
     }
 
