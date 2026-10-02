@@ -1731,7 +1731,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                       isHeroSpotlight ? 'aspect-video sm:aspect-[16/10]' : 'aspect-square sm:aspect-[4/3]'
                     }`}>
                       <img
-                        src={img.url}
+                        src={img.thumbnail || img.url}
                         alt="Ảnh kỷ niệm K8A1"
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter sepia-[0.06] group-hover:sepia-0"
@@ -2689,7 +2689,7 @@ export default function MemoryCorner({ appsScriptUrl, images, videos = INITIAL_V
                     tIdx === selectedImageIndex ? 'border-amber-400 scale-110' : 'border-white/20 opacity-50 hover:opacity-100'
                   }`}
                 >
-                  <img src={tImg.url} alt="" className="w-full h-full object-cover" />
+                  <img src={tImg.thumbnail || tImg.url} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

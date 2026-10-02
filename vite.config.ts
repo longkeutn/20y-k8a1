@@ -22,17 +22,22 @@ export default defineConfig(() => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            // Tách các thư viện React lõi
-            'vendor-react': ['react', 'react-dom'],
-            // Tách thư viện UI/Icons
-            'vendor-ui': ['lucide-react', 'motion/react', 'framer-motion'],
-            // Tách thư viện tiện ích
-            'vendor-utils': ['html2canvas']
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react/') || id.includes('react-dom/')) {
+                return 'vendor-react';
+              }
+              if (id.includes('lucide-react/')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('motion/')) {
+                return 'vendor-motion';
+              }
+            }
           }
         }
       },
-      chunkSizeWarningLimit: 800, // Tăng limit cảnh báo vì AdminHub sẽ khá lớn trước khi tách
+      chunkSizeWarningLimit: 1200,
     }
   };
 });
