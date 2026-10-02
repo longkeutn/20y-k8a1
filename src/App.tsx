@@ -4034,7 +4034,7 @@ export default function App() {
       </main>
 
       {/* 👑 XÁC THỰC MÃ PIN QUẢN TRỊ (BẢO MẬT QUA GOOGLE APPS SCRIPT BACKEND) */}
-      {isAdminHubOpen && currentUserRole === 'guest' && (
+      {isAdminHubOpen && !isBLLOrAdmin && (
         <PinAuthModal
           isOpen={isAdminHubOpen}
           onClose={() => setIsAdminHubOpen(false)}
@@ -4043,12 +4043,16 @@ export default function App() {
             setCurrentUserRole(role);
             sessionStorage.setItem('user_role', role);
             hydrateAllData(activeAppsScriptUrl);
+            // Member chỉ được upload ảnh, không vào AdminHub
+            if (role === 'member') {
+              setIsAdminHubOpen(false);
+            }
           }}
         />
       )}
 
       {/* 👑 BẢNG ĐIỀU KHIỂN QUẢN TRỊ & ĐỐI SOÁT TOÀN DIỆN (ADMIN & BAN LIÊN LẠC) */}
-      {isAdminHubOpen && currentUserRole !== 'guest' && (
+      {isAdminHubOpen && isBLLOrAdmin && (
         <AdminManagementHub
           isOpen={isAdminHubOpen}
           onClose={() => setIsAdminHubOpen(false)}
