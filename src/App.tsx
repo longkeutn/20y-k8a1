@@ -1140,9 +1140,10 @@ export default function App() {
 
     // Nhạc nền: Mặc định BẬT (true) trừ khi người dùng chủ động tắt trong link (music=0 hoặc music=false)
     const hasMusicParam = params.has('music');
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const musicEnabled = hasMusicParam 
       ? (params.get('music') === '1' || params.get('music') === 'true')
-      : true;
+      : !isMobile;
 
     return {
       isActive: true,
