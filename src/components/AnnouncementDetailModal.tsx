@@ -124,6 +124,11 @@ export default function AnnouncementDetailModal({
     return list;
   }, [announcement]);
 
+  // Làm sạch nội dung bài viết, loại bỏ các markdown link ảnh thừa ở cuối bài
+  const sanitizedContent = useMemo(() => {
+    return cleanAnnouncementContent(announcement?.content || '');
+  }, [announcement?.content]);
+
   // Phím tắt bàn phím điều hướng Lightbox (ESC, Left, Right)
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -259,11 +264,6 @@ ${shareUrl}
       window.open(announcement.actionUrl, '_blank');
     }
   };
-
-  // Làm sạch nội dung bài viết, loại bỏ các markdown link ảnh thừa ở cuối bài
-  const sanitizedContent = useMemo(() => {
-    return cleanAnnouncementContent(announcement.content);
-  }, [announcement.content]);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
