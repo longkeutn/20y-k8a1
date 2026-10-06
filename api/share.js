@@ -10,10 +10,16 @@ export default function handler(req, res) {
   const newsId = news || id || '';
   const postTitle = title ? String(title).trim() : 'Bản tin K8A1 THPT Thái Nguyên';
   const postDesc = desc ? String(desc).trim() : 'Kỷ niệm 20 năm ngày ra trường niên khóa 2003 - 2006';
-  const postImg = img ? String(img).trim() : 'https://k8a1.vercel.app/og-image.jpg';
-
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'k8a1.vercel.app';
   const proto = req.headers['x-forwarded-proto'] || 'https';
+  const defaultFallbackImage = `${proto}://${host}/og-image.jpg`;
+
+  let postImg = img ? String(img).trim() : '';
+  if (!postImg || postImg.startsWith('data:image/') || postImg === 'undefined' || postImg === 'null') {
+    postImg = defaultFallbackImage;
+  } else if (postImg.startsWith('/')) {
+    postImg = `${proto}://${host}${postImg}`;
+  }
   
   // Link đích mà người dùng sẽ xem trên WebApp
   const targetUrl = newsId 

@@ -30,7 +30,8 @@ import {
   Images,
   Star,
   PlusCircle,
-  FolderOpen
+  FolderOpen,
+  ImagePlus
 } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import { Announcement, AnnouncementCategory, PollData, PollOption } from '../types';
@@ -158,6 +159,7 @@ export default function AdminAnnouncementManager({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [newImageUrlsInput, setNewImageUrlsInput] = useState('');
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
+  const [libraryPickerMode, setLibraryPickerMode] = useState<'cover' | 'gallery'>('cover');
   const [libraryFilter, setLibraryFilter] = useState<string>('all'); // NEW: State bộ lọc kho ảnh
   const fileInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
@@ -295,7 +297,7 @@ export default function AdminAnnouncementManager({
     setIsFormOpen(true);
   };
 
-  // Upload & nén ảnh đơn cho ảnh bìa
+  // Upload & nén ảnh đơn làm ảnh bìa
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -303,11 +305,11 @@ export default function AdminAnnouncementManager({
       setIsUploadingImage(true);
       const compressedBase64 = await compressImage(file, 1200, 0.8);
       setFormData((prev) => {
-        const nextImages = prev.images.includes(compressedBase64) ? prev.images : [compressedBase64, ...prev.images];
+        const remaining = prev.images.filter((img) => img !== compressedBase64);
         return {
           ...prev,
           imageUrl: compressedBase64,
-          images: nextImages
+          images: [compressedBase64, ...remaining]
         };
       });
     } catch (err) {
@@ -403,14 +405,34 @@ export default function AdminAnnouncementManager({
     });
   };
 
-  // Chọn ảnh nhanh từ kho kỷ niệm
-  const handleSelectFromLibrary = (url: string) => {
+  // Gỡ bỏ ảnh đại diện chính
+  const handleRemoveCover = () => {
     setFormData((prev) => {
-      const combined = prev.images.includes(url) ? prev.images : [...prev.images, url];
+      const remaining = prev.images.filter((img) => img !== prev.imageUrl);
       return {
         ...prev,
-        images: combined,
-        imageUrl: prev.imageUrl || url
+        imageUrl: remaining[0] || '',
+        images: remaining
+      };
+    });
+  };
+
+  // Chọn ảnh từ kho kỷ niệm K8A1
+  const handleSelectFromLibrary = (url: string) => {
+    if (libraryPickerMode === 'cover') {
+      handleSetAsCover(url);
+      setShowLibraryPicker(false);
+      return;
+    }
+    // Chế độ gallery: Thêm hoặc gỡ khỏi danh sách ảnh
+    setFormData((prev) => {
+      const isAdded = prev.images.includes(url);
+      const nextImages = isAdded ? prev.images.filter((i) => i !== url) : [...prev.images, url];
+      const nextCover = prev.imageUrl || nextImages[0] || '';
+      return {
+        ...prev,
+        images: nextImages,
+        imageUrl: nextCover
       };
     });
   };
@@ -1027,7 +1049,119 @@ ${webUrl}
               </div>
 
               {/* =============================================================== */}
-              {/* BỘ CÔNG CỤ QUẢN LÝ NHIỀU ẢNH & ALBUM BẢN TIN (MULTI-IMAGES) */}
+              {/* KHỐI 1: ẢNH ĐẠI DIỆN CHÍNH (ẢNH BÌA / COVER / THUMBNAIL CHIA SẺ) */}
+              {/* =============================================================== */}
+              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-amber-500/10 rounded-2xl border-2 border-amber-300 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-600 fill-amber-500" />
+                    <label className="text-xs sm:text-sm font-bold text-slate-800">
+                      Ảnh Đại Diện Chính (Ảnh Bìa / Thumbnail MXH)
+                    </label>
+                  </div>
+                  <span className="text-[11px] text-amber-900 font-medium">
+                    Xuất hiện đầu bài viết & làm ảnh preview trên Zalo / Facebook khi chia sẻ
+                  </span>
+                </div>
+
+                {formData.imageUrl ? (
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-xl border border-amber-200 shadow-xs">
+                    <div className="relative w-full sm:w-48 h-32 rounded-lg overflow-hidden bg-slate-900/10 border border-amber-300 shrink-0">
+                      <img
+                        src={formData.imageUrl}
+                        alt="Ảnh đại diện"
+                        className="w-full h-full object-cover"
+                        onError={(e: any) => {
+                          e.target.src = '/og-image.jpg';
+                        }}
+                      />
+                      <span className="absolute top-1.5 left-1.5 bg-amber-500 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                        ⭐ Ảnh Bìa
+                      </span>
+                    </div>
+
+                    <div className="flex-1 space-y-2 text-xs w-full">
+                      <p className="text-slate-600 text-[11px] leading-relaxed">
+                        Đang chọn bức ảnh này làm <strong>Ảnh Đại Diện Tiêu Điểm</strong>. Khi bạn chia sẻ lên Facebook/Zalo, ảnh này sẽ tự động xuất hiện trên khung xem trước.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLibraryPickerMode('cover');
+                            setShowLibraryPicker(true);
+                          }}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl flex items-center gap-1.5 cursor-pointer transition shadow-xs active:scale-95"
+                          title="Chọn ảnh khác từ Kho ảnh K8A1 làm ảnh bìa"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          <span>Đổi ảnh từ Kho K8A1</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploadingImage}
+                          className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold rounded-xl flex items-center gap-1.5 cursor-pointer transition shadow-xs active:scale-95"
+                          title="Tải ảnh từ máy tính hoặc điện thoại làm ảnh bìa"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{isUploadingImage ? 'Đang nén ảnh...' : 'Tải ảnh khác từ máy'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRemoveCover}
+                          className="px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl font-bold flex items-center gap-1 cursor-pointer transition ml-auto"
+                          title="Gỡ ảnh bìa này"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Gỡ ảnh bìa</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl border-2 border-dashed border-amber-300 bg-white/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <ImagePlus className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-800">Chưa có ảnh đại diện cho bản tin</h4>
+                        <p className="text-[11px] text-slate-500">Hãy chọn một bức ảnh đẹp để bài viết bắt mắt và hiển thị thumbnail khi gửi link qua Zalo/Facebook</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLibraryPickerMode('cover');
+                          setShowLibraryPicker(true);
+                        }}
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition shadow-xs active:scale-95"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>Chọn từ Kho K8A1</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingImage}
+                        className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition shadow-xs active:scale-95"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Tải từ máy</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* =============================================================== */}
+              {/* KHỐI 2: BỘ CÔNG CỤ QUẢN LÝ ALBUM ẢNH MINH HỌA TRONG BÀI */}
               {/* =============================================================== */}
               <div className="p-3 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
@@ -1120,9 +1254,18 @@ ${webUrl}
                 {showLibraryPicker && (
                   <div className="p-3 bg-white rounded-xl border-2 border-amber-300 shadow-md space-y-2 animate-in fade-in zoom-in-95">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-100 pb-2 gap-2">
-                      <span className="text-xs font-bold text-amber-950">
-                        📸 Chọn ảnh từ Thư viện ({filteredLibraryImages.length}):
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-amber-950">
+                          {libraryPickerMode === 'cover' 
+                            ? '⭐ BẤM CHỌN 1 ẢNH ĐỂ ĐẶT LÀM ẢNH ĐẠI DIỆN:' 
+                            : `📸 Bấm chọn ảnh để thêm vào Album (${filteredLibraryImages.length}):`}
+                        </span>
+                        {libraryPickerMode === 'cover' && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-slate-950 font-bold animate-pulse">
+                            Đang chọn Ảnh Bìa
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <select
                           value={libraryFilter}
@@ -1146,13 +1289,16 @@ ${webUrl}
 
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-60 overflow-y-auto p-1 scrollbar-thin">
                       {filteredLibraryImages.map((mem) => {
+                        const isCover = formData.imageUrl === mem.url;
                         const isAdded = formData.images.includes(mem.url);
                         return (
                           <div
                             key={mem.id || mem.url}
                             onClick={() => handleSelectFromLibrary(mem.url)}
                             className={`relative aspect-square rounded-lg overflow-hidden border cursor-pointer group transition ${
-                              isAdded
+                              isCover
+                                ? 'border-amber-500 ring-3 ring-amber-400 scale-102 shadow'
+                                : isAdded
                                 ? 'border-emerald-500 ring-2 ring-emerald-400'
                                 : 'border-slate-200 hover:border-amber-400 hover:scale-105'
                             }`}
@@ -1164,7 +1310,12 @@ ${webUrl}
                               className="w-full h-full object-cover"
                               loading="lazy"
                             />
-                            {isAdded && (
+                            {isCover && (
+                              <div className="absolute top-1 left-1 bg-amber-500 text-slate-950 text-[9px] font-bold px-1.5 py-0.5 rounded shadow">
+                                ⭐ Bìa
+                              </div>
+                            )}
+                            {!isCover && isAdded && (
                               <div className="absolute inset-0 bg-emerald-600/40 flex items-center justify-center">
                                 <Check className="w-4 h-4 text-white drop-shadow" />
                               </div>
@@ -1210,7 +1361,7 @@ ${webUrl}
                                 alt={`Ảnh ${index + 1}`}
                                 className="w-full h-full object-cover"
                                 onError={(e: any) => {
-                                  e.target.src = 'https://placehold.co/400x300?text=Loi+Anh';
+                                  e.currentTarget.src = '/og-image.jpg';
                                 }}
                               />
 

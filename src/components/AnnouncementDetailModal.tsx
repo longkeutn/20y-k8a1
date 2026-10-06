@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, ClassMember } from '../types';
 import { getGoogleCalendarUrl, downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
-import { cleanAnnouncementContent } from '../utils/announcementUtils';
+import { formatAnnouncementContent, cleanAnnouncementContent } from '../utils/announcementUtils';
 import { formatDateTimeVi } from '../data';
 import InteractivePollWidget from './InteractivePollWidget';
 
@@ -129,9 +129,9 @@ export default function AnnouncementDetailModal({
     return list;
   }, [announcement]);
 
-  // Làm sạch nội dung bài viết, loại bỏ các markdown link ảnh thừa ở cuối bài
+  // Làm sạch và dàn trang chuẩn xác nội dung bài viết, phân tách đoạn văn và giữ nguyên khoảng cách xuống dòng
   const sanitizedContent = useMemo(() => {
-    return cleanAnnouncementContent(announcement?.content || '');
+    return formatAnnouncementContent(announcement?.content || '');
   }, [announcement?.content]);
 
   // Phím tắt bàn phím điều hướng Lightbox (ESC, Left, Right)
@@ -202,20 +202,26 @@ export default function AnnouncementDetailModal({
     if (typeof window === 'undefined') return 'https://k8a1.vercel.app';
     const origin = window.location.origin;
     const key = announcement.slug || announcement.id;
-    const cover = announcement.imageUrl || (Array.isArray(announcement.images) && announcement.images[0]) || '';
+    const rawCover = announcement.imageUrl || (Array.isArray(announcement.images) && announcement.images[0]) || '';
+    // Nếu là base64 thì không đưa vào query URL để tránh tràn độ dài URL
+    const cover = rawCover.startsWith('data:image/') ? '' : rawCover;
 
-    // Nếu có ảnh đại diện, chuyển hướng qua /api/share để Zalo/Facebook tự động lấy thẻ Open Graph (ảnh preview + tiêu đề)
-    if (cover) {
-      const params = new URLSearchParams();
-      params.set('news', key);
-      params.set('title', announcement.title);
-      if (announcement.summary) params.set('desc', announcement.summary);
-      params.set('img', cover);
-      return `${origin}/api/share?${params.toString()}`;
+    // Chuyển hướng qua /api/share để Zalo/Facebook tự động lấy thẻ Open Graph (ảnh preview + tiêu đề)
+    const params = new URLSearchParams();
+    params.set('news', key);
+    params.set('title', announcement.title);
+    if (announcement.summary) {
+      params.set('desc', announcement.summary.slice(0, 120));
     }
-
-    const path = window.location.pathname || '/';
-    return `${origin}${path}?news=${encodeURIComponent(key)}`;
+    if (cover) {
+      params.set('img', cover);
+      // Tạo mã phiên bản để MXH (Facebook/Zalo) luôn tải mới lại ảnh thay vì dùng cache cũ
+      const vCode = cover.split(/[/=_-]/).filter(Boolean).pop()?.slice(0, 8) || 'v1';
+      params.set('v', vCode);
+    } else {
+      params.set('v', 'default');
+    }
+    return `${origin}/api/share?${params.toString()}`;
   };
 
   const handleCopyLink = () => {
@@ -360,7 +366,7 @@ ${shareUrl}`;
                 src={allImages[0]} 
                 alt={announcement.title} 
                 className="w-full max-h-[340px] sm:max-h-[380px] object-cover group-hover:scale-101 transition duration-300"
-                onError={(e: any) => { e.target.style.display = 'none'; }}
+                onError={(e: any) => { e.currentTarget.src = '/og-image.jpg'; }}
               />
               <div className="absolute bottom-2.5 right-2.5 bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium px-2.5 py-1 rounded-full flex items-center gap-1 opacity-80 group-hover:opacity-100 transition shadow">
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -390,6 +396,7 @@ ${shareUrl}`;
                   src={allImages[0]} 
                   alt="Ảnh tiêu điểm" 
                   className="w-full max-h-[300px] sm:max-h-[360px] object-cover group-hover:scale-101 transition duration-300"
+                  onError={(e: any) => { e.currentTarget.src = '/og-image.jpg'; }}
                 />
                 <div className="absolute top-2.5 left-2.5 bg-amber-500 text-slate-950 font-bold text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 shadow">
                   <Sparkles className="w-3 h-3" />

@@ -141,7 +141,7 @@ export default function ClassNewsFeed({
               src={item.imageUrl} 
               alt={item.title} 
               className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              onError={(e: any) => { e.target.style.display = 'none'; }}
+              onError={(e: any) => { e.currentTarget.src = '/og-image.jpg'; }}
             />
           </div>
         )}
@@ -287,6 +287,7 @@ export default function ClassNewsFeed({
                       src={pinnedItem.imageUrl} 
                       alt={pinnedItem.title} 
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-90 group-hover:opacity-100"
+                      onError={(e: any) => { e.currentTarget.src = '/og-image.jpg'; }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] md:bg-gradient-to-r via-transparent to-transparent opacity-80 md:opacity-100" />
                   </div>
