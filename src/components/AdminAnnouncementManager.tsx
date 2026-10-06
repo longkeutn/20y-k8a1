@@ -36,6 +36,7 @@ import RichTextEditor from './RichTextEditor';
 import { Announcement, AnnouncementCategory, PollData, PollOption } from '../types';
 import { CATEGORY_STYLES } from './AnnouncementDetailModal';
 import { DEFAULT_MEMORIES } from '../data';
+import { cleanAnnouncementContent } from '../utils/announcementUtils';
 
 // Các đích đến phổ biến trong webapp để gợi ý cho Ban Liên Lạc
 const QUICK_ACTION_TARGETS = [
@@ -271,7 +272,7 @@ export default function AdminAnnouncementManager({
       title: item.title || '',
       category: item.category || 'schedule',
       summary: item.summary || '',
-      content: item.content || '',
+      content: cleanAnnouncementContent(item.content || ''),
       imageUrl: item.imageUrl || existingImages[0] || '',
       images: existingImages,
       actionUrl: item.actionUrl || '',
@@ -398,14 +399,6 @@ export default function AdminAnnouncementManager({
     }));
   };
 
-  // Chèn thẻ markdown ảnh vào nội dung văn bản
-  const handleInsertImageIntoContent = (url: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      content: prev.content ? `${prev.content}\n\n![Ảnh minh họa](${url})\n` : `![Ảnh minh họa](${url})\n`
-    }));
-  };
-
   // Chọn ảnh nhanh từ kho kỷ niệm
   const handleSelectFromLibrary = (url: string) => {
     setFormData((prev) => {
@@ -451,7 +444,7 @@ export default function AdminAnnouncementManager({
       title: formData.title.trim(),
       category: formData.category,
       summary: formData.summary.trim() || formData.title.trim(),
-      content: formData.content.trim() || formData.summary.trim() || formData.title.trim(),
+      content: cleanAnnouncementContent(formData.content.trim() || formData.summary.trim() || formData.title.trim()),
       imageUrl: formData.imageUrl.trim() || (cleanImages.length > 0 ? cleanImages[0] : undefined),
       images: cleanImages.length > 0 ? cleanImages : undefined,
       actionUrl: formData.actionUrl.trim() || undefined,
@@ -1235,29 +1228,20 @@ ${webUrl}
                               </button>
                             </div>
 
-                            {/* Cụm nút hành động cho từng ảnh */}
-                            <div className="flex items-center justify-between gap-1 mt-1.5 pt-1 border-t border-slate-100">
+                            {/* Nút đặt làm ảnh bìa chính */}
+                            <div className="mt-1.5 pt-1 border-t border-slate-100">
                               <button
                                 type="button"
                                 onClick={() => handleSetAsCover(imgUrl)}
-                                className={`flex-1 py-1 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 cursor-pointer transition ${
+                                className={`w-full py-1 rounded-md text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition ${
                                   isCover
-                                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                    : 'bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-800'
+                                    ? 'bg-amber-500 text-slate-950 border border-amber-600 shadow-xs'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-amber-100 hover:text-amber-900 border border-slate-200'
                                 }`}
-                                title="Đặt ảnh này làm ảnh bìa chính"
+                                title="Đặt ảnh này làm ảnh bìa chính (Cover)"
                               >
-                                <Star className={`w-3 h-3 ${isCover ? 'fill-amber-600 text-amber-600' : 'text-slate-400'}`} />
-                                <span>{isCover ? 'Ảnh Bìa' : 'Làm bìa'}</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleInsertImageIntoContent(imgUrl, `Ảnh minh họa #${index + 1}`)}
-                                className="py-1 px-2 rounded text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 transition cursor-pointer flex items-center gap-0.5"
-                                title="Chèn cú pháp markdown ảnh này vào nội dung văn bản bài viết"
-                              >
-                                <span>Chèn vào bài</span>
+                                <Star className={`w-3 h-3 ${isCover ? 'fill-slate-950 text-slate-950' : 'text-slate-400'}`} />
+                                <span>{isCover ? '⭐ Đang làm Ảnh Bìa' : 'Chọn làm Ảnh Bìa'}</span>
                               </button>
                             </div>
                           </div>

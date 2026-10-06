@@ -4847,6 +4847,15 @@ function saveAnnouncement(postData) {
           } catch (e) {}
         }
       }
+      // Dọn sạch cú pháp markdown ảnh thừa sót lại trong nội dung
+      contentStr = contentStr.replace(/<p[^>]*>\s*!\[.*?\]\s*<\/p>\s*<p[^>]*>\s*\(?https?:\/\/[^\s\)<>"]+\)?\s*<\/p>/gi, '')
+                             .replace(/<p[^>]*>\s*!\[.*?\]\s*\(?https?:\/\/[^\s\)<>"]+\)?\s*<\/p>/gi, '')
+                             .replace(/!\[.*?\]\s*(?:<br\s*\/?>|\n)?\s*\(?https?:\/\/[^\s\)<>"]+\)?/gi, '')
+                             .replace(/<p[^>]*>\s*!\[.*?\]\s*<\/p>/gi, '')
+                             .replace(/!\[.*?\]/gi, '')
+                             .replace(/\(https?:\/\/[^\s\)]+(?:googleusercontent|drive\.google|\.jpg|\.jpeg|\.png|\.webp)[^\s\)]*\)/gi, '')
+                             .replace(/<p[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\s)*\s*<\/p>/gi, '')
+                             .trim();
       a.content = contentStr;
 
       var rowValues = [

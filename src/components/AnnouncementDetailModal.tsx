@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, ClassMember } from '../types';
 import { getGoogleCalendarUrl, downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
+import { cleanAnnouncementContent } from '../utils/announcementUtils';
 import InteractivePollWidget from './InteractivePollWidget';
 
 interface AnnouncementDetailModalProps {
@@ -259,8 +260,10 @@ ${shareUrl}
     }
   };
 
-  // Chia nội dung thành các đoạn văn rõ ràng
-  const paragraphs = announcement.content.split('\n\n').filter(p => p.trim().length > 0);
+  // Làm sạch nội dung bài viết, loại bỏ các markdown link ảnh thừa ở cuối bài
+  const sanitizedContent = useMemo(() => {
+    return cleanAnnouncementContent(announcement.content);
+  }, [announcement.content]);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
@@ -587,7 +590,7 @@ ${shareUrl}
           )}
 
           {/* TOÀN VĂN NỘI DUNG CHI TIẾT */}
-          <div className="space-y-3 pt-1 text-slate-800 ql-editor px-0 text-sm sm:text-[15px]" dangerouslySetInnerHTML={{ __html: announcement.content }} />
+          <div className="space-y-3 pt-1 text-slate-800 ql-editor px-0 text-sm sm:text-[15px]" dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
 
           {/* LỜI KẾT & CHỮ KÝ BLL */}
           <div className="pt-4 border-t border-amber-200/80 flex items-center justify-between text-xs text-slate-500 font-sans">
