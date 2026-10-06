@@ -100,20 +100,32 @@ export default async function handler(req, res) {
       const timeout = setTimeout(() => controller.abort(), 9500);
       const resGAS = await fetch(GAS_API_URL, { signal: controller.signal, redirect: 'follow' });
       clearTimeout(timeout);
-      const text = await resGAS.text();
+      const json = await resGAS.json();
+      const match = json.data?.find(a => 
+        (a.id && a.id.toLowerCase() === newsId.toLowerCase()) ||
+        (a.slug && a.slug.toLowerCase() === newsId.toLowerCase())
+      );
       return res.status(200).json({
         timeMs: Date.now() - t0,
-        status: resGAS.status,
-        bodySnippet: text.slice(0, 200)
+        reqUrl: req.url,
+        reqQuery: req.query,
+        newsId: newsId,
+        matchedTitle: match?.title || null,
+        matchedImg: match?.imageUrl || null,
+        totalItems: json.data?.length || 0
       });
     } catch (e) {
       return res.status(200).json({
         timeMs: Date.now() - t0,
+        reqUrl: req.url,
+        reqQuery: req.query,
+        newsId: newsId,
         error: e.message,
         type: e.name
       });
     }
   }
+
 
 
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'k8a1.vercel.app';
