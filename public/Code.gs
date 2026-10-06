@@ -4597,10 +4597,11 @@ function getAnnouncementsSheet() {
       'Người Đăng / Tác Giả',
       'Trạng Thái Bài Viết',
       'Lượt Thích (Likes)',
-      'Dữ Liệu Bình Chọn (JSON)'
-    ];
+        'Dữ Liệu Bình Chọn (JSON)',
+        'Ảnh Đính Kèm (JSON)'
+      ];
     sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#FAF3E0');
+    sheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#FAF3E0');
     sheet.setFrozenRows(1);
 
     // Chèn sẵn 5 thông báo mẫu chuẩn K8A1 ban đầu (kèm TB-05 poll trực tiếp)
@@ -4729,16 +4730,28 @@ function getAnnouncementsList() {
       var isPinned = (isPinnedRaw === true || String(isPinnedRaw).toUpperCase() === 'TRUE' || isPinnedRaw === 1);
 
       var pollRaw = row[13];
-      var pollData = undefined;
-      if (pollRaw) {
-        try {
-          if (typeof pollRaw === 'object') {
-            pollData = pollRaw;
-          } else if (typeof pollRaw === 'string' && pollRaw.trim().startsWith('{')) {
-            pollData = JSON.parse(pollRaw.trim());
-          }
-        } catch (ePoll) {}
-      }
+              var pollData = undefined;
+        if (pollRaw) {
+          try {
+            if (typeof pollRaw === 'object') {
+              pollData = pollRaw;
+            } else if (typeof pollRaw === 'string' && pollRaw.trim().startsWith('{')) {
+              pollData = JSON.parse(pollRaw.trim());
+            }
+          } catch (ePoll) {}
+        }
+        
+        var imagesRaw = row[14];
+        var imagesList = [];
+        if (imagesRaw) {
+          try {
+            if (typeof imagesRaw === 'object') {
+              imagesList = imagesRaw;
+            } else if (typeof imagesRaw === 'string' && imagesRaw.trim().startsWith('[')) {
+              imagesList = JSON.parse(imagesRaw.trim());
+            }
+          } catch (eImg) {}
+        }
 
       announcements.push({
         id: id,
@@ -4754,8 +4767,9 @@ function getAnnouncementsList() {
         author: String(row[10] || 'Ban Liên Lạc K8A1').trim(),
         status: String(row[11] || 'published').trim().toLowerCase(),
         likesCount: Number(row[12]) || 0,
-        poll: pollData
-      });
+        poll: pollData,
+          images: imagesList.length > 0 ? imagesList : undefined
+        });
     }
 
     // Sắp xếp: Tin ghim lên đầu, sau đó theo createdAt giảm dần
@@ -4781,15 +4795,67 @@ function saveAnnouncement(postData) {
     var id = a.id ? String(a.id).trim() : ('TB-' + Date.now());
     var createdAt = a.createdAt ? String(a.createdAt).trim() : nowStr;
     var isPinned = Boolean(a.isPinned);
-    var pollJsonStr = a.poll ? JSON.stringify(a.poll) : '';
+          var pollJsonStr = a.poll ? JSON.stringify(a.poll) : '';
 
-    var rowValues = [
+      // Tự động upload Ảnh Bìa (Cover Image) lên Drive nếu là base64
+      var imageUrl = a.imageUrl || '';
+      if (imageUrl.indexOf('data:image/') === 0) {
+        try {
+          var upRes = uploadPhotoToDrive({ fileData: imageUrl, caption: 'Cover_' + id, albumId: 'ban-tin' });
+          if (upRes && upRes.data && upRes.data.url) {
+            imageUrl = upRes.data.url;
+            a.imageUrl = imageUrl;
+          }
+        } catch (e) {}
+      }
+
+      // Tự động upload các Ảnh đính kèm (Nhiều ảnh) lên Drive nếu là base64
+      var images = a.images || [];
+      var uploadedImages = [];
+      for (var i = 0; i < images.length; i++) {
+        var img = images[i];
+        if (img.indexOf('data:image/') === 0) {
+          try {
+            var upRes = uploadPhotoToDrive({ fileData: img, caption: 'Photo_' + i + '_' + id, albumId: 'ban-tin' });
+            if (upRes && upRes.data && upRes.data.url) {
+              uploadedImages.push(upRes.data.url);
+            } else {
+              uploadedImages.push(img);
+            }
+          } catch (e) {
+            uploadedImages.push(img);
+          }
+        } else {
+          uploadedImages.push(img);
+        }
+      }
+      var imagesJsonStr = uploadedImages.length > 0 ? JSON.stringify(uploadedImages) : '';
+      a.images = uploadedImages.length > 0 ? uploadedImages : undefined;
+
+      // Tự động upload các ảnh nội tuyến (Inline images) trong HTML content lên Drive
+      var contentStr = a.content || '';
+      var regex = /data:image\/[^;]+;base64,[^"')]+/g;
+      var matches = contentStr.match(regex);
+      if (matches) {
+        for (var i = 0; i < matches.length; i++) {
+          var base64 = matches[i];
+          try {
+            var upRes = uploadPhotoToDrive({ fileData: base64, caption: 'Inline_' + i + '_' + id, albumId: 'ban-tin' });
+            if (upRes && upRes.data && upRes.data.url) {
+              contentStr = contentStr.replace(base64, upRes.data.url);
+            }
+          } catch (e) {}
+        }
+      }
+      a.content = contentStr;
+
+      var rowValues = [
       id,
       String(a.title || '').trim(),
       String(a.category || 'schedule').trim().toLowerCase(),
       String(a.summary || '').trim(),
-      String(a.content || '').trim(),
-      String(a.imageUrl || '').trim(),
+      String(contentStr).trim(),
+      String(imageUrl).trim(),
       String(a.actionUrl || '').trim(),
       String(a.actionLabel || '').trim(),
       isPinned ? 'TRUE' : 'FALSE',
@@ -4797,8 +4863,9 @@ function saveAnnouncement(postData) {
       String(a.author || 'Ban Liên Lạc K8A1').trim(),
       String(a.status || 'published').trim().toLowerCase(),
       Number(a.likesCount) || 0,
-      pollJsonStr
-    ];
+      pollJsonStr,
+        imagesJsonStr
+      ];
 
     var lastRow = sheet.getLastRow();
     var existingRowIndex = -1;
@@ -4815,7 +4882,7 @@ function saveAnnouncement(postData) {
 
     if (existingRowIndex > 0) {
       // Cập nhật dòng hiện có
-      sheet.getRange(existingRowIndex, 1, 1, 14).setValues([rowValues]);
+      sheet.getRange(existingRowIndex, 1, 1, 15).setValues([rowValues]);
       return { status: 'success', message: 'Đã cập nhật thông báo thành công!', data: a, actionType: 'update' };
     } else {
       // Thêm dòng mới
