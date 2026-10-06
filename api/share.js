@@ -1,22 +1,35 @@
 /**
- * Vercel Serverless Function: Dynamic Open Graph Preview & Redirect for Social Media Sharing
- * - Hỗ trợ Facebook, Zalo, Twitter, Messenger, Telegram tự động lấy ảnh đại diện, tiêu đề và tóm tắt của bài viết
- * - Tự động chuyển hướng ngay lập tức (0.01 giây) khi người dùng bấm vào link
+ * Vercel Serverless Function: Dynamic Social Media Link Preview Card (Open Graph)
+ * - Tự động hiển thị ảnh đại diện bài viết, tiêu đề và trích dẫn trên Facebook, Zalo, Messenger, Telegram...
+ * - Đối với người dùng thật: Chuyển hướng siêu tốc (HTTP 302) về WebApp mở bài viết
+ * - Đối với Bot/Crawler của MXH: Trả về HTML chứa đầy đủ thẻ Open Graph (Không redirect, không canonical sai)
  */
 export default function handler(req, res) {
   const { title, desc, img, news, id } = req.query;
 
   const newsId = news || id || '';
-  const postTitle = title ? decodeURIComponent(title) : 'Bản tin K8A1 THPT Thái Nguyên';
-  const postDesc = desc ? decodeURIComponent(desc) : 'Kỷ niệm 20 năm ngày ra trường niên khóa 2003 - 2006';
-  const postImg = img ? decodeURIComponent(img) : 'https://k8a1.vercel.app/og-image.jpg';
+  const postTitle = title ? String(title).trim() : 'Bản tin K8A1 THPT Thái Nguyên';
+  const postDesc = desc ? String(desc).trim() : 'Kỷ niệm 20 năm ngày ra trường niên khóa 2003 - 2006';
+  const postImg = img ? String(img).trim() : 'https://k8a1.vercel.app/og-image.jpg';
 
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'k8a1.vercel.app';
   const proto = req.headers['x-forwarded-proto'] || 'https';
+  
+  // Link đích mà người dùng sẽ xem trên WebApp
   const targetUrl = newsId 
     ? `${proto}://${host}/?news=${encodeURIComponent(newsId)}`
     : `${proto}://${host}/`;
 
+  // Kiểm tra xem User-Agent có phải là Bot / Crawler của Mạng xã hội không
+  const userAgent = req.headers['user-agent'] || '';
+  const isBot = /facebookexternalhit|facebot|facebookcatalog|zalo|twitterbot|telegrambot|linkedinbot|slackbot|whatsapp|bingbot|googlebot|crawler|spider/i.test(userAgent);
+
+  // 1. Nếu là NGƯỜI DÙNG THẬT: Chuyển hướng 302 ngay lập tức về WebApp
+  if (!isBot) {
+    return res.redirect(302, targetUrl);
+  }
+
+  // 2. Nếu là BOT CRAWLER (Facebook, Zalo...): Trả về trang HTML thuần chứa đầy đủ thẻ Open Graph
   function escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -30,10 +43,10 @@ export default function handler(req, res) {
   const safeTitle = escapeHtml(postTitle);
   const safeDesc = escapeHtml(postDesc);
   const safeImg = escapeHtml(postImg);
-  const safeTargetUrl = escapeHtml(targetUrl);
+  const currentShareUrl = escapeHtml(`${proto}://${host}${req.url}`);
 
   const html = `<!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
   <title>${safeTitle} | K8A1 THPT Thái Nguyên</title>
@@ -45,29 +58,28 @@ export default function handler(req, res) {
   <meta property="og:title" content="${safeTitle}">
   <meta property="og:description" content="${safeDesc}">
   <meta property="og:image" content="${safeImg}">
+  <meta property="og:image:secure_url" content="${safeImg}">
+  <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:url" content="${safeTargetUrl}">
+  <meta property="og:image:alt" content="${safeTitle}">
+  <meta property="og:url" content="${currentShareUrl}">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${safeTitle}">
   <meta name="twitter:description" content="${safeDesc}">
   <meta name="twitter:image" content="${safeImg}">
-
-  <!-- Chuyển hướng siêu tốc về WebApp mở bài viết -->
-  <meta http-equiv="refresh" content="0; url=${safeTargetUrl}">
-  <script>
-    window.location.replace("${safeTargetUrl}");
-  </script>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px; background: #FAF6EC; color: #78350f;">
-  <h2>🌸 Đang chuyển tiếp tới Bản tin K8A1...</h2>
-  <p><a href="${safeTargetUrl}" style="color: #b45309; font-weight: bold;">Bấm vào đây nếu trình duyệt không tự chuyển</a></p>
+<body style="font-family: sans-serif; text-align: center; padding: 40px; background: #FAF6EC; color: #78350f;">
+  <h1>${safeTitle}</h1>
+  <p>${safeDesc}</p>
+  <img src="${safeImg}" alt="${safeTitle}" style="max-width: 100%; height: auto; border-radius: 8px;" />
+  <p><a href="${escapeHtml(targetUrl)}" style="color: #b45309; font-weight: bold;">Bấm vào đây để xem trực tiếp bản tin</a></p>
 </body>
 </html>`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+  res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
   return res.status(200).send(html);
 }
