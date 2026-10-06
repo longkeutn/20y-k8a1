@@ -76,10 +76,7 @@ async function fetchAnnouncements() {
     const timeout = setTimeout(() => controller.abort(), 12000);
     const res = await fetch(GAS_API_URL, { 
       signal: controller.signal,
-      redirect: 'follow',
-      headers: {
-        'Accept': 'application/json'
-      }
+      redirect: 'follow'
     });
     clearTimeout(timeout);
     if (!res.ok) return cachedAnnouncements || [];
