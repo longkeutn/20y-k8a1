@@ -1,15 +1,19 @@
 /**
  * Vercel Serverless Function: Dynamic Social Media Link Preview Card (Open Graph)
  * - Tự động tra cứu tiêu đề, tóm tắt và ảnh bìa từ danh sách bản tin (Google Apps Script API & Bộ nhớ đệm)
- * - Hỗ trợ đường link chia sẻ siêu ngắn gọn (ví dụ: https://k8a1.vercel.app/s/TB-1791260430101)
- * - Đối với người dùng thật: Chuyển hướng siêu tốc (HTTP 302) về WebApp mở đúng bài viết
+ * - Đường link chia sẻ siêu ngắn gọn: https://k8a1.vercel.app/s/TB-1791260430101
+ * - Đối với người dùng thật: Chuyển hướng 302 siêu tốc về WebApp mở bài viết
  * - Đối với Bot MXH (Facebook, Zalo, Twitter, Telegram...): Trả về thẻ Open Graph đầy đủ để hiển thị ảnh to đẹp
  */
+
+export const config = {
+  maxDuration: 15,
+};
 
 // Bộ nhớ đệm trong RAM của Serverless instance để phản hồi tức thì (0ms)
 let cachedAnnouncements = null;
 let lastCacheTime = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 phút
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 phút
 
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby_hm9akENv_GmNpF8s9ALVReDd_8ORPS_RqpUZ9FS6GB_Qdnmjhh5XZ5iKZhnE_9S0/exec?action=get_announcements';
 
@@ -69,10 +73,13 @@ async function fetchAnnouncements() {
   }
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 9000);
+    const timeout = setTimeout(() => controller.abort(), 12000);
     const res = await fetch(GAS_API_URL, { 
       signal: controller.signal,
-      redirect: 'follow'
+      redirect: 'follow',
+      headers: {
+        'Accept': 'application/json'
+      }
     });
     clearTimeout(timeout);
     if (!res.ok) return cachedAnnouncements || [];
@@ -89,44 +96,9 @@ async function fetchAnnouncements() {
 }
 
 export default async function handler(req, res) {
-  const { title, desc, img, news, id, debug } = req.query;
+  const { title, desc, img, news, id, t, i } = req.query;
   const rawNewsId = news || id || '';
   const newsId = decodeURIComponent(String(rawNewsId).trim());
-
-  if (debug === '1') {
-    const t0 = Date.now();
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 9500);
-      const resGAS = await fetch(GAS_API_URL, { signal: controller.signal, redirect: 'follow' });
-      clearTimeout(timeout);
-      const json = await resGAS.json();
-      const match = json.data?.find(a => 
-        (a.id && a.id.toLowerCase() === newsId.toLowerCase()) ||
-        (a.slug && a.slug.toLowerCase() === newsId.toLowerCase())
-      );
-      return res.status(200).json({
-        timeMs: Date.now() - t0,
-        reqUrl: req.url,
-        reqQuery: req.query,
-        newsId: newsId,
-        matchedTitle: match?.title || null,
-        matchedImg: match?.imageUrl || null,
-        totalItems: json.data?.length || 0
-      });
-    } catch (e) {
-      return res.status(200).json({
-        timeMs: Date.now() - t0,
-        reqUrl: req.url,
-        reqQuery: req.query,
-        newsId: newsId,
-        error: e.message,
-        type: e.name
-      });
-    }
-  }
-
-
 
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'k8a1.vercel.app';
   const proto = req.headers['x-forwarded-proto'] || 'https';
@@ -150,10 +122,16 @@ export default async function handler(req, res) {
   }
 
   // 2. Nếu là BOT CRAWLER (Facebook, Zalo...):
-  let postTitle = title ? String(title).trim() : '';
+  let postTitle = (title || t) ? String(title || t).trim() : '';
   let postDesc = desc ? String(desc).trim() : '';
-  let postImg = img ? String(img).trim() : '';
+  let postImg = (img || i) ? String(img || i).trim() : '';
   let isFound = false;
+
+  // Nếu postImg chỉ là ID ảnh Drive (ví dụ: 1wPROM4Yti-_9IY8-IcHngxv9vhxhbA0n), mở rộng thành URL đầy đủ
+  if (postImg && !postImg.startsWith('http') && !postImg.startsWith('/') && !postImg.startsWith('data:')) {
+    postImg = `https://lh3.googleusercontent.com/d/${postImg}=w1200`;
+    isFound = true;
+  }
 
   // Tra cứu tự động nếu chưa có đủ tiêu đề hoặc ảnh từ query string
   if (newsId && (!postTitle || !postImg)) {
