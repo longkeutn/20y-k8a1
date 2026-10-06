@@ -107,19 +107,23 @@ export default function AnnouncementDetailModal({
   const [showCalendarMenu, setShowCalendarMenu] = useState(false);
   const [savedCalendar, setSavedCalendar] = useState(false);
 
-  // Tổng hợp tất cả ảnh của bài viết (từ images array và imageUrl)
+  // Tổng hợp tất cả ảnh của bài viết (Ảnh bìa Cover luôn được ưu tiên đứng vị trí số 1 làm Ảnh Tiêu Điểm)
   const allImages = useMemo(() => {
     if (!announcement) return [];
     const list: string[] = [];
+    const cover = announcement.imageUrl?.trim();
+    if (cover) {
+      list.push(cover);
+    }
     if (Array.isArray(announcement.images) && announcement.images.length > 0) {
       announcement.images.forEach((img) => {
-        if (img && typeof img === 'string' && img.trim() && !list.includes(img.trim())) {
-          list.push(img.trim());
+        if (img && typeof img === 'string' && img.trim()) {
+          const trimmed = img.trim();
+          if (!list.includes(trimmed)) {
+            list.push(trimmed);
+          }
         }
       });
-    }
-    if (announcement.imageUrl && !list.includes(announcement.imageUrl.trim())) {
-      list.unshift(announcement.imageUrl.trim());
     }
     return list;
   }, [announcement]);
@@ -590,7 +594,10 @@ ${shareUrl}
           )}
 
           {/* TOÀN VĂN NỘI DUNG CHI TIẾT */}
-          <div className="space-y-3 pt-1 text-slate-800 ql-editor px-0 text-sm sm:text-[15px]" dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
+          <div 
+            className="pt-2 text-slate-800 ql-editor px-0 text-[15px] sm:text-base leading-relaxed tracking-normal font-sans [&_p]:mb-3.5 [&_p:last-child]:mb-0 [&_p]:min-h-[1.25em] [&_strong]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-amber-950 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-amber-900 [&_h3]:mt-3 [&_h3]:mb-1.5 [&_blockquote]:border-l-4 [&_blockquote]:border-amber-400 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-slate-600 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1" 
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }} 
+          />
 
           {/* LỜI KẾT & CHỮ KÝ BLL */}
           <div className="pt-4 border-t border-amber-200/80 flex items-center justify-between text-xs text-slate-500 font-sans">

@@ -129,6 +129,10 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         .ql-editor {
           min-height: 250px;
         }
+        .ql-editor p {
+          margin-bottom: 0.85rem;
+          line-height: 1.75;
+        }
         .ql-editor img {
           border-radius: 8px;
           margin: 10px auto;

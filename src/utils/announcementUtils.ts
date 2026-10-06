@@ -26,8 +26,8 @@ export function cleanAnnouncementContent(content: string): string {
   text = text.replace(/!\[.*?\]/gi, '');
   text = text.replace(/\(https?:\/\/[^\s\)]+(?:googleusercontent|drive\.google|\.jpg|\.jpeg|\.png|\.webp)[^\s\)]*\)/gi, '');
 
-  // 4. Loại bỏ các đoạn văn <p> rỗng sinh ra sau khi đã xóa link
-  text = text.replace(/<p[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\s)*\s*<\/p>/gi, '');
+  // 4. Chỉ loại bỏ các đoạn văn <p> rỗng ở cuối cùng của bài viết (sau khi đã gỡ link ảnh)
+  text = text.replace(/(?:<p[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\s)*\s*<\/p>\s*)+$/gi, '');
 
   return text.trim();
 }

@@ -391,12 +391,16 @@ export default function AdminAnnouncementManager({
     });
   };
 
-  // Đặt làm ảnh đại diện chính (Cover)
+  // Đặt làm ảnh đại diện chính (Cover) và đưa lên đầu danh sách ảnh
   const handleSetAsCover = (url: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      imageUrl: url
-    }));
+    setFormData((prev) => {
+      const remaining = prev.images.filter((img) => img !== url);
+      return {
+        ...prev,
+        imageUrl: url,
+        images: [url, ...remaining]
+      };
+    });
   };
 
   // Chọn ảnh nhanh từ kho kỷ niệm
@@ -438,6 +442,10 @@ export default function AdminAnnouncementManager({
     }
 
     const cleanImages = formData.images.filter((img) => Boolean(img && img.trim()));
+    const coverUrl = formData.imageUrl.trim() || (cleanImages.length > 0 ? cleanImages[0] : undefined);
+    const reorderedImages = coverUrl
+      ? [coverUrl, ...cleanImages.filter((img) => img !== coverUrl)]
+      : cleanImages;
 
     const updatedAnnouncement: Announcement = {
       id: editingId || `TB-${Date.now()}`,
@@ -445,8 +453,8 @@ export default function AdminAnnouncementManager({
       category: formData.category,
       summary: formData.summary.trim() || formData.title.trim(),
       content: cleanAnnouncementContent(formData.content.trim() || formData.summary.trim() || formData.title.trim()),
-      imageUrl: formData.imageUrl.trim() || (cleanImages.length > 0 ? cleanImages[0] : undefined),
-      images: cleanImages.length > 0 ? cleanImages : undefined,
+      imageUrl: coverUrl,
+      images: reorderedImages.length > 0 ? reorderedImages : undefined,
       actionUrl: formData.actionUrl.trim() || undefined,
       actionLabel: formData.actionLabel.trim() || undefined,
       isPinned: formData.isPinned,

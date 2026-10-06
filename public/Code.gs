@@ -4854,7 +4854,7 @@ function saveAnnouncement(postData) {
                              .replace(/<p[^>]*>\s*!\[.*?\]\s*<\/p>/gi, '')
                              .replace(/!\[.*?\]/gi, '')
                              .replace(/\(https?:\/\/[^\s\)]+(?:googleusercontent|drive\.google|\.jpg|\.jpeg|\.png|\.webp)[^\s\)]*\)/gi, '')
-                             .replace(/<p[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\s)*\s*<\/p>/gi, '')
+                             .replace(/(?:<p[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\s)*\s*<\/p>\s*)+$/gi, '')
                              .trim();
       a.content = contentStr;
 
