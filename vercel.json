@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/img/(.*)", "destination": "/api/img?id=$1" },
     { "source": "/s", "destination": "/" },
     { "source": "/s/(.*)", "destination": "/api/share?news=$1" },
     { "source": "/api/(.*)", "destination": "/api/$1" },

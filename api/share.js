@@ -172,6 +172,13 @@ export default async function handler(req, res) {
   // Chuẩn hóa đường link ảnh đại diện
   if (!postImg || postImg.startsWith('data:image/') || postImg === 'undefined' || postImg === 'null') {
     postImg = defaultFallbackImage;
+  } else if (postImg.includes('googleusercontent.com') || postImg.includes('drive.google.com')) {
+    // Chuyển link ảnh Google Drive sang proxy tĩnh chuẩn .jpg trên domain k8a1.vercel.app
+    // Giúp Facebook và Zalo nhận diện và tải ảnh lập tức 100%, không bị chặn
+    const driveMatch = postImg.match(/\/d\/([a-zA-Z0-9_-]+)/) || postImg.match(/id=([a-zA-Z0-9_-]+)/);
+    if (driveMatch && driveMatch[1]) {
+      postImg = `${proto}://${host}/img/${driveMatch[1]}.jpg`;
+    }
   } else if (postImg.startsWith('/')) {
     postImg = `${proto}://${host}${postImg}`;
   }
@@ -179,7 +186,7 @@ export default async function handler(req, res) {
   const safeTitle = escapeHtml(postTitle);
   const safeDesc = escapeHtml(postDesc);
   const safeImg = escapeHtml(postImg);
-  const canonicalUrl = `${proto}://${host}/s/${encodeURIComponent(newsId || '')}`;
+  const canonicalUrl = `${proto}://${host}${req.url}`;
   const safeCanonicalUrl = escapeHtml(canonicalUrl);
   const safeTargetUrl = escapeHtml(targetUrl);
 
@@ -210,8 +217,7 @@ export default async function handler(req, res) {
   <meta name="twitter:description" content="${safeDesc}">
   <meta name="twitter:image" content="${safeImg}">
 
-  <!-- Tự động chuyển tiếp nếu trình duyệt người dùng mở trực tiếp trang này -->
-  <meta http-equiv="refresh" content="0;url=${safeTargetUrl}">
+  <!-- Tự động chuyển tiếp bằng JS nếu trình duyệt người dùng mở trực tiếp (Bot không chạy JS nên không bị ảnh hưởng) -->
   <script>window.location.replace(${JSON.stringify(targetUrl)});</script>
 </head>
 <body style="font-family: sans-serif; text-align: center; padding: 40px; background: #FAF6EC; color: #78350f;">

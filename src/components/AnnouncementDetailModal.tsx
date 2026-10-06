@@ -203,8 +203,8 @@ export default function AnnouncementDetailModal({
     const origin = window.location.origin;
     const key = announcement.slug || announcement.id;
     if (!key) return `${origin}/`;
-    // Đường link chia sẻ siêu ngắn gọn, tinh tế (/s/id), tự động sinh thẻ Open Graph ảnh to cho Zalo & Facebook
-    return `${origin}/s/${encodeURIComponent(key)}`;
+    // Đường link chia sẻ siêu ngắn gọn (/s/id?v=1), ép Facebook & Zalo nạp ngay bản xem trước mới nhất
+    return `${origin}/s/${encodeURIComponent(key)}?v=1`;
   };
 
 
