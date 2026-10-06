@@ -206,6 +206,7 @@ export default async function handler(req, res) {
 
   const safeTitle = escapeHtml(postTitle);
   const safeDesc = escapeHtml(postDesc);
+  const safeImg = escapeHtml(postImg);
   const vParam = req.query.v ? `?v=${encodeURIComponent(req.query.v)}` : '';
   const canonicalUrl = newsId 
     ? `${proto}://${host}/s/${encodeURIComponent(newsId)}${vParam}`
