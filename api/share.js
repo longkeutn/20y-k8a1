@@ -89,9 +89,32 @@ async function fetchAnnouncements() {
 }
 
 export default async function handler(req, res) {
-  const { title, desc, img, news, id } = req.query;
+  const { title, desc, img, news, id, debug } = req.query;
   const rawNewsId = news || id || '';
   const newsId = decodeURIComponent(String(rawNewsId).trim());
+
+  if (debug === '1') {
+    const t0 = Date.now();
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 9500);
+      const resGAS = await fetch(GAS_API_URL, { signal: controller.signal, redirect: 'follow' });
+      clearTimeout(timeout);
+      const text = await resGAS.text();
+      return res.status(200).json({
+        timeMs: Date.now() - t0,
+        status: resGAS.status,
+        bodySnippet: text.slice(0, 200)
+      });
+    } catch (e) {
+      return res.status(200).json({
+        timeMs: Date.now() - t0,
+        error: e.message,
+        type: e.name
+      });
+    }
+  }
+
 
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'k8a1.vercel.app';
   const proto = req.headers['x-forwarded-proto'] || 'https';
