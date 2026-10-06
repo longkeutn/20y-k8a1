@@ -30,6 +30,7 @@ import {
 import { Announcement, AnnouncementCategory, ClassMember } from '../types';
 import { getGoogleCalendarUrl, downloadIcsFile, OFFICIAL_K8A1_REUNION_EVENT } from '../utils/calendarUtils';
 import { cleanAnnouncementContent } from '../utils/announcementUtils';
+import { formatDateTimeVi } from '../data';
 import InteractivePollWidget from './InteractivePollWidget';
 
 interface AnnouncementDetailModalProps {
@@ -200,8 +201,20 @@ export default function AnnouncementDetailModal({
   const getShareUrl = () => {
     if (typeof window === 'undefined') return 'https://k8a1.vercel.app';
     const origin = window.location.origin;
-    const path = window.location.pathname || '/';
     const key = announcement.slug || announcement.id;
+    const cover = announcement.imageUrl || (Array.isArray(announcement.images) && announcement.images[0]) || '';
+
+    // Nếu có ảnh đại diện, chuyển hướng qua /api/share để Zalo/Facebook tự động lấy thẻ Open Graph (ảnh preview + tiêu đề)
+    if (cover) {
+      const params = new URLSearchParams();
+      params.set('news', key);
+      params.set('title', announcement.title);
+      if (announcement.summary) params.set('desc', announcement.summary);
+      params.set('img', cover);
+      return `${origin}/api/share?${params.toString()}`;
+    }
+
+    const path = window.location.pathname || '/';
     return `${origin}${path}?news=${encodeURIComponent(key)}`;
   };
 
@@ -233,18 +246,15 @@ export default function AnnouncementDetailModal({
 
   const handleCopyZaloMessage = () => {
     const shareUrl = getShareUrl();
-    const message = `📢 [THÔNG BÁO TỪ BAN LIÊN LẠC K8A1] 📢
-━━━━━━━━━━━━━━━━━━━━━━
-📌 Tiêu đề: ${announcement.title}
-⏰ Thời gian: ${announcement.createdAt}
-👤 Người đăng: ${announcement.author || 'Ban Liên Lạc K8A1'}
+    const formattedTime = formatDateTimeVi(announcement.createdAt) || announcement.createdAt;
 
-📝 Tóm tắt:
-${announcement.summary}
+    // Soạn tin nhắn chia sẻ Zalo thân tình, tự nhiên theo tinh thần bạn bè K8A1
+    const message = `🌸 KỶ SỰ & TIN TỨC K8A1 🌸
+"${announcement.title}"
 
-👉 Xem trực tiếp bản tin chi tiết tại:
-${shareUrl}
-━━━━━━━━━━━━━━━━━━━━━━`;
+${announcement.summary ? `${announcement.summary}\n\n` : ''}⏰ Đăng lúc: ${formattedTime}
+👉 Mời cả lớp bấm vào link xem bài viết & trọn bộ ảnh kỷ niệm nhé:
+${shareUrl}`;
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(message);
@@ -335,7 +345,7 @@ ${shareUrl}
             </div>
             <div className="flex items-center gap-1.5 font-mono">
               <Calendar className="w-3.5 h-3.5 text-amber-700" />
-              <span>{announcement.createdAt}</span>
+              <span>{formatDateTimeVi(announcement.createdAt) || announcement.createdAt}</span>
             </div>
           </div>
 

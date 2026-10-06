@@ -13,6 +13,7 @@ import {
   Check
 } from 'lucide-react';
 import { Announcement, AnnouncementCategory, EventConfig, ClassMember } from '../types';
+import { formatDateTimeVi, formatDateOnlyVi } from '../data';
 import AnnouncementDetailModal from './AnnouncementDetailModal';
 
 interface ClassNewsFeedProps {
@@ -129,7 +130,7 @@ export default function ClassNewsFeed({
             <span>{catInfo.label}</span>
           </span>
           <span className="text-[10px] sm:text-xs text-slate-400 font-mono">
-            {item.createdAt.split(' ')[0]}
+            {formatDateOnlyVi(item.createdAt) || item.createdAt.split(' ')[0]}
           </span>
         </div>
 
@@ -303,7 +304,7 @@ export default function ClassNewsFeed({
                     </span>
                     <span className="text-xs text-amber-200/70 font-mono flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {pinnedItem.createdAt}
+                      {formatDateTimeVi(pinnedItem.createdAt) || pinnedItem.createdAt}
                     </span>
                   </div>
                   
