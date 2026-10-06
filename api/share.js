@@ -69,12 +69,15 @@ async function fetchAnnouncements() {
   }
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5500);
-    const res = await fetch(GAS_API_URL, { signal: controller.signal });
+    const timeout = setTimeout(() => controller.abort(), 9000);
+    const res = await fetch(GAS_API_URL, { 
+      signal: controller.signal,
+      redirect: 'follow'
+    });
     clearTimeout(timeout);
     if (!res.ok) return cachedAnnouncements || [];
     const json = await res.json();
-    if (json && Array.isArray(json.data)) {
+    if (json && Array.isArray(json.data) && json.data.length > 0) {
       cachedAnnouncements = json.data;
       lastCacheTime = now;
       return cachedAnnouncements;
@@ -106,6 +109,8 @@ export default async function handler(req, res) {
 
   // 1. Nếu là NGƯỜI DÙNG THẬT: Chuyển hướng 302 ngay lập tức về WebApp
   if (!isBot) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Vary', 'User-Agent');
     return res.redirect(302, targetUrl);
   }
 
@@ -113,6 +118,7 @@ export default async function handler(req, res) {
   let postTitle = title ? String(title).trim() : '';
   let postDesc = desc ? String(desc).trim() : '';
   let postImg = img ? String(img).trim() : '';
+  let isFound = false;
 
   // Tra cứu tự động nếu chưa có đủ tiêu đề hoặc ảnh từ query string
   if (newsId && (!postTitle || !postImg)) {
@@ -124,6 +130,7 @@ export default async function handler(req, res) {
       if (!postTitle) postTitle = fb.title;
       if (!postDesc) postDesc = fb.desc;
       if (!postImg && fb.img) postImg = fb.img;
+      isFound = true;
     }
 
     // 2b. Nếu vẫn chưa đủ, tra cứu từ Google Apps Script
@@ -141,8 +148,11 @@ export default async function handler(req, res) {
         if (!postImg) {
           postImg = match.imageUrl || (Array.isArray(match.images) && match.images[0]) || '';
         }
+        isFound = true;
       }
     }
+  } else if (postTitle && postImg) {
+    isFound = true;
   }
 
   // Tiêu đề & trích dẫn dự phòng nếu không tìm thấy bài
@@ -203,6 +213,11 @@ export default async function handler(req, res) {
 </html>`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800');
+  res.setHeader('Vary', 'User-Agent');
+  if (isFound) {
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800');
+  } else {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
   return res.status(200).send(html);
 }
