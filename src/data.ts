@@ -1,4 +1,4 @@
-﻿import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings, TableConfigItem, PhotoAlbum } from './types';
+import { UserRole, RsvpData, WishData, MemoryImage, MemoryVideo, TimelineMilestone, QuizQuestion, PollItem, ScheduleItem, SponsorItem, EventConfig, ClassMember, ExpenseCategory, IncomeCategory, ExpenseItem, IncomeItem, TeacherData, TeacherTribute, MusicTrack, BackdropItem, StageSettings, TableConfigItem, PhotoAlbum } from './types';
 export {
   isValidVietnamesePhone,
   normalizeVietnamesePhone,
@@ -8,12 +8,12 @@ export {
   findDuplicatePhoneInRoster
 } from './utils/phoneUtils';
 
-// PhiÃªn báº£n bá»™ nhá»› Ä‘á»‡m á»©ng dá»¥ng (Thay Ä‘á»•i khi cÃ³ cáº¥u trÃºc dá»¯ liá»‡u hoáº·c danh báº¡ má»›i Ä‘á»ƒ tá»± Ä‘á»™ng dá»n sáº¡ch cache cÅ© trÃªn mÃ¡y thÃ nh viÃªn)
+// Phiên bản bộ nhớ đệm ứng dụng (Thay đổi khi có cấu trúc dữ liệu hoặc danh bạ mới để tự động dọn sạch cache cũ trên máy thành viên)
 export const CURRENT_CACHE_VERSION = 'k8a1_v2026.09.30_announcements_v13';
 
 /**
- * Tá»± Ä‘á»™ng kiá»ƒm tra vÃ  dá»n dáº¹p sáº¡ch toÃ n bá»™ cache cÅ© tÃ n dÆ° trÃªn Ä‘iá»‡n thoáº¡i thÃ nh viÃªn
- * Äáº£m báº£o 100% ngÆ°á»i dÃ¹ng truy cáº­p tá»« Zalo hÃ´m nay sáº½ luÃ´n tháº¥y dá»¯ liá»‡u tháº­t má»›i nháº¥t
+ * Tự động kiểm tra và dọn dẹp sạch toàn bộ cache cũ tàn dư trên điện thoại thành viên
+ * Đảm bảo 100% người dùng truy cập từ Zalo hôm nay sẽ luôn thấy dữ liệu thật mới nhất
  */
 export function purgeOldCacheIfOutdated(): boolean {
   try {
@@ -40,28 +40,28 @@ export function purgeOldCacheIfOutdated(): boolean {
       return true;
     }
   } catch (err) {
-    console.warn('Lá»—i kiá»ƒm tra phiÃªn báº£n cache:', err);
+    console.warn('Lỗi kiểm tra phiên bản cache:', err);
   }
   return false;
 }
 
-// Danh sÃ¡ch Ä‘iá»ƒm danh RSVP ban Ä‘áº§u (Äá»“ng bá»™ 100% Ä‘á»™ng tá»« Google Sheets tab Trang_tinh_1)
+// Danh sách điểm danh RSVP ban đầu (Đồng bộ 100% động từ Google Sheets tab Trang_tinh_1)
 export const INITIAL_RSVP_LIST: RsvpData[] = [];
 
-// Danh báº¡ há»c sinh lá»›p K8A1 (Äá»“ng bá»™ 100% Ä‘á»™ng tá»« Google Sheets tab Danh_Sach_Lop)
+// Danh bạ học sinh lớp K8A1 (Đồng bộ 100% động từ Google Sheets tab Danh_Sach_Lop)
 export const CLASS_ROSTER_K8A1: ClassMember[] = [];
 
 export const isOfficialBLLMember = (member?: ClassMember | null): boolean => {
   if (!member || !member.role) return false;
   const r = member.role.toLowerCase().trim();
   return (
-    r.includes('ban liÃªn láº¡c') ||
+    r.includes('ban liên lạc') ||
     r.includes('admin') ||
-    r.includes('thá»§ quá»¹') ||
-    r.includes('bÃ­ thÆ°') ||
-    r.includes('lá»›p trÆ°á»Ÿng') ||
-    r.includes('lá»›p phÃ³') ||
-    r.includes('trÆ°á»Ÿng ban') ||
+    r.includes('thủ quỹ') ||
+    r.includes('bí thư') ||
+    r.includes('lớp trưởng') ||
+    r.includes('lớp phó') ||
+    r.includes('trưởng ban') ||
     r.includes('bll')
   );
 };
@@ -69,14 +69,14 @@ export const isOfficialBLLMember = (member?: ClassMember | null): boolean => {
 export const INITIAL_WISHES_LIST: WishData[] = [];
 
 // =============================================================================
-// DANH SÃCH CÃC FOLDER / ALBUM áº¢NH Ká»¶ NIá»†M Máº¶C Äá»ŠNH CHUáº¨N K8A1
+// DANH SÁCH CÁC FOLDER / ALBUM ẢNH KỶ NIỆM MẶC ĐỊNH CHUẨN K8A1
 // =============================================================================
 export const DEFAULT_ALBUMS: PhotoAlbum[] = [
   {
     id: 'thanh-xuan-2003-2006',
-    title: 'ðŸŽ’ K8A1 Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)',
-    description: 'Nhá»¯ng ngÃ y thÃ¡ng há»c trÃ² ngÃ¢y ngÃ´ dÆ°á»›i mÃ¡i trÆ°á»ng THPT ThÃ¡i NguyÃªn, tÃ  Ã¡o tráº¯ng, hoa phÆ°á»£ng Ä‘á» vÃ  bao ká»· niá»‡m thá»i hoa niÃªn.',
-    period: '2003 â€” 2006',
+    title: '🎒 K8A1 Thời Niên Thiếu (2003 — 2006)',
+    description: 'Những ngày tháng học trò ngây ngô dưới mái trường THPT Thái Nguyên, tà áo trắng, hoa phượng đỏ và bao kỷ niệm thời hoa niên.',
+    period: '2003 — 2006',
     order: 1,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Q05JWOgOF2tWTk0yZ6IRQlnmInLYF5xD=w1600',
     driveFolderId: '1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo',
@@ -85,9 +85,9 @@ export const DEFAULT_ALBUMS: PhotoAlbum[] = [
   },
   {
     id: 'thay-co-mai-truong',
-    title: 'ðŸ‘¨â€ðŸ« Tri Ã‚n Tháº§y CÃ´ GiÃ¡o',
-    description: 'Khoáº£nh kháº¯c kÃ­nh dÃ¢ng táº¥m lÃ²ng tri Ã¢n tá»›i nhá»¯ng ngÆ°á»i tháº§y, ngÆ°á»i cÃ´ Ä‘Ã£ táº­n tá»¥y dÃ¬u dáº¯t bao tháº¿ há»‡ K8A1.',
-    period: '2003 â€” Nay',
+    title: '👨‍🏫 Tri Ân Thầy Cô Giáo',
+    description: 'Khoảnh khắc kính dâng tấm lòng tri ân tới những người thầy, người cô đã tận tụy dìu dắt bao thế hệ K8A1.',
+    period: '2003 — Nay',
     order: 2,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Z6wWcSwqY6SqmIawq0Bqixx8bOy55dhv=w1600',
     driveFolderId: '1nbo9ePPdFBSMvvl_fvUk-67P9MiYvC44',
@@ -96,8 +96,8 @@ export const DEFAULT_ALBUMS: PhotoAlbum[] = [
   },
   {
     id: 'hoi-ngo-10-nam',
-    title: 'ðŸ» 10 NÄƒm TÃ¡i Ngá»™ (2016)',
-    description: 'Nhá»¯ng ná»¥ cÆ°á»i ráº¡ng rá»¡ vÃ  cáº£m xÃºc váº¹n nguyÃªn trong láº§n gáº·p máº·t ká»· niá»‡m 10 nÄƒm ngÃ y ra trÆ°á»ng.',
+    title: '🍻 10 Năm Tái Ngộ (2016)',
+    description: 'Những nụ cười rạng rỡ và cảm xúc vẹn nguyên trong lần gặp mặt kỷ niệm 10 năm ngày ra trường.',
     period: '2016',
     order: 3,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1iXWP-WZniC5rcV0qevoymDvFxG41DXXX=w1600',
@@ -107,8 +107,8 @@ export const DEFAULT_ALBUMS: PhotoAlbum[] = [
   },
   {
     id: 'hoi-ngo-15-nam',
-    title: 'ðŸŒŸ 15 NÄƒm TÃ¬nh Báº¡n (2021)',
-    description: 'Má»™t cháº·ng Ä‘Æ°á»ng gáº¯n káº¿t, trÆ°á»Ÿng thÃ nh vÃ  cÃ¹ng nhau sáº» chia nhá»¯ng cÃ¢u chuyá»‡n Ä‘á»i thÆ°á»ng áº¥m Ã¡p.',
+    title: '🌟 15 Năm Tình Bạn (2021)',
+    description: 'Một chặng đường gắn kết, trưởng thành và cùng nhau sẻ chia những câu chuyện đời thường ấm áp.',
     period: '2021',
     order: 4,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1Z7WKN4cvYk_PTpvELz0d75XuVYh17aKh=w1600',
@@ -118,8 +118,8 @@ export const DEFAULT_ALBUMS: PhotoAlbum[] = [
   },
   {
     id: 'dai-le-20-nam',
-    title: 'ðŸŽ‰ 20 NÄƒm NgÃ y Trá»Ÿ Vá» (2026)',
-    description: 'CÃ´ng tÃ¡c chuáº©n bá»‹, cÃ¡c buá»•i gáº·p gá»¡ háº­u trÆ°á»ng vÃ  toÃ n bá»™ khoáº£nh kháº¯c bÃ¹ng ná»• cá»§a Äáº¡i lá»… 20 nÄƒm.',
+    title: '🎉 20 Năm Ngày Trở Về (2026)',
+    description: 'Công tác chuẩn bị, các buổi gặp gỡ hậu trường và toàn bộ khoảnh khắc bùng nổ của Đại lễ 20 năm.',
     period: '2026',
     order: 5,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1I_28ZEncmuRjMrPHMIg396qa8yko2Tsm=w1600',
@@ -129,9 +129,9 @@ export const DEFAULT_ALBUMS: PhotoAlbum[] = [
   },
   {
     id: 'dong-gop-k8a1',
-    title: 'ðŸ“¸ GÃ³c ThÃ nh ViÃªn ÄÃ³ng GÃ³p',
-    description: 'Nhá»¯ng gÃ³c áº£nh tá»± chá»¥p, ká»· niá»‡m Ä‘á»i thÆ°á»ng do chÃ­nh cÃ¡c thÃ nh viÃªn K8A1 Ä‘Ã³ng gÃ³p vÃ  chia sáº».',
-    period: 'Má»i thá»i Ä‘iá»ƒm',
+    title: '📸 Góc Thành Viên Đóng Góp',
+    description: 'Những góc ảnh tự chụp, kỷ niệm đời thường do chính các thành viên K8A1 đóng góp và chia sẻ.',
+    period: 'Mọi thời điểm',
     order: 6,
     coverPhotoUrl: 'https://lh3.googleusercontent.com/d/1efoyI0s5oo9mIbr6k_ng-tAa2Zk-blDb=w1600',
     driveFolderId: '1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl',
@@ -141,7 +141,7 @@ export const DEFAULT_ALBUMS: PhotoAlbum[] = [
 ];
 
 /**
- * Chuáº©n hÃ³a Album ID tá»« báº¥t ká»³ ID cÅ© (legacy) hoáº·c alias
+ * Chuẩn hóa Album ID từ bất kỳ ID cũ (legacy) hoặc alias
  */
 export function normalizeAlbumId(rawId?: string | null): string {
   if (!rawId) return 'thanh-xuan-2003-2006';
@@ -156,7 +156,7 @@ export function normalizeAlbumId(rawId?: string | null): string {
 }
 
 /**
- * LÃ m sáº¡ch vÃ  khá»­ trÃ¹ng láº·p danh sÃ¡ch Album (tá»± Ä‘á»™ng gá»™p 12 album vá» Ä‘Ãºng 6 album chuáº©n, báº£o toÃ n tiÃªu Ä‘á» vÃ  thÃ´ng tin chá»‰nh sá»­a)
+ * Làm sạch và khử trùng lặp danh sách Album (tự động gộp 12 album về đúng 6 album chuẩn, bảo toàn tiêu đề và thông tin chỉnh sửa)
  */
 export function sanitizeAlbums(albums?: PhotoAlbum[] | null): PhotoAlbum[] {
   const defaultMap = new Map<string, PhotoAlbum>();
@@ -173,7 +173,7 @@ export function sanitizeAlbums(albums?: PhotoAlbum[] | null): PhotoAlbum[] {
     resultMap.set(id, { ...def });
   });
 
-  // Khá»­ trÃ¹ng láº·p: náº¿u danh sÃ¡ch cÃ³ cáº£ ID gá»‘c (legacy) vÃ  ID chuáº©n (canonical), Æ°u tiÃªn ID chuáº©n
+  // Khử trùng lặp: nếu danh sách có cả ID gốc (legacy) và ID chuẩn (canonical), ưu tiên ID chuẩn
   const hasCanonical = new Set(albums.map(a => a.id));
   const deduped = albums.filter(a => {
     if (!a || !a.id) return false;
@@ -217,7 +217,7 @@ export function sanitizeAlbums(albums?: PhotoAlbum[] | null): PhotoAlbum[] {
       resultMap.set(alb.id, {
         ...alb,
         id: alb.id,
-        title: (alb.title && alb.title.trim()) || 'Album Má»›i',
+        title: (alb.title && alb.title.trim()) || 'Album Mới',
         order: (alb.order !== undefined && !isNaN(Number(alb.order))) ? Number(alb.order) : (resultMap.size + 1),
         allowPublicUpload: alb.allowPublicUpload !== false
       });
@@ -228,32 +228,32 @@ export function sanitizeAlbums(albums?: PhotoAlbum[] | null): PhotoAlbum[] {
 }
 
 /**
- * Tá»± Ä‘á»™ng phÃ¢n loáº¡i Album cho áº£nh náº¿u áº£nh chÆ°a cÃ³ albumId hoáº·c chuáº©n hÃ³a ID cÅ©
+ * Tự động phân loại Album cho ảnh nếu ảnh chưa có albumId hoặc chuẩn hóa ID cũ
  */
 export function getPhotoAlbumId(photo: Partial<MemoryImage>): string {
   if (photo.albumId) {
     return normalizeAlbumId(photo.albumId);
   }
   const text = `${photo.caption || ''} ${photo.date || ''} ${photo.albumName || ''}`.toLowerCase();
-  if (text.includes('tháº§y') || text.includes('cÃ´') || text.includes('giÃ¡o') || text.includes('tri Ã¢n') || text.includes('mÃ¡i trÆ°á»ng')) {
+  if (text.includes('thầy') || text.includes('cô') || text.includes('giáo') || text.includes('tri ân') || text.includes('mái trường')) {
     return 'thay-co-mai-truong';
   }
-  if (text.includes('2016') || text.includes('10 nÄƒm') || text.includes('10y') || text.includes('tÃ¡i ngá»™')) {
+  if (text.includes('2016') || text.includes('10 năm') || text.includes('10y') || text.includes('tái ngộ')) {
     return 'hoi-ngo-10-nam';
   }
-  if (text.includes('2021') || text.includes('15 nÄƒm') || text.includes('15y') || text.includes('tÃ¬nh báº¡n')) {
+  if (text.includes('2021') || text.includes('15 năm') || text.includes('15y') || text.includes('tình bạn')) {
     return 'hoi-ngo-15-nam';
   }
-  if (text.includes('2026') || text.includes('20 nÄƒm') || text.includes('20y') || text.includes('Ä‘áº¡i lá»…') || text.includes('trá»Ÿ vá»')) {
+  if (text.includes('2026') || text.includes('20 năm') || text.includes('20y') || text.includes('đại lễ') || text.includes('trở về')) {
     return 'dai-le-20-nam';
   }
-  if (text.includes('Ä‘Ã³ng gÃ³p') || text.includes('thÃ nh viÃªn') || text.includes('tá»± chá»¥p') || text.includes('tÆ° liá»‡u')) {
+  if (text.includes('đóng góp') || text.includes('thành viên') || text.includes('tự chụp') || text.includes('tư liệu')) {
     return 'dong-gop-k8a1';
   }
   return 'thanh-xuan-2003-2006';
 }
 
-// ThÆ° viá»‡n áº£nh ká»· niá»‡m chÃ­nh thá»©c lá»›p K8A1 (Tá»± Ä‘á»™ng Ä‘á»“ng bá»™ vá»›i Google Drive)
+// Thư viện ảnh kỷ niệm chính thức lớp K8A1 (Tự động đồng bộ với Google Drive)
 export const DEFAULT_MEMORIES: MemoryImage[] = [
   {
     "id": "16qTHGfkz6rB0HrWsXMML3_K9Ji89fUaA",
@@ -263,7 +263,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "499270042 3806814892797839 2072592384911416816 n",
     "date": "05/09/2026 09:06",
     "albumId": "dong-gop-k8a1",
-    "albumName": "ÄÃ³ng GÃ³p & TÆ° Liá»‡u ThÃ nh ViÃªn",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
     "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
@@ -274,7 +274,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "490298270 2920829528090347 1483611416095165429 n",
     "date": "05/09/2026 09:05",
     "albumId": "dong-gop-k8a1",
-    "albumName": "ÄÃ³ng GÃ³p & TÆ° Liá»‡u ThÃ nh ViÃªn",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
     "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
@@ -285,7 +285,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "489906562 2920829544757012 1498041119239528231 n",
     "date": "05/09/2026 09:04",
     "albumId": "dong-gop-k8a1",
-    "albumName": "ÄÃ³ng GÃ³p & TÆ° Liá»‡u ThÃ nh ViÃªn",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
     "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
@@ -296,7 +296,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "490652438 2920829568090343 1972879535129963866 n",
     "date": "05/09/2026 09:04",
     "albumId": "dong-gop-k8a1",
-    "albumName": "ÄÃ³ng GÃ³p & TÆ° Liá»‡u ThÃ nh ViÃªn",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
     "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
@@ -307,7 +307,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "490101062 2920830661423567 2250418056820492208 n",
     "date": "05/09/2026 09:04",
     "albumId": "dong-gop-k8a1",
-    "albumName": "ÄÃ³ng GÃ³p & TÆ° Liá»‡u ThÃ nh ViÃªn",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
     "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
@@ -318,7 +318,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "489947984 2920829594757007 2288825474806937438 n",
     "date": "05/09/2026 09:03",
     "albumId": "dong-gop-k8a1",
-    "albumName": "ÄÃ³ng GÃ³p & TÆ° Liá»‡u ThÃ nh ViÃªn",
+    "albumName": "Đóng Góp & Tư Liệu Thành Viên",
     "driveFolderId": "1oGqhwhNOcbA2soBVCdsd9y6DSsZ3gvWl"
   },
   {
@@ -329,7 +329,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "474871751 1356830585748771 7479293876746198285 n",
     "date": "28/09/2026 14:57",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -340,7 +340,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475114259 1356829939082169 3046017748641983950 n",
     "date": "28/09/2026 14:57",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -351,7 +351,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475164075 1356830695748760 8946071791161163477 n",
     "date": "28/09/2026 14:56",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -362,7 +362,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475115050 1356830742415422 2641066426338130267 n",
     "date": "28/09/2026 14:56",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -373,7 +373,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475060316 1356830655748764 7207174376143640475 n",
     "date": "28/09/2026 14:56",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -384,7 +384,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475147427 1356830692415427 6421317411585214495 n",
     "date": "28/09/2026 14:55",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -395,7 +395,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "474885431 1356830752415421 5307508534759363325 n",
     "date": "28/09/2026 14:55",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -406,7 +406,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475123268 1356830632415433 3698973179484619688 n",
     "date": "28/09/2026 14:55",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -417,7 +417,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475172922 1356830652415431 8319688608764906255 n",
     "date": "28/09/2026 14:55",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -428,7 +428,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475106532 1356830615748768 1558761998908294246 n",
     "date": "28/09/2026 14:55",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -439,7 +439,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "474920887 1356830725748757 2432317177434895658 n",
     "date": "28/09/2026 14:55",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -450,7 +450,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475235403 1356830482415448 1255230655908895490 n",
     "date": "28/09/2026 14:55",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -461,7 +461,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475065481 1356830722415424 5978859464277269402 n",
     "date": "28/09/2026 14:54",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -472,7 +472,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475293007 1356829975748832 1830052831931879334 n",
     "date": "28/09/2026 14:54",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -483,7 +483,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475112365 1356830565748773 2148331455199405320 n (1)",
     "date": "28/09/2026 14:54",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -494,7 +494,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475287890 1356830649082098 8843586079652942965 n",
     "date": "28/09/2026 14:54",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -505,7 +505,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "474858910 1356830749082088 2812097126335684841 n",
     "date": "28/09/2026 14:53",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -516,7 +516,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656732400277 3024528935703027915 g8213875404109675727 a6dc8aa05a3dd897dbb4313e7acdbdb5",
     "date": "28/09/2026 14:26",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -527,7 +527,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656732400278 3024528935703027915 g8213875404109675727 da755d646ab47d045b2a09a04ef1b405",
     "date": "28/09/2026 14:26",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -538,7 +538,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656732400274 3024528935703027915 g8213875404109675727 4a4d1e323a2127c910a03a2611937506",
     "date": "28/09/2026 14:26",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -549,7 +549,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656746749554 6072186188646670454 g8213875404109675727 4e1e29648e7d6c146406fd5a0d2cdde0",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -560,7 +560,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656745257607 6072186188646670454 g8213875404109675727 083f68621a575b2d100f30ceaa54fbbd",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -571,7 +571,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656745257605 6072186188646670454 g8213875404109675727 73466ec62a3f1bfc27db127c599e1128",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -582,7 +582,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656743753384 6858201427490636319 g8213875404109675727 fa318b21b12a41acca0822e39e1505da",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -593,7 +593,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656743694864 1038475801886529371 g8213875404109675727 ea3d1316f16c9736ee56cb9c58b22a10",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -604,7 +604,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656743694868 1038475801886529371 g8213875404109675727 301297c044309f305229af829fbc4cb6",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -615,7 +615,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656743694874 1038475801886529371 g8213875404109675727 7ed92a16787d3509d3c431925759225e (1)",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -626,7 +626,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656743694844 1038475801886529371 g8213875404109675727 35b403395509a417eedc61a0a1076021",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -637,7 +637,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656743694874 1038475801886529371 g8213875404109675727 7ed92a16787d3509d3c431925759225e",
     "date": "28/09/2026 14:25",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -648,7 +648,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773130990 5070538970915170412 g8213875404109675727 8b9e2730e83cdf370d9594bb598495e2",
     "date": "28/09/2026 14:23",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -659,7 +659,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773130992 5070538970915170412 g8213875404109675727 bc25ae4755bac0bfaaa11748a662e33f",
     "date": "28/09/2026 14:23",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -670,7 +670,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773130993 5070538970915170412 g8213875404109675727 9f40b21354c7c466bf76dd39571706bf",
     "date": "28/09/2026 14:23",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -681,7 +681,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773130998 5070538970915170412 g8213875404109675727 d51d9ef0e31323df1c7a5774ff43cdb1",
     "date": "28/09/2026 14:23",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -692,7 +692,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773130991 5070538970915170412 g8213875404109675727 fda93377bbb668f8c6ef2ffe7bc718b8",
     "date": "28/09/2026 14:23",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -703,7 +703,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773227328 2735587425587831748 g8213875404109675727 4d9f07b9c0724f62f97aa1a0f3707237",
     "date": "28/09/2026 14:23",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -714,7 +714,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773227333 2735587425587831748 g8213875404109675727 ce6968e945ab32b11f25d8eb4c50c8b2",
     "date": "28/09/2026 14:22",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -725,7 +725,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1656773227331 2735587425587831748 g8213875404109675727 0169565407de4978cdc12d2d0ee8af00",
     "date": "28/09/2026 14:22",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -736,7 +736,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1790045678609 7058842502343911364 g8213875404109675727 01387dba512345da205a843830c97afe",
     "date": "28/09/2026 14:17",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -747,7 +747,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1790045678629 7058842502343911364 g8213875404109675727 ff01ea82f0bae96516c393429902516d",
     "date": "28/09/2026 14:17",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -758,7 +758,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1790045678645 7058842502343911364 g8213875404109675727 99498ef4e35ccf524bf68cf02b631e76",
     "date": "28/09/2026 14:17",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -769,7 +769,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1790045678671 7058842502343911364 g8213875404109675727 753adf75c3b947bef89ccbe4f193993c",
     "date": "28/09/2026 14:17",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -780,7 +780,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1790045678659 7058842502343911364 g8213875404109675727 d4dcc0df4a5adf696c1985ea8f4d239d",
     "date": "28/09/2026 14:17",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -791,7 +791,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1790045678681 7058842502343911364 g8213875404109675727 1880b49c30711a7ac98c732b7f364918",
     "date": "28/09/2026 14:17",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -802,7 +802,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1790045678574 7058842502343911364 g8213875404109675727 eaf523ef4850ec012f5fc87eae2d8b2b",
     "date": "28/09/2026 14:17",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -813,7 +813,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "Hero Banner K8A1 1788595247751",
     "date": "05/09/2026 15:00",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -824,7 +824,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475164842 1356830075748822 5437923390166382806 n",
     "date": "05/09/2026 09:08",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -835,7 +835,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475116469 1356830739082089 1650045069745636096 n",
     "date": "05/09/2026 09:08",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -846,7 +846,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475272178 1356830555748774 2593652870081312031 n",
     "date": "05/09/2026 09:08",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -857,7 +857,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475065642 1356830552415441 2066059058356530555 n",
     "date": "05/09/2026 09:07",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -868,7 +868,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475112365 1356830565748773 2148331455199405320 n",
     "date": "05/09/2026 09:07",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -879,7 +879,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "474915648 1356830665748763 7088442939443535675 n",
     "date": "05/09/2026 09:06",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -890,7 +890,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "475134847 1356830729082090 6973331376706866691 n",
     "date": "05/09/2026 09:06",
     "albumId": "hoi-ngo-15-nam",
-    "albumName": "Há»™i Ngá»™ 15 NÄƒm (2021)",
+    "albumName": "Hội Ngộ 15 Năm (2021)",
     "driveFolderId": "10o1ruR52sOUWeA3nEx4u2d3nnHtNI2QH"
   },
   {
@@ -901,7 +901,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "2aOboR0DsVrb17DSjXsNFh9zyOxgw9WfaROWRDn6",
     "date": "21/09/2026 21:53",
     "albumId": "hoi-ngo-10-nam",
-    "albumName": "Há»™i Ngá»™ 10 NÄƒm (2016)",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
     "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
   },
   {
@@ -912,7 +912,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "503504170 2977749089065057 1459925905882967295 n",
     "date": "05/09/2026 09:10",
     "albumId": "hoi-ngo-10-nam",
-    "albumName": "Há»™i Ngá»™ 10 NÄƒm (2016)",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
     "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
   },
   {
@@ -923,7 +923,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "503605997 2977749192398380 442522293639860588 n",
     "date": "05/09/2026 09:09",
     "albumId": "hoi-ngo-10-nam",
-    "albumName": "Há»™i Ngá»™ 10 NÄƒm (2016)",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
     "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
   },
   {
@@ -934,7 +934,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "503828962 2977749182398381 1325996235817212040 n",
     "date": "05/09/2026 09:09",
     "albumId": "hoi-ngo-10-nam",
-    "albumName": "Há»™i Ngá»™ 10 NÄƒm (2016)",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
     "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
   },
   {
@@ -945,7 +945,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "503504723 2977749309065035 1228763104923627602 n",
     "date": "05/09/2026 09:09",
     "albumId": "hoi-ngo-10-nam",
-    "albumName": "Há»™i Ngá»™ 10 NÄƒm (2016)",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
     "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
   },
   {
@@ -956,7 +956,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "503889696 2977750115731621 8515012779203325994 n",
     "date": "05/09/2026 09:09",
     "albumId": "hoi-ngo-10-nam",
-    "albumName": "Há»™i Ngá»™ 10 NÄƒm (2016)",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
     "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
   },
   {
@@ -967,7 +967,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "509261017 3393265960816629 6127474883787765388 n",
     "date": "05/09/2026 09:08",
     "albumId": "hoi-ngo-10-nam",
-    "albumName": "Há»™i Ngá»™ 10 NÄƒm (2016)",
+    "albumName": "Hội Ngộ 10 Năm (2016)",
     "driveFolderId": "1e6y68lVtLYyXR6et2O2k8jp-UIZYoaH9"
   },
   {
@@ -978,7 +978,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "2aOboR0Dqa5YLCoYqoNdORP4aHUsrxFqziWlHMNk",
     "date": "21/09/2026 21:54",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -989,7 +989,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789884839087 1176131752099263072 g8213875404109675727 2dacd7cce777f55d3a6765116b2413c9",
     "date": "21/09/2026 13:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1000,7 +1000,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789886027056 1176131752099263072 g8213875404109675727 2cd6de75d1ed099f76513e72980c1578",
     "date": "21/09/2026 13:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1011,7 +1011,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789886315834 1176131752099263072 g8213875404109675727 da5a1ea1f8fafe2742ff88555ba3c03e",
     "date": "21/09/2026 13:10",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1022,7 +1022,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789886169797 1176131752099263072 g8213875404109675727 68642ec7075bab5187e65efcc7ea3b01",
     "date": "21/09/2026 13:10",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1033,7 +1033,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789886366503 1176131752099263072 g8213875404109675727 f6eabe71abf246d3cb862750981ffbfb",
     "date": "21/09/2026 13:09",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1044,7 +1044,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789886412161 1176131752099263072 g8213875404109675727 fd7c6b8c9e896c796be5f53cea312df6",
     "date": "21/09/2026 13:09",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1055,7 +1055,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789463949175 2647631302199896716 g8213875404109675727 65e324102bc593332f3445c9028560ad",
     "date": "15/09/2026 16:18",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1066,7 +1066,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789462217080 5070538970915170412 g8213875404109675727 2a151353c93e2fd6b3defcb451969241",
     "date": "15/09/2026 15:50",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1077,7 +1077,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789461898042 5070538970915170412 g8213875404109675727 c52fbe4deb066b1d8f2830120c6b572b",
     "date": "15/09/2026 15:44",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1088,7 +1088,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1789436945354 1622280133582022065 521686868081986063 68d2f5e750f2c472799f8ca91ae1c88a",
     "date": "15/09/2026 08:48",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1099,7 +1099,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "IMG",
     "date": "15/09/2026 08:47",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1110,7 +1110,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1788824248451 3501496844115072933 g8213875404109675727 9527bee86c38f35b4561e6a754f06d46",
     "date": "08/09/2026 08:17",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1121,7 +1121,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1788824248592 3501496844115072933 g8213875404109675727 ebf9663813a934ae04dd580a52fd3244",
     "date": "08/09/2026 08:17",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1132,7 +1132,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1788824248732 3501496844115072933 g8213875404109675727 da08312a632de5f5bf4e6f53ad649388",
     "date": "08/09/2026 08:17",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1143,7 +1143,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1788824248871 3501496844115072933 g8213875404109675727 23e6f269ae05048e27f12abbf107f266",
     "date": "08/09/2026 08:17",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1154,7 +1154,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1788824249013 3501496844115072933 g8213875404109675727 04f464b9b04065b8e3aa43b6e41f7dd6",
     "date": "08/09/2026 08:17",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1165,7 +1165,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1788824249209 3501496844115072933 g8213875404109675727 eb5473dac01488365f15e3dc53c1e935",
     "date": "08/09/2026 08:17",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1176,7 +1176,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "1788824248331 3501496844115072933 g8213875404109675727 065c7067d85cb59faf76157717165807",
     "date": "08/09/2026 08:17",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1187,7 +1187,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "2aOboQx0cIp0ytJctMR2mYgDpSIvagbVQ47zopO4",
     "date": "07/09/2026 23:36",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1198,7 +1198,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "2aOboQx0baKOoIURuyvahzXio9cEbiKEgfKnDCcq",
     "date": "07/09/2026 21:39",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1209,7 +1209,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569594713 25427700770149816 2644678869832531622 n",
     "date": "07/09/2026 14:29",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1220,7 +1220,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568591301 25427700846816475 1126852120421423282 n",
     "date": "07/09/2026 14:28",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1231,7 +1231,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568521421 25427700783483148 7823683749895364541 n",
     "date": "07/09/2026 14:28",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1242,7 +1242,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568711089 25427701150149778 8533686120286400563 n",
     "date": "07/09/2026 14:28",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1253,7 +1253,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568570760 25427700993483127 702110216661534225 n",
     "date": "07/09/2026 14:28",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1264,7 +1264,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568684012 25427701193483107 3841298913620152420 n",
     "date": "07/09/2026 14:28",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1275,7 +1275,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569034083 25427700956816464 1023055468056574601 n",
     "date": "07/09/2026 14:27",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1286,7 +1286,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569407909 25427701183483108 3435695790737340030 n",
     "date": "07/09/2026 14:27",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1297,7 +1297,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568465914 25427700736816486 4586619359066166841 n",
     "date": "07/09/2026 14:27",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1308,7 +1308,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568644863 25427701010149792 2103536203186524603 n",
     "date": "07/09/2026 14:27",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1319,7 +1319,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568660519 25427701133483113 3101238401658299889 n",
     "date": "07/09/2026 14:27",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1330,7 +1330,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568391428 25427700786816481 3815322867541178641 n",
     "date": "07/09/2026 14:27",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1341,7 +1341,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569045915 25427701130149780 6295153971260902112 n",
     "date": "07/09/2026 14:26",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1352,7 +1352,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568732066 25427701006816459 8741581285049397805 n",
     "date": "07/09/2026 14:26",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1363,7 +1363,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568368382 25427701003483126 6337531773628394740 n",
     "date": "07/09/2026 14:26",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1374,7 +1374,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568673263 25427700840149809 1166261907794601885 n",
     "date": "07/09/2026 14:26",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1385,7 +1385,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568626605 25427701180149775 7581562842138321625 n",
     "date": "07/09/2026 14:25",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1396,7 +1396,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568743815 25427700963483130 2635418458490161686 n",
     "date": "07/09/2026 14:24",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1407,7 +1407,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568679026 25427699210149972 7810656936267837094 n",
     "date": "07/09/2026 14:24",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1418,7 +1418,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569263239 25427700996816460 3729324044172904123 n",
     "date": "07/09/2026 14:24",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1429,7 +1429,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568573499 25427700953483131 5327576891590810063 n",
     "date": "07/09/2026 14:23",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1440,7 +1440,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568695090 25427700926816467 6488015068094102325 n",
     "date": "07/09/2026 14:23",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1451,7 +1451,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569361841 25427700896816470 871589613218143097 n",
     "date": "07/09/2026 14:23",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1462,7 +1462,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569275669 25427700886816471 1727293045959048178 n",
     "date": "07/09/2026 14:23",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1473,7 +1473,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568636651 25427701116816448 7916458789377339898 n",
     "date": "07/09/2026 14:23",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1484,7 +1484,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568630213 25427698856816674 2846856576979995986 n",
     "date": "07/09/2026 14:23",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1495,7 +1495,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569279888 25427698850150008 885288553376472055 n",
     "date": "07/09/2026 14:22",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1506,7 +1506,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568461253 25427698870150006 3328890851937873153 n",
     "date": "07/09/2026 14:22",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1517,7 +1517,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568958945 25427698953483331 796230735043202253 n",
     "date": "07/09/2026 14:22",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1528,7 +1528,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568550900 25427698930150000 3725851553165042490 n",
     "date": "07/09/2026 14:22",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1539,7 +1539,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569414997 25427698846816675 5023155042365671726 n",
     "date": "07/09/2026 14:20",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1550,7 +1550,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569032834 25427698886816671 6964238627033919601 n",
     "date": "07/09/2026 14:20",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1561,7 +1561,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568580679 25427698980149995 2528942899829108465 n",
     "date": "07/09/2026 14:20",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1572,7 +1572,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "569014762 25427698990149994 6107575324795489823 n",
     "date": "07/09/2026 14:20",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1583,7 +1583,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568647261 25427699213483305 2404001179269260586 n",
     "date": "07/09/2026 14:20",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1594,7 +1594,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568477608 25427699000149993 7399702547866199340 n",
     "date": "07/09/2026 14:20",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1605,7 +1605,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568410051 25427698866816673 2671118570767665667 n",
     "date": "07/09/2026 14:19",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1616,7 +1616,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568916889 25427699006816659 3087752054251687335 n",
     "date": "07/09/2026 14:19",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1627,7 +1627,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "568638419 25427698940149999 1402577002769121704 n",
     "date": "07/09/2026 14:19",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1638,7 +1638,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "554971995 32660542940203212 2424085129544350643 n",
     "date": "05/09/2026 09:15",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1649,7 +1649,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "648357832 10226146414361480 3833201303384509491 n",
     "date": "05/09/2026 09:15",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1660,7 +1660,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "506460880 29829890076657001 4142235106235955816 n",
     "date": "05/09/2026 09:14",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1671,7 +1671,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "511009035 30602990642625346 2880448722037149222 n",
     "date": "05/09/2026 09:13",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1682,7 +1682,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "511330109 3855424527936875 8908743723824579465 n",
     "date": "05/09/2026 09:12",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1693,7 +1693,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "513896040 24325259480400973 6935572474755808817 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1704,7 +1704,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "514954212 24325259277067660 1271437142121605245 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1715,7 +1715,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "515121447 24325259427067645 1046997780096707513 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1726,7 +1726,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "514405511 24325259380400983 3852819756365493424 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1737,7 +1737,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "514374652 24325259297067658 8532392626940600440 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1748,7 +1748,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "513898701 24325259320400989 3468692801592186009 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1759,7 +1759,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "514374655 24325259213734333 978284759044515201 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1770,7 +1770,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "515593345 24325259387067649 1247523544945188133 n",
     "date": "05/09/2026 09:11",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1781,7 +1781,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "566388636 24935157649469681 6276832814599423669 n",
     "date": "05/09/2026 09:10",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1792,7 +1792,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "640949231 26726866320232674 2861436457150474237 n",
     "date": "05/09/2026 09:06",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1803,7 +1803,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "501748380 3818279548318040 4488756202888224625 n",
     "date": "05/09/2026 09:06",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1814,7 +1814,7 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "502689037 3823147487831246 7655701400069318099 n",
     "date": "05/09/2026 09:06",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   },
   {
@@ -1825,62 +1825,62 @@ export const DEFAULT_MEMORIES: MemoryImage[] = [
     "caption": "507453999 24185686561024933 8941559406477211526 n",
     "date": "05/09/2026 09:05",
     "albumId": "thanh-xuan-2003-2006",
-    "albumName": "Thá»i NiÃªn Thiáº¿u (2003 â€” 2006)",
+    "albumName": "Thời Niên Thiếu (2003 — 2006)",
     "driveFolderId": "1zr5W6Yy7k-eeJ2kVEviqE9Z0bUxVXOgo"
   }
 ];
 
-// Danh sÃ¡ch video ká»· niá»‡m chÃ­nh thá»©c lá»›p K8A1 (Ä‘á»“ng bá»™ 2 chiá»u vá»›i Google Sheet tab Media_Cai_Dat)
+// Danh sách video kỷ niệm chính thức lớp K8A1 (đồng bộ 2 chiều với Google Sheet tab Media_Cai_Dat)
 export const DEFAULT_VIDEOS: MemoryVideo[] = [
   {
     id: "vid-1788596300181",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(9)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(9)",
     embedUrl: "https://www.youtube.com/embed/qOwNuWY30iw"
   },
   {
     id: "vid-1788596273398",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(8)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(8)",
     embedUrl: "https://www.youtube.com/embed/KNLrdmy_Hvk"
   },
   {
     id: "vid-1788596247429",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(7)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(7)",
     embedUrl: "https://www.youtube.com/embed/ga68cDkrSDo"
   },
   {
     id: "vid-1788596221141",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(6)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(6)",
     embedUrl: "https://www.youtube.com/embed/UX9N3P3yks4"
   },
   {
     id: "vid-1788596163830",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(5)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(5)",
     embedUrl: "https://www.youtube.com/embed/Q0dmNCGbaXs"
   },
   {
     id: "vid-1788596109463",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(4)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(4)",
     embedUrl: "https://www.youtube.com/embed/VHT6ouvKj_Q"
   },
   {
     id: "vid-1788596080960",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(3)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(3)",
     embedUrl: "https://www.youtube.com/embed/Reuz6pHIgGM"
   },
   {
     id: "vid-1788596059982",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(2)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(2)",
     embedUrl: "https://www.youtube.com/embed/Z0R73khjwfg"
   },
   {
     id: "vid-1788595395834",
-    title: "Ká»· niá»‡m thá»i cáº¥p 3 - K8A1(1)",
+    title: "Kỷ niệm thời cấp 3 - K8A1(1)",
     embedUrl: "https://www.youtube.com/embed/HyCIkhbalPk"
   }
 ];
 
 // ============================================================================
-// DANH Má»¤C & Dá»® LIá»†U Sá»” QUá»¸ THU - CHI Lá»šP K8A1 (CHUáº¨N THEO QUY CHáº¾ ÄIá»€U 3 & 4)
+// DANH MỤC & DỮ LIỆU SỔ QUỸ THU - CHI LỚP K8A1 (CHUẨN THEO QUY CHẾ ĐIỀU 3 & 4)
 // ============================================================================
 
 export interface ExpenseCategoryMeta {
@@ -1896,57 +1896,57 @@ export interface ExpenseCategoryMeta {
 export const EXPENSE_CATEGORIES: ExpenseCategoryMeta[] = [
   {
     id: 'care',
-    label: 'Hiáº¿u Há»· & ThÄƒm Há»i',
-    shortLabel: 'Hiáº¿u há»·',
+    label: 'Hiếu Hỷ & Thăm Hỏi',
+    shortLabel: 'Hiếu hỷ',
     badgeBg: 'bg-rose-50',
     badgeText: 'text-rose-700',
     badgeBorder: 'border-rose-200',
-    description: 'ThÄƒm viáº¿ng tá»© thÃ¢n phá»¥ máº«u (500k), thÄƒm há»i á»‘m Ä‘au/tai náº¡n (300k), viá»‡c há»· theo Quy cháº¿'
+    description: 'Thăm viếng tứ thân phụ mẫu (500k), thăm hỏi ốm đau/tai nạn (300k), việc hỷ theo Quy chế'
   },
   {
     id: 'teacher',
-    label: 'Tri Ã‚n Tháº§y CÃ´',
-    shortLabel: 'Tri Ã¢n',
+    label: 'Tri Ân Thầy Cô',
+    shortLabel: 'Tri ân',
     badgeBg: 'bg-purple-50',
     badgeText: 'text-purple-700',
     badgeBorder: 'border-purple-200',
-    description: 'Hoa tÆ°Æ¡i & quÃ  táº·ng tri Ã¢n cÃ¡c tháº§y cÃ´ giÃ¡o cÅ© dá»‹p 20/11, Táº¿t NguyÃªn ÄÃ¡n, ngÃ y há»p lá»›p'
+    description: 'Hoa tươi & quà tặng tri ân các thầy cô giáo cũ dịp 20/11, Tết Nguyên Đán, ngày họp lớp'
   },
   {
     id: 'party',
-    label: 'Tiá»‡c & Sá»± Kiá»‡n Gáº·p Máº·t',
-    shortLabel: 'Tiá»‡c & Sá»± kiá»‡n',
+    label: 'Tiệc & Sự Kiện Gặp Mặt',
+    shortLabel: 'Tiệc & Sự kiện',
     badgeBg: 'bg-emerald-50',
     badgeText: 'text-emerald-800',
     badgeBorder: 'border-emerald-200',
-    description: 'Äáº·t cá»c & thanh toÃ¡n tiá»‡c Crown Palace, áº©m thá»±c, Ä‘á»“ uá»‘ng, liÃªn hoan gáº·p máº·t Ä‘á»‹nh ká»³'
+    description: 'Đặt cọc & thanh toán tiệc Crown Palace, ẩm thực, đồ uống, liên hoan gặp mặt định kỳ'
   },
   {
     id: 'souvenir',
-    label: 'Äá»“ng Phá»¥c & Ká»· Niá»‡m',
-    shortLabel: 'Äá»“ng phá»¥c & QuÃ ',
+    label: 'Đồng Phục & Kỷ Niệm',
+    shortLabel: 'Đồng phục & Quà',
     badgeBg: 'bg-blue-50',
     badgeText: 'text-blue-700',
     badgeBorder: 'border-blue-200',
-    description: 'Ão polo Ä‘á»“ng phá»¥c 20 nÄƒm K8A1, tháº» cá»±u há»c sinh ká»· niá»‡m, quÃ  lÆ°u niá»‡m'
+    description: 'Áo polo đồng phục 20 năm K8A1, thẻ cựu học sinh kỷ niệm, quà lưu niệm'
   },
   {
     id: 'media',
-    label: 'SÃ¢n Kháº¥u & Truyá»n ThÃ´ng',
-    shortLabel: 'SÃ¢n kháº¥u & Media',
+    label: 'Sân Khấu & Truyền Thông',
+    shortLabel: 'Sân khấu & Media',
     badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-800',
     badgeBorder: 'border-amber-200',
-    description: 'In áº¥n backdrop sÃ¢n kháº¥u, Ã¢m thanh Ã¡nh sÃ¡ng, quay chá»¥p phÃ³ng sá»± ká»· niá»‡m, duy trÃ¬ webapp'
+    description: 'In ấn backdrop sân khấu, âm thanh ánh sáng, quay chụp phóng sự kỷ niệm, duy trì webapp'
   },
   {
     id: 'other',
-    label: 'Chi KhÃ¡c & Dá»± PhÃ²ng',
-    shortLabel: 'KhÃ¡c',
+    label: 'Chi Khác & Dự Phòng',
+    shortLabel: 'Khác',
     badgeBg: 'bg-slate-100',
     badgeText: 'text-slate-700',
     badgeBorder: 'border-slate-200',
-    description: 'NÆ°á»›c suá»‘i, Ä‘áº¡o cá»¥ trÃ² chÆ¡i, chi phÃ­ phÃ¡t sinh chuáº©n bá»‹'
+    description: 'Nước suối, đạo cụ trò chơi, chi phí phát sinh chuẩn bị'
   }
 ];
 
@@ -1966,99 +1966,99 @@ export interface IncomeCategoryMeta {
 export const INCOME_CATEGORIES: IncomeCategoryMeta[] = [
   {
     id: 'event',
-    label: 'Quá»¹ Há»p Lá»›p 20 NÄƒm',
-    shortLabel: 'Quá»¹ 20 nÄƒm',
+    label: 'Quỹ Họp Lớp 20 Năm',
+    shortLabel: 'Quỹ 20 năm',
     badgeBg: 'bg-emerald-50',
     badgeText: 'text-emerald-800',
     badgeBorder: 'border-emerald-200',
-    icon: 'ðŸŽ“',
+    icon: '🎓',
     defaultAmount: 700000,
-    description: 'ÄÃ³ng quá»¹ tham gia ngÃ y há»™i ngá»™ 20 nÄƒm (Ä‘á»‹nh má»©c chuáº©n 700.000Ä‘/báº¡n tham dá»±)',
-    quickTitle: 'ÄÃ³ng quá»¹ há»p lá»›p ká»· niá»‡m 20 nÄƒm K8A1'
+    description: 'Đóng quỹ tham gia ngày hội ngộ 20 năm (định mức chuẩn 700.000đ/bạn tham dự)',
+    quickTitle: 'Đóng quỹ họp lớp kỷ niệm 20 năm K8A1'
   },
   {
     id: 'sponsor',
-    label: 'TÃ i Trá»£ & á»¦ng Há»™ Lá»›p',
-    shortLabel: 'TÃ i trá»£ / á»¦ng há»™',
+    label: 'Tài Trợ & Ủng Hộ Lớp',
+    shortLabel: 'Tài trợ / Ủng hộ',
     badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-800',
     badgeBorder: 'border-amber-200',
-    icon: 'ðŸ’Ž',
+    icon: '💎',
     defaultAmount: 1000000,
-    description: 'Máº¡nh thÆ°á»ng quÃ¢n, báº¡n bÃ¨ vÃ  gia Ä‘Ã¬nh Ä‘Ã³ng gÃ³p tÃ i trá»£ thÃªm Ä‘á»ƒ ngÃ y vui thÃªm chu toÃ n',
-    quickTitle: 'TÃ i trá»£ & á»§ng há»™ quá»¹ lá»›p K8A1'
+    description: 'Mạnh thường quân, bạn bè và gia đình đóng góp tài trợ thêm để ngày vui thêm chu toàn',
+    quickTitle: 'Tài trợ & ủng hộ quỹ lớp K8A1'
   },
   {
     id: 'extra_shirt',
-    label: 'Mua ThÃªm Ão Polo',
-    shortLabel: 'Mua thÃªm Ã¡o',
+    label: 'Mua Thêm Áo Polo',
+    shortLabel: 'Mua thêm áo',
     badgeBg: 'bg-blue-50',
     badgeText: 'text-blue-700',
     badgeBorder: 'border-blue-200',
-    icon: 'ðŸ‘•',
+    icon: '👕',
     defaultAmount: 150000,
-    description: 'ÄÄƒng kÃ½ may thÃªm Ã¡o polo Ä‘á»“ng phá»¥c 20 nÄƒm cho vá»£/chá»“ng/con cÃ¡i/ngÆ°á»i thÃ¢n',
-    quickTitle: 'Mua thÃªm Ã¡o polo Ä‘á»“ng phá»¥c K8A1'
+    description: 'Đăng ký may thêm áo polo đồng phục 20 năm cho vợ/chồng/con cái/người thân',
+    quickTitle: 'Mua thêm áo polo đồng phục K8A1'
   },
   {
     id: 'guest',
-    label: 'NgÆ°á»i ThÃ¢n / F1 Äi KÃ¨m',
-    shortLabel: 'NgÆ°á»i thÃ¢n Ä‘i kÃ¨m',
+    label: 'Người Thân / F1 Đi Kèm',
+    shortLabel: 'Người thân đi kèm',
     badgeBg: 'bg-rose-50',
     badgeText: 'text-rose-700',
     badgeBorder: 'border-rose-200',
-    icon: 'ðŸ‘¨â€ðŸ‘©â€ðŸ‘§',
+    icon: '👨‍👩‍👧',
     defaultAmount: 350000,
-    description: 'Kinh phÃ­ suáº¥t Äƒn vÃ  Ä‘á»“ uá»‘ng cho phu huynh, con nhá» Ä‘i tham dá»± cÃ¹ng',
-    quickTitle: 'ÄÃ³ng kinh phÃ­ ngÆ°á»i thÃ¢n / F1 Ä‘i kÃ¨m'
+    description: 'Kinh phí suất ăn và đồ uống cho phu huynh, con nhỏ đi tham dự cùng',
+    quickTitle: 'Đóng kinh phí người thân / F1 đi kèm'
   },
   {
     id: 'teacher_tribute',
-    label: 'Quá»¹ Tri Ã‚n Tháº§y CÃ´',
-    shortLabel: 'Tri Ã¢n tháº§y cÃ´',
+    label: 'Quỹ Tri Ân Thầy Cô',
+    shortLabel: 'Tri ân thầy cô',
     badgeBg: 'bg-purple-50',
     badgeText: 'text-purple-700',
     badgeBorder: 'border-purple-200',
-    icon: 'ðŸ’',
+    icon: '💐',
     defaultAmount: 500000,
-    description: 'Khoáº£n Ä‘Ã³ng gÃ³p riÃªng Ä‘á»ƒ chuáº©n bá»‹ hoa tÆ°Æ¡i, quÃ  táº·ng ká»· niá»‡m tri Ã¢n tháº§y cÃ´ giÃ¡o cÅ©',
-    quickTitle: 'ÄÃ³ng gÃ³p Quá»¹ tri Ã¢n Tháº§y CÃ´ giÃ¡o'
+    description: 'Khoản đóng góp riêng để chuẩn bị hoa tươi, quà tặng kỷ niệm tri ân thầy cô giáo cũ',
+    quickTitle: 'Đóng góp Quỹ tri ân Thầy Cô giáo'
   },
   {
     id: 'alumni_care',
-    label: 'Quá»¹ TÃ¬nh NghÄ©a & ThÄƒm Há»i',
-    shortLabel: 'TÃ¬nh nghÄ©a K8A1',
+    label: 'Quỹ Tình Nghĩa & Thăm Hỏi',
+    shortLabel: 'Tình nghĩa K8A1',
     badgeBg: 'bg-indigo-50',
     badgeText: 'text-indigo-800',
     badgeBorder: 'border-indigo-200',
-    icon: 'â¤ï¸',
+    icon: '❤️',
     defaultAmount: 500000,
-    description: 'Quá»¹ tÆ°Æ¡ng trá»£, thÄƒm há»i báº¡n bÃ¨ lÃºc Ä‘au á»‘m, viá»‡c hiáº¿u há»· theo Quy cháº¿ tá»• chá»©c',
-    quickTitle: 'ÄÃ³ng gÃ³p Quá»¹ tÃ¬nh nghÄ©a & thÄƒm há»i K8A1'
+    description: 'Quỹ tương trợ, thăm hỏi bạn bè lúc đau ốm, việc hiếu hỷ theo Quy chế tổ chức',
+    quickTitle: 'Đóng góp Quỹ tình nghĩa & thăm hỏi K8A1'
   },
   {
     id: 'annual',
-    label: 'Quá»¹ Lá»›p ThÆ°á»ng NiÃªn',
-    shortLabel: 'Quá»¹ thÆ°á»ng niÃªn',
+    label: 'Quỹ Lớp Thường Niên',
+    shortLabel: 'Quỹ thường niên',
     badgeBg: 'bg-teal-50',
     badgeText: 'text-teal-800',
     badgeBorder: 'border-teal-200',
-    icon: 'ðŸ“…',
+    icon: '📅',
     defaultAmount: 100000,
-    description: 'Quá»¹ hoáº¡t Ä‘á»™ng thÆ°á»ng niÃªn 100.000 Ä‘/ngÆ°á»i/nÄƒm theo Äiá»u 4 Quy cháº¿ tá»• chá»©c',
-    quickTitle: 'ÄÃ³ng quá»¹ lá»›p thÆ°á»ng niÃªn theo Quy cháº¿'
+    description: 'Quỹ hoạt động thường niên 100.000 đ/người/năm theo Điều 4 Quy chế tổ chức',
+    quickTitle: 'Đóng quỹ lớp thường niên theo Quy chế'
   },
   {
     id: 'other_income',
-    label: 'Khoáº£n Thu KhÃ¡c & VÃ£ng Lai',
-    shortLabel: 'Thu khÃ¡c',
+    label: 'Khoản Thu Khác & Vãng Lai',
+    shortLabel: 'Thu khác',
     badgeBg: 'bg-slate-100',
     badgeText: 'text-slate-700',
     badgeBorder: 'border-slate-200',
-    icon: 'ðŸ“¦',
+    icon: '📦',
     defaultAmount: 500000,
-    description: 'LÃ£i tiá»n gá»­i ngÃ¢n hÃ ng, sá»‘ dÆ° chuyá»ƒn ká»³ trÆ°á»›c, hoáº·c cÃ¡c khoáº£n thu phÃ¡t sinh ngoÃ i káº¿ hoáº¡ch',
-    quickTitle: 'Ghi nháº­n khoáº£n thu khÃ¡c'
+    description: 'Lãi tiền gửi ngân hàng, số dư chuyển kỳ trước, hoặc các khoản thu phát sinh ngoài kế hoạch',
+    quickTitle: 'Ghi nhận khoản thu khác'
   }
 ];
 
@@ -2081,239 +2081,239 @@ export const VIETNAM_BANKS: BankItem[] = [
     code: 'vietcombank',
     bin: '970436',
     shortName: 'Vietcombank (VCB)',
-    name: 'NgÃ¢n hÃ ng Ngoáº¡i thÆ°Æ¡ng Viá»‡t Nam',
+    name: 'Ngân hàng Ngoại thương Việt Nam',
     aliases: ['vcb', 'vietcombank', 'ngoai thuong', '970436']
   },
   {
     code: 'mbbank',
     bin: '970422',
-    shortName: 'MB Bank (QuÃ¢n Äá»™i)',
-    name: 'NgÃ¢n hÃ ng QuÃ¢n Äá»™i',
+    shortName: 'MB Bank (Quân Đội)',
+    name: 'Ngân hàng Quân Đội',
     aliases: ['mb', 'mbbank', 'quan doi', 'mb bank', '970422']
   },
   {
     code: 'techcombank',
     bin: '970407',
     shortName: 'Techcombank (TCB)',
-    name: 'NgÃ¢n hÃ ng Ká»¹ ThÆ°Æ¡ng Viá»‡t Nam',
+    name: 'Ngân hàng Kỹ Thương Việt Nam',
     aliases: ['tcb', 'techcombank', 'ky thuong', 'techcom', '970407']
   },
   {
     code: 'vietinbank',
     bin: '970415',
     shortName: 'VietinBank (CTG)',
-    name: 'NgÃ¢n hÃ ng CÃ´ng ThÆ°Æ¡ng Viá»‡t Nam',
+    name: 'Ngân hàng Công Thương Việt Nam',
     aliases: ['icb', 'ctg', 'vietinbank', 'vietin', 'cong thuong', '970415']
   },
   {
     code: 'bidv',
     bin: '970418',
     shortName: 'BIDV',
-    name: 'NgÃ¢n hÃ ng Äáº§u tÆ° vÃ  PhÃ¡t triá»ƒn Viá»‡t Nam',
+    name: 'Ngân hàng Đầu tư và Phát triển Việt Nam',
     aliases: ['bidv', 'dau tu va phat trien', '970418']
   },
   {
     code: 'agribank',
     bin: '970405',
     shortName: 'Agribank (VBA)',
-    name: 'NgÃ¢n hÃ ng NÃ´ng nghiá»‡p & PT NÃ´ng thÃ´n Viá»‡t Nam',
+    name: 'Ngân hàng Nông nghiệp & PT Nông thôn Việt Nam',
     aliases: ['vba', 'agr', 'agribank', 'nong nghiep', '970405']
   },
   {
     code: 'vpbank',
     bin: '970432',
     shortName: 'VPBank (VPB)',
-    name: 'NgÃ¢n hÃ ng Viá»‡t Nam Thá»‹nh VÆ°á»£ng',
+    name: 'Ngân hàng Việt Nam Thịnh Vượng',
     aliases: ['vpb', 'vpbank', 'thinh vuong', '970432']
   },
   {
     code: 'tpbank',
     bin: '970423',
     shortName: 'TPBank (TPB)',
-    name: 'NgÃ¢n hÃ ng TiÃªn Phong',
+    name: 'Ngân hàng Tiên Phong',
     aliases: ['tpb', 'tpbank', 'tien phong', '970423']
   },
   {
     code: 'acb',
     bin: '970416',
-    shortName: 'ACB (Ã ChÃ¢u)',
-    name: 'NgÃ¢n hÃ ng TMCP Ã ChÃ¢u',
+    shortName: 'ACB (Á Châu)',
+    name: 'Ngân hàng TMCP Á Châu',
     aliases: ['acb', 'a chau', '970416']
   },
   {
     code: 'sacombank',
     bin: '970403',
     shortName: 'Sacombank (STB)',
-    name: 'NgÃ¢n hÃ ng SÃ i GÃ²n ThÆ°Æ¡ng TÃ­n',
+    name: 'Ngân hàng Sài Gòn Thương Tín',
     aliases: ['stb', 'sacombank', 'sai gon thuong tin', 'sacom', '970403']
   },
   {
     code: 'hdbank',
     bin: '970437',
     shortName: 'HDBank (HDB)',
-    name: 'NgÃ¢n hÃ ng PhÃ¡t triá»ƒn TP.HCM',
+    name: 'Ngân hàng Phát triển TP.HCM',
     aliases: ['hdb', 'hdbank', '970437']
   },
   {
     code: 'vib',
     bin: '970441',
-    shortName: 'VIB (Quá»‘c Táº¿)',
-    name: 'NgÃ¢n hÃ ng Quá»‘c Táº¿ Viá»‡t Nam',
+    shortName: 'VIB (Quốc Tế)',
+    name: 'Ngân hàng Quốc Tế Việt Nam',
     aliases: ['vib', 'quoc te', '970441']
   },
   {
     code: 'shb',
     bin: '970443',
     shortName: 'SHB',
-    name: 'NgÃ¢n hÃ ng SÃ i GÃ²n - HÃ  Ná»™i',
+    name: 'Ngân hàng Sài Gòn - Hà Nội',
     aliases: ['shb', 'sai gon ha noi', '970443']
   },
   {
     code: 'ocb',
     bin: '970448',
-    shortName: 'OCB (PhÆ°Æ¡ng ÄÃ´ng)',
-    name: 'NgÃ¢n hÃ ng PhÆ°Æ¡ng ÄÃ´ng',
+    shortName: 'OCB (Phương Đông)',
+    name: 'Ngân hàng Phương Đông',
     aliases: ['ocb', 'phuong dong', '970448']
   },
   {
     code: 'msb',
     bin: '970426',
-    shortName: 'MSB (HÃ ng Háº£i)',
-    name: 'NgÃ¢n hÃ ng HÃ ng Háº£i Viá»‡t Nam',
+    shortName: 'MSB (Hàng Hải)',
+    name: 'Ngân hàng Hàng Hải Việt Nam',
     aliases: ['msb', 'hang hai', 'maritime', '970426']
   },
   {
     code: 'lienvietpostbank',
     bin: '970449',
-    shortName: 'LPBank (Lá»™c PhÃ¡t)',
-    name: 'NgÃ¢n hÃ ng TMCP Lá»™c PhÃ¡t Viá»‡t Nam',
+    shortName: 'LPBank (Lộc Phát)',
+    name: 'Ngân hàng TMCP Lộc Phát Việt Nam',
     aliases: ['lpb', 'lpbank', 'loc phat', 'lienvietpostbank', 'lien viet', '970449']
   },
   {
     code: 'seabank',
     bin: '970440',
-    shortName: 'SeABank (ÄÃ´ng Nam Ã)',
-    name: 'NgÃ¢n hÃ ng ÄÃ´ng Nam Ã',
+    shortName: 'SeABank (Đông Nam Á)',
+    name: 'Ngân hàng Đông Nam Á',
     aliases: ['seabank', 'seab', 'dong nam a', '970440']
   },
   {
     code: 'namabank',
     bin: '970428',
     shortName: 'Nam A Bank (NAB)',
-    name: 'NgÃ¢n hÃ ng Nam Ã',
+    name: 'Ngân hàng Nam Á',
     aliases: ['nab', 'nam a', 'namabank', '970428']
   },
   {
     code: 'abbank',
     bin: '970425',
-    shortName: 'ABBANK (An BÃ¬nh)',
-    name: 'NgÃ¢n hÃ ng An BÃ¬nh',
+    shortName: 'ABBANK (An Bình)',
+    name: 'Ngân hàng An Bình',
     aliases: ['abb', 'abbank', 'an binh', '970425']
   },
   {
     code: 'bacabank',
     bin: '970409',
-    shortName: 'Bac A Bank (Báº¯c Ã)',
-    name: 'NgÃ¢n hÃ ng Báº¯c Ã',
+    shortName: 'Bac A Bank (Bắc Á)',
+    name: 'Ngân hàng Bắc Á',
     aliases: ['bab', 'bac a', 'bacabank', '970409']
   },
   {
     code: 'baovietbank',
     bin: '970438',
-    shortName: 'BaoViet Bank (Báº£o Viá»‡t)',
-    name: 'NgÃ¢n hÃ ng Báº£o Viá»‡t',
+    shortName: 'BaoViet Bank (Bảo Việt)',
+    name: 'Ngân hàng Bảo Việt',
     aliases: ['bvb', 'baoviet', 'baovietbank', 'bao viet', '970438']
   },
   {
     code: 'vietabank',
     bin: '970427',
-    shortName: 'VietABank (Viá»‡t Ã)',
-    name: 'NgÃ¢n hÃ ng Viá»‡t Ã',
+    shortName: 'VietABank (Việt Á)',
+    name: 'Ngân hàng Việt Á',
     aliases: ['vab', 'vieta', 'vietabank', 'viet a', '970427']
   },
   {
     code: 'kienlongbank',
     bin: '970452',
-    shortName: 'KienlongBank (KiÃªn Long)',
-    name: 'NgÃ¢n hÃ ng KiÃªn Long',
+    shortName: 'KienlongBank (Kiên Long)',
+    name: 'Ngân hàng Kiên Long',
     aliases: ['klb', 'kienlong', 'kienlongbank', 'kien long', '970452']
   },
   {
     code: 'pgbank',
     bin: '970430',
-    shortName: 'PGBank (XÄƒng Dáº§u)',
-    name: 'NgÃ¢n hÃ ng TMCP Thá»‹nh VÆ°á»£ng vÃ  PhÃ¡t triá»ƒn',
+    shortName: 'PGBank (Xăng Dầu)',
+    name: 'Ngân hàng TMCP Thịnh Vượng và Phát triển',
     aliases: ['pgb', 'pgbank', 'xang dau', '970430']
   },
   {
     code: 'cake',
     bin: '546034',
     shortName: 'Cake by VPBank',
-    name: 'NgÃ¢n hÃ ng sá»‘ Cake by VPBank',
+    name: 'Ngân hàng số Cake by VPBank',
     aliases: ['cake', 'cake by vpbank', '546034']
   },
   {
     code: 'timo',
     bin: '963388',
     shortName: 'Timo by BVBank',
-    name: 'NgÃ¢n hÃ ng sá»‘ Timo',
+    name: 'Ngân hàng số Timo',
     aliases: ['timo', 'timo plus', '963388']
   },
   {
     code: 'viettelmoney',
     bin: '971005',
     shortName: 'Viettel Money',
-    name: 'Tá»•ng CÃ´ng ty Dá»‹ch vá»¥ Sá»‘ Viettel',
+    name: 'Tổng Công ty Dịch vụ Số Viettel',
     aliases: ['viettelmoney', 'viettel pay', 'viettel', '971005']
   },
   {
     code: 'vnptmoney',
     bin: '971011',
     shortName: 'VNPT Money',
-    name: 'Táº­p Ä‘oÃ n BÆ°u chÃ­nh Viá»…n thÃ´ng Viá»‡t Nam',
+    name: 'Tập đoàn Bưu chính Viễn thông Việt Nam',
     aliases: ['vnptmoney', 'vnpt pay', 'vnpt', '971011']
   },
   {
     code: 'shinhan',
     bin: '970424',
-    shortName: 'Shinhan Bank Viá»‡t Nam',
-    name: 'NgÃ¢n hÃ ng TNHH MTV Shinhan Viá»‡t Nam',
+    shortName: 'Shinhan Bank Việt Nam',
+    name: 'Ngân hàng TNHH MTV Shinhan Việt Nam',
     aliases: ['shinhan', 'shinhanbank', 'shbvn', '970424']
   },
   {
     code: 'wooribank',
     bin: '970457',
-    shortName: 'Woori Bank Viá»‡t Nam',
-    name: 'NgÃ¢n hÃ ng TNHH MTV Woori Viá»‡t Nam',
+    shortName: 'Woori Bank Việt Nam',
+    name: 'Ngân hàng TNHH MTV Woori Việt Nam',
     aliases: ['woori', 'wooribank', '970457']
   },
   {
     code: 'publicbank',
     bin: '970439',
-    shortName: 'Public Bank Viá»‡t Nam',
-    name: 'NgÃ¢n hÃ ng TNHH MTV Public Viá»‡t Nam',
+    shortName: 'Public Bank Việt Nam',
+    name: 'Ngân hàng TNHH MTV Public Việt Nam',
     aliases: ['pbvn', 'publicbank', 'public', '970439']
   }
 ];
 
 /**
- * TÃ¬m mÃ£ ngÃ¢n hÃ ng VietQR theo tÃªn hoáº·c alias
+ * Tìm mã ngân hàng VietQR theo tên hoặc alias
  */
 export function resolveBankCode(bankInput?: any): string {
   if (bankInput === null || bankInput === undefined) return 'vietcombank';
   const clean = String(bankInput).toLowerCase().trim();
   
-  // 1. Khá»›p mÃ£ Ä‘á»‹nh danh hoáº·c BIN
+  // 1. Khớp mã định danh hoặc BIN
   const direct = VIETNAM_BANKS.find(b => b.code.toLowerCase() === clean || b.bin === clean);
   if (direct) return direct.code;
 
-  // 2. Khá»›p alias
+  // 2. Khớp alias
   const byAlias = VIETNAM_BANKS.find(b => 
     b.aliases.some(alias => clean.includes(alias) || alias === clean)
   );
   if (byAlias) return byAlias.code;
 
-  // 3. Khá»›p tÃªn ngÃ¢n hÃ ng
+  // 3. Khớp tên ngân hàng
   const byName = VIETNAM_BANKS.find(b => 
     clean.includes(b.shortName.toLowerCase()) || clean.includes(b.name.toLowerCase())
   );
@@ -2323,19 +2323,19 @@ export function resolveBankCode(bankInput?: any): string {
 }
 
 /**
- * Chuáº©n hÃ³a chuá»—i text sang chuáº©n Napas / VietQR EMVCo Tag 62:
- * - Loáº¡i bá» dáº¥u tiáº¿ng Viá»‡t (NFD)
- * - Loáº¡i bá» cÃ¡c kÃ½ tá»± Ä‘áº·c biá»‡t [ ] { } < > # % @ $ ^ & * ( ) = + \\ / | ~ ` " ' ; : , . ? !
- * - Giá»¯ láº¡i chá»¯ cÃ¡i, sá»‘ vÃ  dáº¥u cÃ¡ch
- * - Chuyá»ƒn sang chá»¯ IN HOA
- * - Giá»›i háº¡n tá»‘i Ä‘a 50 kÃ½ tá»± Ä‘á»ƒ khÃ´ng trÃ n buffer Napas
+ * Chuẩn hóa chuỗi text sang chuẩn Napas / VietQR EMVCo Tag 62:
+ * - Loại bỏ dấu tiếng Việt (NFD)
+ * - Loại bỏ các ký tự đặc biệt [ ] { } < > # % @ $ ^ & * ( ) = + \\ / | ~ ` " ' ; : , . ? !
+ * - Giữ lại chữ cái, số và dấu cách
+ * - Chuyển sang chữ IN HOA
+ * - Giới hạn tối đa 50 ký tự để không tràn buffer Napas
  */
 export function sanitizeVietQrText(text?: any): string {
   if (text === null || text === undefined) return '';
   return String(text)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[Ä‘Ä]/g, 'D')
+    .replace(/[đĐ]/g, 'D')
     .replace(/[^a-zA-Z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -2353,18 +2353,18 @@ export interface ShirtSizeOption {
 }
 
 /**
- * Báº£ng kÃ­ch cá»¡ Ã¡o Ä‘á»“ng phá»¥c polo Há»p lá»›p 20 nÄƒm K8A1 chuáº©n hÃ³a theo báº£ng xÆ°á»Ÿng may (NgÆ°á»i lá»›n)
- * S:    Vai 35cm | Rá»™ng 41cm | DÃ i 55cm | 35kg - 45kg
- * M:    Vai 37cm | Rá»™ng 44cm | DÃ i 59cm | 45kg - 55kg
- * L:    Vai 39cm | Rá»™ng 47cm | DÃ i 63cm | 55kg - 65kg
- * XL:   Vai 41cm | Rá»™ng 49cm | DÃ i 67cm | 65kg - 75kg
- * XXL:  Vai 43cm | Rá»™ng 51cm | DÃ i 70cm | 75kg - 85kg
- * XXXL: Vai 45cm | Rá»™ng 53cm | DÃ i 73cm | 85kg - 95kg
+ * Bảng kích cỡ áo đồng phục polo Họp lớp 20 năm K8A1 chuẩn hóa theo bảng xưởng may (Người lớn)
+ * S:    Vai 35cm | Rộng 41cm | Dài 55cm | 35kg - 45kg
+ * M:    Vai 37cm | Rộng 44cm | Dài 59cm | 45kg - 55kg
+ * L:    Vai 39cm | Rộng 47cm | Dài 63cm | 55kg - 65kg
+ * XL:   Vai 41cm | Rộng 49cm | Dài 67cm | 65kg - 75kg
+ * XXL:  Vai 43cm | Rộng 51cm | Dài 70cm | 75kg - 85kg
+ * XXXL: Vai 45cm | Rộng 53cm | Dài 73cm | 85kg - 95kg
  */
 export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
   { 
     value: 'S', 
-    label: 'Size S (35 - 45kg) â€¢ Vai 35 / Rá»™ng 41 / DÃ i 55cm', 
+    label: 'Size S (35 - 45kg) • Vai 35 / Rộng 41 / Dài 55cm', 
     weightHint: '35 - 45kg',
     shoulder: '35cm',
     width: '41cm',
@@ -2372,7 +2372,7 @@ export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
   },
   { 
     value: 'M', 
-    label: 'Size M (45 - 55kg) â€¢ Vai 37 / Rá»™ng 44 / DÃ i 59cm', 
+    label: 'Size M (45 - 55kg) • Vai 37 / Rộng 44 / Dài 59cm', 
     weightHint: '45 - 55kg',
     shoulder: '37cm',
     width: '44cm',
@@ -2380,7 +2380,7 @@ export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
   },
   { 
     value: 'L', 
-    label: 'Size L (55 - 65kg) â€¢ Vai 39 / Rá»™ng 47 / DÃ i 63cm', 
+    label: 'Size L (55 - 65kg) • Vai 39 / Rộng 47 / Dài 63cm', 
     weightHint: '55 - 65kg',
     shoulder: '39cm',
     width: '47cm',
@@ -2388,7 +2388,7 @@ export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
   },
   { 
     value: 'XL', 
-    label: 'Size XL (65 - 75kg) â€¢ Vai 41 / Rá»™ng 49 / DÃ i 67cm', 
+    label: 'Size XL (65 - 75kg) • Vai 41 / Rộng 49 / Dài 67cm', 
     weightHint: '65 - 75kg',
     shoulder: '41cm',
     width: '49cm',
@@ -2396,7 +2396,7 @@ export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
   },
   { 
     value: 'XXL', 
-    label: 'Size XXL (75 - 85kg) â€¢ Vai 43 / Rá»™ng 51 / DÃ i 70cm', 
+    label: 'Size XXL (75 - 85kg) • Vai 43 / Rộng 51 / Dài 70cm', 
     weightHint: '75 - 85kg',
     shoulder: '43cm',
     width: '51cm',
@@ -2404,7 +2404,7 @@ export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
   },
   { 
     value: 'XXXL', 
-    label: 'Size XXXL (85 - 95kg) â€¢ Vai 45 / Rá»™ng 53 / DÃ i 73cm', 
+    label: 'Size XXXL (85 - 95kg) • Vai 45 / Rộng 53 / Dài 73cm', 
     weightHint: '85 - 95kg',
     shoulder: '45cm',
     width: '53cm',
@@ -2415,14 +2415,14 @@ export const SHIRT_SIZE_OPTIONS: ShirtSizeOption[] = [
 export function normalizeShirtSize(size?: string): string {
   if (!size) return '';
   const s = size.trim().toUpperCase();
-  if (!s || s === 'CHÆ¯A CHá»ŒN' || s === 'CHUA CHON' || s === 'NONE' || s === 'NULL' || s === 'UNDEFINED') return '';
+  if (!s || s === 'CHƯA CHỌN' || s === 'CHUA CHON' || s === 'NONE' || s === 'NULL' || s === 'UNDEFINED') return '';
   if (s === '2XL') return 'XXL';
   if (s === '3XL') return 'XXXL';
   return s;
 }
 
 /**
- * Sinh URL táº¡o áº£nh mÃ£ VietQR chuáº©n xÃ¡c, tÆ°Æ¡ng thÃ­ch 100% App NgÃ¢n hÃ ng Viá»‡t Nam
+ * Sinh URL tạo ảnh mã VietQR chuẩn xác, tương thích 100% App Ngân hàng Việt Nam
  */
 export function generateVietQrUrl(opts?: {
   bankCode?: any;
@@ -2449,18 +2449,18 @@ export function generateVietQrUrl(opts?: {
 }
 
 /**
- * Chuáº©n hÃ³a URL hÃ¬nh áº£nh:
- * - Tá»± Ä‘á»™ng nháº­n diá»‡n & chuyá»ƒn Ä‘á»•i link chia sáº» Google Drive thÃ nh URL CDN lh3.googleusercontent.com hiá»ƒn thá»‹ trá»±c tiáº¿p vÃ  nhanh chÃ³ng trong tháº» <img>.
- * - Há»— trá»£ cÃ¡c dáº¡ng: /file/d/ID/view, open?id=ID, uc?id=ID, thumbnail?id=ID.
- * - Chuyá»ƒn link Dropbox thÃ nh raw=1 Ä‘á»ƒ hiá»ƒn thá»‹ trá»±c tiáº¿p.
- * - Báº£o toÃ n cÃ¡c link áº£nh tiÃªu chuáº©n (Unsplash, HTTPS, Data URLs há»£p lá»‡).
+ * Chuẩn hóa URL hình ảnh:
+ * - Tự động nhận diện & chuyển đổi link chia sẻ Google Drive thành URL CDN lh3.googleusercontent.com hiển thị trực tiếp và nhanh chóng trong thẻ <img>.
+ * - Hỗ trợ các dạng: /file/d/ID/view, open?id=ID, uc?id=ID, thumbnail?id=ID.
+ * - Chuyển link Dropbox thành raw=1 để hiển thị trực tiếp.
+ * - Bảo toàn các link ảnh tiêu chuẩn (Unsplash, HTTPS, Data URLs hợp lệ).
  */
 export function normalizeImageUrl(rawUrl?: string): string {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
   const trimmed = rawUrl.trim();
   if (!trimmed) return '';
 
-  // 1. Nháº­n diá»‡n link Google Drive
+  // 1. Nhận diện link Google Drive
   const driveFileMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (driveFileMatch && driveFileMatch[1]) {
     return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}=w1600`;
@@ -2470,7 +2470,7 @@ export function normalizeImageUrl(rawUrl?: string): string {
     return `https://lh3.googleusercontent.com/d/${driveIdMatch[1]}=w1600`;
   }
 
-  // 2. Nháº­n diá»‡n link Dropbox
+  // 2. Nhận diện link Dropbox
   if (trimmed.includes('dropbox.com')) {
     return trimmed.replace(/\?dl=0$/, '?raw=1').replace(/&dl=0$/, '&raw=1');
   }
@@ -2479,9 +2479,9 @@ export function normalizeImageUrl(rawUrl?: string): string {
 }
 
 /**
- * Chuyá»ƒn Ä‘á»•i an toÃ n báº¥t ká»³ Ä‘á»‹nh dáº¡ng ngÃ y nÃ o thÃ nh Ä‘á»‘i tÆ°á»£ng Date há»£p lá»‡
- * Xá»­ lÃ½: "09:30 â€¢ 01/09/2026", "01/09/2026 09:30", "01/09/2026", ISO, Timestamp, Date object...
- * Tráº£ vá» null náº¿u khÃ´ng há»£p lá»‡ hoáº·c náº¿u gáº·p "Invalid Date" (chá»‘ng triá»‡t Ä‘á»ƒ lá»—i hiá»ƒn thá»‹ Invalid Date)
+ * Chuyển đổi an toàn bất kỳ định dạng ngày nào thành đối tượng Date hợp lệ
+ * Xử lý: "09:30 • 01/09/2026", "01/09/2026 09:30", "01/09/2026", ISO, Timestamp, Date object...
+ * Trả về null nếu không hợp lệ hoặc nếu gặp "Invalid Date" (chống triệt để lỗi hiển thị Invalid Date)
  */
 export function parseDate(rawDate?: any): Date | null {
   if (!rawDate) return null;
@@ -2493,41 +2493,41 @@ export function parseDate(rawDate?: any): Date | null {
     return null;
   }
 
-  // Náº¿u lÃ  sá»‘ timestamp mili-giÃ¢y dáº¡ng chuá»—i hoáº·c sá»‘
+  // Nếu là số timestamp mili-giây dạng chuỗi hoặc số
   if (/^\d{10,14}$/.test(str)) {
     const d = new Date(Number(str));
     if (!isNaN(d.getTime())) return d;
   }
 
-  // Dáº¡ng HH:mm â€¢ DD/MM/YYYY hoáº·c HH:mm:ss â€¢ DD/MM/YYYY
-  const bulletMatch = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*â€¢\s*(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  // Dạng HH:mm • DD/MM/YYYY hoặc HH:mm:ss • DD/MM/YYYY
+  const bulletMatch = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*•\s*(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
   if (bulletMatch) {
     const [, h, min, s, d, m, y] = bulletMatch;
     return new Date(Number(y), Number(m) - 1, Number(d), Number(h), Number(min), Number(s || 0));
   }
 
-  // Dáº¡ng DD/MM/YYYY â€¢ HH:mm
-  const bulletMatch2 = str.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s*â€¢\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  // Dạng DD/MM/YYYY • HH:mm
+  const bulletMatch2 = str.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s*•\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if (bulletMatch2) {
     const [, d, m, y, h, min, s] = bulletMatch2;
     return new Date(Number(y), Number(m) - 1, Number(d), Number(h), Number(min), Number(s || 0));
   }
 
-  // Dáº¡ng DD/MM/YYYY HH:mm:ss hoáº·c DD/MM/YYYY
+  // Dạng DD/MM/YYYY HH:mm:ss hoặc DD/MM/YYYY
   const dmyTimeMatch = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if (dmyTimeMatch) {
     const [, d, m, y, h, min, s] = dmyTimeMatch;
     return new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0), Number(s || 0));
   }
 
-  // Dáº¡ng ISO YYYY-MM-DD hoáº·c YYYY-MM-DD HH:mm:ss
+  // Dạng ISO YYYY-MM-DD hoặc YYYY-MM-DD HH:mm:ss
   const ymdTimeMatch = str.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[\sT](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
   if (ymdTimeMatch) {
     const [, y, m, d, h, min, s] = ymdTimeMatch;
     return new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0), Number(s || 0));
   }
 
-  // Thá»­ parse qua Date tiÃªu chuáº©n
+  // Thử parse qua Date tiêu chuẩn
   const fallback = new Date(str);
   if (!isNaN(fallback.getTime())) {
     return fallback;
@@ -2537,11 +2537,11 @@ export function parseDate(rawDate?: any): Date | null {
 }
 
 /**
- * Äá»‹nh dáº¡ng thá»i gian chuáº©n tiáº¿ng Viá»‡t cho giao diá»‡n:
- * - Chuyá»ƒn Ä‘á»•i cÃ¡c chuá»—i Date rÆ°á»m rÃ  (vÃ­ dá»¥: "Sat Sep 05 2026 16:24:00 GMT+0700 (Indochina Time)", ISO, Timestamp)
- *   thÃ nh dáº¡ng gá»n gÃ ng, trang trá»ng: "16:24 â€¢ 05/09/2026"
- * - Chuáº©n hÃ³a cÃ¡c dáº¡ng DD/MM/YYYY HH:mm
- * - Tuyá»‡t Ä‘á»‘i khÃ´ng bao giá» tráº£ vá» chuá»—i "Invalid Date"
+ * Định dạng thời gian chuẩn tiếng Việt cho giao diện:
+ * - Chuyển đổi các chuỗi Date rườm rà (ví dụ: "Sat Sep 05 2026 16:24:00 GMT+0700 (Indochina Time)", ISO, Timestamp)
+ *   thành dạng gọn gàng, trang trọng: "16:24 • 05/09/2026"
+ * - Chuẩn hóa các dạng DD/MM/YYYY HH:mm
+ * - Tuyệt đối không bao giờ trả về chuỗi "Invalid Date"
  */
 export function formatDateTimeVi(rawDate?: any): string {
   if (!rawDate) return '';
@@ -2550,8 +2550,8 @@ export function formatDateTimeVi(rawDate?: any): string {
     return '';
   }
 
-  // Náº¿u Ä‘Ã£ lÃ  Ä‘á»‹nh dáº¡ng chuáº©n "HH:mm â€¢ DD/MM/YYYY" thÃ¬ giá»¯ nguyÃªn
-  if (/^\d{2}:\d{2}\s*â€¢\s*\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+  // Nếu đã là định dạng chuẩn "HH:mm • DD/MM/YYYY" thì giữ nguyên
+  if (/^\d{2}:\d{2}\s*•\s*\d{2}\/\d{2}\/\d{4}$/.test(str)) {
     return str;
   }
 
@@ -2565,20 +2565,20 @@ export function formatDateTimeVi(rawDate?: any): string {
   const month = pad(d.getMonth() + 1);
   const year = d.getFullYear();
 
-  // Náº¿u khÃ´ng cÃ³ thÃ nh pháº§n giá» phÃºt trong chuá»—i gá»‘c vÃ  giá» phÃºt báº±ng 0 thÃ¬ chá»‰ tráº£ vá» ngÃ y
+  // Nếu không có thành phần giờ phút trong chuỗi gốc và giờ phút bằng 0 thì chỉ trả về ngày
   if (d.getHours() === 0 && d.getMinutes() === 0 && !str.includes(':')) {
     return `${day}/${month}/${year}`;
   }
 
   const hours = pad(d.getHours());
   const minutes = pad(d.getMinutes());
-  return `${hours}:${minutes} â€¢ ${day}/${month}/${year}`;
+  return `${hours}:${minutes} • ${day}/${month}/${year}`;
 }
 
 /**
- * Äá»‹nh dáº¡ng thá»i gian Ä‘iá»ƒm danh ngáº¯n gá»n, tinh táº¿ cho báº£ng quáº£n trá»‹ & danh sÃ¡ch:
- * - "Sat Sep 12 2026 13:06:00 GMT+0700 (Indochina Time)" -> "13:06 â€¢ 12/09"
- * - "12/09/2026 13:06" -> "13:06 â€¢ 12/09"
+ * Định dạng thời gian điểm danh ngắn gọn, tinh tế cho bảng quản trị & danh sách:
+ * - "Sat Sep 12 2026 13:06:00 GMT+0700 (Indochina Time)" -> "13:06 • 12/09"
+ * - "12/09/2026 13:06" -> "13:06 • 12/09"
  * - "13:06" -> "13:06"
  */
 export function formatCheckInTimeShort(rawDate?: any): string {
@@ -2590,18 +2590,18 @@ export function formatCheckInTimeShort(rawDate?: any): string {
     str.toLowerCase() === 'null' || 
     str.toLowerCase() === 'undefined' || 
     str.toLowerCase() === 'ok' ||
-    str.toLowerCase() === 'Ä‘Ã£ Ä‘áº¿n'
+    str.toLowerCase() === 'đã đến'
   ) {
     return '';
   }
 
-  // Náº¿u chá»‰ lÃ  HH:mm (vÃ­ dá»¥ "13:06")
+  // Nếu chỉ là HH:mm (ví dụ "13:06")
   if (/^\d{1,2}:\d{2}$/.test(str)) {
     return str;
   }
 
-  // Náº¿u Ä‘Ã£ lÃ  HH:mm â€¢ DD/MM (vÃ­ dá»¥ "13:06 â€¢ 12/09")
-  if (/^\d{1,2}:\d{2}\s*â€¢\s*\d{1,2}\/\d{1,2}$/.test(str)) {
+  // Nếu đã là HH:mm • DD/MM (ví dụ "13:06 • 12/09")
+  if (/^\d{1,2}:\d{2}\s*•\s*\d{1,2}\/\d{1,2}$/.test(str)) {
     return str;
   }
 
@@ -2617,14 +2617,14 @@ export function formatCheckInTimeShort(rawDate?: any): string {
   const day = pad(d.getDate());
   const month = pad(d.getMonth() + 1);
 
-  return `${hours}:${minutes} â€¢ ${day}/${month}`;
+  return `${hours}:${minutes} • ${day}/${month}`;
 }
 
 /**
- * Äá»‹nh dáº¡ng ngÃ y chuáº©n tiáº¿ng Viá»‡t (DD/MM/YYYY):
- * - Xá»­ lÃ½ triá»‡t Ä‘á»ƒ cÃ¡c chuá»—i Date tá»« Google Sheets nhÆ° "Sat Aug 15 2026 00:00:00 GMT+0700 (Indochina Time)",
- *   "09:30 â€¢ 01/09/2026", ISO "2026-08-15" thÃ nh "15/08/2026"
- * - Tuyá»‡t Ä‘á»‘i khÃ´ng bao giá» tráº£ vá» chuá»—i "Invalid Date"
+ * Định dạng ngày chuẩn tiếng Việt (DD/MM/YYYY):
+ * - Xử lý triệt để các chuỗi Date từ Google Sheets như "Sat Aug 15 2026 00:00:00 GMT+0700 (Indochina Time)",
+ *   "09:30 • 01/09/2026", ISO "2026-08-15" thành "15/08/2026"
+ * - Tuyệt đối không bao giờ trả về chuỗi "Invalid Date"
  */
 export function formatDateOnlyVi(rawDate?: any): string {
   if (!rawDate) return '';
@@ -2635,7 +2635,7 @@ export function formatDateOnlyVi(rawDate?: any): string {
 
   const d = parseDate(rawDate);
   if (!d) {
-    // Dá»± phÃ²ng: trÃ­ch xuáº¥t cá»¥m DD/MM/YYYY náº¿u cÃ³ trong chuá»—i
+    // Dự phòng: trích xuất cụm DD/MM/YYYY nếu có trong chuỗi
     const dmy = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (dmy) {
       const [, dStr, mStr, yStr] = dmy;
@@ -2650,39 +2650,39 @@ export function formatDateOnlyVi(rawDate?: any): string {
 }
 
 /**
- * Che má» sá»‘ Ä‘iá»‡n thoáº¡i Ä‘á»ƒ báº£o vá»‡ thÃ´ng tin cÃ¡ nhÃ¢n (PII):
- * Hiá»ƒn thá»‹ 4 sá»‘ Ä‘áº§u vÃ  2 sá»‘ cuá»‘i, á»Ÿ giá»¯a thay báº±ng kÃ½ tá»± che: 0919 â€¢â€¢â€¢ â€¢88
+ * Che mờ số điện thoại để bảo vệ thông tin cá nhân (PII):
+ * Hiển thị 4 số đầu và 2 số cuối, ở giữa thay bằng ký tự che: 0919 ••• •88
  */
 export function maskPhone(phone?: any): string {
   if (!phone) return '';
   const str = String(phone).trim();
 
-  // 1. Náº¿u chuá»—i ÄÃƒ ÄÆ¯á»¢C CHE Má»œ trÆ°á»›c Ä‘Ã³ (chá»©a â€¢ hoáº·c *):
-  if (str.includes('â€¢') || str.includes('*')) {
+  // 1. Nếu chuỗi ĐÃ ĐƯỢC CHE MỜ trước đó (chứa • hoặc *):
+  if (str.includes('•') || str.includes('*')) {
     const match = str.match(/^([0-9]{3,4})[^0-9]+([0-9]{2,4})$/);
     if (match) {
-      return `${match[1]} â€¢â€¢â€¢ ${match[2]}`;
+      return `${match[1]} ••• ${match[2]}`;
     }
     return str.replace(/\s+/g, ' ').trim();
   }
 
-  // 2. Náº¿u lÃ  sá»‘ thÃ´ (chÆ°a che):
+  // 2. Nếu là số thô (chưa che):
   const clean = str.replace(/[^0-9]/g, '');
   if (clean.length < 7) return clean;
   if (clean.length === 10) {
-    return `${clean.slice(0, 4)} â€¢â€¢â€¢ ${clean.slice(-3)}`;
+    return `${clean.slice(0, 4)} ••• ${clean.slice(-3)}`;
   }
-  return `${clean.slice(0, 3)} â€¢â€¢â€¢ ${clean.slice(-3)}`;
+  return `${clean.slice(0, 3)} ••• ${clean.slice(-3)}`;
 }
 
 /**
- * TrÃ­ch xuáº¥t vÃ  chuáº©n hÃ³a táº¥t cáº£ cÃ¡c sá»‘ Ä‘iá»‡n thoáº¡i tá»« chuá»—i (há»— trá»£ nhiá»u sá»‘ phÃ¢n cÃ¡ch báº±ng -, /, ;, dáº¥u cÃ¡ch)
- * Chuáº©n hÃ³a:
- * - Bá» kÃ½ tá»± khÃ´ng pháº£i sá»‘
+ * Trích xuất và chuẩn hóa tất cả các số điện thoại từ chuỗi (hỗ trợ nhiều số phân cách bằng -, /, ;, dấu cách)
+ * Chuẩn hóa:
+ * - Bỏ ký tự không phải số
  * - 84xxxxxxxxx -> 0xxxxxxxxx
- * - 9 chá»¯ sá»‘ báº¯t Ä‘áº§u tá»« [3,5,7,8,9] -> thÃªm 0 á»Ÿ Ä‘áº§u (do Google Sheets lÆ°u dáº¡ng number lÃ m máº¥t sá»‘ 0)
- * - 10 chá»¯ sá»‘ báº¯t Ä‘áº§u tá»« 1 (Ä‘áº§u 01 cÅ©) -> thÃªm 0 á»Ÿ Ä‘áº§u
- * - Chá»‰ cháº¥p nháº­n SÄT há»£p lá»‡ cÃ³ tá»« 9 Ä‘áº¿n 12 chá»¯ sá»‘, loáº¡i bá» cÃ¡c máº£nh 2-4 chá»¯ sá»‘ vá»¥n
+ * - 9 chữ số bắt đầu từ [3,5,7,8,9] -> thêm 0 ở đầu (do Google Sheets lưu dạng number làm mất số 0)
+ * - 10 chữ số bắt đầu từ 1 (đầu 01 cũ) -> thêm 0 ở đầu
+ * - Chỉ chấp nhận SĐT hợp lệ có từ 9 đến 12 chữ số, loại bỏ các mảnh 2-4 chữ số vụn
  */
 export const OLD_TO_NEW_VIETNAMESE_PREFIXES: Record<string, string> = {
   '0162': '032', '0163': '033', '0164': '034', '0165': '035',
@@ -2712,8 +2712,8 @@ export function extractPhones(raw?: any): string[] {
   const str = String(raw).trim();
   if (!str) return [];
 
-  // Náº¿u chuá»—i chá»©a kÃ½ tá»± mask (â€¢ hoáº·c *), khÃ´ng bÃ³c tÃ¡ch thÃ nh cÃ¡c máº£nh sá»‘ vá»¥n Ä‘á»ƒ trÃ¡nh so khá»›p sai
-  if (str.includes('â€¢') || str.includes('*')) {
+  // Nếu chuỗi chứa ký tự mask (• hoặc *), không bóc tách thành các mảnh số vụn để tránh so khớp sai
+  if (str.includes('•') || str.includes('*')) {
     return [];
   }
 
@@ -2732,7 +2732,7 @@ export function extractPhones(raw?: any): string[] {
       clean = '0' + clean;
     }
 
-    // SÄT há»£p lá»‡ táº¡i Viá»‡t Nam pháº£i cÃ³ Ã­t nháº¥t 9 Ä‘áº¿n 12 chá»¯ sá»‘
+    // SĐT hợp lệ tại Việt Nam phải có ít nhất 9 đến 12 chữ số
     if (clean.length < 9 || clean.length > 12) return;
 
     if (clean && !phones.includes(clean)) {
@@ -2757,7 +2757,7 @@ export function extractPhones(raw?: any): string[] {
 }
 
 /**
- * Kiá»ƒm tra xem 2 Ä‘á»‘i tÆ°á»£ng SÄT cÃ³ trÃ¹ng nhau hay khÃ´ng (so khá»›p an toÃ n, há»— trá»£ chuyá»ƒn Ä‘á»•i 11 sá»‘ sang 10 sá»‘)
+ * Kiểm tra xem 2 đối tượng SĐT có trùng nhau hay không (so khớp an toàn, hỗ trợ chuyển đổi 11 số sang 10 số)
  */
 export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
   if (!phoneA || !phoneB) return false;
@@ -2765,10 +2765,10 @@ export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
   const strB = String(phoneB).trim();
   if (!strA || !strB) return false;
 
-  const isMaskedA = strA.includes('â€¢') || strA.includes('*');
-  const isMaskedB = strB.includes('â€¢') || strB.includes('*');
+  const isMaskedA = strA.includes('•') || strA.includes('*');
+  const isMaskedB = strB.includes('•') || strB.includes('*');
 
-  // 1. Cáº£ 2 Ä‘á»u lÃ  sá»‘ bá»‹ che: so khá»›p an toÃ n qua suffix (2 sá»‘ cuá»‘i) vÃ  prefix nhÃ  máº¡ng
+  // 1. Cả 2 đều là số bị che: so khớp an toàn qua suffix (2 số cuối) và prefix nhà mạng
   if (isMaskedA && isMaskedB) {
     const cleanA = strA.replace(/\D/g, '');
     const cleanB = strB.replace(/\D/g, '');
@@ -2787,7 +2787,7 @@ export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
     return false;
   }
 
-  // 2. Náº¿u 1 bÃªn bá»‹ che vÃ  1 bÃªn lÃ  sá»‘ Ä‘áº§y Ä‘á»§:
+  // 2. Nếu 1 bên bị che và 1 bên là số đầy đủ:
   if (isMaskedA !== isMaskedB) {
     const masked = isMaskedA ? strA : strB;
     const full = isMaskedA ? strB : strA;
@@ -2808,7 +2808,7 @@ export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
     return false;
   }
 
-  // 3. Cáº£ 2 Ä‘á»u lÃ  sá»‘ Ä‘áº§y Ä‘á»§: so khá»›p chuáº©n qua danh sÃ¡ch SÄT há»£p lá»‡
+  // 3. Cả 2 đều là số đầy đủ: so khớp chuẩn qua danh sách SĐT hợp lệ
   const listA = extractPhones(phoneA);
   const listB = extractPhones(phoneB);
   if (listA.length === 0 || listB.length === 0) return false;
@@ -2816,12 +2816,12 @@ export function isPhoneMatch(phoneA?: any, phoneB?: any): boolean {
 }
 
 /**
- * So khá»›p thÃ´ng minh tÃªn há»c sinh trong Danh báº¡ (Master Roster) vá»›i Há» tÃªn gá»­i tá»« Web
- * Há»— trá»£ cÃ¡c trÆ°á»ng há»£p thá»±c táº¿:
- * - Danh báº¡ ghi ngáº¯n gá»n: "Tráº§n Khuyáº¿n" <-> Web nháº­p: "Tráº§n vÄƒn Khuyáº¿n"
- * - Danh báº¡ chá»‰ ghi tÃªn/Ä‘á»‡m: "Báº£o Thi" <-> Web nháº­p: "HoÃ ng Báº£o Thi"
- * - Danh báº¡ ghi tÃªn Ä‘áº£o: "Linh Há»¯u" <-> Web nháº­p: "ThÃ¡i há»¯u linh"
- * - Khá»›p theo Biá»‡t danh
+ * So khớp thông minh tên học sinh trong Danh bạ (Master Roster) với Họ tên gửi từ Web
+ * Hỗ trợ các trường hợp thực tế:
+ * - Danh bạ ghi ngắn gọn: "Trần Khuyến" <-> Web nhập: "Trần văn Khuyến"
+ * - Danh bạ chỉ ghi tên/đệm: "Bảo Thi" <-> Web nhập: "Hoàng Bảo Thi"
+ * - Danh bạ ghi tên đảo: "Linh Hữu" <-> Web nhập: "Thái hữu linh"
+ * - Khớp theo Biệt danh
  */
 export function isVietnameseNameMatch(
   rosterMember: { fullName: string; nickname?: string },
@@ -2841,7 +2841,7 @@ export function isVietnameseNameMatch(
   const mName = normalize(rosterMember.fullName);
   const mNick = rosterMember.nickname ? normalize(rosterMember.nickname) : '';
 
-  // Khá»›p trá»±c tiáº¿p theo nickname náº¿u cáº£ 2 bÃªn Ä‘á»u cÃ³ biá»‡t danh
+  // Khớp trực tiếp theo nickname nếu cả 2 bên đều có biệt danh
   if (rNick && mNick && rNick === mNick) return true;
 
   if (!rName || !mName) return false;
@@ -2852,17 +2852,17 @@ export function isVietnameseNameMatch(
   const rTokens = rName.split(' ').filter(Boolean);
   const mTokens = mName.split(' ').filter(Boolean);
 
-  // 1. ToÃ n bá»™ cÃ¡c tá»« cá»§a tÃªn danh báº¡ náº±m trong tÃªn Ä‘Äƒng kÃ½ web
+  // 1. Toàn bộ các từ của tên danh bạ nằm trong tên đăng ký web
   if (mTokens.length >= 2 && mTokens.every(t => rTokens.includes(t))) {
     return true;
   }
 
-  // 2. ToÃ n bá»™ cÃ¡c tá»« cá»§a tÃªn web náº±m trong danh báº¡
+  // 2. Toàn bộ các từ của tên web nằm trong danh bạ
   if (rTokens.length >= 2 && rTokens.every(t => mTokens.includes(t))) {
     return true;
   }
 
-  // 3. Biá»‡t danh khá»›p vá»›i tÃªn web
+  // 3. Biệt danh khớp với tên web
   if (mNick && mNick.length >= 2) {
     const nickTokens = mNick.split(' ').filter(Boolean);
     if (nickTokens.length >= 2 && nickTokens.every(t => rTokens.includes(t))) {
@@ -2870,7 +2870,7 @@ export function isVietnameseNameMatch(
     }
   }
 
-  // 4. TrÃ¹ng tÃªn gá»i (given name) vÃ  trÃ¹ng biá»‡t danh
+  // 4. Trùng tên gọi (given name) và trùng biệt danh
   if (rTokens.length > 0 && mTokens.length > 0) {
     const rGivenName = rTokens[rTokens.length - 1];
     const mGivenName = mTokens[mTokens.length - 1];
@@ -2883,14 +2883,14 @@ export function isVietnameseNameMatch(
 }
 
 // ============================================================================
-// ðŸŽ¬ Cáº¤U HÃŒNH TRÃŒNH CHIáº¾U SÃ‚N KHáº¤U (MÃ€N LED) & PLAYLIST NHáº C Ná»€N K8A1
+// 🎬 CẤU HÌNH TRÌNH CHIẾU SÂN KHẤU (MÀN LED) & PLAYLIST NHẠC NỀN K8A1
 // ============================================================================
 
-// Danh sÃ¡ch bÃ i hÃ¡t máº·c Ä‘á»‹nh (Ca khÃºc thanh xuÃ¢n tuá»•i há»c trÃ² K8A1)
+// Danh sách bài hát mặc định (Ca khúc thanh xuân tuổi học trò K8A1)
 export const DEFAULT_PLAYLIST: MusicTrack[] = [
   {
     id: "track-1",
-    title: "Mong Æ¯á»›c Ká»· Niá»‡m XÆ°a",
+    title: "Mong Ước Kỷ Niệm Xưa",
     artist: "Tam Ca 3A",
     sourceType: "youtube",
     url: "https://youtu.be/ocvlV5LZ93Q",
@@ -2898,7 +2898,7 @@ export const DEFAULT_PLAYLIST: MusicTrack[] = [
   },
   {
     id: "track-2",
-    title: "Táº¡m Biá»‡t (Thá»i Ão Tráº¯ng)",
+    title: "Tạm Biệt (Thời Áo Trắng)",
     artist: "Quang Vinh",
     sourceType: "youtube",
     url: "https://youtu.be/zXHEZ0SLj1A",
@@ -2906,7 +2906,7 @@ export const DEFAULT_PLAYLIST: MusicTrack[] = [
   },
   {
     id: "track-3",
-    title: "NgÃ y áº¤y Báº¡n VÃ  TÃ´i",
+    title: "Ngày Ấy Bạn Và Tôi",
     artist: "Lynk Lee",
     sourceType: "youtube",
     url: "https://youtu.be/Z0R73khjwfg",
@@ -2914,49 +2914,49 @@ export const DEFAULT_PLAYLIST: MusicTrack[] = [
   },
   {
     id: "track-4",
-    title: "Xe Äáº¡p",
-    artist: "ThÃ¹y Chi & M4U",
+    title: "Xe Đạp",
+    artist: "Thùy Chi & M4U",
     sourceType: "youtube",
     url: "https://youtu.be/HyCIkhbalPk",
     duration: "04:45"
   },
   {
     id: "track-5",
-    title: "Giáº¥c MÆ¡ Tháº§n TiÃªn",
-    artist: "Miu LÃª",
+    title: "Giấc Mơ Thần Tiên",
+    artist: "Miu Lê",
     sourceType: "youtube",
     url: "https://youtu.be/VHT6ouvKj_Q",
     duration: "03:55"
   },
   {
     id: "track-6",
-    title: "Ná»¥ CÆ°á»i 18 20",
-    artist: "DoÃ£n Hiáº¿u",
+    title: "Nụ Cười 18 20",
+    artist: "Doãn Hiếu",
     sourceType: "youtube",
     url: "https://youtu.be/qOwNuWY30iw",
     duration: "03:40"
   }
 ];
 
-// Danh sÃ¡ch Maket / Backdrop sÃ¢n kháº¥u há»™i trÆ°á»ng máº·c Ä‘á»‹nh
+// Danh sách Maket / Backdrop sân khấu hội trường mặc định
 export const DEFAULT_BACKDROPS: BackdropItem[] = [
   {
     id: "bd-main",
-    title: "Backdrop SÃ¢n Kháº¥u ChÃ­nh â€¢ Ká»· Niá»‡m 20 NÄƒm NgÃ y Trá»Ÿ Vá» K8A1 (2003 - 2006)",
+    title: "Backdrop Sân Khấu Chính • Kỷ Niệm 20 Năm Ngày Trở Về K8A1 (2003 - 2006)",
     url: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
     thumbnail: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w600",
     isDefault: true
   },
   {
     id: "bd-school",
-    title: "Maket Há»™i Ngá»™ MÃ¡i TrÆ°á»ng THPT ThÃ¡i NguyÃªn XÆ°a & Nay",
+    title: "Maket Hội Ngộ Mái Trường THPT Thái Nguyên Xưa & Nay",
     url: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
     thumbnail: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
     isDefault: false
   }
 ];
 
-// Cáº¥u hÃ¬nh Ä‘iá»u khiá»ƒn trÃ¬nh chiáº¿u sÃ¢n kháº¥u máº·c Ä‘á»‹nh
+// Cấu hình điều khiển trình chiếu sân khấu mặc định
 export const DEFAULT_STAGE_SETTINGS: StageSettings = {
   slideshowSpeed: 6000,
   defaultScene: 'backdrop',
@@ -2973,26 +2973,26 @@ export const DEFAULT_STAGE_SETTINGS: StageSettings = {
 };
 
 /**
- * Nháº­n diá»‡n chuá»—i chÃº thÃ­ch lÃ  tÃªn file mÃ¡y áº£nh, mÃ£ bÄƒm Drive, chuá»—i sá»‘ Facebook hoáº·c tá»« khÃ³a máº·c Ä‘á»‹nh chung chung
+ * Nhận diện chuỗi chú thích là tên file máy ảnh, mã băm Drive, chuỗi số Facebook hoặc từ khóa mặc định chung chung
  */
 export function isMachineOrGenericCaption(caption?: string): boolean {
   if (!caption) return true;
   const trimmed = String(caption).trim();
   if (trimmed.length < 4) return true;
 
-  // 1. Kiá»ƒm tra danh sÃ¡ch tá»« khÃ³a máº·c Ä‘á»‹nh chung chung
+  // 1. Kiểm tra danh sách từ khóa mặc định chung chung
   const lower = trimmed.toLowerCase().replace(/\s+/g, ' ');
   const genericList = [
-    'ká»· niá»‡m lá»›p k8a1',
-    'ká»· niá»‡m k8a1',
-    'áº£nh ká»· niá»‡m',
-    'áº£nh ká»· niá»‡m k8a1',
-    'áº£nh k8a1',
+    'kỷ niệm lớp k8a1',
+    'kỷ niệm k8a1',
+    'ảnh kỷ niệm',
+    'ảnh kỷ niệm k8a1',
+    'ảnh k8a1',
     'k8a1',
-    'ká»· niá»‡m 20 nÄƒm',
-    'ká»· niá»‡m 20 nÄƒm k8a1',
-    'ká»· niá»‡m',
-    'chÆ°a cÃ³ chÃº thÃ­ch',
+    'kỷ niệm 20 năm',
+    'kỷ niệm 20 năm k8a1',
+    'kỷ niệm',
+    'chưa có chú thích',
     'default',
     'untitled',
     'null',
@@ -3000,127 +3000,127 @@ export function isMachineOrGenericCaption(caption?: string): boolean {
     'image',
     'photo',
     'hinh anh',
-    'áº£nh',
-    'hÃ¬nh áº£nh'
+    'ảnh',
+    'hình ảnh'
   ];
   if (genericList.includes(lower)) return true;
 
-  // 2. Äá»‹nh dáº¡ng Ä‘uÃ´i file hÃ¬nh áº£nh / video
+  // 2. Định dạng đuôi file hình ảnh / video
   if (/\.(jpg|jpeg|png|webp|gif|bmp|mp4|mov|heic|heif|raw)$/i.test(trimmed)) return true;
 
-  // 3. Tiá»n tá»‘ mÃ¡y áº£nh / chá»¥p mÃ n hÃ¬nh / máº¡ng xÃ£ há»™i
+  // 3. Tiền tố máy ảnh / chụp màn hình / mạng xã hội
   if (/^(img|image|dsc|photo|pasted|screenshot|zalo|fb|facebook|snap|178\d+|569\d+)/i.test(trimmed)) return true;
 
-  // 4. Chuá»—i sá»‘ dÃ i liÃªn tiáº¿p hoáº·c chuá»—i timestamp Facebook (chá»©a nhiá»u cá»¥m sá»‘ 8+ chá»¯ sá»‘, hoáº·c káº¿t thÃºc báº±ng 'n')
+  // 4. Chuỗi số dài liên tiếp hoặc chuỗi timestamp Facebook (chứa nhiều cụm số 8+ chữ số, hoặc kết thúc bằng 'n')
   if (/^\d{8,}/.test(trimmed) || /^[\d\s_.-]{8,}/.test(trimmed) || (/\s+n$/i.test(trimmed) && /\d{8,}/.test(trimmed))) return true;
 
-  // 5. Chuá»—i ngáº«u nhiÃªn khÃ´ng cÃ³ dáº¥u cÃ¡ch dÃ i >= 16 kÃ½ tá»± (mÃ£ bÄƒm Drive nhÆ° 2aOboQx0cIp0ytJctMR2mYgDpSIvagbVQ47zopO4)
+  // 5. Chuỗi ngẫu nhiên không có dấu cách dài >= 16 ký tự (mã băm Drive như 2aOboQx0cIp0ytJctMR2mYgDpSIvagbVQ47zopO4)
   if (!trimmed.includes(' ') && trimmed.length >= 16) return true;
 
-  // 6. MÃ£ hex dÃ i hoáº·c chá»©a hash ná»™i bá»™
+  // 6. Mã hex dài hoặc chứa hash nội bộ
   if (/^[0-9a-f]{16,}$/i.test(trimmed) || trimmed.includes('9527bee86c')) return true;
 
   return false;
 }
 
-// Danh sÃ¡ch cÃ¢u dáº«n thanh xuÃ¢n K8A1 â€” Sáº¯p xáº¿p XEN Káº¼ giá»¯a Vui Váº», ThÃ¢n Thiá»‡n vÃ  SÃ¢u Láº¯ng, HoÃ i Niá»‡m
+// Danh sách câu dẫn thanh xuân K8A1 — Sắp xếp XEN KẼ giữa Vui Vẻ, Thân Thiện và Sâu Lắng, Hoài Niệm
 export const NOSTALGIC_QUOTES: string[] = [
-  "Gáº·p láº¡i nhau lÃ  cá»© pháº£i cÆ°á»i tháº­t tÆ°Æ¡i tháº¿ nÃ y má»›i chá»‹u cÆ¡! ðŸ˜„",
-  "Hai mÆ°Æ¡i nÄƒm ngÃ y trá»Ÿ vá» â€” KÃ½ á»©c nÄƒm thÃ¡ng tuá»•i há»c trÃ² K8A1 váº«n váº¹n nguyÃªn nhÆ° ngÃ y hÃ´m qua.",
-  "20 nÄƒm rá»“i mÃ  nhÃ¬n ná»¥ cÆ°á»i cá»§a ai cÅ©ng váº«n tráº» trung y nhÆ° ngÃ y nÃ o!",
-  "Thá»i gian cÃ³ thá»ƒ trÃ´i mau, nhÆ°ng tÃ¬nh báº¡n cá»§a chÃºng mÃ¬nh thÃ¬ mÃ£i mÃ£i cÃ²n láº¡i.",
-  "NhÃ¬n láº¡i áº£nh cÅ© má»›i tháº¥y ngÃ y xÆ°a chÃºng mÃ¬nh ngá»‘ tÃ u mÃ  vui tháº­t sá»±.",
-  "Cáº£m Æ¡n vÃ¬ chÃºng ta Ä‘Ã£ cÃ¹ng nhau Ä‘i qua nhá»¯ng nÄƒm thÃ¡ng thanh xuÃ¢n trong tráº»o nháº¥t cuá»™c Ä‘á»i.",
-  "ÄÃºng cháº¥t K8A1 â€” ÄÃ£ tá»¥ táº­p lÃ  pháº£i vui háº¿t náº¥c!",
-  "CÃ³ nhá»¯ng ngÆ°á»i báº¡n, dáº«u bao nÄƒm xa cÃ¡ch, gáº·p láº¡i váº«n váº¹n nguyÃªn sá»± chÃ¢n thÃ nh.",
-  "áº¢nh cÃ³ thá»ƒ má» theo nÄƒm thÃ¡ng, nhÆ°ng tÃ¬nh báº¡n cá»§a chÃºng mÃ¬nh thÃ¬ lÃºc nÃ o cÅ©ng nÃ©t cÄƒng!",
-  "Hai mÆ°Æ¡i nÄƒm â€” Má»™t cháº·ng Ä‘Æ°á»ng Ä‘á»§ dÃ i Ä‘á»ƒ tháº¥u hiá»ƒu giÃ¡ trá»‹ thiÃªng liÃªng cá»§a hai chá»¯ tri ká»·.",
-  "Ai báº£o 20 nÄƒm lÃ  lÃ¢u? Cá»© Ä‘á»©ng chung má»™t khung hÃ¬nh lÃ  láº¡i thÃ nh báº¡n cÃ¹ng lá»›p ngay!",
-  "Äi tháº­t xa qua bao thÄƒng tráº§m cuá»™c Ä‘á»i, nháº­n ra tÃ¬nh báº¡n tuá»•i há»c trÃ² váº«n lÃ  Ä‘iá»u bÃ¬nh yÃªn nháº¥t.",
-  "Thá»i gian trÃ´i nhanh tháº­t, nhÆ°ng ná»¥ cÆ°á»i cá»§a K8A1 thÃ¬ cháº³ng chá»‹u giÃ  Ä‘i chÃºt nÃ o!",
-  "Ão tráº¯ng ngÃ y xÆ°a, tiáº¿ng cÆ°á»i ngÃ y cÅ© â€” Kho bÃ¡u vÃ´ giÃ¡ sau hai mÆ°Æ¡i nÄƒm Ä‘Æ°á»ng Ä‘á»i.",
-  "NhÃ¬n nhá»¯ng gÆ°Æ¡ng máº·t thÃ¢n quen nÃ y, bao nhiÃªu má»‡t má»i tá»± nhiÃªn tan biáº¿n háº¿t!",
-  "NÄƒm thÃ¡ng cÃ³ thá»ƒ láº¥y Ä‘i tuá»•i tráº», nhÆ°ng khÃ´ng thá»ƒ láº¥y Ä‘i nhá»¯ng há»“i á»©c Ä‘áº¹p Ä‘áº½ chÃºng mÃ¬nh tá»«ng cÃ³.",
-  "Thanh xuÃ¢n cá»§a lá»›p mÃ¬nh cháº³ng cáº§n cáº§u ká»³, chá»‰ cáº§n cÃ³ nhau lÃ  vui ná»• trá»i rá»“i!",
-  "TÃ¬nh báº¡n tuá»•i mÆ°á»i tÃ¡m lÃ  mÃ³n quÃ  quÃ½ giÃ¡ mÃ  thá»i gian khÃ´ng thá»ƒ nÃ o xÃ³a nhÃ²a.",
-  "20 nÄƒm má»™t cháº·ng Ä‘Æ°á»ng â€” Vá» bÃªn nhau lÃ  cá»© tÃ­u tÃ­t nhÆ° chÆ°a tá»«ng xa cÃ¡ch.",
-  "DÃ¹ mai nÃ y má»—i ngÆ°á»i má»™t phÆ°Æ¡ng, K8A1 váº«n luÃ´n lÃ  mÃ¡i nhÃ  áº¥m Ã¡p Ä‘á»ƒ tÃ¬m vá».",
-  "Ná»¥ cÆ°á»i ráº¡ng rá»¡ cá»§a K8A1 â€” Äá»™c quyá»n chá»‰ lá»›p mÃ¬nh má»›i cÃ³ thÃ´i nhÃ©!",
-  "Trá»Ÿ vá» Ä‘á»ƒ nhá»›, trá»Ÿ vá» Ä‘á»ƒ thÆ°Æ¡ng vÃ  cÃ¹ng nhau trÃ¢n trá»ng tá»«ng phÃºt giÃ¢y cá»§a hiá»‡n táº¡i.",
-  "Gáº·p láº¡i sau 20 nÄƒm mÃ  cáº£m giÃ¡c thÃ¢n quen cá»© nhÆ° vá»«a má»›i tan há»c hÃ´m qua.",
-  "Háº¡nh phÃºc Ä‘Æ¡n sÆ¡ lÃ  Ä‘Æ°á»£c ngá»“i láº¡i bÃªn nhau, nhÃ¬n ngáº¯m nhá»¯ng ná»¥ cÆ°á»i thÃ¢n thÆ°Æ¡ng ngÃ y cÅ©.",
-  "Chá»‰ cáº§n Ä‘á»©ng cáº¡nh nhau lÃ  tá»± kháº¯c tháº¥y mÃ¬nh tráº» láº¡i chá»¥c tuá»•i!",
-  "Má»—i bá»©c áº£nh lÃ  má»™t chiáº¿c vÃ© ká»³ diá»‡u Ä‘Æ°a chÃºng mÃ¬nh tÃ¬m láº¡i nhá»¯ng nÄƒm thÃ¡ng vÃ´ tÆ° nháº¥t.",
-  "DÃ¹ á»Ÿ Ä‘Ã¢u, lÃ m gÃ¬ thÃ¬ K8A1 gáº·p nhau váº«n cá»© lÃ  nhá»¯ng ngÆ°á»i báº¡n tinh nghá»‹ch ngÃ y nÃ o.",
-  "DÃ¹ báº¡n Ä‘ang á»Ÿ Ä‘Ã¢u, lÃ m gÃ¬, hÃ£y luÃ´n nhá»› ráº±ng báº¡n lÃ  má»™t pháº§n khÃ´ng thá»ƒ thiáº¿u cá»§a K8A1.",
-  "20 nÄƒm má»›i cÃ³ dá»‹p Ä‘Ã´ng Ä‘á»§ tháº¿ nÃ y, cÆ°á»i tháº­t tÆ°Æ¡i lÃªn nÃ o cÃ¡c báº¡n Æ¡i!",
-  "Gáº·p láº¡i nhau sau 20 nÄƒm, Ä‘á»ƒ tháº¥y tuá»•i tráº» cá»§a chÃºng mÃ¬nh chÆ°a tá»«ng phai má» theo nÄƒm thÃ¡ng.",
-  "Gáº·p láº¡i nhau, bao nhiÃªu chuyá»‡n vui ngÃ y xÆ°a láº¡i Ä‘Æ°á»£c ká»ƒ ra cÆ°á»i nghiÃªng ngáº£.",
-  "Bao nhiÃªu nÄƒm bÃ´n ba, báº¿n Ä‘á»— áº¥m Ã¡p vÃ  chÃ¢n thÃ nh nháº¥t váº«n lÃ  báº¡n bÃ¨ Ä‘á»“ng mÃ´n.",
-  "GÆ°Æ¡ng máº·t ráº¡ng ngá»i tháº¿ nÃ y thÃ¬ ai Ä‘oÃ¡n Ä‘Æ°á»£c lá»›p mÃ¬nh Ä‘Ã£ ra trÆ°á»ng 20 nÄƒm rá»“i chá»©!",
-  "HÃ£y giá»¯ cháº·t láº¥y nhá»¯ng kÃ½ á»©c tuyá»‡t vá»i nÃ y, Ä‘á»ƒ tiáº¿p thÃªm sá»©c máº¡nh cho cháº·ng Ä‘Æ°á»ng phÃ­a trÆ°á»›c.",
-  "Má»™t bá»©c áº£nh, triá»‡u niá»m vui â€” Cáº£m Æ¡n vÃ¬ Ä‘Ã£ cÃ¹ng nhau táº¡o nÃªn nhá»¯ng khoáº£nh kháº¯c nÃ y.",
-  "TÃ¬nh báº¡n Ä‘á»“ng mÃ´n son sáº¯t, vÆ°á»£t qua má»i ranh giá»›i cá»§a thá»i gian vÃ  khoáº£ng cÃ¡ch.",
-  "NgÃ y xÆ°a vui má»™t, ngÃ y há»™i ngá»™ 20 nÄƒm gáº·p láº¡i cÃ²n vui gáº¥p mÆ°á»i láº§n!",
-  "Tuá»•i há»c trÃ² Ä‘Ã£ lÃ¹i xa, nhÆ°ng nhá»¯ng Ã¢n tÃ¬nh gá»­i gáº¯m nÆ¡i nhau thÃ¬ mÃ£i mÃ£i váº¹n nguyÃªn.",
-  "Thanh xuÃ¢n trÃ´i qua cÃ¡i vÃ¨o, nhÆ°ng tÃ¬nh báº¡n K8A1 thÃ¬ á»Ÿ láº¡i mÃ£i mÃ£i.",
-  "CÃ³ nhá»¯ng khoáº£nh kháº¯c giáº£n dá»‹ bÃªn nhau, nay Ä‘Ã£ hÃ³a thÃ nh kÃ½ á»©c vÃ´ giÃ¡ cá»§a cuá»™c Ä‘á»i.",
-  "Khoáº£nh kháº¯c Ä‘Ã¡ng nhá»› cá»§a nhá»¯ng ngÆ°á»i báº¡n cÃ¹ng chung má»™t thá»i thanh xuÃ¢n.",
-  "Cáº£m Æ¡n nhá»¯ng cÃ¡i Ã´m, nhá»¯ng ná»¥ cÆ°á»i chÃ¢n tÃ¬nh Ä‘Ã£ lÃ m nÃªn ngÃ y há»™i ngá»™ Ä‘ong Ä‘áº§y yÃªu thÆ°Æ¡ng.",
-  "Ná»¥ cÆ°á»i nÃ y, Ã¡nh máº¯t nÃ y â€” ÄÃºng lÃ  báº¡n thÃ¢n cá»§a tÃ´i Ä‘Ã¢y rá»“i!",
-  "DÃ¹ cuá»™c sá»‘ng cÃ³ thÄƒng tráº§m sÃ³ng giÃ³, ná»¥ cÆ°á»i báº¡n bÃ¨ váº«n lÃ  Ä‘iá»u xoa dá»‹u lÃ²ng ta nháº¥t.",
-  "Hai mÆ°Æ¡i nÄƒm xa cÃ¡ch, gáº·p láº¡i lÃ  chuyá»‡n trÃ² rÃ´m ráº£ ká»ƒ mÃ£i khÃ´ng háº¿t.",
-  "Äá»i ngÆ°á»i Ä‘Æ°á»£c máº¥y láº§n hai mÆ°Æ¡i nÄƒm, hÃ£y trÃ¢n trá»ng tá»«ng phÃºt giÃ¢y quÃ½ giÃ¡ khi Ä‘Æ°á»£c bÃªn nhau.",
-  "Bá»©c áº£nh Ä‘áº¹p nháº¥t lÃ  bá»©c áº£nh cÃ³ ná»¥ cÆ°á»i ráº¡ng rá»¡ cá»§a táº¥t cáº£ chÃºng mÃ¬nh.",
-  "Khoáº£ng cÃ¡ch Ä‘á»‹a lÃ½ cÃ³ thá»ƒ xa xÃ´i, nhÆ°ng trÃ¡i tim K8A1 luÃ´n cÃ¹ng chung má»™t nhá»‹p Ä‘áº­p.",
-  "DÃ¹ nÄƒm thÃ¡ng cÃ³ Ä‘á»•i thay, K8A1 gáº·p nhau lÃ  nÄƒng lÆ°á»£ng tÃ­ch cá»±c láº¡i trÃ n Ä‘áº§y!",
-  "Náº¿p nhÄƒn cÃ³ thá»ƒ háº±n lÃªn khÃ³e máº¯t, nhÆ°ng tÃ¢m há»“n tuá»•i Ä‘Ã´i mÆ°Æ¡i váº«n sá»‘ng mÃ£i trong ta.",
-  "Thanh xuÃ¢n khÃ´ng quay láº¡i, nhÆ°ng chÃºng mÃ¬nh cÃ³ thá»ƒ cÃ¹ng nhau táº¡o thÃªm tháº­t nhiá»u ká»· niá»‡m má»›i!",
-  "TÃ¬nh báº¡n K8A1 nhÆ° ngá»n lá»­a áº¥m Ã¡p, cÃ ng qua nÄƒm thÃ¡ng láº¡i cÃ ng bá»n cháº·t vÃ  sÃ¢u sáº¯c hÆ¡n.",
-  "20 nÄƒm ngÃ y há»™i ngá»™ â€” Giá»¯ mÃ£i tinh tháº§n tráº» trung, yÃªu Ä‘á»i nÃ y nhÃ© K8A1!",
-  "Má»—i bá»©c hÃ¬nh lÃ  má»™t nhá»‹p cáº§u yÃªu thÆ°Æ¡ng Ä‘Æ°a ta trá»Ÿ vá» vá»›i miá»n kÃ½ á»©c dáº¥u yÃªu.",
-  "Thá»i gian lÃ m thay Ä‘á»•i nhiá»u thá»©, nhÆ°ng Ä‘á»™ vui tÃ­nh vÃ  láº§y lá»™i cá»§a lá»›p mÃ¬nh thÃ¬ váº«n tháº¿!",
-  "Thanh xuÃ¢n khÃ´ng bao giá» káº¿t thÃºc chá»«ng nÃ o chÃºng mÃ¬nh váº«n luÃ´n nhá»› vá» nhau.",
-  "NhÃ¬n bá»©c áº£nh nÃ y lÃ  tháº¥y cáº£ má»™t báº§u trá»i vui nhá»™n Ã¹a vá» rá»“i!",
-  "Biáº¿t Æ¡n vÃ¬ trong nhá»¯ng nÄƒm thÃ¡ng Ä‘áº¹p nháº¥t cá»§a cuá»™c Ä‘á»i, chÃºng ta Ä‘Ã£ cÃ³ nhau bÃªn cáº¡nh.",
-  "Ai cÅ©ng ráº¡ng rá»¡, ai cÅ©ng tÆ°Æ¡i vui â€” K8A1 hÃ´m nay Ä‘á»‰nh tháº­t sá»±!",
-  "TÃ¬nh báº¡n Ä‘Ã­ch thá»±c khÃ´ng Ä‘o báº±ng thá»i gian, mÃ  Ä‘o báº±ng sá»± gáº¯n káº¿t chÃ¢n thÃ nh giá»¯a nhá»¯ng tÃ¢m há»“n.",
-  "Tuá»•i há»c trÃ² vui nháº¥t lÃ  khi cÃ³ nhá»¯ng Ä‘á»©a báº¡n thÃ¢n cÃ¹ng cÆ°á»i, cÃ¹ng sáº» chia.",
-  "Hai mÆ°Æ¡i nÄƒm â€” Äá»§ Ä‘á»ƒ nháº­n ra tÃ¬nh báº¡n thuá»Ÿ hoa niÃªn lÃ  Ä‘iá»u thuáº§n khiáº¿t vÃ  quÃ½ giÃ¡ nháº¥t.",
-  "Cháº³ng cáº§n táº¡o dÃ¡ng cáº§u ká»³, cá»© cÆ°á»i tá»± nhiÃªn lÃ  cÃ³ ngay bá»©c áº£nh ká»· niá»‡m cá»±c Ä‘áº¹p!",
-  "Nhá»¯ng ká»· niá»‡m nÄƒm áº¥y sáº½ mÃ£i lÃ  hÃ nh trang áº¥m Ã¡p theo chÃºng mÃ¬nh trÃªn váº¡n náº»o Ä‘Æ°á»ng Ä‘á»i.",
-  "K8A1 â€” NÆ¡i tá»¥ há»™i cá»§a nhá»¯ng ná»¥ cÆ°á»i tÆ°Æ¡i nháº¥t vÃ  nhá»¯ng ngÆ°á»i báº¡n tuyá»‡t vá»i nháº¥t!",
-  "Gáº·p láº¡i nhau hÃ´m nay, tháº¥y bÃ³ng hÃ¬nh cá»§a chÃ­nh mÃ¬nh hai mÆ°Æ¡i nÄƒm trÆ°á»›c Ä‘ang má»‰m cÆ°á»i.",
-  "20 nÄƒm rá»“i má»›i láº¡i Ä‘Æ°á»£c chá»¥p áº£nh cÃ¹ng nhau, vá»«a bá»“i há»“i vá»«a vui khÃ³ táº£!",
-  "Cáº£m Æ¡n vÃ¬ Ä‘Ã£ luÃ´n lÃ  nhá»¯ng ngÆ°á»i báº¡n tuyá»‡t vá»i nháº¥t trong thanh xuÃ¢n cá»§a nhau.",
-  "TÃ¬nh báº¡n K8A1: KhÃ´ng khoáº£ng cÃ¡ch, gáº·p nhau lÃ  rá»™n rÃ£ tiáº¿ng cÆ°á»i tá»« Ä‘áº§u Ä‘áº¿n cuá»‘i!",
-  "Má»™t cháº·ng Ä‘Æ°á»ng hai mÆ°Æ¡i nÄƒm, Ä‘ong Ä‘áº§y nhá»¯ng nghÄ©a tÃ¬nh Ä‘á»“ng mÃ´n khÃ´ng thá»ƒ nÃ o phai.",
-  "Nhá»¯ng khoáº£nh kháº¯c tá»± nhiÃªn tháº¿ nÃ y má»›i Ä‘Ãºng lÃ  'cháº¥t' K8A1 cá»§a chÃºng mÃ¬nh chá»©!",
-  "Thá»i gian trÃ´i Ä‘i khÃ´ng láº¥y láº¡i Ä‘Æ°á»£c, nhÆ°ng ká»· niá»‡m lÃ  bÃ¡u váº­t mÃ£i mÃ£i thuá»™c vá» chÃºng ta.",
-  "Há»™i ngá»™ sau 20 nÄƒm â€” Nhá»¯ng cÃ¡i báº¯t tay tháº­t cháº·t vÃ  nhá»¯ng tiáº¿ng cÆ°á»i giÃ²n tan!",
-  "TÃ¬nh báº¡n Ä‘Æ°á»£c tÃ´i luyá»‡n qua hai mÆ°Æ¡i nÄƒm sÆ°Æ¡ng giÃ³ cÃ ng trá»Ÿ nÃªn son sáº¯t vÃ  Ä‘Ã¡ng quÃ½ hÆ¡n.",
-  "áº¢nh chá»¥p lÃºc nÃ o cÅ©ng tháº¥y lá»›p mÃ¬nh tÆ°Æ¡i vui vÃ  trÃ n Ä‘áº§y sá»©c sá»‘ng!",
-  "DÃ¹ á»Ÿ lá»©a tuá»•i nÃ o, trá»Ÿ vá» trong vÃ²ng tay bÃ¨ báº¡n cÅ©, ta láº¡i tháº¥y lÃ²ng mÃ¬nh bÃ¬nh yÃªn nhÆ° xÆ°a.",
-  "Gáº·p láº¡i báº¡n bÃ¨ cÅ©, tháº¥y nhÆ° Ä‘Æ°á»£c náº¡p thÃªm bao nhiÃªu nÄƒng lÆ°á»£ng vui váº» cho cuá»™c sá»‘ng!",
-  "Ká»· niá»‡m Ä‘áº¹p khÃ´ng pháº£i vÃ¬ nÃ³ hoÃ n háº£o, mÃ  vÃ¬ chÃºng mÃ¬nh Ä‘Ã£ cÃ¹ng nhau sá»‘ng trá»n váº¹n nhá»¯ng ngÃ y thÃ¡ng áº¥y.",
-  "20 NÄƒm NgÃ y Trá»Ÿ Vá» â€” Má»™t ngÃ y trá»n váº¹n cá»§a niá»m vui, tiáº¿ng cÆ°á»i vÃ  sá»± sáº» chia!",
-  "Háº¡nh phÃºc vá»¡ Ã²a khi sau hai tháº­p ká»·, chÃºng mÃ¬nh váº«n gá»i tÃªn nhau thÃ¢n thÆ°Æ¡ng nhÆ° thuá»Ÿ nÃ o.",
-  "Cá»© vui nhÆ° tháº¿ nÃ y nhÃ©, dÃ¹ 20 hay 30 nÄƒm ná»¯a gáº·p láº¡i váº«n pháº£i cÆ°á»i tháº­t tÆ°Æ¡i!",
-  "Má»—i ná»¥ cÆ°á»i trong bá»©c áº£nh nÃ y Ä‘á»u chá»Ÿ che bao nghÄ©a tÃ¬nh sÃ¢u Ä‘áº­m cá»§a báº¡n bÃ¨ cÃ¹ng lá»›p.",
-  "Lá»›p mÃ¬nh ai cÅ©ng cÆ°á»i xinh, cÆ°á»i tÆ°Æ¡i â€” NhÃ¬n áº£nh lÃ  tháº¥y khÃ´ng khÃ­ rá»™n rÃ ng ngay!",
-  "ChÃ o má»«ng báº¡n Ä‘Ã£ trá»Ÿ vá» nhÃ  â€” NgÃ´i nhÃ  K8A1 áº¥m Ã¡p luÃ´n má»Ÿ rá»™ng cá»­a Ä‘Ã³n chÃ o.",
-  "Hai mÆ°Æ¡i nÄƒm trÃ´i qua, ná»¥ cÆ°á»i cá»§a chÃºng mÃ¬nh váº«n váº¹n nguyÃªn nÃ©t vui tÆ°Æ¡i ngÃ y áº¥y.",
-  "NgÃ y trá»Ÿ vá» khÃ´ng chá»‰ lÃ  hoÃ i niá»‡m, mÃ  cÃ²n lÃ  lá»i há»©a sáº½ luÃ´n Ä‘á»“ng hÃ nh bÃªn nhau mai sau.",
-  "K8A1 mÃ£i Ä‘á»‰nh â€” LuÃ´n vui váº», yÃªu Ä‘á»i vÃ  trÃ n ngáº­p tÃ¬nh cáº£m bÃ¨ báº¡n!",
-  "ChÃºc cho Ä‘áº¡i gia Ä‘Ã¬nh K8A1 luÃ´n trÃ n Ä‘áº§y sá»©c khá»e, háº¡nh phÃºc vÃ  mÃ£i mÃ£i gáº¯n káº¿t bá»n lÃ¢u.",
-  "Thanh xuÃ¢n rá»±c rá»¡ nháº¥t lÃ  khi chÃºng mÃ¬nh Ä‘Æ°á»£c cÃ¹ng nhau cÆ°á»i Ä‘Ã¹a vÃ´ tÆ° tháº¿ nÃ y!",
-  "HÃ£y Ä‘á»ƒ ngÃ y hÃ´m nay trá»Ÿ thÃ nh má»™t cá»™t má»‘c vÃ ng son, ghi dáº¥u tÃ¬nh báº¡n báº¥t diá»‡t cá»§a lá»›p K8A1.",
-  "DÃ¹ mai nÃ y báº­n rá»™n Ä‘áº¿n Ä‘Ã¢u, nhá»› lÃ  K8A1 chÃºng mÃ¬nh luÃ´n cÃ³ nhau nhÃ©!",
-  "K8A1 â€” MÃ£i mÃ£i lÃ  má»™t thá»i tuá»•i tráº» rá»±c rá»¡ vÃ  nhá»¯ng ngÆ°á»i báº¡n tri ká»· suá»‘t cuá»™c Ä‘á»i."
+  "Gặp lại nhau là cứ phải cười thật tươi thế này mới chịu cơ! 😄",
+  "Hai mươi năm ngày trở về — Ký ức năm tháng tuổi học trò K8A1 vẫn vẹn nguyên như ngày hôm qua.",
+  "20 năm rồi mà nhìn nụ cười của ai cũng vẫn trẻ trung y như ngày nào!",
+  "Thời gian có thể trôi mau, nhưng tình bạn của chúng mình thì mãi mãi còn lại.",
+  "Nhìn lại ảnh cũ mới thấy ngày xưa chúng mình ngố tàu mà vui thật sự.",
+  "Cảm ơn vì chúng ta đã cùng nhau đi qua những năm tháng thanh xuân trong trẻo nhất cuộc đời.",
+  "Đúng chất K8A1 — Đã tụ tập là phải vui hết nấc!",
+  "Có những người bạn, dẫu bao năm xa cách, gặp lại vẫn vẹn nguyên sự chân thành.",
+  "Ảnh có thể mờ theo năm tháng, nhưng tình bạn của chúng mình thì lúc nào cũng nét căng!",
+  "Hai mươi năm — Một chặng đường đủ dài để thấu hiểu giá trị thiêng liêng của hai chữ tri kỷ.",
+  "Ai bảo 20 năm là lâu? Cứ đứng chung một khung hình là lại thành bạn cùng lớp ngay!",
+  "Đi thật xa qua bao thăng trầm cuộc đời, nhận ra tình bạn tuổi học trò vẫn là điều bình yên nhất.",
+  "Thời gian trôi nhanh thật, nhưng nụ cười của K8A1 thì chẳng chịu già đi chút nào!",
+  "Áo trắng ngày xưa, tiếng cười ngày cũ — Kho báu vô giá sau hai mươi năm đường đời.",
+  "Nhìn những gương mặt thân quen này, bao nhiêu mệt mỏi tự nhiên tan biến hết!",
+  "Năm tháng có thể lấy đi tuổi trẻ, nhưng không thể lấy đi những hồi ức đẹp đẽ chúng mình từng có.",
+  "Thanh xuân của lớp mình chẳng cần cầu kỳ, chỉ cần có nhau là vui nổ trời rồi!",
+  "Tình bạn tuổi mười tám là món quà quý giá mà thời gian không thể nào xóa nhòa.",
+  "20 năm một chặng đường — Về bên nhau là cứ tíu tít như chưa từng xa cách.",
+  "Dù mai này mỗi người một phương, K8A1 vẫn luôn là mái nhà ấm áp để tìm về.",
+  "Nụ cười rạng rỡ của K8A1 — Độc quyền chỉ lớp mình mới có thôi nhé!",
+  "Trở về để nhớ, trở về để thương và cùng nhau trân trọng từng phút giây của hiện tại.",
+  "Gặp lại sau 20 năm mà cảm giác thân quen cứ như vừa mới tan học hôm qua.",
+  "Hạnh phúc đơn sơ là được ngồi lại bên nhau, nhìn ngắm những nụ cười thân thương ngày cũ.",
+  "Chỉ cần đứng cạnh nhau là tự khắc thấy mình trẻ lại chục tuổi!",
+  "Mỗi bức ảnh là một chiếc vé kỳ diệu đưa chúng mình tìm lại những năm tháng vô tư nhất.",
+  "Dù ở đâu, làm gì thì K8A1 gặp nhau vẫn cứ là những người bạn tinh nghịch ngày nào.",
+  "Dù bạn đang ở đâu, làm gì, hãy luôn nhớ rằng bạn là một phần không thể thiếu của K8A1.",
+  "20 năm mới có dịp đông đủ thế này, cười thật tươi lên nào các bạn ơi!",
+  "Gặp lại nhau sau 20 năm, để thấy tuổi trẻ của chúng mình chưa từng phai mờ theo năm tháng.",
+  "Gặp lại nhau, bao nhiêu chuyện vui ngày xưa lại được kể ra cười nghiêng ngả.",
+  "Bao nhiêu năm bôn ba, bến đỗ ấm áp và chân thành nhất vẫn là bạn bè đồng môn.",
+  "Gương mặt rạng ngời thế này thì ai đoán được lớp mình đã ra trường 20 năm rồi chứ!",
+  "Hãy giữ chặt lấy những ký ức tuyệt vời này, để tiếp thêm sức mạnh cho chặng đường phía trước.",
+  "Một bức ảnh, triệu niềm vui — Cảm ơn vì đã cùng nhau tạo nên những khoảnh khắc này.",
+  "Tình bạn đồng môn son sắt, vượt qua mọi ranh giới của thời gian và khoảng cách.",
+  "Ngày xưa vui một, ngày hội ngộ 20 năm gặp lại còn vui gấp mười lần!",
+  "Tuổi học trò đã lùi xa, nhưng những ân tình gửi gắm nơi nhau thì mãi mãi vẹn nguyên.",
+  "Thanh xuân trôi qua cái vèo, nhưng tình bạn K8A1 thì ở lại mãi mãi.",
+  "Có những khoảnh khắc giản dị bên nhau, nay đã hóa thành ký ức vô giá của cuộc đời.",
+  "Khoảnh khắc đáng nhớ của những người bạn cùng chung một thời thanh xuân.",
+  "Cảm ơn những cái ôm, những nụ cười chân tình đã làm nên ngày hội ngộ đong đầy yêu thương.",
+  "Nụ cười này, ánh mắt này — Đúng là bạn thân của tôi đây rồi!",
+  "Dù cuộc sống có thăng trầm sóng gió, nụ cười bạn bè vẫn là điều xoa dịu lòng ta nhất.",
+  "Hai mươi năm xa cách, gặp lại là chuyện trò rôm rả kể mãi không hết.",
+  "Đời người được mấy lần hai mươi năm, hãy trân trọng từng phút giây quý giá khi được bên nhau.",
+  "Bức ảnh đẹp nhất là bức ảnh có nụ cười rạng rỡ của tất cả chúng mình.",
+  "Khoảng cách địa lý có thể xa xôi, nhưng trái tim K8A1 luôn cùng chung một nhịp đập.",
+  "Dù năm tháng có đổi thay, K8A1 gặp nhau là năng lượng tích cực lại tràn đầy!",
+  "Nếp nhăn có thể hằn lên khóe mắt, nhưng tâm hồn tuổi đôi mươi vẫn sống mãi trong ta.",
+  "Thanh xuân không quay lại, nhưng chúng mình có thể cùng nhau tạo thêm thật nhiều kỷ niệm mới!",
+  "Tình bạn K8A1 như ngọn lửa ấm áp, càng qua năm tháng lại càng bền chặt và sâu sắc hơn.",
+  "20 năm ngày hội ngộ — Giữ mãi tinh thần trẻ trung, yêu đời này nhé K8A1!",
+  "Mỗi bức hình là một nhịp cầu yêu thương đưa ta trở về với miền ký ức dấu yêu.",
+  "Thời gian làm thay đổi nhiều thứ, nhưng độ vui tính và lầy lội của lớp mình thì vẫn thế!",
+  "Thanh xuân không bao giờ kết thúc chừng nào chúng mình vẫn luôn nhớ về nhau.",
+  "Nhìn bức ảnh này là thấy cả một bầu trời vui nhộn ùa về rồi!",
+  "Biết ơn vì trong những năm tháng đẹp nhất của cuộc đời, chúng ta đã có nhau bên cạnh.",
+  "Ai cũng rạng rỡ, ai cũng tươi vui — K8A1 hôm nay đỉnh thật sự!",
+  "Tình bạn đích thực không đo bằng thời gian, mà đo bằng sự gắn kết chân thành giữa những tâm hồn.",
+  "Tuổi học trò vui nhất là khi có những đứa bạn thân cùng cười, cùng sẻ chia.",
+  "Hai mươi năm — Đủ để nhận ra tình bạn thuở hoa niên là điều thuần khiết và quý giá nhất.",
+  "Chẳng cần tạo dáng cầu kỳ, cứ cười tự nhiên là có ngay bức ảnh kỷ niệm cực đẹp!",
+  "Những kỷ niệm năm ấy sẽ mãi là hành trang ấm áp theo chúng mình trên vạn nẻo đường đời.",
+  "K8A1 — Nơi tụ hội của những nụ cười tươi nhất và những người bạn tuyệt vời nhất!",
+  "Gặp lại nhau hôm nay, thấy bóng hình của chính mình hai mươi năm trước đang mỉm cười.",
+  "20 năm rồi mới lại được chụp ảnh cùng nhau, vừa bồi hồi vừa vui khó tả!",
+  "Cảm ơn vì đã luôn là những người bạn tuyệt vời nhất trong thanh xuân của nhau.",
+  "Tình bạn K8A1: Không khoảng cách, gặp nhau là rộn rã tiếng cười từ đầu đến cuối!",
+  "Một chặng đường hai mươi năm, đong đầy những nghĩa tình đồng môn không thể nào phai.",
+  "Những khoảnh khắc tự nhiên thế này mới đúng là 'chất' K8A1 của chúng mình chứ!",
+  "Thời gian trôi đi không lấy lại được, nhưng kỷ niệm là báu vật mãi mãi thuộc về chúng ta.",
+  "Hội ngộ sau 20 năm — Những cái bắt tay thật chặt và những tiếng cười giòn tan!",
+  "Tình bạn được tôi luyện qua hai mươi năm sương gió càng trở nên son sắt và đáng quý hơn.",
+  "Ảnh chụp lúc nào cũng thấy lớp mình tươi vui và tràn đầy sức sống!",
+  "Dù ở lứa tuổi nào, trở về trong vòng tay bè bạn cũ, ta lại thấy lòng mình bình yên như xưa.",
+  "Gặp lại bạn bè cũ, thấy như được nạp thêm bao nhiêu năng lượng vui vẻ cho cuộc sống!",
+  "Kỷ niệm đẹp không phải vì nó hoàn hảo, mà vì chúng mình đã cùng nhau sống trọn vẹn những ngày tháng ấy.",
+  "20 Năm Ngày Trở Về — Một ngày trọn vẹn của niềm vui, tiếng cười và sự sẻ chia!",
+  "Hạnh phúc vỡ òa khi sau hai thập kỷ, chúng mình vẫn gọi tên nhau thân thương như thuở nào.",
+  "Cứ vui như thế này nhé, dù 20 hay 30 năm nữa gặp lại vẫn phải cười thật tươi!",
+  "Mỗi nụ cười trong bức ảnh này đều chở che bao nghĩa tình sâu đậm của bạn bè cùng lớp.",
+  "Lớp mình ai cũng cười xinh, cười tươi — Nhìn ảnh là thấy không khí rộn ràng ngay!",
+  "Chào mừng bạn đã trở về nhà — Ngôi nhà K8A1 ấm áp luôn mở rộng cửa đón chào.",
+  "Hai mươi năm trôi qua, nụ cười của chúng mình vẫn vẹn nguyên nét vui tươi ngày ấy.",
+  "Ngày trở về không chỉ là hoài niệm, mà còn là lời hứa sẽ luôn đồng hành bên nhau mai sau.",
+  "K8A1 mãi đỉnh — Luôn vui vẻ, yêu đời và tràn ngập tình cảm bè bạn!",
+  "Chúc cho đại gia đình K8A1 luôn tràn đầy sức khỏe, hạnh phúc và mãi mãi gắn kết bền lâu.",
+  "Thanh xuân rực rỡ nhất là khi chúng mình được cùng nhau cười đùa vô tư thế này!",
+  "Hãy để ngày hôm nay trở thành một cột mốc vàng son, ghi dấu tình bạn bất diệt của lớp K8A1.",
+  "Dù mai này bận rộn đến đâu, nhớ là K8A1 chúng mình luôn có nhau nhé!",
+  "K8A1 — Mãi mãi là một thời tuổi trẻ rực rỡ và những người bạn tri kỷ suốt cuộc đời."
 ];
 
 /**
- * Láº¥y cÃ¢u chÃº thÃ­ch hoÃ i niá»‡m thay tháº¿ cho tÃªn file áº£nh ká»¹ thuáº­t sá»‘ hoáº·c caption máº·c Ä‘á»‹nh chung chung
+ * Lấy câu chú thích hoài niệm thay thế cho tên file ảnh kỹ thuật số hoặc caption mặc định chung chung
  */
 export function getNostalgicPhotoCaption(index: number, customCaption?: string): string {
   if (customCaption && !isMachineOrGenericCaption(customCaption)) {
@@ -3130,41 +3130,41 @@ export function getNostalgicPhotoCaption(index: number, customCaption?: string):
 }
 
 export const DEFAULT_EVENT_CONFIG: EventConfig = {
-  eventTitle: "20 NÄƒm NgÃ y Trá»Ÿ Vá»",
-  eventSubtitle: "Lá»›p K8A1 â€” TrÆ°á»ng THPT ThÃ¡i NguyÃªn",
-  eventDateText: "Chá»§ Nháº­t, 27/09/2026 (07:30 â€” 12:30)",
-  eventTimeText: "Tá»« 07:30 SÃ¡ng â€” Chá»§ Nháº­t, ngÃ y 27/09/2026",
+  eventTitle: "20 Năm Ngày Trở Về",
+  eventSubtitle: "Lớp K8A1 — Trường THPT Thái Nguyên",
+  eventDateText: "Chủ Nhật, 27/09/2026 (07:30 — 12:30)",
+  eventTimeText: "Từ 07:30 Sáng — Chủ Nhật, ngày 27/09/2026",
   countdownTarget: "2026-09-27T07:30:00+07:00",
 
-  // Cháº·ng 1: TrÆ°á»ng THPT ThÃ¡i NguyÃªn
-  venueName: "TrÆ°á»ng THPT ThÃ¡i NguyÃªn",
-  venueSubtitle: "Cháº·ng 1: 07:30 â€“ 09:00 â€¢ ThÄƒm trÆ°á»ng, Ä‘Ã³n cÃ´ chá»§ nhiá»‡m & chá»¥p áº£nh lÆ°u niá»‡m (Concept 1 & 2)",
-  venueAddress: "Sá»‘ 127 Ä‘Æ°á»ng LÆ°Æ¡ng Tháº¿ Vinh, P. Quang Trung, TP. ThÃ¡i NguyÃªn, Tá»‰nh ThÃ¡i NguyÃªn",
-  shortAddress: "127 LÆ°Æ¡ng Tháº¿ Vinh, TP. ThÃ¡i NguyÃªn",
-  venueTime: "07:30 â€” 09:00 (SÃ¡ng)",
-  venueActivity: "07h30: BTC cÃ³ máº·t, Ä‘Ã³n cÃ´ chá»§ nhiá»‡m â€¢ 08h00: Concept 1 'K8A1 Má»™t thá»i Ä‘á»ƒ nhá»›' (Ão Ä‘á»“ng phá»¥c) â€¢ 08h30: Concept 2 'Thanh xuÃ¢n trá»Ÿ láº¡i' (Ná»¯ Ã¡o dÃ i/vÃ¡y tráº¯ng, Nam sÆ¡ mi tráº¯ng) â€¢ 09h00: Di chuyá»ƒn vá» XHotel / X - Restaurant",
+  // Chặng 1: Trường THPT Thái Nguyên
+  venueName: "Trường THPT Thái Nguyên",
+  venueSubtitle: "Chặng 1: 07:30 – 09:00 • Thăm trường, đón cô chủ nhiệm & chụp ảnh lưu niệm (Concept 1 & 2)",
+  venueAddress: "Số 127 đường Lương Thế Vinh, P. Quang Trung, TP. Thái Nguyên, Tỉnh Thái Nguyên",
+  shortAddress: "127 Lương Thế Vinh, TP. Thái Nguyên",
+  venueTime: "07:30 — 09:00 (Sáng)",
+  venueActivity: "07h30: BTC có mặt, đón cô chủ nhiệm • 08h00: Concept 1 'K8A1 Một thời để nhớ' (Áo đồng phục) • 08h30: Concept 2 'Thanh xuân trở lại' (Nữ áo dài/váy trắng, Nam sơ mi trắng) • 09h00: Di chuyển về XHotel / X - Restaurant",
   mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m4!2m1!1zVHLGsOG7nW5nIFRIUFQgVGjDoWkgTmd1ecOqbiwgMTI3IEzGsMahbmcgVGjhur8gVmluaCwgVGjDoWkgTmd1ecOqbg!5e0!6i17!3m1!1svi!5m1!1svi",
   mapDirectUrl: "https://www.google.com/maps/search/?api=1&query=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn",
 
-  // Cháº·ng 2: NhÃ  HÃ ng & Trung TÃ¢m Sá»± Kiá»‡n Prime ThÃ¡i NguyÃªn (Máº·c Ä‘á»‹nh táº¯t theo cáº¥u hÃ¬nh Google Sheet)
+  // Chặng 2: Nhà Hàng & Trung Tâm Sự Kiện Prime Thái Nguyên (Mặc định tắt theo cấu hình Google Sheet)
   enableTwoVenues: true,
   venue2Name: "XHotel / X - Restaurant",
-  venue2Subtitle: "Cháº·ng 2: 09:15 â€“ 12:30 â€¢ Check-in Ä‘Ã³n Tháº§y CÃ´, Gala Há»™i ngá»™ 20 nÄƒm, tri Ã¢n & tiá»‡c trÆ°a",
-  venue2Address: "XHotel / X - Restaurant, TP. ThÃ¡i NguyÃªn, Tá»‰nh ThÃ¡i NguyÃªn",
-  venue2ShortAddress: "XHotel / X - Restaurant, TP. ThÃ¡i NguyÃªn",
-  venue2Time: "09:15 â€” 12:30 (TrÆ°a)",
-  venue2Activity: "09h15: Check-in Ä‘Ã³n Tháº§y CÃ´ (Ão Ä‘á»“ng phá»¥c K8A1) â€¢ 10h00: Khai máº¡c, Tri Ã¢n Tháº§y CÃ´ â€¢ 10h30: Khai tiá»‡c Concept 3 (Trang phá»¥c tá»± do thanh lá»‹ch) â€¢ 11h30: Lá»i nháº¯n 10 nÄƒm sau, trao quÃ  â€¢ 12h00: áº¢nh táº­p thá»ƒ, báº¿ máº¡c",
+  venue2Subtitle: "Chặng 2: 09:15 – 12:30 • Check-in đón Thầy Cô, Gala Hội ngộ 20 năm, tri ân & tiệc trưa",
+  venue2Address: "XHotel / X - Restaurant, TP. Thái Nguyên, Tỉnh Thái Nguyên",
+  venue2ShortAddress: "XHotel / X - Restaurant, TP. Thái Nguyên",
+  venue2Time: "09:15 — 12:30 (Trưa)",
+  venue2Activity: "09h15: Check-in đón Thầy Cô (Áo đồng phục K8A1) • 10h00: Khai mạc, Tri ân Thầy Cô • 10h30: Khai tiệc Concept 3 (Trang phục tự do thanh lịch) • 11h30: Lời nhắn 10 năm sau, trao quà • 12h00: Ảnh tập thể, bế mạc",
   venue2MapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d600!2d105.8386089!3d21.5949009!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x52211cf3f4926b%3A0x6de9f091b88c49ab!2sTh%C3%A1p%20%C4%91%C3%B4i%20Prime%20Th%C3%A1i%20Nguy%C3%AAn!5e1!3m2!1svi!2svn!4v1725550000000!5m2!1svi!2svn",
   venue2MapDirectUrl: "https://maps.app.goo.gl/a3utiYosZqGHKDjYA",
-  routeDistanceText: "~1.5km (Di chuyá»ƒn 5 - 10 phÃºt)",
+  routeDistanceText: "~1.5km (Di chuyển 5 - 10 phút)",
   routeDirectUrl: "https://www.google.com/maps/dir/?api=1&origin=Tr%C6%B0%E1%BB%9Dng+THPT+Th%C3%A1i+Nguy%C3%AAn,+127+L%C6%B0%C6%A1ng+Th%E1%BA%BF+Vinh,+Th%C3%A1i+Nguy%C3%AAn&destination=Th%C3%A1p+%C4%91%C3%B4i+Prime+Th%C3%A1i+Nguy%C3%AAn,+S%E1%BB%91+1+Ho%C3%A0ng+V%C4%83n+Th%E1%BB%A5,+Th%C3%A1i+Nguy%C3%AAn",
 
-  letterTitle: "Lá»i Tri Ã‚n â€” K8A1 20 NÄƒm: Má»™t Cháº·ng ÄÆ°á»ng, Má»™t Äá»i TÃ¬nh Báº¡n",
-  letterSubtitle: "Hai mÆ°Æ¡i nÄƒm â€“ má»™t cháº·ng Ä‘Æ°á»ng, má»™t láº§n trá»Ÿ vá», ngÃ n láº§n thÆ°Æ¡ng nhá»›...",
-  letterParagraph1: "KÃ­nh gá»­i Ban GiÃ¡m hiá»‡u TrÆ°á»ng THPT ThÃ¡i NguyÃªn, cÃ¡c cÃ´ giÃ¡o chá»§ nhiá»‡m cÃ¹ng toÃ n thá»ƒ cÃ¡c tháº§y cÃ´ giÃ¡o bá»™ mÃ´n Ä‘Ã£ tá»«ng giáº£ng dáº¡y táº­p thá»ƒ lá»›p K8A1 niÃªn khÃ³a 2003 â€“ 2006.\n\nHai mÆ°Æ¡i nÄƒm trÆ°á»›c, chÃºng em rá»i xa mÃ¡i trÆ°á»ng thÃ¢n yÃªu mang theo hÃ nh trang lÃ  tri thá»©c, lÃ  nhá»¯ng bÃ i há»c lÃ m ngÆ°á»i sÃ¢u sáº¯c vÃ  cáº£ niá»m tin yÃªu mÃ  tháº§y cÃ´ Ä‘Ã£ cáº§n máº«n trao gá»­i. Hai mÆ°Æ¡i nÄƒm trÃ´i qua, dÃ¹ á»Ÿ báº¥t ká»³ phÆ°Æ¡ng trá»i nÃ o, trÃªn má»—i bÆ°á»›c Ä‘Æ°á»ng trÆ°á»Ÿng thÃ nh cá»§a má»—i chÃºng em Ä‘á»u cÃ³ bÃ³ng hÃ¬nh cá»§a mÃ¡i trÆ°á»ng xÆ°a, cÃ³ sá»± chá»Ÿ che, dÃ¬u dáº¯t tá»« nhá»¯ng thÃ¡ng nÄƒm hoa niÃªn tÆ°Æ¡i Ä‘áº¹p. HÃ´m nay, trong niá»m xÃºc Ä‘á»™ng ngháº¹n ngÃ o cá»§a ngÃ y trá»Ÿ vá», táº­p thá»ƒ K8A1 xin Ä‘Æ°á»£c cÃºi Ä‘áº§u kÃ­nh cáº©n dÃ¢ng lÃªn tháº§y cÃ´ lá»i tri Ã¢n sÃ¢u sáº¯c vÃ  lÃ²ng biáº¿t Æ¡n vÃ´ háº¡n. Cáº£m Æ¡n tháº§y cÃ´ vÃ¬ Ä‘Ã£ dÃ nh trá»n tÃ¢m huyáº¿t, tÃ¬nh thÆ°Æ¡ng Ä‘á»ƒ tháº¯p sÃ¡ng Æ°á»›c mÆ¡ cho chÃºng em.",
-  letterParagraph2: "Äá»“ng thá»i, xin gá»­i lá»i cáº£m Æ¡n chÃ¢n thÃ nh tá»›i 50 trÃ¡i tim K8A1 Ä‘Ã£ cÃ¹ng nhau tá» tá»±u, gáº¯n káº¿t vÃ  tiáº¿p ná»‘i máº¡ch nguá»“n tÃ¬nh báº¡n thiÃªng liÃªng sau 20 nÄƒm xa cÃ¡ch. DÃ¹ thá»i gian cÃ³ Ä‘á»•i thay, mÃ¡i tÃ³c cÃ³ ngáº£ mÃ u, tÃ¬nh báº¡n cá»§a chÃºng ta váº«n mÃ£i váº¹n nguyÃªn nhÆ° nhá»¯ng ngÃ y Ä‘áº§u dÆ°á»›i mÃ¡i trÆ°á»ng THPT ThÃ¡i NguyÃªn.\n\nKÃ­nh chÃºc cÃ¡c tháº§y cÃ´ luÃ´n dá»“i dÃ o sá»©c khá»e, háº¡nh phÃºc vÃ  an yÃªn! ChÃºc cho tÃ¬nh báº¡n K8A1 mÃ£i mÃ£i xanh tÆ°Æ¡i, bá»n cháº·t theo nÄƒm thÃ¡ng! Thanh xuÃ¢n cÃ³ báº¡n lÃ  táº¥t cáº£ lÃ  nhá»¯ng Ä‘iá»u tuyá»‡t vá»i nháº¥t! â™¡",
-  letterSignatureTitle: "TrÆ°á»Ÿng Ban LiÃªn Láº¡c K8A1",
-  letterSignatureSubtitle: "Tráº§n Thá»‹ Thanh Nháº¡n",
+  letterTitle: "Lời Tri Ân — K8A1 20 Năm: Một Chặng Đường, Một Đời Tình Bạn",
+  letterSubtitle: "Hai mươi năm – một chặng đường, một lần trở về, ngàn lần thương nhớ...",
+  letterParagraph1: "Kính gửi Ban Giám hiệu Trường THPT Thái Nguyên, các cô giáo chủ nhiệm cùng toàn thể các thầy cô giáo bộ môn đã từng giảng dạy tập thể lớp K8A1 niên khóa 2003 – 2006.\n\nHai mươi năm trước, chúng em rời xa mái trường thân yêu mang theo hành trang là tri thức, là những bài học làm người sâu sắc và cả niềm tin yêu mà thầy cô đã cần mẫn trao gửi. Hai mươi năm trôi qua, dù ở bất kỳ phương trời nào, trên mỗi bước đường trưởng thành của mỗi chúng em đều có bóng hình của mái trường xưa, có sự chở che, dìu dắt từ những tháng năm hoa niên tươi đẹp. Hôm nay, trong niềm xúc động nghẹn ngào của ngày trở về, tập thể K8A1 xin được cúi đầu kính cẩn dâng lên thầy cô lời tri ân sâu sắc và lòng biết ơn vô hạn. Cảm ơn thầy cô vì đã dành trọn tâm huyết, tình thương để thắp sáng ước mơ cho chúng em.",
+  letterParagraph2: "Đồng thời, xin gửi lời cảm ơn chân thành tới 50 trái tim K8A1 đã cùng nhau tề tựu, gắn kết và tiếp nối mạch nguồn tình bạn thiêng liêng sau 20 năm xa cách. Dù thời gian có đổi thay, mái tóc có ngả màu, tình bạn của chúng ta vẫn mãi vẹn nguyên như những ngày đầu dưới mái trường THPT Thái Nguyên.\n\nKính chúc các thầy cô luôn dồi dào sức khỏe, hạnh phúc và an yên! Chúc cho tình bạn K8A1 mãi mãi xanh tươi, bền chặt theo năm tháng! Thanh xuân có bạn là tất cả là những điều tuyệt vời nhất! ♡",
+  letterSignatureTitle: "Trưởng Ban Liên Lạc K8A1",
+  letterSignatureSubtitle: "Trần Thị Thanh Nhạn",
   bankName: "VietinBank (CTG)",
   bankAccount: "103004505646",
   bankHolder: "DAO THI HONG NHUNG",
@@ -3177,14 +3177,13 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
   heroBannerPosition: 82,
   schoolLogoUrl: "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg",
   poloSampleUrl: "/sample-polo-k8a1.jpg",
-  poloDescription: "Thun cÃ¡ sáº¥u 4 chiá»u cao cáº¥p â€¢ Cá»• Ã¡o & tay Ã¡o bo viá»n há»• phÃ¡ch â€¢ ThÃªu logo vÃ ng kim ngá»±c trÃ¡i",
+  poloDescription: "Thun cá sấu 4 chiều cao cấp • Cổ áo & tay áo bo viền hổ phách • Thêu logo vàng kim ngực trái",
   backdrops: DEFAULT_BACKDROPS,
   musicPlaylist: DEFAULT_PLAYLIST,
   stageSettings: DEFAULT_STAGE_SETTINGS,
   albums: DEFAULT_ALBUMS,
   showAnnouncements: true,
   blockVisibility: {
-    hero: true,
     countdown: true,
     gatheringCounter: true,
     announcements: true,
@@ -3196,85 +3195,85 @@ export const DEFAULT_EVENT_CONFIG: EventConfig = {
     teachers: true,
     memories: true,
   },
-  isPostEvent: true, // Sá»± kiá»‡n 20 nÄƒm Ä‘Ã£ tá»• chá»©c xong â€” KhÃ³a quyá»n ghi cho guest
+  isPostEvent: true, // Sự kiện 20 năm đã tổ chức xong — Khóa quyền ghi cho guest
 };
 
 // =============================================================================
-// DANH SÃCH Báº¢N TIN & THÃ”NG BÃO CHÃNH THá»¨C K8A1 Máº¶C Äá»ŠNH
+// DANH SÁCH BẢN TIN & THÔNG BÁO CHÍNH THỨC K8A1 MẶC ĐỊNH
 // =============================================================================
 export const DEFAULT_ANNOUNCEMENTS: import('./types').Announcement[] = [
   {
     id: "TB-REPORT-20Y",
     slug: "tong-ket-20-nam",
-    title: "ðŸ† Dáº¤U áº¤N 2 DECADES: KÃ½ Sá»± Äáº¡i Lá»… 20 NÄƒm & Ká»³ TÃ­ch Sá»‘ HÃ³a Há»™i KhÃ³a K8A1",
+    title: "🏆 DẤU ẤN 2 DECADES: Ký Sự Đại Lễ 20 Năm & Kỳ Tích Số Hóa Hội Khóa K8A1",
     category: "report",
-    summary: "Báº£n kÃ½ sá»± & bÃ¡o cÃ¡o tá»•ng káº¿t chÃ­nh thá»©c: NhÃ¬n láº¡i hÃ nh trÃ¬nh 2 tháº­p ká»· tri ká»· vá»›i 24 giá» há»™i ngá»™ xÃºc Ä‘á»™ng ngháº¹n ngÃ o, 4 con sá»‘ ká»· lá»¥c lá»‹ch sá»­ vÃ  5 ká»³ tÃ­ch cÃ´ng nghá»‡ 4.0 tiÃªn phong cá»§a ngÃ y 27/09/2026.",
-    content: `BÃO CÃO Tá»”NG Káº¾T & KÃ Sá»° Äáº I Lá»„ 20 NÄ‚M NGÃ€Y TRá»ž Vá»€
-"HÃ€NH TRÃŒNH 2 THáº¬P Ká»¶ â€” Má»˜T Äá»œI TRI Ká»¶ & Dáº¤U áº¤N TIÃŠN PHONG Sá» HÃ“A K8A1"
-Táº¬P THá»‚ Cá»°U Há»ŒC SINH NIÃŠN KHÃ“A 2003 â€” 2006 | TRÆ¯á»œNG THPT THÃI NGUYÃŠN
-(NgÃ y há»™i tá»¥ lá»‹ch sá»­: Chá»§ Nháº­t, 27/09/2026)
+    summary: "Bản ký sự & báo cáo tổng kết chính thức: Nhìn lại hành trình 2 thập kỷ tri kỷ với 24 giờ hội ngộ xúc động nghẹn ngào, 4 con số kỷ lục lịch sử và 5 kỳ tích công nghệ 4.0 tiên phong của ngày 27/09/2026.",
+    content: `BÁO CÁO TỔNG KẾT & KÝ SỰ ĐẠI LỄ 20 NĂM NGÀY TRỞ VỀ
+"HÀNH TRÌNH 2 THẬP KỶ — MỘT ĐỜI TRI KỶ & DẤU ẤN TIÊN PHONG SỐ HÓA K8A1"
+TẬP THỂ CỰU HỌC SINH NIÊN KHÓA 2003 — 2006 | TRƯỜNG THPT THÁI NGUYÊN
+(Ngày hội tụ lịch sử: Chủ Nhật, 27/09/2026)
 
-KÃ­nh gá»­i: CÃ¡c Tháº§y CÃ´ giÃ¡o kÃ­nh yÃªu â€” nhá»¯ng ngÆ°á»i lÃ¡i Ä‘Ã² táº­n tá»¥y Ä‘Ã£ nÃ¢ng bÆ°á»›c thanh xuÃ¢n cá»§a chÃºng em;
-CÃ¹ng toÃ n thá»ƒ 50 trÃ¡i tim K8A1 thÃ¢n thÆ°Æ¡ng tá»« kháº¯p bá»‘n phÆ°Æ¡ng trá»i!
+Kính gửi: Các Thầy Cô giáo kính yêu — những người lái đò tận tụy đã nâng bước thanh xuân của chúng em;
+Cùng toàn thể 50 trái tim K8A1 thân thương từ khắp bốn phương trời!
 
-Hai mÆ°Æ¡i nÄƒm â€” hai pháº§n mÆ°á»i tháº¿ ká»· Ä‘Ã£ trÃ´i qua ká»ƒ tá»« mÃ¹a hÃ¨ rá»±c lá»­a hoa phÆ°á»£ng vÄ© nÄƒm 2006, khi 50 cÃ´ cáº­u há»c trÃ² lá»›p K8A1 bÆ°á»›c ra khá»i cÃ¡nh cá»•ng trÆ°á»ng THPT ThÃ¡i NguyÃªn mang theo bao hoÃ i bÃ£o tuá»•i tráº». Hai mÆ°Æ¡i nÄƒm áº¥y, cuá»™c Ä‘á»i má»—i ngÆ°á»i Ä‘Ã£ cÃ³ biáº¿t bao Ä‘á»•i thay, ai cÅ©ng xuÃ´i ngÆ°á»£c vá»›i sá»± nghiá»‡p, gia Ä‘Ã¬nh vÃ  nhá»¯ng bá»™n bá» thÄƒng tráº§m cá»§a Ä‘á»i sá»‘ng. NhÆ°ng cÃ³ má»™t Ä‘iá»u ká»³ diá»‡u chÆ°a bao giá» nháº¡t phai: ngá»n lá»­a tÃ¬nh báº¡n vÃ´ tÆ°, trong sÃ¡ng cá»§a K8A1 váº«n luÃ´n Ã¢m á»‰ chÃ¡y, chá» ngÃ y bÃ¹ng lÃªn thÃ nh má»™t khÃºc hoan ca rá»±c rá»¡.
+Hai mươi năm — hai phần mười thế kỷ đã trôi qua kể từ mùa hè rực lửa hoa phượng vĩ năm 2006, khi 50 cô cậu học trò lớp K8A1 bước ra khỏi cánh cổng trường THPT Thái Nguyên mang theo bao hoài bão tuổi trẻ. Hai mươi năm ấy, cuộc đời mỗi người đã có biết bao đổi thay, ai cũng xuôi ngược với sự nghiệp, gia đình và những bộn bề thăng trầm của đời sống. Nhưng có một điều kỳ diệu chưa bao giờ nhạt phai: ngọn lửa tình bạn vô tư, trong sáng của K8A1 vẫn luôn âm ỉ cháy, chờ ngày bùng lên thành một khúc hoan ca rực rỡ.
 
-VÃ  ngÃ y Chá»§ Nháº­t, 27/09/2026 vá»«a qua, khÃºc hoan ca áº¥y Ä‘Ã£ cáº¥t lÃªn vang dá»™i trong ngÃ y Äáº¡i lá»… "20 NÄƒm NgÃ y Trá»Ÿ Vá»". ÄÃ³ khÃ´ng Ä‘Æ¡n thuáº§n lÃ  má»™t buá»•i há»p lá»›p â€” Ä‘Ã³ lÃ  ngÃ y cá»§a nhá»¯ng giá»t nÆ°á»›c máº¯t ngháº¹n ngÃ o trong vÃ²ng tay Tháº§y CÃ´, lÃ  nhá»¯ng cÃ¡i Ã´m siáº¿t cháº·t xÃ³a nhÃ²a má»i khoáº£ng cÃ¡ch thá»i gian, lÃ  tiáº¿ng cÆ°á»i há»“n nhiÃªn khÃ´ng vÆ°á»›ng báº­n danh vá»ng, vÃ  lÃ  sá»± thÄƒng hoa cá»§a má»™t táº­p thá»ƒ xuáº¥t sáº¯c Ä‘Ã£ tá»± tay kiáº¿n táº¡o nÃªn má»™t ká»³ tÃ­ch há»™i khÃ³a chÆ°a tá»«ng cÃ³ trong lá»‹ch sá»­ trÆ°á»ng THPT ThÃ¡i NguyÃªn.
+Và ngày Chủ Nhật, 27/09/2026 vừa qua, khúc hoan ca ấy đã cất lên vang dội trong ngày Đại lễ "20 Năm Ngày Trở Về". Đó không đơn thuần là một buổi họp lớp — đó là ngày của những giọt nước mắt nghẹn ngào trong vòng tay Thầy Cô, là những cái ôm siết chặt xóa nhòa mọi khoảng cách thời gian, là tiếng cười hồn nhiên không vướng bận danh vọng, và là sự thăng hoa của một tập thể xuất sắc đã tự tay kiến tạo nên một kỳ tích hội khóa chưa từng có trong lịch sử trường THPT Thái Nguyên.
 
-Thay máº·t Ban Tá»• Chá»©c, chÃºng tÃ´i trÃ¢n trá»ng cÃ´ng bá»‘ Báº£n BÃ¡o CÃ¡o Tá»•ng Káº¿t & KÃ½ Sá»± Dáº¥u áº¤n Äáº¡i Lá»… 20 NÄƒm:
+Thay mặt Ban Tổ Chức, chúng tôi trân trọng công bố Bản Báo Cáo Tổng Kết & Ký Sự Dấu Ấn Đại Lễ 20 Năm:
 
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-I. KÃ Sá»° 24 GIá»œ HUY HOÃ€NG â€” KHI Ká»¶ NIá»†M HÃ“A VÄ¨NH Cá»¬U
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-ðŸŒ… 08:30 SÃNG â€” TRá»ž Vá»€ MIá»€N KÃ á»¨C DÆ¯á»šI BÃ“NG TRÆ¯á»œNG XÆ¯A:
-Khoáº£nh kháº¯c Ä‘oÃ n xe chá»Ÿ cÃ¡c báº¡n tá» tá»±u trÆ°á»›c cá»•ng trÆ°á»ng THPT ThÃ¡i NguyÃªn, dÆ°á»ng nhÆ° thá»i gian 20 nÄƒm Ä‘Ã£ ngá»«ng láº¡i. Nhá»¯ng tÃ  Ã¡o polo Ä‘á»“ng phá»¥c K8A1 mang mÃ u xanh hy vá»ng ná»•i báº­t giá»¯a sÃ¢n trÆ°á»ng ngáº­p náº¯ng mÃ¹a thu. 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I. KÝ SỰ 24 GIỜ HUY HOÀNG — KHI KỶ NIỆM HÓA VĨNH CỬU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌅 08:30 SÁNG — TRỞ VỀ MIỀN KÝ ỨC DƯỚI BÓNG TRƯỜNG XƯA:
+Khoảnh khắc đoàn xe chở các bạn tề tựu trước cổng trường THPT Thái Nguyên, dường như thời gian 20 năm đã ngừng lại. Những tà áo polo đồng phục K8A1 mang màu xanh hy vọng nổi bật giữa sân trường ngập nắng mùa thu. 
 
-XÃºc Ä‘á»™ng vÃ  thiÃªng liÃªng nháº¥t lÃ  giÃ¢y phÃºt Ä‘Ã³n chÃ o cÃ¡c Tháº§y CÃ´ giÃ¡o chá»§ nhiá»‡m vÃ  bá»™ mÃ´n kÃ­nh yÃªu. MÃ¡i tÃ³c Tháº§y CÃ´ nay Ä‘Ã£ pha sÆ°Æ¡ng theo nÄƒm thÃ¡ng, nhÆ°ng Ã¡nh máº¯t trÃ¬u máº¿n dÃµi theo Ä‘Ã n con thÆ¡ ngÃ y nÃ o váº«n áº¥m Ã¡p nguyÃªn váº¹n. Nhá»¯ng Ä‘Ã³a hoa tÆ°Æ¡i tháº¯m, nhá»¯ng lá»i tri Ã¢n tá»« Ä‘Ã¡y lÃ²ng vÃ  nhá»¯ng giá»t nÆ°á»›c máº¯t lÄƒn dÃ i trÃªn mÃ¡ Ä‘Ã£ lÃ m rung Ä‘á»™ng cáº£ khÃ´ng gian trÆ°á»ng cÅ©. Tiáº¿ng chuÃ´ng trÆ°á»ng nhÆ° láº¡i vang vá»ng, Ä‘Æ°a 50 con ngÆ°á»i trá»Ÿ vá» trá»n váº¹n vá»›i tuá»•i 18 tinh khÃ´i.
+Xúc động và thiêng liêng nhất là giây phút đón chào các Thầy Cô giáo chủ nhiệm và bộ môn kính yêu. Mái tóc Thầy Cô nay đã pha sương theo năm tháng, nhưng ánh mắt trìu mến dõi theo đàn con thơ ngày nào vẫn ấm áp nguyên vẹn. Những đóa hoa tươi thắm, những lời tri ân từ đáy lòng và những giọt nước mắt lăn dài trên má đã làm rung động cả không gian trường cũ. Tiếng chuông trường như lại vang vọng, đưa 50 con người trở về trọn vẹn với tuổi 18 tinh khôi.
 
-ðŸ¥‚ 11:30 TRÆ¯A â€” Äáº I TIá»†C Há»˜I NGá»˜ BÃ™NG Ná»” Táº I THE PRIME:
-Náº¿u buá»•i sÃ¡ng lÃ  sá»± láº¯ng Ä‘á»ng vÃ  biáº¿t Æ¡n, thÃ¬ buá»•i trÆ°a táº¡i trung tÃ¢m The Prime lÃ  má»™t Ä‘áº¡i dÆ°Æ¡ng cáº£m xÃºc bÃ¹ng chÃ¡y. Má»i chá»©c danh xÃ£ há»™i, má»i vá»‹ tháº¿ ngoÃ i Ä‘á»i sá»‘ng Ä‘á»u Ä‘Æ°á»£c trÃºt bá» ngoÃ i cÃ¡nh cá»­a; bÃªn trong chá»‰ cÃ²n láº¡i "mÃ y - tao", nhá»¯ng cÃ¢u chuyá»‡n nghá»‹ch ngá»£m thuá»Ÿ cáº¯p sÃ¡ch, nhá»¯ng biá»‡t danh gáº¯n bÃ³ má»™t thá»i vÃ  nhá»¯ng chÃ©n rÆ°á»£u ná»“ng áº¥m tÃ¬nh báº±ng há»¯u. 
+🥂 11:30 TRƯA — ĐẠI TIỆC HỘI NGỘ BÙNG NỔ TẠI THE PRIME:
+Nếu buổi sáng là sự lắng đọng và biết ơn, thì buổi trưa tại trung tâm The Prime là một đại dương cảm xúc bùng cháy. Mọi chức danh xã hội, mọi vị thế ngoài đời sống đều được trút bỏ ngoài cánh cửa; bên trong chỉ còn lại "mày - tao", những câu chuyện nghịch ngợm thuở cắp sách, những biệt danh gắn bó một thời và những chén rượu nồng ấm tình bằng hữu. 
 
-SÃ¢n kháº¥u lá»›n lung linh vá»›i mÃ n LED khá»•ng lá»“ trÃ¬nh chiáº¿u nhá»¯ng thÆ°á»›c phim tÆ° liá»‡u 20 nÄƒm chuyá»ƒn Ä‘á»™ng sá»‘ng Ä‘á»™ng, tiáº¿ng nháº¡c hÃ²a quyá»‡n khiáº¿n ai náº¥y Ä‘á»u rÆ°ng rÆ°ng tá»± hÃ o vÃ¬ mÃ¬nh lÃ  má»™t pháº§n cá»§a Ä‘áº¡i gia Ä‘Ã¬nh K8A1.
+Sân khấu lớn lung linh với màn LED khổng lồ trình chiếu những thước phim tư liệu 20 năm chuyển động sống động, tiếng nhạc hòa quyện khiến ai nấy đều rưng rưng tự hào vì mình là một phần của đại gia đình K8A1.
 
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-II. Bá»N CON Sá» Ká»¶ Lá»¤C Cá»¦A Äáº I Lá»„ K8A1
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-KhÃ´ng chá»‰ thÃ nh cÃ´ng vá» máº·t cáº£m xÃºc, Äáº¡i lá»… K8A1 20 NÄƒm cÃ²n xÃ¡c láº­p 4 con sá»‘ ká»· lá»¥c mang tÃ­nh Ä‘á»‹nh chuáº©n cho phong trÃ o cá»±u há»c sinh:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+II. BỐN CON SỐ KỶ LỤC CỦA ĐẠI LỄ K8A1
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Không chỉ thành công về mặt cảm xúc, Đại lễ K8A1 20 Năm còn xác lập 4 con số kỷ lục mang tính định chuẩn cho phong trào cựu học sinh:
 
-â€¢ 100% Cáº¤P THáºº Há»ŒC SINH Sá» HÃ“A (STUDENT PASS): 100% thÃ nh viÃªn tham dá»± Ä‘Æ°á»£c trao táº·ng chiáº¿c Tháº» Há»c Sinh K8A1 Digital Ä‘á»™c báº£n vá»›i áº£nh chÃ¢n dung, niÃªn khÃ³a vÃ  mÃ£ váº¡ch nháº­n diá»‡n cÃ¡ nhÃ¢n hÃ³a â€” má»™t ká»· váº­t thanh xuÃ¢n Ä‘Æ°á»£c sá»‘ hÃ³a vÄ©nh viá»…n trÃªn Ä‘iá»‡n thoáº¡i.
+• 100% CẤP THẺ HỌC SINH SỐ HÓA (STUDENT PASS): 100% thành viên tham dự được trao tặng chiếc Thẻ Học Sinh K8A1 Digital độc bản với ảnh chân dung, niên khóa và mã vạch nhận diện cá nhân hóa — một kỷ vật thanh xuân được số hóa vĩnh viễn trên điện thoại.
 
-â€¢ 0.8 GIÃ‚Y QUÃ‰T QR CHECK-IN ÄÃ“N TIáº¾P: Láº§n Ä‘áº§u tiÃªn, quy trÃ¬nh lá»… tÃ¢n há»p lá»›p Ä‘Æ°á»£c tá»± Ä‘á»™ng hÃ³a hoÃ n toÃ n. Chá»‰ má»™t thao tÃ¡c quÃ©t mÃ£ táº¡i cá»•ng tiá»‡c, há»‡ thá»‘ng tá»©c thÃ¬ nháº­n diá»‡n danh tÃ­nh, phÃ¡t lá»i chÃ o vinh danh trÃªn mÃ n hÃ¬nh vÃ  Ä‘iá»u hÆ°á»›ng bÃ n tiá»‡c chÃ­nh xÃ¡c mÃ  khÃ´ng má»™t giÃ¢y chen chÃºc.
+• 0.8 GIÂY QUÉT QR CHECK-IN ĐÓN TIẾP: Lần đầu tiên, quy trình lễ tân họp lớp được tự động hóa hoàn toàn. Chỉ một thao tác quét mã tại cổng tiệc, hệ thống tức thì nhận diện danh tính, phát lời chào vinh danh trên màn hình và điều hướng bàn tiệc chính xác mà không một giây chen chúc.
 
-â€¢ 500+ TÆ¯ LIá»†U Sá» HÃ“A HD & Báº¢O Máº¬T 5 Táº¦NG: HÆ¡n ná»­a nghÃ¬n bá»©c áº£nh vÃ  video clip quÃ½ giÃ¡ tráº£i dÃ i 4 má»‘c son (2003â€“2006, 10 nÄƒm, 15 nÄƒm vÃ  Ä‘áº¡i lá»… 20 nÄƒm) Ä‘Æ°á»£c lÆ°u trá»¯ trÃªn ná»n táº£ng Ä‘Ã¡m mÃ¢y tá»‘c Ä‘á»™ cao, tÃ­ch há»£p cÃ´ng nghá»‡ Ä‘Ã³ng dáº¥u báº£n quyá»n Watermark Ä‘á»™c quyá»n vÃ  báº£o máº­t 5 táº§ng chá»‘ng táº£i láº­u.
+• 500+ TƯ LIỆU SỐ HÓA HD & BẢO MẬT 5 TẦNG: Hơn nửa nghìn bức ảnh và video clip quý giá trải dài 4 mốc son (2003–2006, 10 năm, 15 năm và đại lễ 20 năm) được lưu trữ trên nền tảng đám mây tốc độ cao, tích hợp công nghệ đóng dấu bản quyền Watermark độc quyền và bảo mật 5 tầng chống tải lậu.
 
-â€¢ 100% MINH Báº CH TÃ€I CHÃNH Tá»ªNG NGHÃŒN Äá»’NG: ToÃ n bá»™ ngÃ¢n sÃ¡ch thu chi tá»« nguá»“n Ä‘Ã³ng gÃ³p cá»§a cÃ¡c thÃ nh viÃªn, cÃ¡c khoáº£n tÃ i trá»£ danh dá»± cho Ä‘áº¿n chi phÃ­ quÃ  táº·ng Tháº§y CÃ´, tiá»‡c má»«ng, Ã¡o lá»›p... Ä‘Æ°á»£c quyáº¿t toÃ¡n sá»‘ hÃ³a theo thá»i gian thá»±c vá»›i biá»ƒu Ä‘á»“ trá»±c quan, rÃµ rÃ ng, táº¡o niá»m tin tuyá»‡t Ä‘á»‘i.
+• 100% MINH BẠCH TÀI CHÍNH TỪNG NGHÌN ĐỒNG: Toàn bộ ngân sách thu chi từ nguồn đóng góp của các thành viên, các khoản tài trợ danh dự cho đến chi phí quà tặng Thầy Cô, tiệc mừng, áo lớp... được quyết toán số hóa theo thời gian thực với biểu đồ trực quan, rõ ràng, tạo niềm tin tuyệt đối.
 
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-III. NÄ‚M TRá»¤ Cá»˜T CÃ”NG NGHá»† 4.0 TIÃŠN PHONG
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-Äá»ƒ tá»• chá»©c má»™t sá»± kiá»‡n táº§m vÃ³c sÃ¡nh ngang cÃ¡c há»™i tháº£o chuyÃªn nghiá»‡p, Ban Tá»• Chá»©c K8A1 Ä‘Ã£ tá»± phÃ¡t triá»ƒn trá»n váº¹n Há»‡ sinh thÃ¡i WebApp Ä‘á»™c quyá»n vá»›i 5 cÃ´ng nghá»‡ mÅ©i nhá»n:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+III. NĂM TRỤ CỘT CÔNG NGHỆ 4.0 TIÊN PHONG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Để tổ chức một sự kiện tầm vóc sánh ngang các hội thảo chuyên nghiệp, Ban Tổ Chức K8A1 đã tự phát triển trọn vẹn Hệ sinh thái WebApp độc quyền với 5 công nghệ mũi nhọn:
 
-â‘  Báº¢N Äá»’ 3D Há»˜I Tá»¤ TOÃ€N Cáº¦U: Trá»±c quan hÃ³a tá»a Ä‘á»™ cá»§a 50 cá»±u há»c sinh tá»« HÃ  Ná»™i, TP.HCM, ÄÃ  Náºµng, cÃ¡c tá»‰nh thÃ nh trÃªn cáº£ nÆ°á»›c vÃ  cáº£ báº¡n bÃ¨ Ä‘á»‹nh cÆ° á»Ÿ nÆ°á»›c ngoÃ i cÃ¹ng hÆ°á»›ng vá» mÃ¡i trÆ°á»ng THPT ThÃ¡i NguyÃªn.
-â‘¡ THáºº Há»ŒC SINH DIGITAL & ÄIá»‚M DANH QR: Chuyá»ƒn Ä‘á»•i sá»‘ toÃ n diá»‡n khÃ¢u Ä‘Ã³n tiáº¿p, biáº¿n ká»· niá»‡m thÃ nh tráº£i nghiá»‡m cÃ´ng nghá»‡ Ä‘Ã¡ng nhá»›.
-â‘¢ TRUNG TÃ‚M ÄIá»€U KHIá»‚N MÃ€N LED & HÃ’A Ã‚M ÄIá»†N áº¢NH: ToÃ n bá»™ tÆ° liá»‡u kÃ½ á»©c Ä‘Æ°á»£c phÃ¡t sÃ³ng vá»›i hiá»‡u á»©ng Ken Burns Ä‘iá»‡n áº£nh, tÃ­ch há»£p tÃ­nh nÄƒng tá»± Ä‘á»™ng ngáº¯t hÃ²a Ã¢m Ä‘á»ƒ nhÆ°á»ng Ã¢m thanh khi phÃ¡t cÃ¡c video clip ká»· niá»‡m cá»§a lá»›p.
-â‘£ Há»† THá»NG Báº¢O Vá»† TÆ¯ LIá»†U 5 Táº¦NG & WATERMARK K8A1: Báº£o vá»‡ hÃ¬nh áº£nh cÃ¡ nhÃ¢n vÃ  gia Ä‘Ã¬nh cá»§a cÃ¡c báº¡n khá»i nguy cÆ¡ bá»‹ sao chÃ©p hoáº·c phÃ¡t tÃ¡n ngoÃ i Ã½ muá»‘n.
-â‘¤ TRÃŒNH CHIáº¾U KHÃ”NG DÃ‚Y LÃŠN SMART TV GIA ÄÃŒNH: TÃ­nh nÄƒng chia sáº» link ngáº¯n vÃ  mÃ£ QR cho phÃ©p báº¥t ká»³ thÃ nh viÃªn nÃ o cÅ©ng cÃ³ thá»ƒ chiáº¿u toÃ n bá»™ slide áº£nh lá»›p lÃªn TV phÃ²ng khÃ¡ch nhÃ  mÃ¬nh chá»‰ sau 2 giÃ¢y.
+① BẢN ĐỒ 3D HỘI TỤ TOÀN CẦU: Trực quan hóa tọa độ của 50 cựu học sinh từ Hà Nội, TP.HCM, Đà Nẵng, các tỉnh thành trên cả nước và cả bạn bè định cư ở nước ngoài cùng hướng về mái trường THPT Thái Nguyên.
+② THẺ HỌC SINH DIGITAL & ĐIỂM DANH QR: Chuyển đổi số toàn diện khâu đón tiếp, biến kỷ niệm thành trải nghiệm công nghệ đáng nhớ.
+③ TRUNG TÂM ĐIỀU KHIỂN MÀN LED & HÒA ÂM ĐIỆN ẢNH: Toàn bộ tư liệu ký ức được phát sóng với hiệu ứng Ken Burns điện ảnh, tích hợp tính năng tự động ngắt hòa âm để nhường âm thanh khi phát các video clip kỷ niệm của lớp.
+④ HỆ THỐNG BẢO VỆ TƯ LIỆU 5 TẦNG & WATERMARK K8A1: Bảo vệ hình ảnh cá nhân và gia đình của các bạn khỏi nguy cơ bị sao chép hoặc phát tán ngoài ý muốn.
+⑤ TRÌNH CHIẾU KHÔNG DÂY LÊN SMART TV GIA ĐÌNH: Tính năng chia sẻ link ngắn và mã QR cho phép bất kỳ thành viên nào cũng có thể chiếu toàn bộ slide ảnh lớp lên TV phòng khách nhà mình chỉ sau 2 giây.
 
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-IV. Lá»œI TRI Ã‚N Tá»ª TRÃI TIM & Sá»¨ Má»†NH Káº¾T Ná»I VÄ¨NH Cá»¬U
-â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
-ThÃ nh cÃ´ng rá»±c rá»¡ cá»§a ngÃ y há»™i hÃ´m nay Ä‘Æ°á»£c tháº¯p sÃ¡ng bá»Ÿi tÃ¬nh yÃªu thÆ°Æ¡ng vÃ  sá»± Ä‘á»“ng lÃ²ng cá»§a 50 trÃ¡i tim K8A1; sá»± táº­n tÃ¢m, dáº«n dáº¯t cá»§a cÃ¡c Tháº§y CÃ´ giÃ¡o kÃ­nh yÃªu; vÃ  sá»± cá»‘ng hiáº¿n khÃ´ng má»‡t má»i cá»§a Ban Tá»• Chá»©c suá»‘t nhiá»u thÃ¡ng chuáº©n bá»‹.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IV. LỜI TRI ÂN TỪ TRÁI TIM & SỨ MỆNH KẾT NỐI VĨNH CỬU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Thành công rực rỡ của ngày hội hôm nay được thắp sáng bởi tình yêu thương và sự đồng lòng của 50 trái tim K8A1; sự tận tâm, dẫn dắt của các Thầy Cô giáo kính yêu; và sự cống hiến không mệt mỏi của Ban Tổ Chức suốt nhiều tháng chuẩn bị.
 
-Hai mÆ°Æ¡i nÄƒm Ä‘Ã£ qua chá»‰ lÃ  má»™t cháº·ng nghá»‰ chÃ¢n Ä‘á»ƒ chÃºng ta cÃ¹ng nhÃ¬n láº¡i, tiáº¿p thÃªm cho nhau sá»©c máº¡nh vÃ  niá»m tin trÃªn con Ä‘Æ°á»ng phÃ­a trÆ°á»›c. K8A1 sáº½ tiáº¿p tá»¥c bÆ°á»›c tá»›i nhá»¯ng cá»™t má»‘c 25 nÄƒm, 30 nÄƒm vá»›i lá»i há»©a sáº¯t son: "Má»™t ngÃ y lÃ  K8A1 â€” Má»™t Ä‘á»i lÃ  tri ká»·!".
+Hai mươi năm đã qua chỉ là một chặng nghỉ chân để chúng ta cùng nhìn lại, tiếp thêm cho nhau sức mạnh và niềm tin trên con đường phía trước. K8A1 sẽ tiếp tục bước tới những cột mốc 25 năm, 30 năm với lời hứa sắt son: "Một ngày là K8A1 — Một đời là tri kỷ!".
 
-Äá»“ng thá»i, vá»›i lÃ²ng tá»± hÃ o vÃ  tri Ã¢n mÃ¡i trÆ°á»ng THPT ThÃ¡i NguyÃªn, Ban Tá»• Chá»©c K8A1 sáºµn lÃ²ng chia sáº» trá»n bá»™ ká»‹ch báº£n, kinh nghiá»‡m tá»• chá»©c cÅ©ng nhÆ° chuyá»ƒn giao giáº£i phÃ¡p WebApp sá»‘ hÃ³a cho cÃ¡c lá»›p báº¡n cÃ¹ng khÃ³a K8 vÃ  cÃ¡c tháº¿ há»‡ khÃ³a sau, chung tay lÃ m ráº¡ng danh truyá»n thá»‘ng nhÃ  trÆ°á»ng!
+Đồng thời, với lòng tự hào và tri ân mái trường THPT Thái Nguyên, Ban Tổ Chức K8A1 sẵn lòng chia sẻ trọn bộ kịch bản, kinh nghiệm tổ chức cũng như chuyển giao giải pháp WebApp số hóa cho các lớp bạn cùng khóa K8 và các thế hệ khóa sau, chung tay làm rạng danh truyền thống nhà trường!
 
-K8A1 â€” 20 NÄ‚M Má»˜T CHáº¶NG ÄÆ¯á»œNG, Má»˜T Äá»œI TÃŒNH Báº N!
-TrÃ¢n trá»ng,
-BAN Tá»” CHá»¨C Äáº I Lá»„ 20 NÄ‚M K8A1
-NiÃªn khÃ³a 2003 â€” 2006 | THPT ThÃ¡i NguyÃªn`,
+K8A1 — 20 NĂM MỘT CHẶNG ĐƯỜNG, MỘT ĐỜI TÌNH BẠN!
+Trân trọng,
+BAN TỔ CHỨC ĐẠI LỄ 20 NĂM K8A1
+Niên khóa 2003 — 2006 | THPT Thái Nguyên`,
     actionUrl: "#lich-trinh",
-    actionLabel: "ðŸ† KhÃ¡m PhÃ¡ Dáº¥u áº¤n Ká»· Niá»‡m 20 NÄƒm",
+    actionLabel: "🏆 Khám Phá Dấu Ấn Kỷ Niệm 20 Năm",
     imageUrl: "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
     images: [
       "https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600",
@@ -3288,127 +3287,127 @@ NiÃªn khÃ³a 2003 â€” 2006 | THPT ThÃ¡i NguyÃªn`,
     ],
     isPinned: true,
     createdAt: "28/09/2026 18:00",
-    author: "Ban Tá»• Chá»©c Äáº¡i Lá»… 20 NÄƒm K8A1",
+    author: "Ban Tổ Chức Đại Lễ 20 Năm K8A1",
     status: "published",
     likesCount: 168,
     metrics: [
-      { label: "Tháº» Há»c Sinh Sá»‘ HÃ³a", value: "100%", desc: "CÃ¡ nhÃ¢n hÃ³a cho toÃ n bá»™ thÃ nh viÃªn K8A1" },
-      { label: "Tá»‘c Äá»™ Check-in QR", value: "0.8s", desc: "Tá»± Ä‘á»™ng nháº­n diá»‡n & chá»‰ Ä‘á»‹nh bÃ n tiá»‡c" },
-      { label: "TÆ° Liá»‡u HD LÆ°u Trá»¯", value: "500+", desc: "Báº£o máº­t 5 táº§ng & Watermark báº£n quyá»n" },
-      { label: "Minh Báº¡ch TÃ i ChÃ­nh", value: "100%", desc: "Quyáº¿t toÃ¡n rÃµ rÃ ng tá»«ng khoáº£n má»¥c" }
+      { label: "Thẻ Học Sinh Số Hóa", value: "100%", desc: "Cá nhân hóa cho toàn bộ thành viên K8A1" },
+      { label: "Tốc Độ Check-in QR", value: "0.8s", desc: "Tự động nhận diện & chỉ định bàn tiệc" },
+      { label: "Tư Liệu HD Lưu Trữ", value: "500+", desc: "Bảo mật 5 tầng & Watermark bản quyền" },
+      { label: "Minh Bạch Tài Chính", value: "100%", desc: "Quyết toán rõ ràng từng khoản mục" }
     ]
   },
   {
     id: "TB-01",
-    title: "ðŸ‘— ThÃ´ng BÃ¡o Tá»« BTC: Timeline â€“ Concept Chá»¥p áº¢nh â€“ Trang Phá»¥c 20 NÄƒm",
+    title: "👗 Thông Báo Từ BTC: Timeline – Concept Chụp Ảnh – Trang Phục 20 Năm",
     category: "urgent",
-    summary: "Chi tiáº¿t 3 concept trang phá»¥c chuáº©n bá»‹ cho ngÃ y 27/09: Concept 1 Ão Ä‘á»“ng phá»¥c K8A1, Concept 2 Thanh xuÃ¢n trá»Ÿ láº¡i (Ão dÃ i/VÃ¡y tráº¯ng & SÆ¡ mi tráº¯ng), Concept 3 Há»™i ngá»™ sau 20 nÄƒm.",
-    content: "THÃ”NG BÃO Tá»ª BAN Tá»” CHá»¨C K8A1\nTIMELINE â€“ CONCEPT â€“ TRANG PHá»¤C\n(07:30 â€“ 12:30 | Chá»§ Nháº­t, ngÃ y 27/09/2026)\n\nBan Tá»• Chá»©c xin gá»­i tá»›i toÃ n thá»ƒ cÃ¡c thÃ nh viÃªn lá»›p K8A1 káº¿ hoáº¡ch chi tiáº¿t vá» thá»i gian, concept chá»¥p áº£nh vÃ  quy Ä‘á»‹nh trang phá»¥c trong ngÃ y Äáº¡i lá»… 20 NÄƒm NgÃ y Trá»Ÿ Vá»:\n\nâ° 07h30: CÃ“ Máº¶T Táº I TRÆ¯á»œNG THPT THÃI NGUYÃŠN\nâ€¢ Ban Tá»• Chá»©c cÃ³ máº·t, Ä‘Ã³n cÃ´ giÃ¡o chá»§ nhiá»‡m, chuáº©n bá»‹ hoa & quÃ .\nâ€¢ CÃ¡c thÃ nh viÃªn cÃ³ máº·t trÆ°á»›c 07h45 Ä‘á»ƒ á»•n Ä‘á»‹nh vÃ  chuáº©n bá»‹ trang phá»¥c chá»¥p áº£nh.\n\nðŸ“¸ 08h00: CONCEPT 1 â€” \"K8A1 Má»˜T THá»œI Äá»‚ NHá»š\"\nâ€¢ Trang phá»¥c: Ão Ä‘á»“ng phá»¥c K8A1 ká»· niá»‡m 20 nÄƒm.\nâ€¢ Hoáº¡t Ä‘á»™ng: Chá»¥p áº£nh lÆ°u niá»‡m toÃ n bá»™ táº­p thá»ƒ lá»›p, ban cÃ¡n sá»±, chá»¥p áº£nh cÃ¹ng cÃ´ giÃ¡o chá»§ nhiá»‡m táº¡i sÃ¢n trÆ°á»ng & lá»›p há»c xÆ°a.\n\nâœ¨ 08h30: CONCEPT 2 â€” \"THANH XUÃ‚N TRá»ž Láº I\"\nâ€¢ Trang phá»¥c:\n  - Ná»¯: Ão dÃ i tráº¯ng hoáº·c VÃ¡y tráº¯ng tinh khÃ´i.\n  - Nam: Ão sÆ¡ mi tráº¯ng + Quáº§n dÃ i lá»‹ch sá»±.\nâ€¢ Hoáº¡t Ä‘á»™ng: TÃ¡i hiá»‡n nhá»¯ng khoáº£nh kháº¯c há»c trÃ² ngÃ¢y ngÃ´, trong tráº»o dÆ°á»›i mÃ¡i trÆ°á»ng vÃ  hÃ ng cÃ¢y rá»£p bÃ³ng ká»· niá»‡m.\n\nðŸš— 09h00: DI CHUYá»‚N Vá»€ XHOTEL\nâ€¢ Táº­p thá»ƒ lá»›p chá»§ Ä‘á»™ng phÆ°Æ¡ng tiá»‡n, di chuyá»ƒn an toÃ n vÃ  Ä‘Ãºng giá» vá» nhÃ  hÃ ng / khÃ¡ch sáº¡n XHotel (X - Restaurant).\n\nðŸŒ¹ 09h15: CHECK-IN & ÄÃ“N TIáº¾P THáº¦Y CÃ” Táº I XHOTEL\nâ€¢ Trang phá»¥c: Giá»¯ nguyÃªn Ão Ä‘á»“ng phá»¥c K8A1.\nâ€¢ Hoáº¡t Ä‘á»™ng: ÄÃ³n tiáº¿p cÃ¡c Tháº§y CÃ´ giÃ¡o, chá»¥p áº£nh tháº£m Ä‘á», backdrop check-in ká»· niá»‡m 20 nÄƒm, giao lÆ°u vÃ  á»•n Ä‘á»‹nh bÃ n tiá»‡c.\n\nðŸ¥‚ 11h00: CONCEPT 3 â€” \"Há»˜I NGá»˜ SAU 20 NÄ‚M\"\nâ€¢ Trang phá»¥c: Tá»± do, lá»‹ch sá»±, thanh lá»‹ch (tiá»‡c má»«ng).\nâ€¢ Hoáº¡t Ä‘á»™ng: Khai tiá»‡c má»«ng 20 nÄƒm ngÃ y trá»Ÿ vá», thÆ°á»Ÿng thá»©c áº©m thá»±c, giao lÆ°u vÄƒn nghá»‡, trÃ² chÆ¡i bá»‘c thÄƒm ká»· váº­t vÃ  nÃ¢ng ly chÃºc má»«ng cháº·ng Ä‘Æ°á»ng 20 nÄƒm.\n\nðŸ“Œ LÆ¯U Ã QUAN TRá»ŒNG Tá»ª BAN Tá»” CHá»¨C:\n1. ÄÃºng giá» lÃ  Æ°u tiÃªn sá»‘ 1: Äá» nghá»‹ cÃ¡c báº¡n cÃ³ máº·t Ä‘Ãºng khung giá» 07h30 â€“ 08h00 táº¡i trÆ°á»ng Ä‘á»ƒ Ä‘áº£m báº£o Ä‘áº§y Ä‘á»§ hÃ¬nh áº£nh trong toÃ n bá»™ cÃ¡c concept.\n2. Chuáº©n bá»‹ trang phá»¥c: Mang sáºµn trang phá»¥c Concept 2 (Ã¡o dÃ i / vÃ¡y tráº¯ng cho ná»¯; sÆ¡ mi tráº¯ng cho nam) vÃ  Concept 3 Ä‘á»ƒ thay táº¡i trÆ°á»ng vÃ  khÃ¡ch sáº¡n.\n3. Ão Ä‘á»“ng phá»¥c K8A1: Giá»¯ Ã¡o pháº³ng, Ä‘áº¹p Ä‘á»ƒ lÃªn hÃ¬nh táº­p thá»ƒ Ä‘á»“ng Ä‘á»u vÃ  ráº¡ng rá»¡ nháº¥t.",
+    summary: "Chi tiết 3 concept trang phục chuẩn bị cho ngày 27/09: Concept 1 Áo đồng phục K8A1, Concept 2 Thanh xuân trở lại (Áo dài/Váy trắng & Sơ mi trắng), Concept 3 Hội ngộ sau 20 năm.",
+    content: "THÔNG BÁO TỪ BAN TỔ CHỨC K8A1\nTIMELINE – CONCEPT – TRANG PHỤC\n(07:30 – 12:30 | Chủ Nhật, ngày 27/09/2026)\n\nBan Tổ Chức xin gửi tới toàn thể các thành viên lớp K8A1 kế hoạch chi tiết về thời gian, concept chụp ảnh và quy định trang phục trong ngày Đại lễ 20 Năm Ngày Trở Về:\n\n⏰ 07h30: CÓ MẶT TẠI TRƯỜNG THPT THÁI NGUYÊN\n• Ban Tổ Chức có mặt, đón cô giáo chủ nhiệm, chuẩn bị hoa & quà.\n• Các thành viên có mặt trước 07h45 để ổn định và chuẩn bị trang phục chụp ảnh.\n\n📸 08h00: CONCEPT 1 — \"K8A1 MỘT THỜI ĐỂ NHỚ\"\n• Trang phục: Áo đồng phục K8A1 kỷ niệm 20 năm.\n• Hoạt động: Chụp ảnh lưu niệm toàn bộ tập thể lớp, ban cán sự, chụp ảnh cùng cô giáo chủ nhiệm tại sân trường & lớp học xưa.\n\n✨ 08h30: CONCEPT 2 — \"THANH XUÂN TRỞ LẠI\"\n• Trang phục:\n  - Nữ: Áo dài trắng hoặc Váy trắng tinh khôi.\n  - Nam: Áo sơ mi trắng + Quần dài lịch sự.\n• Hoạt động: Tái hiện những khoảnh khắc học trò ngây ngô, trong trẻo dưới mái trường và hàng cây rợp bóng kỷ niệm.\n\n🚗 09h00: DI CHUYỂN VỀ XHOTEL\n• Tập thể lớp chủ động phương tiện, di chuyển an toàn và đúng giờ về nhà hàng / khách sạn XHotel (X - Restaurant).\n\n🌹 09h15: CHECK-IN & ĐÓN TIẾP THẦY CÔ TẠI XHOTEL\n• Trang phục: Giữ nguyên Áo đồng phục K8A1.\n• Hoạt động: Đón tiếp các Thầy Cô giáo, chụp ảnh thảm đỏ, backdrop check-in kỷ niệm 20 năm, giao lưu và ổn định bàn tiệc.\n\n🥂 11h00: CONCEPT 3 — \"HỘI NGỘ SAU 20 NĂM\"\n• Trang phục: Tự do, lịch sự, thanh lịch (tiệc mừng).\n• Hoạt động: Khai tiệc mừng 20 năm ngày trở về, thưởng thức ẩm thực, giao lưu văn nghệ, trò chơi bốc thăm kỷ vật và nâng ly chúc mừng chặng đường 20 năm.\n\n📌 LƯU Ý QUAN TRỌNG TỪ BAN TỔ CHỨC:\n1. Đúng giờ là ưu tiên số 1: Đề nghị các bạn có mặt đúng khung giờ 07h30 – 08h00 tại trường để đảm bảo đầy đủ hình ảnh trong toàn bộ các concept.\n2. Chuẩn bị trang phục: Mang sẵn trang phục Concept 2 (áo dài / váy trắng cho nữ; sơ mi trắng cho nam) và Concept 3 để thay tại trường và khách sạn.\n3. Áo đồng phục K8A1: Giữ áo phẳng, đẹp để lên hình tập thể đồng đều và rạng rỡ nhất.",
     imageUrl: "/sample-polo-k8a1.jpg",
     actionUrl: "#lich-trinh",
-    actionLabel: "ðŸ‘— Xem Chi Tiáº¿t Concept & Trang Phá»¥c",
+    actionLabel: "👗 Xem Chi Tiết Concept & Trang Phục",
     isPinned: true,
     createdAt: "28/09/2026 08:00",
-    author: "BTC K8A1 â€” TrÆ°á»Ÿng Ban Tráº§n Thá»‹ Thanh Nháº¡n",
+    author: "BTC K8A1 — Trưởng Ban Trần Thị Thanh Nhạn",
     status: "published",
     likesCount: 68
   },
   {
     id: "TB-02",
-    title: "ðŸ“‹ Ká»‹ch Báº£n & Timeline ChÆ°Æ¡ng TrÃ¬nh Chi Tiáº¿t (07:30 â€“ 12:30)",
+    title: "📋 Kịch Bản & Timeline Chương Trình Chi Tiết (07:30 – 12:30)",
     category: "schedule",
-    summary: "Lá»‹ch trÃ¬nh chi tiáº¿t tá»«ng khung giá»: 07:30 Ä‘Ã³n táº¡i trÆ°á»ng THPT ThÃ¡i NguyÃªn, 08:00 chá»¥p áº£nh ká»· niá»‡m, 09:00 di chuyá»ƒn sang X - Restaurant, 10:00 khai máº¡c & tri Ã¢n Tháº§y CÃ´, 10:30 khai tiá»‡c.",
-    content: "TIMELINE CHÆ¯Æ NG TRÃŒNH CHI TIáº¾T\nKhÃ³a 8 (2003 â€“ 2006) â€” TrÆ°á»ng THPT ThÃ¡i NguyÃªn\nChá»§ Nháº­t, ngÃ y 27/09/2026\n\nBan Tá»• Chá»©c trÃ¢n trá»ng gá»­i tá»›i cÃ¡c báº¡n lá»‹ch trÃ¬nh hoáº¡t Ä‘á»™ng chi tiáº¿t tá»« 07:30 Ä‘áº¿n 12:30:\n\nâ° 07:30 â€“ 08:00 | ÄÃ“N TIáº¾P Táº I TRÆ¯á»œNG CÅ¨\nâ€¢ Ná»™i dung: ÄÃ³n tiáº¿p thÃ nh viÃªn táº¡i cá»•ng trÆ°á»ng THPT ThÃ¡i NguyÃªn, Ä‘iá»ƒm danh, phÃ¡t hashtag cáº§m tay vÃ  hoa cÃ i Ã¡o.\nâ€¢ Phá»¥ trÃ¡ch: BLL - Media.\n\nðŸ“¸ 08:00 â€“ 09:00 | CHá»¤P áº¢NH Ká»¶ NIá»†M SÃ‚N TRÆ¯á»œNG & Lá»šP Há»ŒC\nâ€¢ Ná»™i dung: Chá»¥p áº£nh lÆ°u niá»‡m táº¡i sÃ¢n trÆ°á»ng, dÃ¢ng hoa tri Ã¢n cÃ´ giÃ¡o chá»§ nhiá»‡m, chá»¥p áº£nh Concept 1 (Äá»“ng phá»¥c) & Concept 2 (Thanh xuÃ¢n trá»Ÿ láº¡i), thÄƒm láº¡i lá»›p há»c cÅ©.\nâ€¢ Phá»¥ trÃ¡ch: BLL - Media.\n\nðŸš— 09:00 â€“ 09:15 | DI CHUYá»‚N SANG NHÃ€ HÃ€NG\nâ€¢ Ná»™i dung: Táº­p thá»ƒ lá»›p di chuyá»ƒn tá»« TrÆ°á»ng THPT ThÃ¡i NguyÃªn sang nhÃ  hÃ ng X - Restaurant (XHotel).\nâ€¢ Phá»¥ trÃ¡ch: BTC Äiá»u phá»‘i.\n\nðŸ¥‚ 09:15 â€“ 10:00 | CHECK-IN THáº¢M Äá»Ž & ÄÃ“N TIáº¾P THáº¦Y CÃ”\nâ€¢ Ná»™i dung: Check-in tháº£m Ä‘á», Ä‘Ã³n tiáº¿p cÃ¡c Tháº§y CÃ´ giÃ¡o, á»•n Ä‘á»‹nh bÃ n tiá»‡c, trÃ¬nh chiáº¿u slideshow phÃ³ng sá»± ká»· niá»‡m 20 nÄƒm vÃ  vÄƒn nghá»‡ chÃ o má»«ng.\nâ€¢ Phá»¥ trÃ¡ch: BLL + Media.\n\nðŸŽ¤ 10:00 â€“ 10:15 | KHAI Máº C Äáº I Lá»„ 20 NÄ‚M\nâ€¢ Ná»™i dung: Khai máº¡c chÆ°Æ¡ng trÃ¬nh: TuyÃªn bá»‘ lÃ½ do, giá»›i thiá»‡u Ä‘áº¡i biá»ƒu vÃ  cÃ¡c Tháº§y CÃ´ tham dá»±.\nâ€¢ Phá»¥ trÃ¡ch: MC - Media.\n\nðŸ’ 10:15 â€“ 10:30 | TRI Ã‚N THáº¦Y CÃ” GIÃO\nâ€¢ Ná»™i dung: Äáº¡i diá»‡n táº­p thá»ƒ K8A1 phÃ¡t biá»ƒu tri Ã¢n, táº·ng hoa vÃ  quÃ  ká»· niá»‡m tá»›i Tháº§y CÃ´; Láº¯ng nghe nhá»¯ng lá»i chia sáº», cÄƒn dáº·n thÃ¢n thÆ°Æ¡ng tá»« Tháº§y CÃ´.\nâ€¢ Phá»¥ trÃ¡ch: Äáº¡i diá»‡n K8A1 - Tháº§y CÃ´.\n\nðŸ¾ 10:30 | NÃ‚NG LY KHAI TIá»†C Há»˜I NGá»˜\nâ€¢ Ná»™i dung: ToÃ n thá»ƒ Tháº§y CÃ´ vÃ  cÃ¡c báº¡n cá»±u há»c sinh K8A1 cÃ¹ng nÃ¢ng ly khai tiá»‡c má»«ng 20 nÄƒm ngÃ y trá»Ÿ vá».\nâ€¢ Phá»¥ trÃ¡ch: MC - Media.\n\nðŸŽ¶ 10:30 â€“ 11:30 | TIá»†C TRÆ¯A & GIAO LÆ¯U Gáº®N Káº¾T\nâ€¢ Ná»™i dung: DÃ¹ng tiá»‡c trÆ°a thÃ¢n máº­t káº¿t há»£p giao lÆ°u vÄƒn nghá»‡ ngáº«u há»©ng, trÃ² chÆ¡i ká»· niá»‡m vÃ  chia sáº» tÃ¢m sá»± chuyá»‡n Ä‘á»i, chuyá»‡n nghá».\nâ€¢ Phá»¥ trÃ¡ch: MC - Media.\n\nðŸŽ 11:30 â€“ 12:00 | Lá»œI NHáº®N 10 NÄ‚M SAU & TRAO QUÃ€\nâ€¢ Ná»™i dung: Hoáº¡t Ä‘á»™ng Ã½ nghÄ©a \"Gá»­i lá»i nháº¯n Ä‘áº¿n 10 nÄƒm sau\", trao quÃ  lÆ°u niá»‡m ká»· niá»‡m 20 nÄƒm cho cÃ¡c thÃ nh viÃªn.\nâ€¢ Phá»¥ trÃ¡ch: BTC - Media.\n\nðŸ“¸ 12:00 â€“ 12:30 | áº¢NH Táº¬P THá»‚ Báº¾ Máº C & Cáº¢M Æ N\nâ€¢ Ná»™i dung: Chá»¥p áº£nh ká»· niá»‡m táº­p thá»ƒ báº¿ máº¡c, gá»­i lá»i cáº£m Æ¡n vÃ  káº¿t thÃºc chÆ°Æ¡ng trÃ¬nh trong niá»m hÃ¢n hoan trá»n váº¹n.\nâ€¢ Phá»¥ trÃ¡ch: MC + Media.\n\nTrÆ°á»Ÿng ban: Tráº§n Thá»‹ Thanh Nháº¡n",
+    summary: "Lịch trình chi tiết từng khung giờ: 07:30 đón tại trường THPT Thái Nguyên, 08:00 chụp ảnh kỷ niệm, 09:00 di chuyển sang X - Restaurant, 10:00 khai mạc & tri ân Thầy Cô, 10:30 khai tiệc.",
+    content: "TIMELINE CHƯƠNG TRÌNH CHI TIẾT\nKhóa 8 (2003 – 2006) — Trường THPT Thái Nguyên\nChủ Nhật, ngày 27/09/2026\n\nBan Tổ Chức trân trọng gửi tới các bạn lịch trình hoạt động chi tiết từ 07:30 đến 12:30:\n\n⏰ 07:30 – 08:00 | ĐÓN TIẾP TẠI TRƯỜNG CŨ\n• Nội dung: Đón tiếp thành viên tại cổng trường THPT Thái Nguyên, điểm danh, phát hashtag cầm tay và hoa cài áo.\n• Phụ trách: BLL - Media.\n\n📸 08:00 – 09:00 | CHỤP ẢNH KỶ NIỆM SÂN TRƯỜNG & LỚP HỌC\n• Nội dung: Chụp ảnh lưu niệm tại sân trường, dâng hoa tri ân cô giáo chủ nhiệm, chụp ảnh Concept 1 (Đồng phục) & Concept 2 (Thanh xuân trở lại), thăm lại lớp học cũ.\n• Phụ trách: BLL - Media.\n\n🚗 09:00 – 09:15 | DI CHUYỂN SANG NHÀ HÀNG\n• Nội dung: Tập thể lớp di chuyển từ Trường THPT Thái Nguyên sang nhà hàng X - Restaurant (XHotel).\n• Phụ trách: BTC Điều phối.\n\n🥂 09:15 – 10:00 | CHECK-IN THẢM ĐỎ & ĐÓN TIẾP THẦY CÔ\n• Nội dung: Check-in thảm đỏ, đón tiếp các Thầy Cô giáo, ổn định bàn tiệc, trình chiếu slideshow phóng sự kỷ niệm 20 năm và văn nghệ chào mừng.\n• Phụ trách: BLL + Media.\n\n🎤 10:00 – 10:15 | KHAI MẠC ĐẠI LỄ 20 NĂM\n• Nội dung: Khai mạc chương trình: Tuyên bố lý do, giới thiệu đại biểu và các Thầy Cô tham dự.\n• Phụ trách: MC - Media.\n\n💐 10:15 – 10:30 | TRI ÂN THẦY CÔ GIÁO\n• Nội dung: Đại diện tập thể K8A1 phát biểu tri ân, tặng hoa và quà kỷ niệm tới Thầy Cô; Lắng nghe những lời chia sẻ, căn dặn thân thương từ Thầy Cô.\n• Phụ trách: Đại diện K8A1 - Thầy Cô.\n\n🍾 10:30 | NÂNG LY KHAI TIỆC HỘI NGỘ\n• Nội dung: Toàn thể Thầy Cô và các bạn cựu học sinh K8A1 cùng nâng ly khai tiệc mừng 20 năm ngày trở về.\n• Phụ trách: MC - Media.\n\n🎶 10:30 – 11:30 | TIỆC TRƯA & GIAO LƯU GẮN KẾT\n• Nội dung: Dùng tiệc trưa thân mật kết hợp giao lưu văn nghệ ngẫu hứng, trò chơi kỷ niệm và chia sẻ tâm sự chuyện đời, chuyện nghề.\n• Phụ trách: MC - Media.\n\n🎁 11:30 – 12:00 | LỜI NHẮN 10 NĂM SAU & TRAO QUÀ\n• Nội dung: Hoạt động ý nghĩa \"Gửi lời nhắn đến 10 năm sau\", trao quà lưu niệm kỷ niệm 20 năm cho các thành viên.\n• Phụ trách: BTC - Media.\n\n📸 12:00 – 12:30 | ẢNH TẬP THỂ BẾ MẠC & CẢM ƠN\n• Nội dung: Chụp ảnh kỷ niệm tập thể bế mạc, gửi lời cảm ơn và kết thúc chương trình trong niềm hân hoan trọn vẹn.\n• Phụ trách: MC + Media.\n\nTrưởng ban: Trần Thị Thanh Nhạn",
     actionUrl: "#lich-trinh",
-    actionLabel: "ðŸ“… Theo DÃµi Khung Giá» Hoáº¡t Äá»™ng",
+    actionLabel: "📅 Theo Dõi Khung Giờ Hoạt Động",
     isPinned: true,
     createdAt: "28/09/2026 08:30",
-    author: "BTC K8A1 â€” TrÆ°á»Ÿng Ban Tráº§n Thá»‹ Thanh Nháº¡n",
+    author: "BTC K8A1 — Trưởng Ban Trần Thị Thanh Nhạn",
     status: "published",
     likesCount: 75
   },
   {
     id: "TB-03",
-    title: "ðŸ’Œ Lá»i Tri Ã‚n â€” K8A1 20 NÄƒm: Má»™t Cháº·ng ÄÆ°á»ng, Má»™t Äá»i TÃ¬nh Báº¡n",
+    title: "💌 Lời Tri Ân — K8A1 20 Năm: Một Chặng Đường, Một Đời Tình Bạn",
     category: "activity",
-    summary: "Bá»©c tÃ¢m thÆ° tri Ã¢n sÃ¢u sáº¯c gá»­i Ban GiÃ¡m hiá»‡u, cÃ¡c cÃ´ giÃ¡o chá»§ nhiá»‡m, tháº§y cÃ´ bá»™ mÃ´n vÃ  lá»i cáº£m Æ¡n 50 trÃ¡i tim K8A1 cÃ¹ng há»™i tá»¥ sau 20 nÄƒm.",
-    content: "Lá»œI TRI Ã‚N\nK8A1 20 NÄ‚M: Má»˜T CHáº¶NG ÄÆ¯á»œNG, Má»˜T Äá»œI TÃŒNH Báº N\n\"Hai mÆ°Æ¡i nÄƒm â€“ má»™t cháº·ng Ä‘Æ°á»ng, má»™t láº§n trá»Ÿ vá», ngÃ n láº§n thÆ°Æ¡ng nhá»›...\"\n\nKÃ­nh gá»­i Ban GiÃ¡m hiá»‡u TrÆ°á»ng THPT ThÃ¡i NguyÃªn, cÃ¡c cÃ´ giÃ¡o chá»§ nhiá»‡m cÃ¹ng toÃ n thá»ƒ cÃ¡c tháº§y cÃ´ giÃ¡o bá»™ mÃ´n Ä‘Ã£ tá»«ng giáº£ng dáº¡y táº­p thá»ƒ lá»›p K8A1 niÃªn khÃ³a 2003 â€“ 2006.\n\nHai mÆ°Æ¡i nÄƒm trÆ°á»›c, chÃºng em rá»i xa mÃ¡i trÆ°á»ng thÃ¢n yÃªu mang theo hÃ nh trang lÃ  tri thá»©c, lÃ  nhá»¯ng bÃ i há»c lÃ m ngÆ°á»i sÃ¢u sáº¯c vÃ  cáº£ niá»m tin yÃªu mÃ  tháº§y cÃ´ Ä‘Ã£ cáº§n máº«n trao gá»­i. Hai mÆ°Æ¡i nÄƒm trÃ´i qua, dÃ¹ á»Ÿ báº¥t ká»³ phÆ°Æ¡ng trá»i nÃ o, trÃªn má»—i bÆ°á»›c Ä‘Æ°á»ng trÆ°á»Ÿng thÃ nh cá»§a má»—i chÃºng em Ä‘á»u cÃ³ bÃ³ng hÃ¬nh cá»§a mÃ¡i trÆ°á»ng xÆ°a, cÃ³ sá»± chá»Ÿ che, dÃ¬u dáº¯t tá»« nhá»¯ng thÃ¡ng nÄƒm hoa niÃªn tÆ°Æ¡i Ä‘áº¹p.\n\nHÃ´m nay, trong niá»m xÃºc Ä‘á»™ng ngháº¹n ngÃ o cá»§a ngÃ y trá»Ÿ vá», táº­p thá»ƒ K8A1 xin Ä‘Æ°á»£c cÃºi Ä‘áº§u kÃ­nh cáº©n dÃ¢ng lÃªn tháº§y cÃ´ lá»i tri Ã¢n sÃ¢u sáº¯c vÃ  lÃ²ng biáº¿t Æ¡n vÃ´ háº¡n. Cáº£m Æ¡n tháº§y cÃ´ vÃ¬ Ä‘Ã£ dÃ nh trá»n tÃ¢m huyáº¿t, tÃ¬nh thÆ°Æ¡ng Ä‘á»ƒ tháº¯p sÃ¡ng Æ°á»›c mÆ¡ cho chÃºng em.\n\nÄá»“ng thá»i, xin gá»­i lá»i cáº£m Æ¡n chÃ¢n thÃ nh tá»›i 50 trÃ¡i tim K8A1 Ä‘Ã£ cÃ¹ng nhau tá» tá»±u, gáº¯n káº¿t vÃ  tiáº¿p ná»‘i máº¡ch nguá»“n tÃ¬nh báº¡n thiÃªng liÃªng sau 20 nÄƒm xa cÃ¡ch. DÃ¹ thá»i gian cÃ³ Ä‘á»•i thay, mÃ¡i tÃ³c cÃ³ ngáº£ mÃ u, tÃ¬nh báº¡n cá»§a chÃºng ta váº«n mÃ£i váº¹n nguyÃªn nhÆ° nhá»¯ng ngÃ y Ä‘áº§u dÆ°á»›i mÃ¡i trÆ°á»ng THPT ThÃ¡i NguyÃªn.\n\nKÃ­nh chÃºc cÃ¡c tháº§y cÃ´ luÃ´n dá»“i dÃ o sá»©c khá»e, háº¡nh phÃºc vÃ  an yÃªn!\nChÃºc cho tÃ¬nh báº¡n K8A1 mÃ£i mÃ£i xanh tÆ°Æ¡i, bá»n cháº·t theo nÄƒm thÃ¡ng!\n\n\"Thanh xuÃ¢n cÃ³ báº¡n lÃ  táº¥t cáº£ lÃ  nhá»¯ng Ä‘iá»u tuyá»‡t vá»i nháº¥t! â™¡\"\n\nTrÆ°á»Ÿng ban liÃªn láº¡c: Tráº§n Thá»‹ Thanh Nháº¡n",
+    summary: "Bức tâm thư tri ân sâu sắc gửi Ban Giám hiệu, các cô giáo chủ nhiệm, thầy cô bộ môn và lời cảm ơn 50 trái tim K8A1 cùng hội tụ sau 20 năm.",
+    content: "LỜI TRI ÂN\nK8A1 20 NĂM: MỘT CHẶNG ĐƯỜNG, MỘT ĐỜI TÌNH BẠN\n\"Hai mươi năm – một chặng đường, một lần trở về, ngàn lần thương nhớ...\"\n\nKính gửi Ban Giám hiệu Trường THPT Thái Nguyên, các cô giáo chủ nhiệm cùng toàn thể các thầy cô giáo bộ môn đã từng giảng dạy tập thể lớp K8A1 niên khóa 2003 – 2006.\n\nHai mươi năm trước, chúng em rời xa mái trường thân yêu mang theo hành trang là tri thức, là những bài học làm người sâu sắc và cả niềm tin yêu mà thầy cô đã cần mẫn trao gửi. Hai mươi năm trôi qua, dù ở bất kỳ phương trời nào, trên mỗi bước đường trưởng thành của mỗi chúng em đều có bóng hình của mái trường xưa, có sự chở che, dìu dắt từ những tháng năm hoa niên tươi đẹp.\n\nHôm nay, trong niềm xúc động nghẹn ngào của ngày trở về, tập thể K8A1 xin được cúi đầu kính cẩn dâng lên thầy cô lời tri ân sâu sắc và lòng biết ơn vô hạn. Cảm ơn thầy cô vì đã dành trọn tâm huyết, tình thương để thắp sáng ước mơ cho chúng em.\n\nĐồng thời, xin gửi lời cảm ơn chân thành tới 50 trái tim K8A1 đã cùng nhau tề tựu, gắn kết và tiếp nối mạch nguồn tình bạn thiêng liêng sau 20 năm xa cách. Dù thời gian có đổi thay, mái tóc có ngả màu, tình bạn của chúng ta vẫn mãi vẹn nguyên như những ngày đầu dưới mái trường THPT Thái Nguyên.\n\nKính chúc các thầy cô luôn dồi dào sức khỏe, hạnh phúc và an yên!\nChúc cho tình bạn K8A1 mãi mãi xanh tươi, bền chặt theo năm tháng!\n\n\"Thanh xuân có bạn là tất cả là những điều tuyệt vời nhất! ♡\"\n\nTrưởng ban liên lạc: Trần Thị Thanh Nhạn",
     actionUrl: "#thu-ngo",
-    actionLabel: "ðŸŒ¹ Äá»c Bá»©c ThÆ° Tri Ã‚n",
+    actionLabel: "🌹 Đọc Bức Thư Tri Ân",
     isPinned: true,
     createdAt: "28/09/2026 09:00",
-    author: "TrÆ°á»Ÿng Ban LiÃªn Láº¡c: Tráº§n Thá»‹ Thanh Nháº¡n",
+    author: "Trưởng Ban Liên Lạc: Trần Thị Thanh Nhạn",
     status: "published",
     likesCount: 89
   },
   {
     id: "TB-04",
-    title: "ðŸ‘• Ão Polo K8A1 Äá»“ng Phá»¥c Ká»· Niá»‡m 20 NÄƒm NgÃ y Trá»Ÿ Vá»",
+    title: "👕 Áo Polo K8A1 Đồng Phục Kỷ Niệm 20 Năm Ngày Trở Về",
     category: "activity",
-    summary: "Äá»“ng phá»¥c ká»· niá»‡m 20 nÄƒm Ä‘Æ°á»£c thiáº¿t káº¿ Ä‘á»™c quyá»n: váº£i thun cÃ¡ sáº¥u 4 chiá»u cao cáº¥p, cá»• Ã¡o dá»‡t viá»n há»• phÃ¡ch, thÃªu logo máº¡ vÃ ng.",
-    content: "KÃ­nh gá»­i toÃ n thá»ƒ cÃ¡c thÃ nh viÃªn táº­p thá»ƒ K8A1 â€” NiÃªn khÃ³a 2003 - 2006,\n\nÄá»ƒ chuáº©n bá»‹ chu Ä‘Ã¡o nháº¥t cho ngÃ y Há»™i khÃ³a 20 NÄƒm NgÃ y Trá»Ÿ Vá» (Chá»§ Nháº­t, 27/09/2026), Ban LiÃªn Láº¡c Ä‘Ã£ hoÃ n táº¥t sáº£n xuáº¥t Ã¡o Polo Ä‘á»“ng phá»¥c cao cáº¥p cho toÃ n bá»™ lá»›p.\n\nÃo Polo K8A1 ká»· niá»‡m 20 nÄƒm Ä‘Æ°á»£c may báº±ng cháº¥t liá»‡u thun cÃ¡ sáº¥u 4 chiá»u co giÃ£n cao cáº¥p, cá»• Ã¡o bo viá»n mÃ u há»• phÃ¡ch sang trá»ng, thÃªu ná»•i logo trÆ°á»ng THPT ThÃ¡i NguyÃªn vÃ  sá»‘ hiá»‡u 20 NÄƒm máº¡ vÃ ng tinh táº¿ bÃªn ngá»±c trÃ¡i.\n\nâš ï¸ LÆ¯U Ã KHI Máº¶C ÃO Äá»’NG PHá»¤C:\nâ€¢ ToÃ n bá»™ lá»›p máº·c Ã¡o Ä‘á»“ng phá»¥c K8A1 trong Concept 1 (08h00 táº¡i sÃ¢n trÆ°á»ng) vÃ  khi ÄÃ³n tiáº¿p Tháº§y CÃ´ táº¡i XHotel (09h15).\nâ€¢ Giá»¯ Ã¡o pháº³ng, Ä‘áº¹p Ä‘á»ƒ lÃªn hÃ¬nh táº­p thá»ƒ Ä‘á»“ng Ä‘á»u vÃ  ráº¡ng rá»¡ nháº¥t.\nâ€¢ CÃ¡c báº¡n cÃ³ thá»ƒ Ä‘Äƒng kÃ½ bá»• sung Ã¡o cho ngÆ°á»i thÃ¢n hoáº·c F1 báº±ng cÃ¡ch liÃªn há»‡ trá»±c tiáº¿p vá»›i Ban LiÃªn Láº¡c.",
+    summary: "Đồng phục kỷ niệm 20 năm được thiết kế độc quyền: vải thun cá sấu 4 chiều cao cấp, cổ áo dệt viền hổ phách, thêu logo mạ vàng.",
+    content: "Kính gửi toàn thể các thành viên tập thể K8A1 — Niên khóa 2003 - 2006,\n\nĐể chuẩn bị chu đáo nhất cho ngày Hội khóa 20 Năm Ngày Trở Về (Chủ Nhật, 27/09/2026), Ban Liên Lạc đã hoàn tất sản xuất áo Polo đồng phục cao cấp cho toàn bộ lớp.\n\nÁo Polo K8A1 kỷ niệm 20 năm được may bằng chất liệu thun cá sấu 4 chiều co giãn cao cấp, cổ áo bo viền màu hổ phách sang trọng, thêu nổi logo trường THPT Thái Nguyên và số hiệu 20 Năm mạ vàng tinh tế bên ngực trái.\n\n⚠️ LƯU Ý KHI MẶC ÁO ĐỒNG PHỤC:\n• Toàn bộ lớp mặc áo đồng phục K8A1 trong Concept 1 (08h00 tại sân trường) và khi Đón tiếp Thầy Cô tại XHotel (09h15).\n• Giữ áo phẳng, đẹp để lên hình tập thể đồng đều và rạng rỡ nhất.\n• Các bạn có thể đăng ký bổ sung áo cho người thân hoặc F1 bằng cách liên hệ trực tiếp với Ban Liên Lạc.",
     imageUrl: "/sample-polo-k8a1.jpg",
     actionUrl: "#diem-danh",
-    actionLabel: "ðŸ‘• Xem Danh SÃ¡ch Ão Cá»§a Báº¡n",
+    actionLabel: "👕 Xem Danh Sách Áo Của Bạn",
     isPinned: false,
     createdAt: "18/09/2026 08:30",
-    author: "Ban LiÃªn Láº¡c K8A1",
+    author: "Ban Liên Lạc K8A1",
     status: "published",
     likesCount: 52
   },
   {
     id: "TB-05",
-    title: "ðŸ—³ï¸ Kháº£o SÃ¡t Ã Kiáº¿n: Báº¡n mong chá» hoáº¡t Ä‘á»™ng hoÃ i niá»‡m nÃ o nháº¥t táº¡i Gala 20 NÄƒm?",
+    title: "🗳️ Khảo Sát Ý Kiến: Bạn mong chờ hoạt động hoài niệm nào nhất tại Gala 20 Năm?",
     category: "poll",
-    summary: "BÃ¬nh chá»n trá»±c tiáº¿p ngay trÃªn WebApp Ä‘á»ƒ Ban Tá»• Chá»©c chuáº©n bá»‹ ká»‹ch báº£n giao lÆ°u Ã½ nghÄ©a nháº¥t cho ngÃ y há»™i ngá»™ 27/09/2026.",
-    content: "ThÃ¢n gá»­i cÃ¡c báº¡n há»c K8A1 thÃ¢n máº¿n,\n\nÄá»ƒ chÆ°Æ¡ng trÃ¬nh Há»™i khÃ³a 20 NÄƒm NgÃ y Trá»Ÿ Vá» diá»…n ra tháº­t Ä‘áº§m áº¥m, giÃ u cáº£m xÃºc vÃ  gáº¯n káº¿t táº¥t cáº£ cÃ¡c thÃ nh viÃªn, Ban LiÃªn Láº¡c phÃ¡t Ä‘á»™ng cuá»™c bÃ¬nh chá»n trá»±c tiáº¿p 100% ngay trÃªn WebApp lá»›p mÃ¬nh (khÃ´ng cáº§n dÃ¹ng link Google Form bÃªn ngoÃ i).\n\nCÃ¡c báº¡n hÃ£y bÃ¬nh chá»n cÃ¡c hoáº¡t Ä‘á»™ng hoÃ i niá»‡m vÃ  giao lÆ°u mÃ  báº¡n mong muá»‘n Ä‘Æ°á»£c tráº£i nghiá»‡m nháº¥t trong buá»•i tiá»‡c táº¡i XHotel / X - Restaurant (há»— trá»£ chá»n nhiá»u phÆ°Æ¡ng Ã¡n cÃ¹ng lÃºc).\n\nKáº¿t quáº£ bÃ¬nh chá»n theo thá»i gian thá»±c sáº½ lÃ  cÄƒn cá»© Ä‘á»ƒ Ban Tá»• Chá»©c chá»‘t ká»‹ch báº£n sÃ¢n kháº¥u, chuáº©n bá»‹ quÃ  táº·ng vÃ  Ä‘áº¡o cá»¥ hoÃ i niá»‡m tÆ°Æ¡ng á»©ng!",
+    summary: "Bình chọn trực tiếp ngay trên WebApp để Ban Tổ Chức chuẩn bị kịch bản giao lưu ý nghĩa nhất cho ngày hội ngộ 27/09/2026.",
+    content: "Thân gửi các bạn học K8A1 thân mến,\n\nĐể chương trình Hội khóa 20 Năm Ngày Trở Về diễn ra thật đầm ấm, giàu cảm xúc và gắn kết tất cả các thành viên, Ban Liên Lạc phát động cuộc bình chọn trực tiếp 100% ngay trên WebApp lớp mình (không cần dùng link Google Form bên ngoài).\n\nCác bạn hãy bình chọn các hoạt động hoài niệm và giao lưu mà bạn mong muốn được trải nghiệm nhất trong buổi tiệc tại XHotel / X - Restaurant (hỗ trợ chọn nhiều phương án cùng lúc).\n\nKết quả bình chọn theo thời gian thực sẽ là căn cứ để Ban Tổ Chức chốt kịch bản sân khấu, chuẩn bị quà tặng và đạo cụ hoài niệm tương ứng!",
     actionUrl: "#ban-tin",
-    actionLabel: "ðŸ—³ï¸ BÃ¬nh Chá»n Ngay",
+    actionLabel: "🗳️ Bình Chọn Ngay",
     isPinned: false,
     createdAt: "14/09/2026 15:30",
-    author: "Ban LiÃªn Láº¡c K8A1",
+    author: "Ban Liên Lạc K8A1",
     status: "published",
     likesCount: 58,
     poll: {
-      question: "Báº¡n hÃ o há»©ng nháº¥t vá»›i hoáº¡t Ä‘á»™ng giao lÆ°u nÃ o táº¡i buá»•i tiá»‡c há»™i ngá»™ K8A1?",
+      question: "Bạn hào hứng nhất với hoạt động giao lưu nào tại buổi tiệc hội ngộ K8A1?",
       allowMultiple: true,
       isClosed: false,
       options: [
         {
           id: "opt-1",
-          text: "ðŸŽ¬ Chiáº¿u phÃ³ng sá»± áº£nh Ä‘á»™c quyá»n 'K8A1 â€” 20 NÄƒm NgÃ y áº¤y & BÃ¢y Giá»' trÃªn mÃ n LED lá»›n",
-          votes: ["ÄÃ o Thá»‹ Há»“ng Nhung", "Tráº§n ÄÄƒng Tuáº¥n", "VÅ© PhÆ°Æ¡ng Tháº£o"]
+          text: "🎬 Chiếu phóng sự ảnh độc quyền 'K8A1 — 20 Năm Ngày Ấy & Bây Giờ' trên màn LED lớn",
+          votes: ["Đào Thị Hồng Nhung", "Trần Đăng Tuấn", "Vũ Phương Thảo"]
         },
         {
           id: "opt-2",
-          text: "ðŸŽ¸ HÃ¡t live ca khÃºc tuá»•i há»c trÃ² (Xe Ä‘áº¡p, PhÆ°á»£ng há»“ng, Ká»· niá»‡m mÃ¡i trÆ°á»ng...) & Ban nháº¡c acoustic",
-          votes: ["Nguyá»…n HoÃ ng Long", "Tráº§n ÄÄƒng Tuáº¥n", "Äá»— Mai HÆ°Æ¡ng", "Pháº¡m Quá»‘c HÃ¹ng"]
+          text: "🎸 Hát live ca khúc tuổi học trò (Xe đạp, Phượng hồng, Kỷ niệm mái trường...) & Ban nhạc acoustic",
+          votes: ["Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Đỗ Mai Hương", "Phạm Quốc Hùng"]
         },
         {
           id: "opt-3",
-          text: "ðŸ† Minigame Ã´n láº¡i ká»· niá»‡m 'Ai thÃ´ng minh hÆ¡n há»c sinh K8A1' & Bá»‘c thÄƒm ká»· váº­t máº¡ vÃ ng",
-          votes: ["VÅ© PhÆ°Æ¡ng Tháº£o", "Nguyá»…n Thá»‹ Thu HÃ ", "BÃ¹i Tiáº¿n DÅ©ng"]
+          text: "🏆 Minigame ôn lại kỷ niệm 'Ai thông minh hơn học sinh K8A1' & Bốc thăm kỷ vật mạ vàng",
+          votes: ["Vũ Phương Thảo", "Nguyễn Thị Thu Hà", "Bùi Tiến Dũng"]
         },
         {
           id: "opt-4",
-          text: "ðŸ¥‚ Thá»i kháº¯c NÃ¢ng Ly Tri Ã‚n Tháº§y CÃ´ giÃ¡o & Trao gá»­i tÃ¢m thÆ° 20 nÄƒm xÃºc Ä‘á»™ng",
-          votes: ["ÄÃ o Thá»‹ Há»“ng Nhung", "Nguyá»…n HoÃ ng Long", "Tráº§n ÄÄƒng Tuáº¥n", "VÅ© PhÆ°Æ¡ng Tháº£o", "LÃª VÄƒn HoÃ ng"]
+          text: "🥂 Thời khắc Nâng Ly Tri Ân Thầy Cô giáo & Trao gửi tâm thư 20 năm xúc động",
+          votes: ["Đào Thị Hồng Nhung", "Nguyễn Hoàng Long", "Trần Đăng Tuấn", "Vũ Phương Thảo", "Lê Văn Hoàng"]
         },
         {
           id: "opt-5",
-          text: "ðŸ“¸ Check-in Photobooth ká»· yáº¿u 2003-2006 phong cÃ¡ch Retro & Quay clip ká»· niá»‡m TikTok/Reels",
-          votes: ["Äá»— Mai HÆ°Æ¡ng", "Nguyá»…n Thá»‹ Thu HÃ "]
+          text: "📸 Check-in Photobooth kỷ yếu 2003-2006 phong cách Retro & Quay clip kỷ niệm TikTok/Reels",
+          votes: ["Đỗ Mai Hương", "Nguyễn Thị Thu Hà"]
         }
       ]
     }
   }
 ];
 
-// Logo chÃ­nh thá»©c TrÆ°á»ng THPT ThÃ¡i NguyÃªn (thuá»™c ÄH SÆ° Pháº¡m - ÄH ThÃ¡i NguyÃªn)
+// Logo chính thức Trường THPT Thái Nguyên (thuộc ĐH Sư Phạm - ĐH Thái Nguyên)
 export const SCHOOL_LOGO_URL = "https://thpttn.tnue.edu.vn/upload/doantn/logo%20thpttn.jpg";
 
-// URL Google Apps Script WebApp máº·c Ä‘á»‹nh toÃ n há»‡ thá»‘ng
-// BLL cÃ³ thá»ƒ dÃ¡n URL triá»ƒn khai (/exec) vÃ o Ä‘Ã¢y Ä‘á»ƒ má»i thiáº¿t bá»‹/áº©n danh tá»± Ä‘á»™ng Ä‘á»“ng bá»™ cÃ¹ng 1 Sheet
+// URL Google Apps Script WebApp mặc định toàn hệ thống
+// BLL có thể dán URL triển khai (/exec) vào đây để mọi thiết bị/ẩn danh tự động đồng bộ cùng 1 Sheet
 export const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_hm9akENv_GmNpF8s9ALVReDd_8ORPS_RqpUZ9FS6GB_Qdnmjhh5XZ5iKZhnE_9S0/exec";
 
 export const K8A1_DRIVE_FOLDER_ID = "1Skmip1HQhmXan-58kwbY_msamP-bWokq";
@@ -3419,73 +3418,73 @@ export const TEACHERS_LIST: TeacherData[] = [];
 export const INITIAL_TEACHER_TRIBUTES: TeacherTribute[] = [];
 
 export const TEACHER_SUBJECT_OPTIONS = [
-  "ToÃ¡n Há»c",
-  "Ngá»¯ VÄƒn",
-  "Tiáº¿ng Anh",
-  "Váº­t LÃ½",
-  "HÃ³a Há»c",
-  "Sinh Há»c",
-  "Lá»‹ch Sá»­",
-  "Äá»‹a LÃ½",
-  "Tin Há»c",
+  "Toán Học",
+  "Ngữ Văn",
+  "Tiếng Anh",
+  "Vật Lý",
+  "Hóa Học",
+  "Sinh Học",
+  "Lịch Sử",
+  "Địa Lý",
+  "Tin Học",
   "GDCD",
-  "Thá»ƒ Dá»¥c",
+  "Thể Dục",
   "GDQP-AN",
-  "CÃ´ng Nghá»‡ / Ká»¹ Thuáº­t",
-  "Ban GiÃ¡m Hiá»‡u"
+  "Công Nghệ / Kỹ Thuật",
+  "Ban Giám Hiệu"
 ];
 
 export const TEACHER_ROLE_OPTIONS = [
-  "GiÃ¡o viÃªn Bá»™ mÃ´n",
-  "Chá»§ nhiá»‡m Lá»›p 12A1",
-  "Chá»§ nhiá»‡m Lá»›p 11A1",
-  "Chá»§ nhiá»‡m Lá»›p 10A1",
-  "Hiá»‡u TrÆ°á»Ÿng",
-  "PhÃ³ Hiá»‡u TrÆ°á»Ÿng",
-  "BÃ­ ThÆ° ÄoÃ n TrÆ°á»ng",
-  "Tá»•ng Phá»¥ TrÃ¡ch Äá»™i / ÄoÃ n"
+  "Giáo viên Bộ môn",
+  "Chủ nhiệm Lớp 12A1",
+  "Chủ nhiệm Lớp 11A1",
+  "Chủ nhiệm Lớp 10A1",
+  "Hiệu Trưởng",
+  "Phó Hiệu Trưởng",
+  "Bí Thư Đoàn Trường",
+  "Tổng Phụ Trách Đội / Đoàn"
 ];
 
 export const TEACHER_TRANSPORTATION_OPTIONS = [
-  "Tá»± tÃºc",
-  "Lá»›p cá»­ xe Ä‘Ã³n táº¡i nhÃ ",
-  "Tháº§y tá»± Ä‘i cÃ¹ng há»c trÃ²",
-  "CÃ´ tá»± Ä‘i cÃ¹ng há»c trÃ²",
-  "Äi cÃ¹ng Tháº§y/CÃ´ khÃ¡c",
-  "Cáº§n xe Ä‘Ã³n tuyáº¿n HÃ  Ná»™i - ThÃ¡i NguyÃªn",
-  "Cáº§n há»— trá»£ Ä‘Æ°a Ä‘Ã³n táº¡i ThÃ¡i NguyÃªn",
-  "Cáº§n xe Ä‘Æ°a vá» sau dáº¡ tiá»‡c"
+  "Tự túc",
+  "Lớp cử xe đón tại nhà",
+  "Thầy tự đi cùng học trò",
+  "Cô tự đi cùng học trò",
+  "Đi cùng Thầy/Cô khác",
+  "Cần xe đón tuyến Hà Nội - Thái Nguyên",
+  "Cần hỗ trợ đưa đón tại Thái Nguyên",
+  "Cần xe đưa về sau dạ tiệc"
 ];
 
 export const TEACHER_HEALTH_OPTIONS = [
-  "BÃ¬nh thÆ°á»ng (KhÃ´ng yÃªu cáº§u Ä‘áº·c biá»‡t)",
-  "Ngá»“i bÃ n danh dá»± táº§ng 1 (Ã­t báº­c thang)",
-  "Cáº§n há»— trá»£ di chuyá»ƒn (chÃ¢n yáº¿u / Ä‘i láº¡i cháº­m)",
-  "Ä‚n chay",
-  "Ä‚n kiÃªng / Cháº¿ Ä‘á»™ Äƒn thanh Ä‘áº¡m",
-  "KhÃ´ng uá»‘ng rÆ°á»£u bia / Ä‘á»“ uá»‘ng cÃ³ cá»“n"
+  "Bình thường (Không yêu cầu đặc biệt)",
+  "Ngồi bàn danh dự tầng 1 (ít bậc thang)",
+  "Cần hỗ trợ di chuyển (chân yếu / đi lại chậm)",
+  "Ăn chay",
+  "Ăn kiêng / Chế độ ăn thanh đạm",
+  "Không uống rượu bia / đồ uống có cồn"
 ];
 
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
- * MÃ£ nguá»“n Google Apps Script (Code.gs) Ä‘Æ°á»£c lÆ°u trá»¯ Ä‘á»™c láº­p táº¡i file Code.gs trong kho mÃ£ nguá»“n.
- * Äá»ƒ báº£o máº­t há»‡ thá»‘ng vÃ  ngÄƒn lá»™ thÃ´ng tin quáº£n trá»‹ trÃªn trÃ¬nh duyá»‡t (F12),
- * toÃ n bá»™ mÃ£ xá»­ lÃ½ mÃ¡y chá»§ Ä‘Ã£ Ä‘Æ°á»£c tÃ¡ch rá»i khá»i frontend bundle.
+ * Mã nguồn Google Apps Script (Code.gs) được lưu trữ độc lập tại file Code.gs trong kho mã nguồn.
+ * Để bảo mật hệ thống và ngăn lộ thông tin quản trị trên trình duyệt (F12),
+ * toàn bộ mã xử lý máy chủ đã được tách rời khỏi frontend bundle.
  *
- * Vui lÃ²ng xem vÃ  chá»‰nh sá»­a file Code.gs trá»±c tiáº¿p trÃªn GitHub repository.
+ * Vui lòng xem và chỉnh sửa file Code.gs trực tiếp trên GitHub repository.
  */`;
 
 /**
  * ============================================================================
 /**
  * ============================================================================
- * ðŸ” XÃC THá»°C MÃƒ PIN Báº¢O Máº¬T 100% QUA GOOGLE APPS SCRIPT
- * Tuyá»‡t Ä‘á»‘i khÃ´ng lÆ°u mÃ£ PIN hay chuá»—i bÄƒm dá»± phÃ²ng trÃªn trÃ¬nh duyá»‡t frontend.
- * Má»i yÃªu cáº§u Ä‘Äƒng nháº­p báº¯t buá»™c pháº£i Ä‘Æ°á»£c mÃ¡y chá»§ Google Sheets xÃ¡c thá»±c.
+ * 🔐 XÁC THỰC MÃ PIN BẢO MẬT 100% QUA GOOGLE APPS SCRIPT
+ * Tuyệt đối không lưu mã PIN hay chuỗi băm dự phòng trên trình duyệt frontend.
+ * Mọi yêu cầu đăng nhập bắt buộc phải được máy chủ Google Sheets xác thực.
  * ============================================================================
  */
 
 /**
- * XÃ¡c thá»±c mÃ£ PIN an toÃ n qua Google Apps Script / Google Sheets
+ * Xác thực mã PIN an toàn qua Google Apps Script / Google Sheets
  */
 export async function verifyPinViaBackend(
   pin: string,
@@ -3493,7 +3492,7 @@ export async function verifyPinViaBackend(
 ): Promise<{ success: boolean; role?: UserRole; message?: string; isLocked?: boolean }> {
   const cleanPin = String(pin || '').trim();
   if (!cleanPin) {
-    return { success: false, message: 'Vui lÃ²ng nháº­p mÃ£ PIN!' };
+    return { success: false, message: 'Vui lòng nhập mã PIN!' };
   }
 
   const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
@@ -3501,13 +3500,13 @@ export async function verifyPinViaBackend(
     : DEFAULT_APPS_SCRIPT_URL;
 
   if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
-    return { success: false, message: 'ChÆ°a cáº¥u hÃ¬nh URL Google Apps Script há»£p lá»‡!' };
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
   }
 
-  // 1. Thá»­ xÃ¡c thá»±c trá»±c tuyáº¿n qua Google Apps Script / Google Sheets (POST)
+  // 1. Thử xác thực trực tuyến qua Google Apps Script / Google Sheets (POST)
   try {
     const controller = new AbortController();
-    // TÄƒng timeout lÃªn 15 giÃ¢y Ä‘á»ƒ khÃ´ng bá»‹ abort khi server Ä‘ang Ä‘á»“ng bá»™ dá»¯ liá»‡u lÃºc táº£i Ä‘áº§u trang
+    // Tăng timeout lên 15 giây để không bị abort khi server đang đồng bộ dữ liệu lúc tải đầu trang
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const res = await fetch(targetUrl, {
@@ -3524,11 +3523,11 @@ export async function verifyPinViaBackend(
     }
     return {
       success: false,
-      message: json.message || 'MÃ£ PIN khÃ´ng Ä‘Ãºng!',
+      message: json.message || 'Mã PIN không đúng!',
       isLocked: json.code === 'LOCKED'
     };
   } catch (netErr: any) {
-    // 2. Dá»± phÃ²ng qua GET náº¿u POST bá»‹ máº¡ng/CORS can thiá»‡p
+    // 2. Dự phòng qua GET nếu POST bị mạng/CORS can thiệp
     try {
       const getController = new AbortController();
       const getTimerId = setTimeout(() => getController.abort(), 10000);
@@ -3542,20 +3541,20 @@ export async function verifyPinViaBackend(
       }
       return {
         success: false,
-        message: getJson.message || 'MÃ£ PIN khÃ´ng Ä‘Ãºng!',
+        message: getJson.message || 'Mã PIN không đúng!',
         isLocked: getJson.code === 'LOCKED'
       };
     } catch (getErr) {
       return {
         success: false,
-        message: 'KhÃ´ng thá»ƒ káº¿t ná»‘i tá»›i mÃ¡y chá»§ Google Sheets Ä‘á»ƒ xÃ¡c thá»±c mÃ£ PIN. Vui lÃ²ng kiá»ƒm tra láº¡i káº¿t ná»‘i máº¡ng!'
+        message: 'Không thể kết nối tới máy chủ Google Sheets để xác thực mã PIN. Vui lòng kiểm tra lại kết nối mạng!'
       };
     }
   }
 }
 
 /**
- * Cáº­p nháº­t vÃ  Ä‘á»“ng bá»™ mÃ£ PIN báº£o máº­t lÃªn Google Sheets
+ * Cập nhật và đồng bộ mã PIN bảo mật lên Google Sheets
  */
 export async function updatePinsViaBackend(
   payload: { currentAdminPin: string; newAdminPin?: string; newTreasurerPin?: string; newBllPin?: string; newMemberPin?: string },
@@ -3566,7 +3565,7 @@ export async function updatePinsViaBackend(
     : DEFAULT_APPS_SCRIPT_URL;
 
   if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
-    return { success: false, message: 'ChÆ°a cáº¥u hÃ¬nh URL Google Apps Script há»£p lá»‡!' };
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
   }
 
   try {
@@ -3580,16 +3579,16 @@ export async function updatePinsViaBackend(
     });
     const json = await res.json();
     if (json.status === 'success') {
-      return { success: true, message: json.message || 'ÄÃ£ Ä‘á»“ng bá»™ mÃ£ PIN má»›i lÃªn Google Sheets thÃ nh cÃ´ng!' };
+      return { success: true, message: json.message || 'Đã đồng bộ mã PIN mới lên Google Sheets thành công!' };
     }
-    return { success: false, message: json.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t mÃ£ PIN trÃªn mÃ¡y chá»§!' };
+    return { success: false, message: json.message || 'Không thể cập nhật mã PIN trên máy chủ!' };
   } catch (err: any) {
-    return { success: false, message: 'Lá»—i káº¿t ná»‘i mÃ¡y chá»§ Google Apps Script: ' + (err?.message || err) };
+    return { success: false, message: 'Lỗi kết nối máy chủ Google Apps Script: ' + (err?.message || err) };
   }
 }
 
 /**
- * Chá»§ Ä‘á»™ng gá»­i yÃªu cáº§u khá»Ÿi táº¡o hoáº·c kiá»ƒm tra Sheet Bao_Mat_PIN lÃªn Google Sheets
+ * Chủ động gửi yêu cầu khởi tạo hoặc kiểm tra Sheet Bao_Mat_PIN lên Google Sheets
  */
 export async function initSecuritySheetViaBackend(
   appsScriptUrl?: string
@@ -3599,36 +3598,36 @@ export async function initSecuritySheetViaBackend(
     : DEFAULT_APPS_SCRIPT_URL;
 
   if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
-    return { success: false, message: 'ChÆ°a cáº¥u hÃ¬nh URL Google Apps Script há»£p lá»‡!' };
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
   }
 
   try {
     const res = await fetch(`${targetUrl}?action=init_security&t=${Date.now()}`);
     const json = await res.json();
     if (json.status === 'success') {
-      return { success: true, message: json.message || 'ÄÃ£ khá»Ÿi táº¡o sheet Bao_Mat_PIN thÃ nh cÃ´ng!' };
+      return { success: true, message: json.message || 'Đã khởi tạo sheet Bao_Mat_PIN thành công!' };
     }
-    return { success: false, message: json.message || 'KhÃ´ng thá»ƒ khá»Ÿi táº¡o sheet!' };
+    return { success: false, message: json.message || 'Không thể khởi tạo sheet!' };
   } catch (err: any) {
-    return { success: false, message: 'Lá»—i káº¿t ná»‘i mÃ¡y chá»§: ' + (err?.message || err) };
+    return { success: false, message: 'Lỗi kết nối máy chủ: ' + (err?.message || err) };
   }
 }
 
 /**
- * Chuáº©n hÃ³a chuá»—i bá» dáº¥u tiáº¿ng Viá»‡t Ä‘á»ƒ tÃ¬m kiáº¿m thÃ´ng minh
+ * Chuẩn hóa chuỗi bỏ dấu tiếng Việt để tìm kiếm thông minh
  */
 export function removeVietnameseAccents(str: string): string {
   if (!str) return '';
   return str
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/Ä‘/g, 'd')
-    .replace(/Ä/g, 'D')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
     .toLowerCase();
 }
 
 /**
- * TÃ¡ch tÃªn gá»i cuá»‘i cÃ¹ng cá»§a ngÆ°á»i Viá»‡t Ä‘á»ƒ sáº¯p xáº¿p A-Z (VD: Nguyá»…n Tuáº¥n Anh -> Anh)
+ * Tách tên gọi cuối cùng của người Việt để sắp xếp A-Z (VD: Nguyễn Tuấn Anh -> Anh)
  */
 export function getVietnameseGivenName(fullName: string): string {
   if (!fullName) return '';
@@ -3637,12 +3636,12 @@ export function getVietnameseGivenName(fullName: string): string {
 }
 
 /**
- * TrÃ­ch xuáº¥t chá»¯ cÃ¡i viáº¿t táº¯t (monogram initials) cá»§a Tháº§y CÃ´ Ä‘á»ƒ hiá»ƒn thá»‹ avatar trang trá»ng khi chÆ°a cÃ³ áº£nh
- * VD: "CÃ´ Tráº§n Thá»‹ Lan" -> "TL", "Tháº§y Nguyá»…n VÄƒn HÃ¹ng" -> "NH", "VÅ© ÄÃ¬nh Thu" -> "VT"
+ * Trích xuất chữ cái viết tắt (monogram initials) của Thầy Cô để hiển thị avatar trang trọng khi chưa có ảnh
+ * VD: "Cô Trần Thị Lan" -> "TL", "Thầy Nguyễn Văn Hùng" -> "NH", "Vũ Đình Thu" -> "VT"
  */
 export function getTeacherInitials(name?: string): string {
   if (!name || !name.trim()) return 'TC';
-  const clean = name.replace(/^(Tháº§y|CÃ´|GS|PGS|TS|ThS)\.?\s+/i, '').trim();
+  const clean = name.replace(/^(Thầy|Cô|GS|PGS|TS|ThS)\.?\s+/i, '').trim();
   const parts = clean.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'TC';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -3652,7 +3651,7 @@ export function getTeacherInitials(name?: string): string {
 }
 
 /**
- * Láº¥y danh sÃ¡ch áº£nh Backdrop mÃ n LED tá»« thÆ° má»¥c "Backdrops_SanKhau" trÃªn Google Drive
+ * Lấy danh sách ảnh Backdrop màn LED từ thư mục "Backdrops_SanKhau" trên Google Drive
  */
 export async function fetchDriveBackdrops(appsScriptUrl?: string): Promise<BackdropItem[]> {
   const targetUrl = appsScriptUrl && appsScriptUrl.trim() !== ''
@@ -3675,13 +3674,13 @@ export async function fetchDriveBackdrops(appsScriptUrl?: string): Promise<Backd
       return json.data;
     }
   } catch (e) {
-    console.warn('Lá»—i láº¥y backdrop tá»« Drive, sá»­ dá»¥ng máº·c Ä‘á»‹nh:', e);
+    console.warn('Lỗi lấy backdrop từ Drive, sử dụng mặc định:', e);
   }
   return DEFAULT_BACKDROPS;
 }
 
 /**
- * Táº£i áº£nh backdrop má»›i lÃªn thÆ° má»¥c Drive "Backdrops_SanKhau" qua Google Apps Script
+ * Tải ảnh backdrop mới lên thư mục Drive "Backdrops_SanKhau" qua Google Apps Script
  */
 export async function uploadBackdropViaBackend(
   payload: { fileData: string; title: string; pin?: string },
@@ -3692,11 +3691,11 @@ export async function uploadBackdropViaBackend(
     : DEFAULT_APPS_SCRIPT_URL;
 
   if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
-    return { success: false, message: 'ChÆ°a cáº¥u hÃ¬nh URL Google Apps Script há»£p lá»‡!' };
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
   }
 
   try {
-    // 1. Thá»­ gá»­i action 'upload_backdrop' (ChuyÃªn dá»¥ng cho thÆ° má»¥c Backdrops_SanKhau)
+    // 1. Thử gửi action 'upload_backdrop' (Chuyên dụng cho thư mục Backdrops_SanKhau)
     let res = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -3709,43 +3708,43 @@ export async function uploadBackdropViaBackend(
     });
     let json = await res.json();
     if (json && json.status === 'success' && json.data) {
-      return { success: true, data: json.data, message: json.message || 'Táº£i backdrop lÃªn Google Drive thÃ nh cÃ´ng!' };
+      return { success: true, data: json.data, message: json.message || 'Tải backdrop lên Google Drive thành công!' };
     }
 
-    // 2. Dá»± phÃ²ng (Fallback): Náº¿u Apps Script trÃªn Google chÆ°a deploy báº£n má»›i, dÃ¹ng action 'upload_photo' Ä‘Ã£ hoáº¡t Ä‘á»™ng á»•n Ä‘á»‹nh trÃªn live Drive
-    console.warn('Endpoint chÆ°a cáº­p nháº­t upload_backdrop, tá»± Ä‘á»™ng chuyá»ƒn sang upload_photo trÃªn Drive:', json?.message);
+    // 2. Dự phòng (Fallback): Nếu Apps Script trên Google chưa deploy bản mới, dùng action 'upload_photo' đã hoạt động ổn định trên live Drive
+    console.warn('Endpoint chưa cập nhật upload_backdrop, tự động chuyển sang upload_photo trên Drive:', json?.message);
     res = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'upload_photo',
         fileData: payload.fileData,
-        caption: '[Backdrop] ' + (payload.title || 'Backdrop SÃ¢n Kháº¥u')
+        caption: '[Backdrop] ' + (payload.title || 'Backdrop Sân Khấu')
       })
     });
     json = await res.json();
     if (json && json.status === 'success' && json.data) {
       const backdropItem: BackdropItem = {
         id: json.data.id || ('bd_' + Date.now()),
-        title: payload.title || 'Backdrop SÃ¢n Kháº¥u',
+        title: payload.title || 'Backdrop Sân Khấu',
         url: json.data.url,
         thumbnail: json.data.thumbnail,
         driveUrl: json.data.driveUrl,
         dateCreated: json.data.date,
         isDefault: false
       };
-      return { success: true, data: backdropItem, message: 'ÄÃ£ táº£i backdrop lÃªn Google Drive thÃ nh cÃ´ng!' };
+      return { success: true, data: backdropItem, message: 'Đã tải backdrop lên Google Drive thành công!' };
     }
 
-    return { success: false, message: json?.message || 'KhÃ´ng thá»ƒ táº£i backdrop lÃªn Google Drive!' };
+    return { success: false, message: json?.message || 'Không thể tải backdrop lên Google Drive!' };
   } catch (err: any) {
-    return { success: false, message: 'Lá»—i káº¿t ná»‘i mÃ¡y chá»§ Drive: ' + (err?.message || err) };
+    return { success: false, message: 'Lỗi kết nối máy chủ Drive: ' + (err?.message || err) };
   }
 }
 
 /**
- * Táº£i áº£nh Ä‘áº¡i diá»‡n cá»§a há»c sinh lÃªn thÆ° má»¥c con "Avatar_Thanh_Vien" trÃªn Google Drive
- * Äá»“ng thá»i tá»± Ä‘á»™ng cáº­p nháº­t link áº£nh vÃ o chuá»—i JSON cá»§a thÃ nh viÃªn
+ * Tải ảnh đại diện của học sinh lên thư mục con "Avatar_Thanh_Vien" trên Google Drive
+ * Đồng thời tự động cập nhật link ảnh vào chuỗi JSON của thành viên
  */
 export async function uploadMemberAvatarViaBackend(
   payload: {
@@ -3760,7 +3759,7 @@ export async function uploadMemberAvatarViaBackend(
     : DEFAULT_APPS_SCRIPT_URL;
 
   if (!targetUrl || targetUrl.includes('YOUR_NEW_DEPLOYMENT_ID')) {
-    return { success: false, message: 'ChÆ°a cáº¥u hÃ¬nh URL Google Apps Script há»£p lá»‡!' };
+    return { success: false, message: 'Chưa cấu hình URL Google Apps Script hợp lệ!' };
   }
 
   try {
@@ -3780,33 +3779,33 @@ export async function uploadMemberAvatarViaBackend(
       return {
         success: true,
         avatarUrl: json.avatarUrl || json.directUrl || json.url,
-        message: json.message || 'ÄÃ£ lÆ°u avatar vÃ o thÆ° má»¥c Avatar_Thanh_Vien trÃªn Google Drive!'
+        message: json.message || 'Đã lưu avatar vào thư mục Avatar_Thanh_Vien trên Google Drive!'
       };
     }
 
     return {
       success: false,
-      message: json?.message || 'KhÃ´ng thá»ƒ lÆ°u avatar lÃªn Google Drive'
+      message: json?.message || 'Không thể lưu avatar lên Google Drive'
     };
   } catch (err: any) {
     return {
       success: false,
-      message: 'Lá»—i káº¿t ná»‘i mÃ¡y chá»§ Google Drive: ' + (err?.message || err)
+      message: 'Lỗi kết nối máy chủ Google Drive: ' + (err?.message || err)
     };
   }
 }
 
 /**
  * ---------------------------------------------------------------------------
- * Cáº¤U HÃŒNH & THUáº¬T TOÃN PHÃ‚N BÃ€N TIá»†C K8A1 (5 BÃ€N Há»ŒC SINH + 1 MÃ‚M THáº¦Y CÃ”)
+ * CẤU HÌNH & THUẬT TOÁN PHÂN BÀN TIỆC K8A1 (5 BÀN HỌC SINH + 1 MÂM THẦY CÔ)
  * ---------------------------------------------------------------------------
  */
 export const BANQUET_TABLES: TableConfigItem[] = [
   {
     id: 0,
-    name: 'MÃ¢m Tri Ã‚n Tháº§y CÃ´',
-    shortName: 'MÃ¢m Tháº§y CÃ´',
-    description: 'DÃ nh riÃªng Ä‘Ã³n tiáº¿p Tháº§y CÃ´ giÃ¡o chá»§ nhiá»‡m vÃ  bá»™ mÃ´n K8A1',
+    name: 'Mâm Tri Ân Thầy Cô',
+    shortName: 'Mâm Thầy Cô',
+    description: 'Dành riêng đón tiếp Thầy Cô giáo chủ nhiệm và bộ môn K8A1',
     maxCapacity: 12,
     isTeacherTable: true,
     badgeBg: 'bg-rose-100',
@@ -3815,9 +3814,9 @@ export const BANQUET_TABLES: TableConfigItem[] = [
   },
   {
     id: 1,
-    name: 'BÃ n 01 (MÃ¢m 1)',
-    shortName: 'BÃ n 01',
-    description: 'MÃ¢m tiá»‡c há»c sinh K8A1 â€” Tuá»•i Tráº» & Ká»· Niá»‡m',
+    name: 'Bàn 01 (Mâm 1)',
+    shortName: 'Bàn 01',
+    description: 'Mâm tiệc học sinh K8A1 — Tuổi Trẻ & Kỷ Niệm',
     maxCapacity: 10,
     badgeBg: 'bg-amber-100',
     badgeText: 'text-amber-900',
@@ -3825,9 +3824,9 @@ export const BANQUET_TABLES: TableConfigItem[] = [
   },
   {
     id: 2,
-    name: 'BÃ n 02 (MÃ¢m 2)',
-    shortName: 'BÃ n 02',
-    description: 'MÃ¢m tiá»‡c há»c sinh K8A1 â€” Thanh XuÃ¢n Rá»±c Rá»¡',
+    name: 'Bàn 02 (Mâm 2)',
+    shortName: 'Bàn 02',
+    description: 'Mâm tiệc học sinh K8A1 — Thanh Xuân Rực Rỡ',
     maxCapacity: 10,
     badgeBg: 'bg-emerald-100',
     badgeText: 'text-emerald-900',
@@ -3835,9 +3834,9 @@ export const BANQUET_TABLES: TableConfigItem[] = [
   },
   {
     id: 3,
-    name: 'BÃ n 03 (MÃ¢m 3)',
-    shortName: 'BÃ n 03',
-    description: 'MÃ¢m tiá»‡c há»c sinh K8A1 â€” Gáº¯n Káº¿t Bá»n LÃ¢u',
+    name: 'Bàn 03 (Mâm 3)',
+    shortName: 'Bàn 03',
+    description: 'Mâm tiệc học sinh K8A1 — Gắn Kết Bền Lâu',
     maxCapacity: 10,
     badgeBg: 'bg-blue-100',
     badgeText: 'text-blue-900',
@@ -3845,9 +3844,9 @@ export const BANQUET_TABLES: TableConfigItem[] = [
   },
   {
     id: 4,
-    name: 'BÃ n 04 (MÃ¢m 4)',
-    shortName: 'BÃ n 04',
-    description: 'MÃ¢m tiá»‡c há»c sinh K8A1 â€” 20 NÄƒm NgÃ y Trá»Ÿ Vá»',
+    name: 'Bàn 04 (Mâm 4)',
+    shortName: 'Bàn 04',
+    description: 'Mâm tiệc học sinh K8A1 — 20 Năm Ngày Trở Về',
     maxCapacity: 10,
     badgeBg: 'bg-purple-100',
     badgeText: 'text-purple-900',
@@ -3855,9 +3854,9 @@ export const BANQUET_TABLES: TableConfigItem[] = [
   },
   {
     id: 5,
-    name: 'BÃ n 05 (MÃ¢m 5)',
-    shortName: 'BÃ n 05',
-    description: 'MÃ¢m tiá»‡c há»c sinh K8A1 â€” MÃ£i MÃ£i Má»™t Thá»i',
+    name: 'Bàn 05 (Mâm 5)',
+    shortName: 'Bàn 05',
+    description: 'Mâm tiệc học sinh K8A1 — Mãi Mãi Một Thời',
     maxCapacity: 10,
     badgeBg: 'bg-amber-100',
     badgeText: 'text-amber-900',
@@ -3874,9 +3873,9 @@ export function getTableConfig(tableNumber?: number): TableConfigItem {
   const num = tableNumber || 1;
   return {
     id: num,
-    name: `BÃ n 0${num} (MÃ¢m ${num})`,
-    shortName: `BÃ n 0${num}`,
-    description: 'MÃ¢m tiá»‡c há»c sinh K8A1',
+    name: `Bàn 0${num} (Mâm ${num})`,
+    shortName: `Bàn 0${num}`,
+    description: 'Mâm tiệc học sinh K8A1',
     maxCapacity: 10,
     badgeBg: 'bg-amber-100',
     badgeText: 'text-amber-900',
@@ -3885,11 +3884,11 @@ export function getTableConfig(tableNumber?: number): TableConfigItem {
 }
 
 /**
- * Thuáº­t toÃ¡n phÃ¢n bÃ n thÃ´ng minh cho há»c sinh K8A1:
- * - Ráº£i Ä‘á»u thÃ nh viÃªn BLL (háº¡t nhÃ¢n káº¿t ná»‘i) vÃ o 5 bÃ n
- * - CÃ¢n báº±ng tá»· lá»‡ Nam / Ná»¯
- * - Tá»‘i Ä‘a 10 ngÆ°á»i/bÃ n (1 Ä‘áº¿n 5)
- * - Giá»¯ nguyÃªn nhá»¯ng ai Ä‘Ã£ Ä‘Æ°á»£c phÃ¢n bÃ n tá»« trÆ°á»›c (khÃ´ng Ä‘á»•i náº¿u Ä‘Ã£ cÃ³)
+ * Thuật toán phân bàn thông minh cho học sinh K8A1:
+ * - Rải đều thành viên BLL (hạt nhân kết nối) vào 5 bàn
+ * - Cân bằng tỷ lệ Nam / Nữ
+ * - Tối đa 10 người/bàn (1 đến 5)
+ * - Giữ nguyên những ai đã được phân bàn từ trước (không đổi nếu đã có)
  */
 export function autoAssignStudentTables(
   rsvpList: RsvpData[], 
@@ -3897,11 +3896,11 @@ export function autoAssignStudentTables(
   options?: { studentHostsForTeacherTable?: number }
 ): { updatedList: RsvpData[]; stats: Record<number, number> } {
   const attendees = rsvpList.filter(a => a.status === 'yes');
-  // Sá»©c chá»©a cÃ¡c bÃ n: 0 (MÃ¢m Tháº§y CÃ´ - há»c sinh tiáº¿p Ä‘Ã³n), 1-5 (Há»c sinh)
+  // Sức chứa các bàn: 0 (Mâm Thầy Cô - học sinh tiếp đón), 1-5 (Học sinh)
   const tableCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   const assignedMap = new Map<string, number>();
 
-  // 1. GIá»® NGUYÃŠN TUYá»†T Äá»I nhá»¯ng ai Ä‘Ã£ cÃ³ bÃ n há»£p lá»‡ (BÃ n 0 MÃ¢m Tháº§y CÃ´ hoáº·c BÃ n 1-5)
+  // 1. GIỮ NGUYÊN TUYỆT ĐỐI những ai đã có bàn hợp lệ (Bàn 0 Mâm Thầy Cô hoặc Bàn 1-5)
   attendees.forEach(a => {
     const key = a.memberId || a.phone || a.fullName;
     if (a.tableNumber !== undefined && a.tableNumber !== null && a.tableNumber >= 0 && a.tableNumber <= 5) {
@@ -3924,9 +3923,9 @@ export function autoAssignStudentTables(
     const isFemale = (a: RsvpData) => {
       const roster = rosterList.find(m => (a.memberId && m.id === a.memberId) || isVietnameseNameMatch(m.fullName, a.fullName));
       const g = (roster?.gender || '').toLowerCase();
-      if (g.includes('ná»¯') || g.includes('female') || g === 'f') return true;
+      if (g.includes('nữ') || g.includes('female') || g === 'f') return true;
       const fn = a.fullName.toLowerCase();
-      return fn.includes('thá»‹') || fn.includes('ngá»c') || fn.includes('hÆ°Æ¡ng') || fn.includes('mai') || fn.includes('lan');
+      return fn.includes('thị') || fn.includes('ngọc') || fn.includes('hương') || fn.includes('mai') || fn.includes('lan');
     };
 
     const bllMembers = unassigned.filter(isBLL);
@@ -3947,11 +3946,11 @@ export function autoAssignStudentTables(
       return bestTable;
     };
 
-    // TÃ¹y chá»n: Bá»‘ trÃ­ há»c sinh ngá»“i MÃ¢m Tháº§y CÃ´ Ä‘á»ƒ tiáº¿p Ä‘Ã³n (máº·c Ä‘á»‹nh 2-4 báº¡n náº¿u chÆ°a ai Ä‘Æ°á»£c phÃ¢n)
+    // Tùy chọn: Bố trí học sinh ngồi Mâm Thầy Cô để tiếp đón (mặc định 2-4 bạn nếu chưa ai được phân)
     const targetHosts = options?.studentHostsForTeacherTable !== undefined ? options.studentHostsForTeacherTable : 2;
     let currentHosts = tableCounts[0] || 0;
 
-    // Náº¿u MÃ¢m Tháº§y CÃ´ chÆ°a Ä‘á»§ sá»‘ há»c sinh tiáº¿p Ä‘Ã³n, Æ°u tiÃªn phÃ¢n CÃ¡n sá»± BLL vÃ o MÃ¢m 0
+    // Nếu Mâm Thầy Cô chưa đủ số học sinh tiếp đón, ưu tiên phân Cán sự BLL vào Mâm 0
     if (currentHosts < targetHosts && bllMembers.length > 0) {
       const hostsToPick = Math.min(targetHosts - currentHosts, bllMembers.length);
       for (let h = 0; h < hostsToPick; h++) {
@@ -3964,7 +3963,7 @@ export function autoAssignStudentTables(
       }
     }
 
-    // 1. Ráº£i Ä‘á»u BLL cÃ²n láº¡i vÃ o 5 bÃ n há»c sinh (1-5)
+    // 1. Rải đều BLL còn lại vào 5 bàn học sinh (1-5)
     bllMembers.forEach(a => {
       const t = pickBestTable();
       const key = a.memberId || a.phone || a.fullName;
@@ -3972,7 +3971,7 @@ export function autoAssignStudentTables(
       tableCounts[t] = (tableCounts[t] || 0) + 1;
     });
 
-    // 2. Ráº£i Ä‘á»u Ná»¯
+    // 2. Rải đều Nữ
     females.forEach(a => {
       const t = pickBestTable();
       const key = a.memberId || a.phone || a.fullName;
@@ -3980,7 +3979,7 @@ export function autoAssignStudentTables(
       tableCounts[t] = (tableCounts[t] || 0) + 1;
     });
 
-    // 3. Ráº£i Ä‘á»u Nam
+    // 3. Rải đều Nam
     males.forEach(a => {
       const t = pickBestTable();
       const key = a.memberId || a.phone || a.fullName;
@@ -3995,7 +3994,7 @@ export function autoAssignStudentTables(
     const key = item.memberId || item.phone || item.fullName;
     const tNum = assignedMap.get(key) !== undefined ? assignedMap.get(key)! : (item.tableNumber !== undefined ? item.tableNumber : 1);
     const tCfg = getTableConfig(tNum);
-    const tableNameStr = tNum === 0 ? 'MÃ¢m Tháº§y CÃ´' : tCfg.name;
+    const tableNameStr = tNum === 0 ? 'Mâm Thầy Cô' : tCfg.name;
     return {
       ...item,
       tableNumber: tNum,
@@ -4011,8 +4010,8 @@ export function autoAssignStudentTables(
 
 
 /**
- * Äá»‹nh dáº¡ng thá»i gian hiá»ƒn thá»‹ gá»n gÃ ng, Ä‘áº¹p máº¯t cho áº£nh/video ká»· niá»‡m
- * Loáº¡i bá» chuá»—i ngÃ y giá» dÃ i thÃ´ ká»‡ch dáº¡ng 'Mon Sep 28 2026 22:29:00 GMT+0700...'
+ * Định dạng thời gian hiển thị gọn gàng, đẹp mắt cho ảnh/video kỷ niệm
+ * Loại bỏ chuỗi ngày giờ dài thô kệch dạng 'Mon Sep 28 2026 22:29:00 GMT+0700...'
  */
 export function formatDisplayDate(dateStr?: any): string {
   if (!dateStr) return '';
@@ -4023,28 +4022,28 @@ export function formatDisplayDate(dateStr?: any): string {
   const str = String(dateStr).trim();
   if (!str) return '';
 
-  // Náº¿u lÃ  nÄƒm hoáº·c khoáº£ng nÄƒm Ä‘Æ¡n thuáº§n (vÃ­ dá»¥: '2006', '2003-2006', '2003 â€” 2006')
-  if (/^\d{4}(\s*[-â€”â€“]\s*\d{4})?$/.test(str)) {
+  // Nếu là năm hoặc khoảng năm đơn thuần (ví dụ: '2006', '2003-2006', '2003 — 2006')
+  if (/^\d{4}(\s*[-—–]\s*\d{4})?$/.test(str)) {
     return str;
   }
 
-  // Náº¿u lÃ  chuá»—i ngÃ y dáº¡ng DD/MM/YYYY ngáº¯n gá»n (vÃ­ dá»¥: '28/09/2026')
+  // Nếu là chuỗi ngày dạng DD/MM/YYYY ngắn gọn (ví dụ: '28/09/2026')
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
     return str;
   }
 
-  // Náº¿u lÃ  dáº¡ng cÃ³ giá» '28/09/2026 14:25' -> láº¥y ngÃ y '28/09/2026'
+  // Nếu là dạng có giờ '28/09/2026 14:25' -> lấy ngày '28/09/2026'
   const dateMatch = str.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
   if (dateMatch) {
     return dateMatch[1];
   }
 
-  // Náº¿u chá»©a ngÃ y giá» dÃ i dáº¡ng 'Mon Sep 28 2026 22:29:00 GMT+0700...' hoáº·c ISO
+  // Nếu chứa ngày giờ dài dạng 'Mon Sep 28 2026 22:29:00 GMT+0700...' hoặc ISO
   const d = new Date(str);
   if (!isNaN(d.getTime())) {
     const pad = (n: number) => n < 10 ? '0' + n : n;
     const year = d.getFullYear();
-    // Náº¿u lÃ  niÃªn khÃ³a 2003-2006 thÃ¬ hiá»ƒn thá»‹ nÄƒm
+    // Nếu là niên khóa 2003-2006 thì hiển thị năm
     if (year >= 2003 && year <= 2006) {
       return '' + year;
     }
@@ -4053,4 +4052,3 @@ export function formatDisplayDate(dateStr?: any): string {
 
   return str.length > 15 ? '' : str;
 }
-
