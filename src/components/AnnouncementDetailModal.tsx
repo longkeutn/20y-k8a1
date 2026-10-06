@@ -253,6 +253,12 @@ ${shareUrl}`;
     setTimeout(() => setCopiedZalo(false), 3500);
   };
 
+  const handleFacebookShare = () => {
+    const shareUrl = getShareUrl();
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    window.open(fbUrl, '_blank', 'noopener,noreferrer,width=640,height=580');
+  };
+
   const handleActionClick = () => {
     if (!announcement.actionUrl) return;
     onClose();
@@ -806,19 +812,29 @@ ${shareUrl}`;
               </div>
             </div>
 
-            <div className="pt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={handleCopyZaloMessage}
-                className="flex-1 py-2 px-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-sans font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>{copiedZalo ? 'Đã sao chép Zalo!' : 'Soạn tin Zalo'}</span>
-              </button>
+            <div className="pt-2 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleFacebookShare}
+                  className="flex-1 py-2 px-3 rounded-xl bg-[#1877F2] text-white hover:bg-[#166fe5] font-sans font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Chia sẻ Facebook</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyZaloMessage}
+                  className="flex-1 py-2 px-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-sans font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{copiedZalo ? 'Đã sao chép Zalo!' : 'Soạn tin Zalo'}</span>
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowShareModal(false)}
-                className="py-2 px-4 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-sans font-bold text-xs transition cursor-pointer"
+                className="w-full py-2 px-4 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-sans font-bold text-xs transition cursor-pointer"
               >
                 Đóng
               </button>

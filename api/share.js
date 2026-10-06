@@ -18,35 +18,56 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 phút
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby_hm9akENv_GmNpF8s9ALVReDd_8ORPS_RqpUZ9FS6GB_Qdnmjhh5XZ5iKZhnE_9S0/exec?action=get_announcements';
 
 // Danh mục bài viết mặc định dự phòng phản hồi siêu tốc nếu mạng chậm
+// Danh mục bài viết mặc định dự phòng phản hồi siêu tốc nếu mạng chậm
 const FALLBACK_ANNOUNCEMENTS = {
+  'tb-1791260430101': {
+    title: 'Phùng Bá Thắng và chiếc áo lớp số 47',
+    desc: 'Bạn rời đi khi tuổi đời vừa tròn 20… cái tuổi mà chúng mình khi ấy còn chưa biết cuộc đời sẽ dài đến đâu, chưa biết 20 năm sau mình sẽ trở thành những ai, chưa kịp hiểu hết hai chữ "vô thường"...',
+    img: 'https://lh3.googleusercontent.com/d/1wPROM4Yti-_9IY8-IcHngxv9vhxhbA0n=w1600'
+  },
   'tb-report-20y': {
-    title: 'Báo cáo tổng kết 20 năm ngày ra trường Niên khóa 2003 - 2006',
-    desc: 'Hành trình 20 năm thanh xuân - Báo cáo tổng kết toàn diện ngày hội khóa và tri ân thầy cô K8A1 THPT Thái Nguyên.',
-    img: 'https://lh3.googleusercontent.com/d/1B0qfPjF8425gW8BwFv16_Pfv1n5N5sL-=w1600'
+    title: '🏆 DẤU ẤN 2 DECADES: Ký Sự Đại Lễ 20 Năm & Kỳ Tích Số Hóa Hội Khóa K8A1',
+    desc: 'Bản ký sự & báo cáo tổng kết chính thức: Nhìn lại hành trình 2 thập kỷ tri kỷ với 24 giờ hội ngộ xúc động nghẹn ngào, 4 con số kỷ lục lịch sử và 5 kỳ tích công nghệ 4.0 tiên phong của ngày 27/09/2026.',
+    img: 'https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600'
+  },
+  'tong-ket-20-nam': {
+    title: '🏆 DẤU ẤN 2 DECADES: Ký Sự Đại Lễ 20 Năm & Kỳ Tích Số Hóa Hội Khóa K8A1',
+    desc: 'Bản ký sự & báo cáo tổng kết chính thức: Nhìn lại hành trình 2 thập kỷ tri kỷ với 24 giờ hội ngộ xúc động nghẹn ngào, 4 con số kỷ lục lịch sử và 5 kỳ tích công nghệ 4.0 tiên phong của ngày 27/09/2026.',
+    img: 'https://lh3.googleusercontent.com/d/1PyvlmILYdK-Lx12ohrHfBV-ppDjHDhhg=w1600'
   },
   'tb-01': {
-    title: 'Thông Báo Số 01: Kế Hoạch Tổ Chức Kỷ Niệm 20 Năm Ngày Ra Trường K8A1',
+    title: '🚨 Chốt danh sách đặt may Áo Polo kỷ niệm 20 năm K8A1 — Hạn chót 18/09',
+    desc: 'Thông báo triển khai phát động đăng ký mẫu áo đồng phục kỷ niệm 20 năm và tiếp nhận đóng góp quỹ lớp.',
+    img: '/sample-polo-k8a1.jpg'
+  },
+  'tb-02': {
+    title: '📋 Kế hoạch chi tiết & Lịch trình Ngày Hội Khóa 20 Năm (Chủ Nhật, 27/09/2026)',
     desc: 'Kế hoạch tổng thể ngày hội khóa 20 năm (2006 - 2026), thời gian, địa điểm và chương trình chi tiết.',
     img: ''
   },
-  'tb-02': {
-    title: 'Thông Báo Số 02: Khởi Động Đăng Ký Size Áo Kỷ Niệm 20 Năm & Thu Chi Quỹ Lớp',
-    desc: 'Thông báo triển khai phát động đăng ký mẫu áo đồng phục kỷ niệm 20 năm và tiếp nhận đóng góp quỹ lớp.',
-    img: ''
-  },
   'tb-03': {
-    title: 'Thông Báo Số 03: Chốt Danh Sách Đăng Ký & Phát Hành Thư Mời Thầy Cô',
+    title: '💰 Báo cáo tiến độ Quỹ Lớp K8A1 & Tri ân các bạn đã hoàn thành đóng góp sớm',
     desc: 'Ban Liên Lạc hoàn tất danh sách cựu học sinh tham dự và gửi thư mời trân trọng tới các thầy cô giáo.',
     img: ''
   },
   'tb-04': {
-    title: 'Ký sự BLL tiền trạm nhà hàng The Prime & Thăm hỏi trường THPT Thái Nguyên',
+    title: '📸 Ký sự BLL tiền trạm nhà hàng The Prime & Thăm hỏi trường THPT Thái Nguyên',
     desc: 'Đại diện Ban Liên Lạc đã làm việc trực tiếp với Ban Giám Hiệu nhà trường và nhà hàng The Prime.',
     img: ''
   },
   'tb-05': {
-    title: 'Khảo Sát Ý Kiến: Lựa Chọn Quà Lưu Niệm & Thiết Kế Áo Lớp 20 Năm',
+    title: '🗳️ Khảo Sát Ý Kiến: Lựa Chọn Quà Lưu Niệm & Thiết Kế Áo Lớp 20 Năm',
     desc: 'Bình chọn và khảo sát ý kiến các thành viên về các hoạt động kỷ niệm 20 năm.',
+    img: ''
+  },
+  'tb-1790736651032': {
+    title: '💌 Lời Tri Ân — K8A1 20 Năm: Một Chặng Đường, Một Đời Tình Bạn',
+    desc: 'Bản tin tri ân hành trình 20 năm tình bạn niên khóa 2003 - 2006 K8A1 THPT Thái Nguyên.',
+    img: ''
+  },
+  'tb-1790736897269': {
+    title: '👗 Thông Báo Từ BTC: Timeline – Concept Chụp Ảnh – Trang Phục 20 Năm',
+    desc: 'Thông báo chính thức từ BTC về lịch trình, quy định trang phục và concept chụp ảnh kỷ niệm.',
     img: ''
   }
 };
@@ -185,8 +206,10 @@ export default async function handler(req, res) {
 
   const safeTitle = escapeHtml(postTitle);
   const safeDesc = escapeHtml(postDesc);
-  const safeImg = escapeHtml(postImg);
-  const canonicalUrl = `${proto}://${host}${req.url}`;
+  const vParam = req.query.v ? `?v=${encodeURIComponent(req.query.v)}` : '';
+  const canonicalUrl = newsId 
+    ? `${proto}://${host}/s/${encodeURIComponent(newsId)}${vParam}`
+    : `${proto}://${host}/`;
   const safeCanonicalUrl = escapeHtml(canonicalUrl);
   const safeTargetUrl = escapeHtml(targetUrl);
 
