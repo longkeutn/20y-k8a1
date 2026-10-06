@@ -202,27 +202,11 @@ export default function AnnouncementDetailModal({
     if (typeof window === 'undefined') return 'https://k8a1.vercel.app';
     const origin = window.location.origin;
     const key = announcement.slug || announcement.id;
-    const rawCover = announcement.imageUrl || (Array.isArray(announcement.images) && announcement.images[0]) || '';
-    // Nếu là base64 thì không đưa vào query URL để tránh tràn độ dài URL
-    const cover = rawCover.startsWith('data:image/') ? '' : rawCover;
-
-    // Chuyển hướng qua /api/share để Zalo/Facebook tự động lấy thẻ Open Graph (ảnh preview + tiêu đề)
-    const params = new URLSearchParams();
-    params.set('news', key);
-    params.set('title', announcement.title);
-    if (announcement.summary) {
-      params.set('desc', announcement.summary.slice(0, 120));
-    }
-    if (cover) {
-      params.set('img', cover);
-      // Tạo mã phiên bản để MXH (Facebook/Zalo) luôn tải mới lại ảnh thay vì dùng cache cũ
-      const vCode = cover.split(/[/=_-]/).filter(Boolean).pop()?.slice(0, 8) || 'v1';
-      params.set('v', vCode);
-    } else {
-      params.set('v', 'default');
-    }
-    return `${origin}/api/share?${params.toString()}`;
+    if (!key) return `${origin}/`;
+    // Đường link chia sẻ siêu ngắn gọn, tinh tế (/s/id), tự động sinh thẻ Open Graph ảnh to cho Zalo & Facebook
+    return `${origin}/s/${encodeURIComponent(key)}`;
   };
+
 
   const handleCopyLink = () => {
     const url = getShareUrl();

@@ -520,7 +520,7 @@ export default function App() {
     } catch (e) {}
   };
 
-  // Đóng bài viết thông báo & xóa param ?news khỏi URL mà không reload trang
+  // Đóng bài viết thông báo & xóa param ?news hoặc /s/ khỏi URL mà không reload trang
   const handleCloseAnnouncement = () => {
     setSelectedAnnouncement(null);
     try {
@@ -529,15 +529,23 @@ export default function App() {
         url.searchParams.delete('news');
         url.searchParams.delete('post');
         url.searchParams.delete('announcement');
-        window.history.pushState({}, '', url.toString());
       }
+      if (url.pathname.startsWith('/s/')) {
+        url.pathname = '/';
+      }
+      window.history.pushState({}, '', url.toString());
     } catch (e) {}
   };
 
-  // Tự động nhận diện và mở bài viết từ deep link (?news=tong-ket-20-nam, ?post=..., ?announcement=...)
+  // Tự động nhận diện và mở bài viết từ deep link (/s/..., ?news=tong-ket-20-nam, ?post=..., ?announcement=...)
   useEffect(() => {
     const parseTargetNews = () => {
       if (typeof window === 'undefined') return null;
+      const pathname = window.location.pathname || '';
+      if (pathname.startsWith('/s/')) {
+        const pathPart = pathname.replace(/^\/s\//, '').split('/')[0].split('?')[0];
+        if (pathPart) return decodeURIComponent(pathPart);
+      }
       const search = window.location.search || '';
       const hash = window.location.hash || '';
       const params = new URLSearchParams(search);

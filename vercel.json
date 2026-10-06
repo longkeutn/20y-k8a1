@@ -1,5 +1,7 @@
 {
   "rewrites": [
+    { "source": "/s", "destination": "/" },
+    { "source": "/s/(.*)", "destination": "/api/share?news=$1" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/" }
   ]
