@@ -587,53 +587,7 @@ ${shareUrl}
           )}
 
           {/* TOÀN VĂN NỘI DUNG CHI TIẾT */}
-          <div className="space-y-3 pt-1 text-slate-800">
-            {paragraphs.map((p, idx) => {
-              // Hỗ trợ hiển thị ảnh markdown dạng ![chú thích](url)
-              const imgMatch = p.trim().match(/^!\[(.*?)\]\((.*?)\)$/);
-              if (imgMatch) {
-                const caption = imgMatch[1];
-                const src = imgMatch[2];
-                return (
-                  <figure key={idx} className="my-3 rounded-2xl overflow-hidden border border-amber-300/80 shadow-md bg-white">
-                    <img 
-                      src={src} 
-                      alt={caption || 'Ảnh minh họa'} 
-                      className="w-full max-h-[380px] object-cover cursor-zoom-in hover:scale-101 transition duration-300"
-                      onClick={() => {
-                        const foundIdx = allImages.indexOf(src);
-                        setLightboxIndex(foundIdx >= 0 ? foundIdx : 0);
-                      }}
-                    />
-                    {caption && (
-                      <figcaption className="p-2.5 text-center text-xs text-amber-900 font-sans italic bg-amber-50/70 border-t border-amber-100">
-                        📷 {caption}
-                      </figcaption>
-                    )}
-                  </figure>
-                );
-              }
-
-              // Hỗ trợ hiển thị gạch đầu dòng nếu có
-              if (p.includes('•') || p.includes('- ')) {
-                const lines = p.split('\n');
-                return (
-                  <div key={idx} className="space-y-1.5 py-1">
-                    {lines.map((line, lIdx) => (
-                      <p key={lIdx} className={line.trim().startsWith('•') || line.trim().startsWith('-') ? 'pl-3 font-sans' : 'font-sans font-medium'}>
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-                );
-              }
-              return (
-                <p key={idx} className="font-sans text-slate-800 leading-relaxed whitespace-pre-line">
-                  {p}
-                </p>
-              );
-            })}
-          </div>
+          <div className="space-y-3 pt-1 text-slate-800 ql-editor px-0 text-sm sm:text-[15px]" dangerouslySetInnerHTML={{ __html: announcement.content }} />
 
           {/* LỜI KẾT & CHỮ KÝ BLL */}
           <div className="pt-4 border-t border-amber-200/80 flex items-center justify-between text-xs text-slate-500 font-sans">

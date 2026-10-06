@@ -32,6 +32,7 @@ import {
   PlusCircle,
   FolderOpen
 } from 'lucide-react';
+import RichTextEditor from './RichTextEditor';
 import { Announcement, AnnouncementCategory, PollData, PollOption } from '../types';
 import { CATEGORY_STYLES } from './AnnouncementDetailModal';
 import { DEFAULT_MEMORIES } from '../data';
@@ -495,7 +496,7 @@ export default function AdminAnnouncementManager({
     const zaloMessage = `📢 [K8A1 - 20 NĂM NGÀY TRỞ VỀ]
 ${catInfo.icon} ${item.title.toUpperCase()}
 -----------------------------------
-${item.summary || item.content.slice(0, 160)}
+${item.summary || (item.content ? item.content.replace(/<[^>]*>?/gm, '').slice(0, 160) : '')}
 
 ${item.actionLabel ? `👉 ${item.actionLabel}: ` : '👉 Xem chi tiết & tương tác ngay tại Web Lớp: '}
 ${webUrl}
@@ -1021,14 +1022,7 @@ ${webUrl}
                   </label>
                   <span className="text-[10px] text-slate-400">Hỗ trợ xuống dòng, danh sách, emoji</span>
                 </div>
-                <textarea
-                  rows={6}
-                  required
-                  placeholder="Nhập toàn bộ thông tin chi tiết, lịch trình, lưu ý, số điện thoại liên hệ..."
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:border-amber-500 leading-relaxed font-sans"
-                />
+                <RichTextEditor value={formData.content} onChange={(html) => setFormData({ ...formData, content: html })} />
               </div>
 
               {/* =============================================================== */}
